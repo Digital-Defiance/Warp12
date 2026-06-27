@@ -1,0 +1,3 @@
+[submodule "DoubleTwelve"]
+	path = vendor/DoubleTwelve
+	url = https://github.com/JessicaMulein/DoubleTwelve.git

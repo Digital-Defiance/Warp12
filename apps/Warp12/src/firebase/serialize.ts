@@ -1,0 +1,336 @@
+import type {
+  GameAction,
+  GameState,
+  RoundState,
+} from '@warp12/Warp12-lib';
+
+import type {
+  FirestoreCoordinate,
+  FirestoreGameDocument,
+  FirestorePlacedCoordinate,
+  FirestorePublicRound,
+  FirestoreTableDocument,
+} from './schema.js';
+
+type Coordinate = { low: number; high: number };
+
+export function toFirestoreCoordinate(c: Coordinate): FirestoreCoordinate {
+  return { low: c.low, high: c.high };
+}
+
+export function fromFirestoreCoordinate(c: FirestoreCoordinate): Coordinate {
+  return { low: c.low, high: c.high };
+}
+
+function toPlaced(p: {
+  coordinate: Coordinate;
+  index: number;
+  openValue: number;
+}): FirestorePlacedCoordinate {
+  return {
+    coordinate: toFirestoreCoordinate(p.coordinate),
+    index: p.index,
+    openValue: p.openValue,
+  };
+}
+
+function fromPlaced(p: FirestorePlacedCoordinate): {
+  coordinate: Coordinate;
+  index: number;
+  openValue: number;
+} {
+  return {
+    coordinate: fromFirestoreCoordinate(p.coordinate),
+    index: p.index,
+    openValue: p.openValue,
+  };
+}
+
+export function serializePublicGame(state: GameState): FirestoreGameDocument {
+  const now = new Date().toISOString();
+  return {
+    id: state.id,
+    phase: state.phase,
+    hostId: '',
+    createdAt: now,
+    updatedAt: now,
+    modules: {
+      qContinuum: state.modules.qContinuum.enabled,
+      salamanderPenalty: state.modules.salamanderPenalty.enabled,
+      subspaceFracture: state.modules.subspaceFracture.enabled,
+    },
+    objective: state.objective,
+    captains: state.captains.map((c) => ({
+      id: c.id,
+      displayName: c.displayName,
+      penaltyScore: c.penaltyScore,
+      joinedAt: new Date().toISOString(),
+    })),
+    completedRounds: state.completedRounds,
+    round: state.round ? serializePublicRound(state.round) : null,
+    qFlash: state.modules.qContinuum.activeFlash
+      ? {
+          invokedBy: state.modules.qContinuum.activeFlash.invokedBy,
+          effect: {
+            kind: state.modules.qContinuum.activeFlash.effect.kind,
+            ...(state.modules.qContinuum.activeFlash.effect.targetPlayerId
+              ? {
+                  targetPlayerId:
+                    state.modules.qContinuum.activeFlash.effect.targetPlayerId,
+                }
+              : {}),
+            ...(state.modules.qContinuum.activeFlash.effect.peek
+              ? {
+                  peek: {
+                    index: state.modules.qContinuum.activeFlash.effect.peek.index,
+                    coordinate: toFirestoreCoordinate(
+                      state.modules.qContinuum.activeFlash.effect.peek.coordinate
+                    ),
+                  },
+                }
+              : {}),
+          },
+        }
+      : null,
+  };
+}
+
+function serializePublicRound(round: RoundState): FirestorePublicRound {
+  const handCounts = Object.fromEntries(
+    Object.entries(round.hands).map(([id, hand]) => [id, hand.length])
+  );
+
+  return {
+    roundNumber: round.roundNumber,
+    spacedockValue: round.spacedockValue,
+    phase: round.phase,
+    activePlayerId: round.activePlayerId,
+    turnOrder: [...round.turnOrder],
+    handCounts,
+    unchartedSectors: round.unchartedSectors.map(toFirestoreCoordinate),
+    treatyDeclarationRequired: round.treatyDeclarationRequired,
+    treatyDeclared: round.treatyDeclared,
+    roundWinnerId: round.roundWinnerId,
+    qPendingInvoker: round.qPendingInvoker,
+    qEffects: round.qEffects
+      ? {
+          reverseTurnOrder: round.qEffects.reverseTurnOrder,
+          temporalInversion: round.qEffects.temporalInversion,
+          openAllTrails: round.qEffects.openAllTrails,
+          suppressNextFracture: round.qEffects.suppressNextFracture,
+          skipNextTurnFor: [...round.qEffects.skipNextTurnFor],
+          peekedSector: round.qEffects.peekedSector
+            ? {
+                index: round.qEffects.peekedSector.index,
+                coordinate: toFirestoreCoordinate(
+                  round.qEffects.peekedSector.coordinate
+                ),
+                visibleTo: round.qEffects.peekedSector.visibleTo,
+              }
+            : null,
+          salamanderSwap: round.qEffects.salamanderSwap,
+          treatyEcho: round.qEffects.treatyEcho,
+        }
+      : null,
+    qGamblePending: round.qGamblePending
+      ? {
+          playerId: round.qGamblePending.playerId,
+          options: [
+            toFirestoreCoordinate(round.qGamblePending.options[0]),
+            toFirestoreCoordinate(round.qGamblePending.options[1]),
+          ],
+        }
+      : null,
+    table: serializeTable(round),
+  };
+}
+
+function serializeTable(round: RoundState): FirestoreTableDocument {
+  const { table } = round;
+  return {
+    spacedock: {
+      value: table.spacedock.value,
+      placedBy: table.spacedock.placedBy,
+    },
+    warpTrails: Object.values(table.warpTrails).map((trail) => ({
+      playerId: trail.playerId,
+      tiles: trail.tiles.map(toPlaced),
+      distressBeaconActive: trail.distressBeacon.active,
+    })),
+    neutralZone: {
+      tiles: table.neutralZone.tiles.map(toPlaced),
+    },
+    subspaceFracture: table.subspaceFracture
+      ? {
+          active: table.subspaceFracture.active,
+          anchor: toPlaced(table.subspaceFracture.anchor),
+          stabilizers: table.subspaceFracture.stabilizers.map(toPlaced),
+          requiredValue: table.subspaceFracture.requiredValue,
+        }
+      : null,
+    redAlert: table.redAlert
+      ? {
+          active: table.redAlert.active,
+          anchor: toPlaced(table.redAlert.anchor),
+          responsiblePlayerId: table.redAlert.responsiblePlayerId,
+          trailPlayerId: table.redAlert.trailPlayerId,
+        }
+      : null,
+  };
+}
+
+export function mergeHandsIntoGame(
+  doc: FirestoreGameDocument,
+  handsByPlayer: Readonly<Record<string, readonly Coordinate[]>>
+): GameState {
+  const warpTrails: RoundState['table']['warpTrails'] = {};
+  const tableDoc = doc.round?.table;
+
+  if (tableDoc) {
+    for (const trail of tableDoc.warpTrails) {
+      warpTrails[trail.playerId] = {
+        playerId: trail.playerId,
+        tiles: trail.tiles.map(fromPlaced),
+        distressBeacon: { active: trail.distressBeaconActive },
+      };
+    }
+  }
+
+  const round: RoundState | null = doc.round
+    ? {
+        roundNumber: doc.round.roundNumber,
+        spacedockValue: doc.round.spacedockValue,
+        phase: doc.round.phase,
+        activePlayerId: doc.round.activePlayerId,
+        turnOrder: doc.round.turnOrder,
+        hands: Object.fromEntries(
+          doc.round.turnOrder.map((id) => [
+            id,
+            [...(handsByPlayer[id] ?? [])],
+          ])
+        ),
+        unchartedSectors: doc.round.unchartedSectors.map(fromFirestoreCoordinate),
+        treatyDeclarationRequired: doc.round.treatyDeclarationRequired,
+        treatyDeclared: doc.round.treatyDeclared,
+        roundWinnerId: doc.round.roundWinnerId,
+        qPendingInvoker: doc.round.qPendingInvoker ?? null,
+        qEffects: doc.round.qEffects
+          ? {
+              reverseTurnOrder: doc.round.qEffects.reverseTurnOrder,
+              temporalInversion: doc.round.qEffects.temporalInversion,
+              openAllTrails: doc.round.qEffects.openAllTrails,
+              suppressNextFracture: doc.round.qEffects.suppressNextFracture,
+              skipNextTurnFor: [...doc.round.qEffects.skipNextTurnFor],
+              peekedSector: doc.round.qEffects.peekedSector
+                ? {
+                    index: doc.round.qEffects.peekedSector.index,
+                    coordinate: fromFirestoreCoordinate(
+                      doc.round.qEffects.peekedSector.coordinate
+                    ),
+                    visibleTo: doc.round.qEffects.peekedSector.visibleTo,
+                  }
+                : null,
+              salamanderSwap: doc.round.qEffects.salamanderSwap,
+              treatyEcho: doc.round.qEffects.treatyEcho,
+            }
+          : null,
+        qGamblePending: doc.round.qGamblePending
+          ? {
+              playerId: doc.round.qGamblePending.playerId,
+              options: [
+                fromFirestoreCoordinate(doc.round.qGamblePending.options[0]),
+                fromFirestoreCoordinate(doc.round.qGamblePending.options[1]),
+              ],
+            }
+          : null,
+        table: tableDoc
+          ? {
+              spacedock: tableDoc.spacedock,
+              warpTrails,
+              neutralZone: {
+                tiles: tableDoc.neutralZone.tiles.map(fromPlaced),
+              },
+              subspaceFracture: tableDoc.subspaceFracture
+                ? {
+                    active: tableDoc.subspaceFracture.active,
+                    anchor: fromPlaced(tableDoc.subspaceFracture.anchor),
+                    stabilizers:
+                      tableDoc.subspaceFracture.stabilizers.map(fromPlaced),
+                    requiredValue: tableDoc.subspaceFracture.requiredValue,
+                  }
+                : null,
+              redAlert: tableDoc.redAlert
+                ? {
+                    active: tableDoc.redAlert.active,
+                    anchor: fromPlaced(tableDoc.redAlert.anchor),
+                    responsiblePlayerId: tableDoc.redAlert.responsiblePlayerId,
+                    trailPlayerId: tableDoc.redAlert.trailPlayerId,
+                  }
+                : null,
+            }
+          : {
+              spacedock: { value: 12, placedBy: '' },
+              warpTrails: {},
+              neutralZone: { tiles: [] },
+              subspaceFracture: null,
+              redAlert: null,
+            },
+      }
+    : null;
+
+  return {
+    id: doc.id,
+    phase: doc.phase,
+    captains: doc.captains.map((c) => ({
+      id: c.id,
+      displayName: c.displayName,
+      penaltyScore: c.penaltyScore,
+    })),
+    round,
+    completedRounds: doc.completedRounds,
+    modules: {
+      qContinuum: {
+        enabled: doc.modules.qContinuum,
+        activeFlash: doc.qFlash?.effect
+          ? {
+              invokedBy: doc.qFlash.invokedBy,
+              effect: {
+                kind: doc.qFlash.effect.kind as import('@warp12/Warp12-lib').QFlashEffectKind,
+                ...(doc.qFlash.effect.targetPlayerId
+                  ? { targetPlayerId: doc.qFlash.effect.targetPlayerId }
+                  : {}),
+                ...(doc.qFlash.effect.peek
+                  ? {
+                      peek: {
+                        index: doc.qFlash.effect.peek.index,
+                        coordinate: fromFirestoreCoordinate(
+                          doc.qFlash.effect.peek.coordinate
+                        ),
+                      },
+                    }
+                  : {}),
+              },
+            }
+          : null,
+      },
+      salamanderPenalty: {
+        enabled: doc.modules.salamanderPenalty,
+      },
+      subspaceFracture: {
+        enabled: doc.modules.subspaceFracture ?? true,
+      },
+    },
+    objective: doc.objective ?? 'penalty',
+  };
+}
+
+export function extractHands(state: GameState): Record<string, Coordinate[]> {
+  if (!state.round) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(state.round.hands).map(([id, hand]) => [id, [...hand]])
+  );
+}
+
+export type { GameAction };

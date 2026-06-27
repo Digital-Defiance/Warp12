@@ -1,0 +1,142 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isMember(data) {
+      return isSignedIn()
+        && data.captainIds != null
+        && request.auth.uid in data.captainIds;
+    }
+
+    function isHost(data) {
+      return isSignedIn() && request.auth.uid == data.hostId;
+    }
+
+    function lobbyMissionSettingsUnchanged() {
+      return request.resource.data.hostId == resource.data.hostId
+        && request.resource.data.maxPlayers == resource.data.maxPlayers
+        && request.resource.data.objective == resource.data.objective
+        && request.resource.data.modules == resource.data.modules
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    function lobbyRosterGrewByOne() {
+      return request.resource.data.captainIds.size()
+          == resource.data.captainIds.size() + 1
+        && request.resource.data.captains.size()
+          == resource.data.captains.size() + 1;
+    }
+
+    function lobbyRosterShrankByOne() {
+      return request.resource.data.captainIds.size()
+          == resource.data.captainIds.size() - 1
+        && request.resource.data.captains.size()
+          == resource.data.captains.size() - 1;
+    }
+
+    match /games/{gameId} {
+      // Any authenticated captain (or lobby guest who knows the code) can read.
+      allow read: if isSignedIn();
+
+      // Host opens a new sector lobby.
+      allow create: if isSignedIn()
+        && request.resource.data.phase == 'lobby'
+        && request.resource.data.hostId == request.auth.uid
+        && request.resource.data.captainIds.size() == 1
+        && request.resource.data.captainIds[0] == request.auth.uid
+        && request.resource.data.captains.size() == 1
+        && request.resource.data.captains[0].id == request.auth.uid;
+
+      allow update: if isSignedIn() && (
+        // Host edits lobby settings or launches / resets the sector.
+        (isHost(resource.data) && resource.data.phase == 'lobby')
+        ||
+        // Host resets an active/completed sector back to lobby.
+        (isHost(resource.data)
+          && resource.data.phase in ['active', 'complete', 'round-end']
+          && request.resource.data.phase == 'lobby')
+        ||
+        // Captain submits a move (engine validates inside the transaction).
+        (isMember(resource.data)
+          && resource.data.phase == 'active'
+          && request.resource.data.phase in ['active', 'complete', 'round-end'])
+        ||
+        // New captain joins a lobby.
+        (resource.data.phase == 'lobby'
+          && isMember(request.resource.data)
+          && !(request.auth.uid in resource.data.captainIds)
+          && lobbyRosterGrewByOne()
+          && lobbyMissionSettingsUnchanged())
+        ||
+        // Captain leaves a lobby (host cannot — enforced in app).
+        (resource.data.phase == 'lobby'
+          && isMember(resource.data)
+          && request.auth.uid in resource.data.captainIds
+          && !(request.auth.uid in request.resource.data.captainIds)
+          && lobbyRosterShrankByOne()
+          && lobbyMissionSettingsUnchanged())
+        ||
+        // Host removes a captain from the lobby.
+        (resource.data.phase == 'lobby'
+          && isHost(resource.data)
+          && lobbyRosterShrankByOne()
+          && lobbyMissionSettingsUnchanged())
+      );
+
+      allow delete: if isHost(resource.data) && resource.data.phase == 'lobby';
+
+      match /presence/{playerId} {
+        function parentGame() {
+          return get(/databases/$(database)/documents/games/$(gameId)).data;
+        }
+
+        allow read: if isSignedIn() && isMember(parentGame());
+
+        allow create, update: if isSignedIn()
+          && request.auth.uid == playerId
+          && isMember(parentGame())
+          && parentGame().phase == 'active';
+      }
+
+      match /hands/{playerId} {
+        function parentGame() {
+          return get(/databases/$(database)/documents/games/$(gameId)).data;
+        }
+
+        function roundAwaitingScore(data) {
+          return data.phase == 'active'
+            && data.round != null
+            && data.round.phase == 'ended';
+        }
+
+        allow read: if isSignedIn() && (
+          request.auth.uid == playerId
+          || (isMember(parentGame()) && roundAwaitingScore(parentGame()))
+        );
+
+        allow create, update: if isSignedIn()
+          && playerId in parentGame().captainIds
+          && (
+            // Host deals every hand when launching (hands written before phase → active).
+            (isHost(parentGame()) && parentGame().phase == 'lobby')
+            ||
+            // In play, each captain syncs only their own private hand subdoc.
+            (request.auth.uid == playerId
+              && parentGame().phase == 'active'
+              && !roundAwaitingScore(parentGame()))
+            ||
+            // Round scoring / redeal: all hands visible briefly so END_ROUND can tally
+            // penalties and write the next deal (before the public doc advances).
+            (isMember(parentGame()) && roundAwaitingScore(parentGame()))
+          );
+
+        allow delete: if isSignedIn()
+          && (request.auth.uid == playerId || isHost(parentGame()));
+      }
+    }
+  }
+}

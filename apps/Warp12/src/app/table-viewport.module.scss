@@ -1,0 +1,62 @@
+.viewport {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.viewportControls {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  z-index: 120;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 24px);
+}
+
+.viewportBtn {
+  font-family: var(--font-federation);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  background: var(--warp-panel);
+  color: var(--warp-text);
+  border: 1px solid var(--warp-panel-border);
+  border-radius: 4px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+
+  &:hover {
+    border-color: var(--warp-accent);
+  }
+}
+
+.viewportScale {
+  font-family: var(--font-federation);
+  font-size: 0.72rem;
+  color: var(--warp-text-muted);
+  padding: 0 4px;
+}
+
+.viewportSurface {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.viewportCanvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}

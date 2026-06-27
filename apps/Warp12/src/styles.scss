@@ -1,0 +1,76 @@
+@font-face {
+  font-family: 'Federation';
+  src: url('/Federation.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FederationWide';
+  src: url('/FederationWide.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Federation Wide';
+  src: url('/FederationWide.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Nova Light';
+  src: url('/Nova_Light_Ultra_Thin.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-federation: 'Federation', 'Segoe UI', system-ui, sans-serif;
+  --font-federation-wide: 'FederationWide', 'Federation Wide', 'Federation', system-ui,
+    sans-serif;
+  --font-nova: 'Nova Light', 'Federation', system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #050816;
+  color: #e2e8f0;
+  font-family: var(--font-federation);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+html[data-bridge-focus='true'],
+html[data-bridge-focus='true'] body {
+  overflow: hidden;
+  height: 100%;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-federation-wide);
+}
+
+p {
+  font-family: var(--font-federation);
+}
+
+a.no-underline {
+  text-decoration: none;
+  color: #ffffff;
+}
