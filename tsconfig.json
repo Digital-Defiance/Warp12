@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
+  "files": [],
+  "references": [
+    {
+      "path": "./apps/Warp12-e2e"
+    },
+    {
+      "path": "./apps/Warp12"
+    },
+    {
+      "path": "./libs/Warp12-lib"
+    }
+  ]
+}

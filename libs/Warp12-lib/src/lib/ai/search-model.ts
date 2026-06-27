@@ -1,0 +1,258 @@
+import type { PlayerRef, Rng, SearchModel } from 'doubletwelve';
+import {
+  coordinateKey,
+  coordinatePipValue,
+  type Coordinate,
+} from '../types/coordinate.js';
+import {
+  generateCoordinateSet,
+  shuffleCoordinates,
+} from '../domino/coordinates.js';
+import { applyAction } from '../engine/apply-action.js';
+import type { GameState } from '../types/game-state.js';
+import type { GameModules } from '../types/modules.js';
+import { salamanderPenaltyApplies } from '../constants/setup.js';
+import type { GameObjective } from '../types/objective.js';
+import type { PlayerId } from '../types/player.js';
+import { toGameAction, type WarpAiAction } from './actions.js';
+import { warpCandidateGenerator } from './candidate-generator.js';
+import { collectPlacedCoordinates } from './context.js';
+import type { WarpAiObservation } from './observation.js';
+
+/** Penalty weight of a hand, honoring the Salamander module's 24-point 12-12. */
+export function handPips(
+  hand: readonly Coordinate[],
+  modules: GameModules,
+  roundNumber: number
+): number {
+  const salamander =
+    modules.salamanderPenalty.enabled && salamanderPenaltyApplies(roundNumber);
+  let total = 0;
+  for (const coordinate of hand) {
+    if (salamander && coordinate.low === 12 && coordinate.high === 12) {
+      total += 24;
+    } else {
+      total += coordinatePipValue(coordinate);
+    }
+  }
+  return total;
+}
+
+/** Tile count in hand — the go-out objective cares about this, not pip weight. */
+export function handTileCount(hand: readonly Coordinate[]): number {
+  return hand.length;
+}
+
+/**
+ * Leaf evaluation for the penalty-scoring campaign: minimize held pips, maximize
+ * what opponents are stuck with, treat going out as decisive.
+ */
+export function warpLeafEvalPenalty(
+  state: GameState,
+  perspective: PlayerRef
+): number {
+  const round = state.round;
+  if (!round) return 0;
+  const modules = state.modules;
+
+  const mine = handPips(
+    round.hands[perspective as PlayerId] ?? [],
+    modules,
+    round.roundNumber
+  );
+  let opponentTotal = 0;
+  let opponents = 0;
+  for (const id of round.turnOrder) {
+    if (id === perspective) continue;
+    opponentTotal += handPips(round.hands[id] ?? [], modules, round.roundNumber);
+    opponents++;
+  }
+  const opponentAvg = opponents > 0 ? opponentTotal / opponents : 0;
+
+  if (round.phase === 'ended') {
+    return round.roundWinnerId === perspective
+      ? 10000 + opponentAvg
+      : -1000 - mine + opponentAvg;
+  }
+  return opponentAvg - mine;
+}
+
+/**
+ * Leaf evaluation for first-out-wins: minimize tiles held, maximize opponent
+ * hand sizes; pip weight and Salamander are irrelevant.
+ */
+export function warpLeafEvalGoOut(
+  state: GameState,
+  perspective: PlayerRef
+): number {
+  const round = state.round;
+  if (!round) return 0;
+
+  const mine = handTileCount(round.hands[perspective as PlayerId] ?? []);
+  let opponentTotal = 0;
+  let opponents = 0;
+  for (const id of round.turnOrder) {
+    if (id === perspective) continue;
+    opponentTotal += handTileCount(round.hands[id] ?? []);
+    opponents++;
+  }
+  const opponentAvg = opponents > 0 ? opponentTotal / opponents : 0;
+
+  if (round.phase === 'ended') {
+    return round.roundWinnerId === perspective
+      ? 10000 + opponentAvg
+      : -1000 - mine + opponentAvg;
+  }
+  return opponentAvg - mine;
+}
+
+/** @deprecated Use {@link warpLeafEvalPenalty} or {@link warpLeafEvalGoOut}. */
+export function warpLeafEval(state: GameState, perspective: PlayerRef): number {
+  return state.objective === 'go-out'
+    ? warpLeafEvalGoOut(state, perspective)
+    : warpLeafEvalPenalty(state, perspective);
+}
+
+/** Build a Game State wrapper around an observation for the forward model. */
+export function observationToState(obs: WarpAiObservation): GameState {
+  return {
+    id: 'search',
+    phase: 'active',
+    captains: obs.captains.length > 0
+      ? obs.captains
+      : obs.round.turnOrder.map((id) => ({
+          id,
+          displayName: id,
+          penaltyScore: 0,
+        })),
+    round: obs.round,
+    completedRounds: 0,
+    modules: obs.modules,
+    objective: obs.objective,
+  };
+}
+
+function rankAction(
+  action: WarpAiAction,
+  objective: GameObjective,
+  handSize: number
+): number {
+  switch (action.kind) {
+    case 'declare-treaty':
+      return 10_000;
+    case 'chart':
+      if (objective === 'go-out' && handSize === 1) return 20_000;
+      return objective === 'go-out'
+        ? 100 + (10 - handSize)
+        : 100 + coordinatePipValue(action.move.coordinate);
+    case 'draw':
+      return -1;
+    case 'invoke-q-flash':
+    case 'resolve-q-gamble':
+      return 5_000;
+    default:
+      return -2;
+  }
+}
+
+/**
+ * A {@link SearchModel} over Warp12's own engine, in {@link WarpAiAction} space.
+ * Hidden information (opponent hands + the draw order) is resampled by
+ * `determinize`, so the search plays honestly rather than peeking at the
+ * authoritative round state.
+ */
+export function createWarpSearchModel(
+  objective: GameObjective = 'penalty'
+): SearchModel<GameState, WarpAiAction> {
+  const evaluate =
+    objective === 'go-out' ? warpLeafEvalGoOut : warpLeafEvalPenalty;
+
+  return {
+    legalActions(state: GameState) {
+      const round = state.round;
+      if (!round || round.phase !== 'playing') return [];
+      return warpCandidateGenerator({
+        round,
+        playerId: round.activePlayerId,
+        modules: state.modules,
+        objective: state.objective,
+        captains: state.captains,
+      });
+    },
+
+    applyAction(state: GameState, action: WarpAiAction) {
+      const round = state.round;
+      if (!round) return state;
+      const result = applyAction(
+        state,
+        toGameAction(action, round.activePlayerId)
+      );
+      return result.ok ? result.state : state;
+    },
+
+    isTerminal(state: GameState) {
+      return (
+        state.phase === 'complete' ||
+        !state.round ||
+        state.round.phase === 'ended'
+      );
+    },
+
+    currentPlayer(state: GameState): PlayerRef {
+      return state.round?.activePlayerId ?? '';
+    },
+
+    evaluate,
+
+    orderActions(state: GameState, actions: WarpAiAction[]) {
+      const handSize =
+        state.round?.hands[state.round.activePlayerId]?.length ?? 0;
+      return [...actions].sort(
+        (a, b) =>
+          rankAction(b, objective, handSize) - rankAction(a, objective, handSize)
+      );
+    },
+
+    determinize(state: GameState, perspective: PlayerRef, rng: Rng) {
+      const round = state.round;
+      if (!round) return state;
+
+      const seen = new Set<string>();
+      for (const coordinate of collectPlacedCoordinates(round.table)) {
+        seen.add(coordinateKey(coordinate));
+      }
+      const myHand = round.hands[perspective as PlayerId] ?? [];
+      for (const coordinate of myHand) {
+        seen.add(coordinateKey(coordinate));
+      }
+
+      const pool = shuffleCoordinates(
+        generateCoordinateSet(12).filter(
+          (coordinate) => !seen.has(coordinateKey(coordinate))
+        ),
+        rng
+      );
+
+      const hands: Record<PlayerId, Coordinate[]> = {};
+      let cursor = 0;
+      for (const id of round.turnOrder) {
+        if (id === perspective) {
+          hands[id] = [...myHand];
+          continue;
+        }
+        const count = (round.hands[id] ?? []).length;
+        hands[id] = pool.slice(cursor, cursor + count);
+        cursor += count;
+      }
+
+      return {
+        ...state,
+        round: {
+          ...round,
+          hands,
+          unchartedSectors: pool.slice(cursor),
+        },
+      };
+    },
+  };
+}

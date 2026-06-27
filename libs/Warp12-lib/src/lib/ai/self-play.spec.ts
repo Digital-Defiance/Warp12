@@ -1,0 +1,125 @@
+import { createWarpAiPlayer } from './create-warp-ai.js';
+import { getWarpSkillProfile } from './skill.js';
+import {
+  playSelfPlayGame,
+  runSelfPlayMatch,
+  type SelfPlaySeat,
+} from './self-play.js';
+
+// Heads-up advanced ('adv') vs beginner ('beg'), seats keyed by skill so
+// aggregates compare skill directly. Seat order alternates each game to cancel
+// any first-mover (Spacedock) advantage.
+function seatsAdvVsBeginner(game: number): SelfPlaySeat[] {
+  const adv: SelfPlaySeat = {
+    id: 'adv',
+    player: createWarpAiPlayer({
+      skill: getWarpSkillProfile('advanced'),
+      rng: mulberrySeed(game, 1),
+    }),
+  };
+  const beg: SelfPlaySeat = {
+    id: 'beg',
+    player: createWarpAiPlayer({
+      skill: getWarpSkillProfile('beginner'),
+      rng: mulberrySeed(game, 2),
+    }),
+  };
+  return game % 2 === 0 ? [adv, beg] : [beg, adv];
+}
+
+function seatsLookaheadVsBeginner(game: number): SelfPlaySeat[] {
+  const smart: SelfPlaySeat = {
+    id: 'adv',
+    player: createWarpAiPlayer({
+      skill: getWarpSkillProfile('advanced'),
+      lookahead: { depth: 2, determinizations: 4, maxBranch: 5 },
+      rng: mulberrySeed(game, 1),
+    }),
+  };
+  const beg: SelfPlaySeat = {
+    id: 'beg',
+    player: createWarpAiPlayer({
+      skill: getWarpSkillProfile('beginner'),
+      rng: mulberrySeed(game, 2),
+    }),
+  };
+  return game % 2 === 0 ? [smart, beg] : [beg, smart];
+}
+
+
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const mulberrySeed = (game: number, seat: number) =>
+  mulberry32(1000 + game * 31 + seat);
+
+describe('self-play harness', () => {
+  it('is deterministic for a fixed seed and seeded players', () => {
+    const run = () =>
+      playSelfPlayGame({ seats: seatsAdvVsBeginner(0), seed: 42 });
+    const first = run();
+    const second = run();
+    expect(second.penalties).toEqual(first.penalties);
+    expect(second.winnerId).toBe(first.winnerId);
+    expect(second.completedRounds).toBe(first.completedRounds);
+  });
+
+  it('a lookahead captain beats a greedy beginner heads-up', () => {
+    // The decisive demonstration of "getting good": the lookahead player games
+    // the real objective out by simulation, rather than trusting hand-rules.
+    const match = runSelfPlayMatch(seatsLookaheadVsBeginner, {
+      games: 10,
+      seed: 7,
+    });
+
+    expect(match.completed).toBe(10);
+    expect(match.wins['adv'] ?? 0).toBeGreaterThan(match.wins['beg'] ?? 0);
+    expect(match.penalties['adv'] ?? 0).toBeLessThan(match.penalties['beg'] ?? 0);
+  });
+
+  it('lookahead captains play full, legal games to a tally', () => {
+    const seats: SelfPlaySeat[] = ['a', 'b'].map((id, index) => ({
+      id,
+      player: createWarpAiPlayer({
+        skill: getWarpSkillProfile('advanced'),
+        lookahead: { depth: 2, determinizations: 3, maxBranch: 5 },
+        rng: mulberry32(500 + index),
+      }),
+    }));
+
+    const result = playSelfPlayGame({ seats, seed: 11, maxSteps: 30000 });
+    // A round resolved means only-legal play reached someone going out.
+    expect(result.completedRounds).toBeGreaterThanOrEqual(1);
+  });
+
+  it('plays twenty seeded 4-captain games without illegal moves', () => {
+    const captainIds = ['a', 'b', 'c', 'd'] as const;
+
+    for (let game = 0; game < 20; game++) {
+      const seats: SelfPlaySeat[] = captainIds.map((id, index) => ({
+        id,
+        player: createWarpAiPlayer({
+          skill: getWarpSkillProfile('advanced'),
+          rng: mulberry32(game * 100 + index + 1),
+        }),
+      }));
+
+      const result = playSelfPlayGame({
+        seats,
+        seed: 2000 + game * 997,
+        maxSteps: 30000,
+      });
+
+      expect(result.steps).toBeLessThan(30000);
+      expect(result.completedRounds).toBeGreaterThanOrEqual(1);
+    }
+  });
+});

@@ -1,0 +1,27 @@
+{
+  "name": "@warp12/Warp12",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@warp12/Warp12-lib": "workspace:*",
+    "doubletwelve": "workspace:*",
+    "firebase": "^12.15.0"
+  },
+  "nx": {
+    "implicitDependencies": [
+      "doubletwelve"
+    ],
+    "targets": {
+      "build": {
+        "dependsOn": [
+          {
+            "projects": [
+              "doubletwelve"
+            ],
+            "target": "build-lib"
+          }
+        ]
+      }
+    }
+  }
+}

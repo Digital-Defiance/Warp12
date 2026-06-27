@@ -1,0 +1,137 @@
+.page {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.hero {
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.12), transparent 45%),
+    rgba(15, 23, 42, 0.92);
+  border: 1px solid #334155;
+  border-radius: 12px;
+}
+
+.heroEyebrow {
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7dd3fc;
+  margin: 0 0 0.65rem;
+}
+
+.heroTitle {
+  font-family: var(--font-federation-wide, var(--font-federation, system-ui));
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  color: #f8fafc;
+  margin: 0 0 0.85rem;
+}
+
+.heroLead,
+.heroBody {
+  font-family: var(--font-federation, system-ui);
+  color: #cbd5e1;
+  line-height: 1.65;
+  margin: 0 0 0.85rem;
+  font-size: 0.92rem;
+}
+
+.heroBody:last-of-type {
+  margin-bottom: 1rem;
+}
+
+.heroLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #38bdf8;
+  text-decoration: none;
+
+  &:hover {
+    color: #7dd3fc;
+  }
+}
+
+.disclaimer {
+  padding: 1rem 1.25rem;
+  background: rgba(251, 191, 36, 0.06);
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  border-radius: 10px;
+}
+
+.disclaimerTitle {
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fbbf24;
+  margin: 0 0 0.65rem;
+}
+
+.disclaimerList {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: #fde68a;
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.82rem;
+  line-height: 1.55;
+
+  li + li {
+    margin-top: 0.4rem;
+  }
+}
+
+.playHeading {
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.card {
+  text-align: left;
+  padding: 1.25rem 1.5rem;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid #334155;
+  border-radius: 10px;
+  cursor: pointer;
+  color: inherit;
+
+  h2 {
+    font-family: var(--font-federation, system-ui);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #38bdf8;
+    margin: 0 0 0.35rem;
+    font-size: 1rem;
+  }
+
+  p {
+    font-family: var(--font-federation, system-ui);
+    color: #94a3b8;
+    margin: 0;
+    font-size: 0.85rem;
+  }
+
+  &:hover {
+    border-color: #38bdf8;
+  }
+}

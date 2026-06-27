@@ -1,0 +1,113 @@
+// Base Warp12 tile — pip rules shared across light/dark fills.
+.warpTile {
+  // appearance modifiers set fill/border on .warpTileDark / .warpTileLight
+}
+
+.warpTileDark {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  box-shadow:
+    0 0 0 1px rgba(56, 189, 248, 0.15),
+    0 2px 8px rgba(0, 0, 0, 0.35) !important;
+}
+
+.warpTileLight {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.12) !important;
+}
+
+.warpTile :global([data-testid='pip']:not([data-hollow='true'])) {
+  background-color: var(--pip-color) !important;
+  box-shadow: 0 0 6px
+    color-mix(in srgb, var(--pip-color, #38bdf8) 35%, transparent) !important;
+}
+
+.warpTile :global([data-testid='pip'][data-hollow='true']) {
+  background-color: transparent !important;
+  border: 2px solid var(--pip-color) !important;
+  box-shadow: none !important;
+}
+
+// Pip look presets — toggle via createWarpDominoTheme({ pipPreset: 'plasma' }).
+// Disabled while holographic is on (full holo look takes over).
+
+.warpTilePipPlasma :global([data-testid='pip']:not([data-hollow='true'])) {
+  background: radial-gradient(
+    circle at 35% 35%,
+    #fffbeb 0%,
+    var(--pip-color) 40%,
+    color-mix(in srgb, var(--pip-color) 55%, #0f172a) 100%
+  ) !important;
+  box-shadow:
+    0 0 8px color-mix(in srgb, var(--pip-color) 60%, transparent),
+    inset 0 0 4px rgba(255, 255, 255, 0.5) !important;
+}
+
+.warpTilePipTactical :global([data-testid='pip']) {
+  background-color: rgba(15, 23, 42, 0.8) !important;
+  border: 1px solid #38bdf8 !important;
+  box-shadow:
+    0 0 6px #38bdf8,
+    inset 0 0 4px rgba(56, 189, 248, 0.5) !important;
+}
+
+.warpTilePipActive :global([data-testid='pip']:not([data-hollow='true'])) {
+  background: radial-gradient(
+    circle at 30% 30%,
+    #fff7ed,
+    var(--pip-color) 55%,
+    color-mix(in srgb, var(--pip-color) 70%, #7c2d12) 100%
+  ) !important;
+  border: none !important;
+  animation: warp-pip-pulse 3s ease-in-out infinite;
+}
+
+.warpTilePipActive :global([data-testid='pip'][data-hollow='true']) {
+  animation: warp-pip-pulse 3s ease-in-out infinite;
+}
+
+// Full holographic tile — toggle via createWarpDominoTheme({ holographic: true }).
+// Mostly border + glow; body stays clear so pips float on the table.
+.warpTileHolographic {
+  background: transparent !important;
+  border: 1px solid #38bdf8 !important;
+  box-shadow:
+    0 0 0 1px rgba(56, 189, 248, 0.65),
+    0 0 14px rgba(56, 189, 248, 0.55),
+    0 0 28px rgba(56, 189, 248, 0.22) !important;
+}
+
+.warpTileHolographic > :global(div:first-child) {
+  border-bottom-color: rgba(56, 189, 248, 0.45) !important;
+  box-shadow: none !important;
+}
+
+.warpTileHolographic :global([data-testid='pip']:not([data-hollow='true'])) {
+  background-color: var(--pip-color) !important;
+  box-shadow:
+    0 0 5px color-mix(in srgb, var(--pip-color) 45%, transparent),
+    1px 2px 2px rgba(0, 0, 0, 0.28) !important;
+  opacity: 1 !important;
+}
+
+.warpTileHolographic :global([data-testid='pip'][data-hollow='true']) {
+  background-color: transparent !important;
+  border: 2px solid var(--pip-color) !important;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--pip-color) 50%, transparent) !important;
+}
+
+@keyframes warp-pip-pulse {
+  0%,
+  100% {
+    opacity: 0.85;
+    box-shadow: 0 0 6px color-mix(in srgb, var(--pip-color) 40%, transparent);
+  }
+
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 14px color-mix(in srgb, var(--pip-color) 80%, transparent);
+  }
+}
