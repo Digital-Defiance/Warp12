@@ -17,9 +17,7 @@
     {
       "plugin": "@nx/js/typescript",
       "options": {
-        "typecheck": {
-          "targetName": "typecheck"
-        },
+        "typecheck": { "targetName": "typecheck" },
         "build": {
           "targetName": "build",
           "configName": "tsconfig.lib.json",
@@ -28,12 +26,7 @@
         }
       }
     },
-    {
-      "plugin": "@nx/eslint/plugin",
-      "options": {
-        "targetName": "lint"
-      }
-    },
+    { "plugin": "@nx/eslint/plugin", "options": { "targetName": "lint" } },
     {
       "plugin": "@nx/vite/plugin",
       "options": {
@@ -55,18 +48,9 @@
         "testMode": "watch"
       }
     },
-    {
-      "plugin": "@nx/playwright/plugin",
-      "options": {
-        "targetName": "e2e"
-      }
-    }
+    { "plugin": "@nx/playwright/plugin", "options": { "targetName": "e2e" } }
   ],
-  "targetDefaults": {
-    "test": {
-      "dependsOn": ["^build"]
-    }
-  },
+  "targetDefaults": { "test": { "dependsOn": ["^build"] } },
   "generators": {
     "@nx/react": {
       "application": {
@@ -75,13 +59,9 @@
         "linter": "eslint",
         "bundler": "vite"
       },
-      "component": {
-        "style": "scss"
-      },
-      "library": {
-        "style": "scss",
-        "linter": "eslint"
-      }
+      "component": { "style": "scss" },
+      "library": { "style": "scss", "linter": "eslint" }
     }
-  }
+  },
+  "nxCloudId": "6a3f36fd7427195a38f6bdce"
 }
