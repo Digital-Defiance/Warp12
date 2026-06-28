@@ -6,7 +6,12 @@ export interface GameSoundSnapshot {
   gamePhase: string;
   roundPhase: string | undefined;
   isMyTurn: boolean;
-  redAlertActive: boolean;
+  /** Charted doubles on the table (each play increments this). */
+  doublesOnTable: number;
+  /** Cover-required Red Alert (excludes dead doubles). */
+  trueRedAlert: boolean;
+  redAlertResponsibleId: string | null;
+  activeBeaconCount: number;
   qFlashActive: boolean;
   treatyDeclared: boolean;
   treatyDeclarationRequired: boolean;
@@ -26,7 +31,16 @@ export function detectGameSoundTransitions(
     sounds.push('hail');
   }
 
-  if (next.redAlertActive && !previous.redAlertActive) {
+  if (next.doublesOnTable > previous.doublesOnTable) {
+    sounds.push('consoleWarning');
+  }
+
+  if (
+    next.trueRedAlert &&
+    previous.trueRedAlert &&
+    next.redAlertResponsibleId !== previous.redAlertResponsibleId &&
+    next.activeBeaconCount > previous.activeBeaconCount
+  ) {
     sounds.push('redAlert');
   }
 
@@ -51,7 +65,10 @@ export function useGameSoundEffects(options: {
   roundPhase: string | undefined;
   roundNumber: number | undefined;
   isMyTurn: boolean;
-  redAlertActive: boolean;
+  doublesOnTable: number;
+  trueRedAlert: boolean;
+  redAlertResponsibleId: string | null;
+  activeBeaconCount: number;
   qFlashActive: boolean;
   treatyDeclared: boolean;
   treatyDeclarationRequired: boolean;
@@ -67,7 +84,10 @@ export function useGameSoundEffects(options: {
       gamePhase: options.gamePhase,
       roundPhase: options.roundPhase,
       isMyTurn: options.isMyTurn,
-      redAlertActive: options.redAlertActive,
+      doublesOnTable: options.doublesOnTable,
+      trueRedAlert: options.trueRedAlert,
+      redAlertResponsibleId: options.redAlertResponsibleId,
+      activeBeaconCount: options.activeBeaconCount,
       qFlashActive: options.qFlashActive,
       treatyDeclared: options.treatyDeclared,
       treatyDeclarationRequired: options.treatyDeclarationRequired,
@@ -82,7 +102,10 @@ export function useGameSoundEffects(options: {
     options.enabled,
     options.gamePhase,
     options.isMyTurn,
-    options.redAlertActive,
+    options.doublesOnTable,
+    options.trueRedAlert,
+    options.redAlertResponsibleId,
+    options.activeBeaconCount,
     options.qFlashActive,
     options.roundPhase,
     options.treatyDeclared,

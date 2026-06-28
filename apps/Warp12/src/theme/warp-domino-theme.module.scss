@@ -1,76 +1,173 @@
-// Base Warp12 tile — pip rules shared across light/dark fills.
-.warpTile {
-  // appearance modifiers set fill/border on .warpTileDark / .warpTileLight
-}
+// Warp12 domino theme — pip readouts via data-pip-preset on the tile root.
+// --pip-color is set inline on each pip by pipStyle; each preset owns its own paint.
+
+// Tile finishes — bridge console vs PADD display.
 
 .warpTileDark {
-  background-color: #0f172a !important;
+  background: linear-gradient(165deg, #101a2e 0%, #0a1220 100%) !important;
   border-color: #334155 !important;
   box-shadow:
-    0 0 0 1px rgba(56, 189, 248, 0.15),
-    0 2px 8px rgba(0, 0, 0, 0.35) !important;
+    0 0 0 1px rgba(56, 189, 248, 0.18),
+    inset 0 0 0 1px rgba(56, 189, 248, 0.06),
+    0 2px 10px rgba(0, 0, 0, 0.4) !important;
 }
 
 .warpTileLight {
-  background-color: #f8fafc !important;
-  border-color: #cbd5e1 !important;
+  background: linear-gradient(165deg, #f8fafc 0%, #e8eef5 100%) !important;
+  border-color: #94a3b8 !important;
   box-shadow:
-    0 0 0 1px rgba(15, 23, 42, 0.08),
-    0 2px 8px rgba(0, 0, 0, 0.12) !important;
+    0 0 0 1px rgba(15, 23, 42, 0.06),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.85),
+    0 2px 8px rgba(15, 23, 42, 0.1) !important;
 }
 
-.warpTile :global([data-testid='pip']:not([data-hollow='true'])) {
-  background-color: var(--pip-color) !important;
-  box-shadow: 0 0 6px
-    color-mix(in srgb, var(--pip-color, #38bdf8) 35%, transparent) !important;
+// Classic — traditional solid domino pips (no glow wash).
+
+.warpTile[data-pip-preset='classic'] :global([data-testid='pip']:not([data-hollow='true'])) {
+  background: var(--pip-color, #0f172a) !important;
+  border: none !important;
+  border-radius: 50% !important;
+  box-shadow: 1px 2px 2px rgba(0, 0, 0, 0.38) !important;
+  animation: none;
+  filter: none;
+  opacity: 1;
 }
 
-.warpTile :global([data-testid='pip'][data-hollow='true']) {
-  background-color: transparent !important;
-  border: 2px solid var(--pip-color) !important;
+.warpTile[data-pip-preset='classic'] :global([data-testid='pip'][data-hollow='true']) {
+  background: transparent !important;
+  border: 2px solid var(--pip-color, #0f172a) !important;
+  border-radius: 50% !important;
   box-shadow: none !important;
+  animation: none;
+  filter: none;
+  opacity: 1;
 }
 
-// Pip look presets — toggle via createWarpDominoTheme({ pipPreset: 'plasma' }).
-// Disabled while holographic is on (full holo look takes over).
+// Bridge — deflector sensor discs with cyan readout tint.
 
-.warpTilePipPlasma :global([data-testid='pip']:not([data-hollow='true'])) {
+.warpTile[data-pip-preset='bridge'] :global([data-testid='pip']:not([data-hollow='true'])) {
   background: radial-gradient(
-    circle at 35% 35%,
-    #fffbeb 0%,
-    var(--pip-color) 40%,
-    color-mix(in srgb, var(--pip-color) 55%, #0f172a) 100%
+    circle at 35% 28%,
+    color-mix(in srgb, var(--pip-color, #38bdf8) 35%, #ffffff) 0%,
+    color-mix(in srgb, var(--pip-color, #38bdf8) 72%, #38bdf8) 52%,
+    color-mix(in srgb, var(--pip-color, #38bdf8) 55%, #0ea5e9) 100%
   ) !important;
+  border: 1px solid color-mix(in srgb, var(--pip-color, #38bdf8) 55%, #7dd3fc) !important;
+  border-radius: 50% !important;
   box-shadow:
-    0 0 8px color-mix(in srgb, var(--pip-color) 60%, transparent),
-    inset 0 0 4px rgba(255, 255, 255, 0.5) !important;
+    0 0 8px color-mix(in srgb, var(--pip-color, #38bdf8) 45%, #38bdf8),
+    inset 0 1px 2px rgba(255, 255, 255, 0.35) !important;
+  animation: none;
 }
 
-.warpTilePipTactical :global([data-testid='pip']) {
-  background-color: rgba(15, 23, 42, 0.8) !important;
-  border: 1px solid #38bdf8 !important;
-  box-shadow:
-    0 0 6px #38bdf8,
-    inset 0 0 4px rgba(56, 189, 248, 0.5) !important;
+.warpTile[data-pip-preset='bridge'] :global([data-testid='pip'][data-hollow='true']) {
+  background: transparent !important;
+  border: 2px solid color-mix(in srgb, var(--pip-color, #38bdf8) 70%, #7dd3fc) !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--pip-color, #38bdf8) 40%, #38bdf8) !important;
+  animation: none;
 }
 
-.warpTilePipActive :global([data-testid='pip']:not([data-hollow='true'])) {
+// LCARS — rounded-rect PADD blocks; fixed orange/violet palette (not pip-tinted gold).
+
+.warpTile[data-pip-preset='lcars'] :global([data-testid='pip']:not([data-hollow='true'])) {
+  background: linear-gradient(
+    160deg,
+    #ffe066 0%,
+    #ff8800 42%,
+    #cc66ff 100%
+  ) !important;
+  border: 1px solid #9966cc !important;
+  border-radius: 22% !important;
+  box-shadow:
+    0 0 10px rgba(255, 136, 0, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55) !important;
+  animation: none;
+}
+
+.warpTile[data-pip-preset='lcars'] :global([data-testid='pip'][data-hollow='true']) {
+  background: rgba(10, 18, 32, 0.35) !important;
+  border: 2px solid #cc99ff !important;
+  border-radius: 22% !important;
+  box-shadow:
+    0 0 8px rgba(204, 153, 255, 0.65),
+    inset 0 0 0 1px rgba(255, 136, 0, 0.45) !important;
+  animation: none;
+}
+
+// Okudagram — technical schematic bracket rings.
+
+.warpTile[data-pip-preset='okudagram'] :global([data-testid='pip']:not([data-hollow='true'])) {
+  background: color-mix(in srgb, var(--pip-color) 28%, #0a1628) !important;
+  border: 1px solid #7dd3fc !important;
+  box-shadow:
+    0 0 0 1px rgba(56, 189, 248, 0.5),
+    0 0 12px color-mix(in srgb, var(--pip-color) 55%, transparent),
+    inset 0 0 8px rgba(56, 189, 248, 0.3) !important;
+  animation: warp-okudagram-scan 3.5s ease-in-out infinite;
+}
+
+.warpTile[data-pip-preset='okudagram'] :global([data-testid='pip'][data-hollow='true']) {
+  border: 2px solid #38bdf8 !important;
+  box-shadow:
+    0 0 0 1px rgba(125, 211, 252, 0.55),
+    0 0 10px rgba(56, 189, 248, 0.45) !important;
+  animation: warp-okudagram-scan 3.5s ease-in-out infinite;
+}
+
+// Isolinear — squarish optical chips with cool glass rim.
+
+.warpTile[data-pip-preset='isolinear'] :global([data-testid='pip']:not([data-hollow='true'])) {
+  background: linear-gradient(
+    145deg,
+    rgba(224, 242, 254, 0.95) 0%,
+    color-mix(in srgb, var(--pip-color, #38bdf8) 50%, #bae6fd) 40%,
+    color-mix(in srgb, var(--pip-color, #38bdf8) 78%, #1e293b) 100%
+  ) !important;
+  border: 1px solid rgba(186, 230, 253, 0.9) !important;
+  border-radius: 26% !important;
+  box-shadow:
+    0 0 8px rgba(125, 211, 252, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6),
+    inset 0 -2px 4px rgba(15, 23, 42, 0.28) !important;
+  animation: none;
+}
+
+.warpTile[data-pip-preset='isolinear'] :global([data-testid='pip'][data-hollow='true']) {
+  background: rgba(15, 23, 42, 0.2) !important;
+  border: 2px solid rgba(186, 230, 253, 0.85) !important;
+  border-radius: 26% !important;
+  box-shadow:
+    0 0 8px rgba(125, 211, 252, 0.4),
+    inset 0 0 6px rgba(255, 255, 255, 0.18) !important;
+  animation: none;
+}
+
+// Warp core — pulsing plasma injector.
+
+.warpTile[data-pip-preset='warpCore'] :global([data-testid='pip']:not([data-hollow='true'])) {
   background: radial-gradient(
-    circle at 30% 30%,
-    #fff7ed,
+    circle at 35% 32%,
+    #ffffff 0%,
+    #bae6fd 14%,
     var(--pip-color) 55%,
-    color-mix(in srgb, var(--pip-color) 70%, #7c2d12) 100%
+    color-mix(in srgb, var(--pip-color) 55%, #0c4a6e) 100%
   ) !important;
   border: none !important;
-  animation: warp-pip-pulse 3s ease-in-out infinite;
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--pip-color) 80%, #ffffff),
+    0 0 4px rgba(255, 255, 255, 0.75) !important;
+  animation: warp-core-pulse 2.4s ease-in-out infinite;
 }
 
-.warpTilePipActive :global([data-testid='pip'][data-hollow='true']) {
-  animation: warp-pip-pulse 3s ease-in-out infinite;
+.warpTile[data-pip-preset='warpCore'] :global([data-testid='pip'][data-hollow='true']) {
+  border: 2px solid color-mix(in srgb, var(--pip-color) 85%, #ffffff) !important;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--pip-color) 70%, #ffffff) !important;
+  animation: warp-core-pulse 2.4s ease-in-out infinite;
 }
 
-// Full holographic tile — toggle via createWarpDominoTheme({ holographic: true }).
-// Mostly border + glow; body stays clear so pips float on the table.
+// Holographic tile — transparent body.
+
 .warpTileHolographic {
   background: transparent !important;
   border: 1px solid #38bdf8 !important;
@@ -86,28 +183,68 @@
 }
 
 .warpTileHolographic :global([data-testid='pip']:not([data-hollow='true'])) {
-  background-color: var(--pip-color) !important;
   box-shadow:
-    0 0 5px color-mix(in srgb, var(--pip-color) 45%, transparent),
+    0 0 8px color-mix(in srgb, var(--pip-color) 60%, transparent),
     1px 2px 2px rgba(0, 0, 0, 0.28) !important;
-  opacity: 1 !important;
 }
 
-.warpTileHolographic :global([data-testid='pip'][data-hollow='true']) {
-  background-color: transparent !important;
-  border: 2px solid var(--pip-color) !important;
-  box-shadow: 0 0 6px color-mix(in srgb, var(--pip-color) 50%, transparent) !important;
+.warpTileHolographic[data-pip-preset='classic'] :global([data-testid='pip']:not([data-hollow='true'])) {
+  background: var(--pip-color, #0f172a) !important;
+  box-shadow: 1px 2px 2px rgba(0, 0, 0, 0.38) !important;
 }
 
-@keyframes warp-pip-pulse {
+.warpTileHolographic[data-pip-preset='bridge'] :global([data-testid='pip']:not([data-hollow='true'])) {
+  background: radial-gradient(
+    circle at 35% 28%,
+    color-mix(in srgb, var(--pip-color, #38bdf8) 35%, #ffffff) 0%,
+    color-mix(in srgb, var(--pip-color, #38bdf8) 72%, #38bdf8) 52%,
+    color-mix(in srgb, var(--pip-color, #38bdf8) 55%, #0ea5e9) 100%
+  ) !important;
+}
+
+.warpTileHolographic[data-pip-preset='lcars'] :global([data-testid='pip']:not([data-hollow='true'])) {
+  background: linear-gradient(
+    160deg,
+    #ffe066 0%,
+    #ff8800 42%,
+    #cc66ff 100%
+  ) !important;
+  border-radius: 22% !important;
+  box-shadow:
+    0 0 12px rgba(255, 136, 0, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55) !important;
+}
+
+.warpTileHolographic[data-pip-preset='isolinear'] :global([data-testid='pip']:not([data-hollow='true'])) {
+  border-radius: 26% !important;
+  box-shadow:
+    0 0 10px rgba(125, 211, 252, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6),
+    inset 0 -2px 4px rgba(15, 23, 42, 0.28) !important;
+}
+
+@keyframes warp-okudagram-scan {
   0%,
   100% {
-    opacity: 0.85;
-    box-shadow: 0 0 6px color-mix(in srgb, var(--pip-color) 40%, transparent);
+    filter: brightness(1);
+    opacity: 0.92;
+  }
+
+  50% {
+    filter: brightness(1.18);
+    opacity: 1;
+  }
+}
+
+@keyframes warp-core-pulse {
+  0%,
+  100% {
+    opacity: 0.88;
+    filter: brightness(0.95);
   }
 
   50% {
     opacity: 1;
-    box-shadow: 0 0 14px color-mix(in srgb, var(--pip-color) 80%, transparent);
+    filter: brightness(1.15);
   }
 }

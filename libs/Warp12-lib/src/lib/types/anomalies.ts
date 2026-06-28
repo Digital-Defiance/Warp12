@@ -1,4 +1,6 @@
 import type { PlacedCoordinate } from './coordinate.js';
+import type { RoundState } from './game-state.js';
+import { isRedAlertDoubleDead } from '../table/pip-inventory.js';
 
 /**
  * Subspace Fracture (Chicken Foot) — fleet navigation halts until three
@@ -45,4 +47,13 @@ export function isRedAlertBlocking(
   return (
     redAlert?.active === true && redAlert.responsiblePlayerId === playerId
   );
+}
+
+/** Active Red Alert that still requires a cover tile (excludes dead doubles). */
+export function isTrueRedAlert(round: RoundState): boolean {
+  const redAlert = round.table.redAlert;
+  if (!redAlert?.active) {
+    return false;
+  }
+  return !isRedAlertDoubleDead(round);
 }

@@ -72,14 +72,13 @@ export function HomePage() {
         </div>
       </section>
       <section>
-        <div>© 2026 Digital Defiance, Jessica Mulein.</div>
+        <div>© 2026 Digital Defiance, Jessica Mulein</div>
         <div>
+          &lt; <a className="no-underline" target="_blank" rel="noopener noreferrer" href="https://github.com/Digital-Defiance/Warp12">GitHub</a>&nbsp;|&nbsp;
           <Link to="/privacy" className="no-underline">
             Privacy Policy
-          </Link>
-        </div>
-        <div>Source code available on <a className="no-underline" target="_blank" rel="noopener noreferrer" href="https://github.com/Digital-Defiance/Warp12">GitHub</a>.</div>
-        <div><a className="no-underline" target="_blank" rel="noopener noreferrer" href="https://github.com/Digital-Defiance/Warp12/blob/main/LICENSE">MIT License</a></div>
+          </Link>&nbsp;|&nbsp;<a className="no-underline" target="_blank" rel="noopener noreferrer" href="https://github.com/Digital-Defiance/Warp12/blob/main/LICENSE">MIT License</a> &gt;</div>
+        <div><p>Note: This is a free, fan made production. It is not an official Star Trek game and is not paid for, endorsed, or otherwise affiliated with Paramount, CBS, the Roddenberry Trust, or any other official Star Trek entity.</p></div>
       </section>
     </div>
   );

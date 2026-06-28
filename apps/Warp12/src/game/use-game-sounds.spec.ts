@@ -10,7 +10,10 @@ describe('detectGameSoundTransitions', () => {
     gamePhase: 'active',
     roundPhase: 'playing',
     isMyTurn: false,
-    redAlertActive: false,
+    doublesOnTable: 0,
+    trueRedAlert: false,
+    redAlertResponsibleId: null,
+    activeBeaconCount: 0,
     qFlashActive: false,
     treatyDeclared: false,
     treatyDeclarationRequired: false,
@@ -25,13 +28,64 @@ describe('detectGameSoundTransitions', () => {
     ).toEqual(['hail']);
   });
 
-  it('plays red alert when alert activates', () => {
+  it('plays console warning when a double is charted', () => {
     expect(
       detectGameSoundTransitions(base, {
         ...base,
-        redAlertActive: true,
+        doublesOnTable: 1,
       })
+    ).toEqual(['consoleWarning']);
+  });
+
+  it('does not play red alert when a double first opens red alert', () => {
+    expect(
+      detectGameSoundTransitions(base, {
+        ...base,
+        doublesOnTable: 1,
+        trueRedAlert: true,
+        redAlertResponsibleId: 'a',
+      })
+    ).toEqual(['consoleWarning']);
+  });
+
+  it('plays red alert when red alert is passed and a beacon deploys', () => {
+    expect(
+      detectGameSoundTransitions(
+        {
+          ...base,
+          doublesOnTable: 1,
+          trueRedAlert: true,
+          redAlertResponsibleId: 'a',
+          activeBeaconCount: 0,
+        },
+        {
+          ...base,
+          doublesOnTable: 1,
+          trueRedAlert: true,
+          redAlertResponsibleId: 'b',
+          activeBeaconCount: 1,
+        }
+      )
     ).toEqual(['redAlert']);
+  });
+
+  it('does not play red alert when a beacon deploys without passing red alert', () => {
+    expect(
+      detectGameSoundTransitions(
+        {
+          ...base,
+          trueRedAlert: true,
+          redAlertResponsibleId: 'a',
+          activeBeaconCount: 0,
+        },
+        {
+          ...base,
+          trueRedAlert: true,
+          redAlertResponsibleId: 'a',
+          activeBeaconCount: 1,
+        }
+      )
+    ).toEqual([]);
   });
 
   it('plays q flash when the Q-Continuum module activates', () => {

@@ -1,18 +1,31 @@
-import { Link, Route, Routes } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, Route, Routes, useLocation } from 'react-router-dom';
 
 import { BridgeFocusProvider, useBridgeFocus } from './bridge-focus-context';
+import {
+  BridgeHeaderActionsProvider,
+  useBridgeHeaderActions,
+} from './bridge-header-actions-context';
 import { GameAudioProvider } from './game-audio-context';
+import { preservesGameSession } from './game-route';
 import { LocalGamePage } from './local-game-page';
 import { HomePage } from './home-page';
 import { OnlineGamePage } from './online-game-page';
 import { OnlineLobbyPage } from './online-lobby-page';
+import { PrivacyDialog } from './privacy-dialog';
 import { PrivacyPage } from './privacy-page';
+import { RulesDialog } from './rules-dialog';
 import { RulesPage } from './rules-page';
 import styles from './app.module.scss';
 import { Warp12Logo } from './Warp12Logo';
 
 function AppShell() {
   const { focus } = useBridgeFocus();
+  const { actions: headerActions, invokeAction } = useBridgeHeaderActions();
+  const location = useLocation();
+  const overlayDocs = preservesGameSession(location.pathname);
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
 
   return (
     <div
@@ -26,19 +39,56 @@ function AppShell() {
       }}
     >
       <header className={`${styles.header} ${focus ? styles.headerFocus : ''}`}>
-        <Link to="/" className={styles.logo}>
-          <div>
-            <Warp12Logo className={styles.logoSvg} width={focus ? 180 : 320} />
-            <p className={styles.subtitle}>The Bridge — Navigational Operations</p>
-          </div>
-        </Link>
+        <div className={styles.headerStart}>
+          <Link to="/" className={styles.logo}>
+            <div>
+              <Warp12Logo className={styles.logoSvg} width={focus ? 180 : 320} />
+              <p className={styles.subtitle}>The Bridge — Navigational Operations</p>
+            </div>
+          </Link>
+          {headerActions.length > 0 && (
+            <div className={styles.headerGameActions} aria-label="Game actions">
+              {headerActions.map((action) => (
+                <button
+                  key={action.id}
+                  type="button"
+                  className={styles.headerActionBtn}
+                  onClick={() => invokeAction(action.id)}
+                >
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <nav className={styles.nav}>
-          <Link to="/rules" className={styles.navLink}>
-            Rules
-          </Link>
-          <Link to="/privacy" className={styles.navLink}>
-            Privacy
-          </Link>
+          {overlayDocs ? (
+            <>
+              <button
+                type="button"
+                className={styles.navLink}
+                onClick={() => setRulesOpen(true)}
+              >
+                Rules
+              </button>
+              <button
+                type="button"
+                className={styles.navLink}
+                onClick={() => setPrivacyOpen(true)}
+              >
+                Privacy
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/rules" className={styles.navLink}>
+                Rules
+              </Link>
+              <Link to="/privacy" className={styles.navLink}>
+                Privacy
+              </Link>
+            </>
+          )}
         </nav>
       </header>
 
@@ -55,6 +105,9 @@ function AppShell() {
           </Routes>
         </div>
       </main>
+
+      <RulesDialog open={rulesOpen} onClose={() => setRulesOpen(false)} />
+      <PrivacyDialog open={privacyOpen} onClose={() => setPrivacyOpen(false)} />
     </div>
   );
 }
@@ -63,7 +116,9 @@ export function App() {
   return (
     <GameAudioProvider>
       <BridgeFocusProvider>
-        <AppShell />
+        <BridgeHeaderActionsProvider>
+          <AppShell />
+        </BridgeHeaderActionsProvider>
       </BridgeFocusProvider>
     </GameAudioProvider>
   );

@@ -1,6 +1,7 @@
+import { isDouble } from '../types/coordinate.js';
 import type { TableState } from '../types/game-state.js';
-import type { NeutralZone, WarpTrail } from '../types/trails.js';
 import type { PlayerId } from '../types/player.js';
+import type { NeutralZone, WarpTrail } from '../types/trails.js';
 
 export function createInitialTable(
   playerIds: readonly PlayerId[],
@@ -62,4 +63,45 @@ export function isUncoveredDoubleAtNeutralZoneEnd(zone: NeutralZone): boolean {
   const last = zone.tiles[zone.tiles.length - 1];
   const { coordinate, openValue } = last;
   return coordinate.low === coordinate.high && openValue === coordinate.low;
+}
+
+/** Any trail or neutral zone ends on an open (uncovered) double. */
+export function hasUncoveredDoubleOnTable(table: TableState): boolean {
+  if (isUncoveredDoubleAtNeutralZoneEnd(table.neutralZone)) {
+    return true;
+  }
+  for (const trail of Object.values(table.warpTrails)) {
+    if (isUncoveredDoubleAtTrailEnd(trail)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Charted doubles on warp trails and the neutral zone (excludes Spacedock). */
+export function countDoublesOnTable(table: TableState): number {
+  let count = 0;
+  for (const trail of Object.values(table.warpTrails)) {
+    for (const placed of trail.tiles) {
+      if (isDouble(placed.coordinate)) {
+        count += 1;
+      }
+    }
+  }
+  for (const placed of table.neutralZone.tiles) {
+    if (isDouble(placed.coordinate)) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+export function countActiveDistressBeacons(table: TableState): number {
+  let count = 0;
+  for (const trail of Object.values(table.warpTrails)) {
+    if (trail.distressBeacon.active) {
+      count += 1;
+    }
+  }
+  return count;
 }

@@ -25,8 +25,10 @@
   z-index: 100;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 8px;
-  max-width: calc(100% - 24px);
+  max-width: calc(100% - 280px);
+  padding-right: 8px;
 }
 
 .controlsRow {
@@ -35,9 +37,38 @@
   gap: 8px;
 }
 
-.appearanceControls {
-  padding-top: 2px;
-  border-top: 1px solid rgba(56, 189, 248, 0.15);
+.debugControl {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 100;
+}
+
+.debugBtn {
+  font-size: 1.15rem;
+  line-height: 1;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: var(--warp-panel);
+  color: var(--warp-text);
+  border: 1px solid var(--warp-panel-border);
+  border-radius: 999px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &:hover:not(:disabled) {
+    border-color: var(--warp-accent);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: wait;
+  }
 }
 
 .controlBtn {
@@ -374,6 +405,144 @@
 
   p {
     margin: 0 0 0.5rem;
+  }
+}
+
+.roundEndOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 180;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(5, 8, 22, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.roundEndCard {
+  width: min(420px, 100%);
+  padding: 1.25rem 1.5rem;
+  border-radius: 10px;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  background: rgba(15, 23, 42, 0.96);
+  box-shadow:
+    0 0 0 1px rgba(56, 189, 248, 0.15),
+    0 16px 40px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+
+.roundEndEyebrow {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-federation);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--warp-accent, #38bdf8);
+}
+
+.roundEndTitle {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-federation-wide, var(--font-federation));
+  font-size: 1.35rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--warp-text, #e2e8f0);
+}
+
+.roundEndBody {
+  margin: 0 0 1rem;
+  font-family: var(--font-federation);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--warp-text-muted, #94a3b8);
+}
+
+.roundEndPenalties {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  font-family: var(--font-federation);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--warp-text, #e2e8f0);
+}
+
+.roundEndBtn {
+  font-family: var(--font-federation);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 10px 18px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #0a1220;
+  background: var(--warp-accent, #38bdf8);
+  border: 1px solid rgba(125, 211, 252, 0.8);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
+
+  &:hover {
+    box-shadow: 0 0 22px rgba(56, 189, 248, 0.55);
+  }
+}
+
+.roundEndActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.roundEndBtnSecondary {
+  font-family: var(--font-federation);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 10px 18px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--warp-text, #e2e8f0);
+  background: transparent;
+  border: 1px solid var(--warp-panel-border, #334155);
+
+  &:hover {
+    border-color: var(--warp-accent, #38bdf8);
+    color: var(--warp-accent, #38bdf8);
+  }
+}
+
+.roundEndDock {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 120;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+}
+
+.roundEndDockText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: min(100%, 220px);
+  text-align: left;
+  font-family: var(--font-federation);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--warp-text-muted, #94a3b8);
+
+  strong {
+    color: var(--warp-text, #e2e8f0);
+    font-weight: 600;
   }
 }
 

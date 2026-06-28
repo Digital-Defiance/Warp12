@@ -1,16 +1,24 @@
 import {
   useCallback,
+  useEffect,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
 } from 'react';
 
+import { panToCenterContentPoint } from '../game/table-focus.js';
 import styles from './table-viewport.module.scss';
 
 const MIN_SCALE = 0.35;
 const MAX_SCALE = 2.5;
 const ZOOM_STEP = 0.15;
+
+export interface TableViewportFocusTarget {
+  x: number;
+  y: number;
+  key: string;
+}
 
 export interface TableViewportFocusControl {
   active: boolean;
@@ -28,6 +36,8 @@ export interface TableViewportProps {
   children: React.ReactNode;
   focusControl?: TableViewportFocusControl;
   soundControl?: TableViewportSoundControl;
+  autoFollowAction?: boolean;
+  actionFocus?: TableViewportFocusTarget | null;
 }
 
 export function TableViewport({
@@ -36,9 +46,12 @@ export function TableViewport({
   children,
   focusControl,
   soundControl,
+  autoFollowAction = false,
+  actionFocus = null,
 }: TableViewportProps) {
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const surfaceRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(
     null
   );
@@ -54,6 +67,21 @@ export function TableViewport({
     setScale(1);
     setPan({ x: 0, y: 0 });
   }, []);
+
+  useEffect(() => {
+    if (!autoFollowAction || !actionFocus) {
+      return;
+    }
+    const surface = surfaceRef.current;
+    if (!surface) {
+      return;
+    }
+    const { width, height } = surface.getBoundingClientRect();
+    if (width <= 0 || height <= 0) {
+      return;
+    }
+    setPan(panToCenterContentPoint(width, height, scale, actionFocus.x, actionFocus.y));
+  }, [actionFocus?.key, autoFollowAction, scale]);
 
   const onWheel = useCallback(
     (event: ReactWheelEvent<HTMLDivElement>) => {
@@ -99,6 +127,7 @@ export function TableViewport({
   return (
     <div className={styles.viewport}>
       <div
+        ref={surfaceRef}
         className={styles.viewportSurface}
         onWheel={onWheel}
         onPointerDown={onPointerDown}

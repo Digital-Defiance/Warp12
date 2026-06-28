@@ -56,7 +56,6 @@ export function OnlineGamePage() {
   >({});
   const [error, setError] = useState<string | null>(null);
   const [exportBusy, setExportBusy] = useState(false);
-  const endRoundInFlight = useRef(false);
   const actionLogRef = useRef(createActionLog());
 
   const uid = auth.user?.uid;
@@ -121,50 +120,6 @@ export function OnlineGamePage() {
       navigate(`/online/${code}`, { replace: true });
     }
   }, [code, uid, auth.ready, navigate, serverGame?.captains]);
-
-  useEffect(() => {
-    if (!code || !uid || !serverGame) {
-      return;
-    }
-    const round = serverGame.round;
-    if (!round || round.phase !== 'ended') {
-      return;
-    }
-    if (!round.roundWinnerId && !round.roundBlocked) {
-      return;
-    }
-    if (endRoundInFlight.current) {
-      return;
-    }
-
-    endRoundInFlight.current = true;
-    const action = {
-      type: 'END_ROUND' as const,
-      winnerId: round.roundBlocked ? null : round.roundWinnerId,
-    };
-    void submitOnlineAction(code, uid, action)
-      .then((result) => {
-        actionLogRef.current.append({
-          playerId: playerIdForAction(action),
-          action,
-          ok: result.ok,
-          violation: result.ok ? undefined : result.violation,
-          source: 'auto',
-        });
-        if (!result.ok) {
-          setError(violationMessage(result.violation));
-        }
-      })
-      .finally(() => {
-        endRoundInFlight.current = false;
-      });
-  }, [
-    code,
-    uid,
-    serverGame?.round?.phase,
-    serverGame?.round?.roundWinnerId,
-    serverGame?.round?.roundBlocked,
-  ]);
 
   const dispatch = useCallback(
     async (action: GameAction): Promise<ActionResult> => {
