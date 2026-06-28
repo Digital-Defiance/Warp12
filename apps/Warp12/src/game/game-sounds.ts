@@ -1,7 +1,8 @@
-export type GameSound = 'hail' | 'redAlert' | 'warpExit' | 'qFlash';
+export type GameSound = 'hail' | 'consoleWarning' | 'redAlert' | 'warpExit' | 'qFlash';
 
 const SOUND_URLS: Record<GameSound, string> = {
   hail: '/hailbeep.mp3',
+  consoleWarning: '/consolewarning.mp3',
   redAlert: '/redalert.mp3',
   warpExit: '/tng_warp_exit.mp3',
   qFlash: '/qflash.mp3',

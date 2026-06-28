@@ -1,5 +1,6 @@
 import {
   createWarpAiPlayer,
+  explainWarpAiAction,
   getWarpSkillProfile,
   observe,
   toGameAction,
@@ -15,6 +16,7 @@ import { routeLabel } from './game-to-trains.js';
 export interface CoachSuggestion {
   readonly action: WarpAiAction;
   readonly gameAction: GameAction;
+  readonly reasons: readonly string[];
 }
 
 export function getCoachSuggestion(
@@ -36,6 +38,7 @@ export function getCoachSuggestion(
   return {
     action,
     gameAction: toGameAction(action, playerId),
+    reasons: explainWarpAiAction(state, playerId, action),
   };
 }
 

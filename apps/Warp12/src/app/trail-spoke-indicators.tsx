@@ -46,14 +46,15 @@ export function TrailSpokeIndicators({
               left: `${x}px`,
               top: `${y}px`,
             }}
-            title={`${spoke.label} · ${stateTitle(spoke)} · connects on ${spoke.connectValue}${
-              coach ? ' · tactical advisor engaged' : ''
-            }`}
+            aria-label={badgeAriaLabel(spoke, coach)}
           >
             <span className={styles.spokeIcon} aria-hidden>
               {stateIcon(spoke.state)}
             </span>
             <span className={styles.spokeLabel}>{stateLabel(spoke.state)}</span>
+            <span className={styles.spokeTooltip} role="tooltip">
+              {spoke.captainId ? spoke.label : 'Neutral Zone'}
+            </span>
             {coach && (
               <span
                 className={styles.coachBadge}
@@ -107,4 +108,14 @@ function stateTitle(spoke: TrailSpokeStatus): string {
     case 'shields':
       return 'Shields up — own trail only';
   }
+}
+
+function badgeAriaLabel(
+  spoke: TrailSpokeStatus,
+  coach: CoachIndicator | undefined
+): string {
+  const who = spoke.captainId ? spoke.label : 'Neutral Zone';
+  return `${who} · ${stateTitle(spoke)} · connects on ${spoke.connectValue}${
+    coach ? ' · tactical advisor engaged' : ''
+  }`;
 }

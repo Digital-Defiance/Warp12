@@ -8,6 +8,9 @@ import {
   GAME_OBJECTIVE_LABELS,
   getLegalMoves,
   handPenaltyPoints,
+  countActiveDistressBeacons,
+  countDoublesOnTable,
+  isTrueRedAlert,
   trailOpenValue,
   type ActionResult,
   type ChartRoute,
@@ -52,6 +55,11 @@ import {
   type CoachIndicator,
   type CoachPresence,
 } from '../firebase/coach-presence';
+import {
+  computeTableFocusPoint,
+  detectNewChart,
+  type TableFocusPoint,
+} from '../game/table-focus.js';
 import { useHandLayout } from '../game/use-hand-layout';
 import { WARP_PIP_COLORS, warpPalette } from '../theme/warp-theme';
 import {
@@ -61,6 +69,7 @@ import {
   type WarpTileBg,
 } from '../theme/warp-domino-theme';
 import { useBridgeFocus } from './bridge-focus-context';
+import { useBridgeHeaderActionRegistration } from './bridge-header-actions-context';
 import { useGameAudio } from './game-audio-context';
 import { CoachPanel } from './coach-panel';
 import styles from './bridge-table.module.scss';
@@ -73,43 +82,21 @@ import {
 } from './q-flash-panel';
 import { TrailSpokeIndicators } from './trail-spoke-indicators';
 import spokeStyles from './trail-spoke-indicators.module.scss';
-import { RulesDialog } from './rules-dialog';
 import { TableViewport } from './table-viewport';
+import { TableOptionsDialog } from './table-options-dialog';
+import { ConfirmDialog } from './confirm-dialog';
 
 const TABLE_WIDTH = 1200;
 const TABLE_HEIGHT = 800;
 const HUB_SLOTS = 8;
 
-const PIP_PRESET_CYCLE: WarpPipPreset[] = [
-  'default',
-  'plasma',
-  'tactical',
-  'active',
-];
-
-const pipPresetLabel: Record<WarpPipPreset, string> = {
-  default: 'Standard',
-  plasma: 'Plasma',
-  tactical: 'Tactical',
-  active: 'Active',
-};
-
-const tileBgLabel: Record<WarpTileBg, string> = {
-  dark: 'Dark',
-  light: 'Light',
-};
-
 function canShowInHandPenalty(
   captainId: string,
   options: {
-    isOnline: boolean;
     handOwnerId: string;
     isOnlineHost: boolean;
   }
 ): boolean {
-  if (!options.isOnline) {
-    return true;
-  }
   return captainId === options.handOwnerId || options.isOnlineHost;
 }
 
@@ -119,7 +106,6 @@ function formatPenaltyScoreLine(
   round: RoundState | null | undefined,
   hand: readonly Coordinate[] | undefined,
   options: {
-    isOnline: boolean;
     handOwnerId: string;
     isOnlineHost: boolean;
     salamanderEnabled: boolean;
@@ -136,6 +122,63 @@ function formatPenaltyScoreLine(
     round.roundNumber
   );
   return `${campaign} · ${inHand} in hand`;
+}
+
+function roundEndHeadline(
+  round: RoundState,
+  names: Record<string, string>
+): string {
+  if (round.roundBlocked) {
+    return `Round ${round.roundNumber} blocked — no legal charts remain.`;
+  }
+  const winner = names[round.roundWinnerId ?? ''] ?? 'Captain';
+  return `${winner} charts the final coordinate — round ${round.roundNumber} complete.`;
+}
+
+function roundEndContinueLabel(
+  game: GameState,
+  round: RoundState
+): string {
+  if (game.objective === 'penalty' && round.roundNumber < 13) {
+    return `Deal round ${round.roundNumber + 1}`;
+  }
+  return 'Score round';
+}
+
+function roundEndTitle(
+  round: RoundState,
+  names: Record<string, string>
+): string {
+  if (round.roundBlocked) {
+    return 'Sector blocked';
+  }
+  return `${names[round.roundWinnerId ?? ''] ?? 'Captain'} wins the round`;
+}
+
+function roundPenaltyAdds(
+  game: GameState,
+  round: RoundState
+): { id: string; name: string; points: number }[] {
+  const salamander = game.modules.salamanderPenalty.enabled;
+  return game.captains
+    .map((captain) => {
+      if (!round.roundBlocked && captain.id === round.roundWinnerId) {
+        return null;
+      }
+      const hand = round.hands[captain.id] ?? [];
+      const points = handPenaltyPoints(hand, salamander, round.roundNumber);
+      if (points === 0) {
+        return null;
+      }
+      return {
+        id: captain.id,
+        name: captain.displayName,
+        points,
+      };
+    })
+    .filter((entry): entry is { id: string; name: string; points: number } =>
+      Boolean(entry)
+    );
 }
 
 export interface BridgeTableProps {
@@ -203,16 +246,25 @@ export function BridgeTable({
   const [layoutStyle, setLayoutStyle] = useState<'offset' | 'linear'>('offset');
   const [holographicTiles, setHolographicTiles] = useState(false);
   const [tileBg, setTileBg] = useState<WarpTileBg>('dark');
-  const [pipPreset, setPipPreset] = useState<WarpPipPreset>('default');
+  const [pipPreset, setPipPreset] = useState<WarpPipPreset>('classic');
+  const [teachingMode, setTeachingMode] = useState(false);
+  const [autoFollowAction, setAutoFollowAction] = useState(false);
+  const [actionFocus, setActionFocus] = useState<TableFocusPoint | null>(null);
+  const prevRoundRef = useRef<RoundState | null>(null);
   const [selectedTile, setSelectedTile] = useState<Coordinate | null>(null);
   const [lastMessage, setLastMessage] = useState<string | null>(null);
   const [coachSuggestion, setCoachSuggestion] = useState<CoachSuggestion | null>(
     null
   );
   const [coachBusy, setCoachBusy] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [rematchConfirmOpen, setRematchConfirmOpen] = useState(false);
+  const [setupConfirmOpen, setSetupConfirmOpen] = useState(false);
   const [localCoachSignals, setLocalCoachSignals] = useState<
     Record<string, CoachPresence>
   >({});
+  const [roundEndSummaryOpen, setRoundEndSummaryOpen] = useState(true);
+  const roundEndReviewKeyRef = useRef<string | null>(null);
 
   const round = game.round;
   const activePlayerIsAi =
@@ -237,7 +289,10 @@ export function BridgeTable({
   const tileSurface = WARP_TILE_SURFACE[tileBg];
   const { focus: bridgeFocus, toggleFocus, setFocus: setBridgeFocus } =
     useBridgeFocus();
+  const { registerActions, clearActions } = useBridgeHeaderActionRegistration();
   const { muted: soundsMuted, toggleMuted: toggleSoundsMuted } = useGameAudio();
+
+  const openOptions = useCallback(() => setOptionsOpen(true), []);
 
   useEffect(() => {
     return () => setBridgeFocus(false);
@@ -247,6 +302,38 @@ export function BridgeTable({
     () => (round ? gameStateToTrains(round, HUB_SLOTS) : []),
     [round]
   );
+
+  useEffect(() => {
+    prevRoundRef.current = null;
+    setActionFocus(null);
+  }, [round?.roundNumber]);
+
+  useEffect(() => {
+    if (!round || !autoFollowAction || round.phase !== 'playing') {
+      prevRoundRef.current = round ?? null;
+      return;
+    }
+
+    const site = detectNewChart(prevRoundRef.current, round);
+    prevRoundRef.current = round;
+
+    if (!site) {
+      return;
+    }
+
+    const point = computeTableFocusPoint({
+      round,
+      site,
+      layoutStyle,
+      centerX,
+      centerY,
+      hubRadius: 80,
+      hubSlots: HUB_SLOTS,
+    });
+    if (point) {
+      setActionFocus(point);
+    }
+  }, [autoFollowAction, centerX, centerY, layoutStyle, round]);
 
   const activePlayerId = round?.activePlayerId ?? '';
   const handOwnerId = isVsAi
@@ -272,7 +359,11 @@ export function BridgeTable({
     roundPhase: round?.phase,
     roundNumber: round?.roundNumber,
     isMyTurn,
-    redAlertActive: round?.table.redAlert?.active === true,
+    doublesOnTable: round != null ? countDoublesOnTable(round.table) : 0,
+    trueRedAlert: round != null && isTrueRedAlert(round),
+    redAlertResponsibleId: round?.table.redAlert?.responsiblePlayerId ?? null,
+    activeBeaconCount:
+      round != null ? countActiveDistressBeacons(round.table) : 0,
     qFlashActive: game.modules.qContinuum.activeFlash != null,
     treatyDeclared: round?.treatyDeclared === true,
     treatyDeclarationRequired: round?.treatyDeclarationRequired === true,
@@ -298,7 +389,6 @@ export function BridgeTable({
   } = useHandLayout(game.id, handOwnerId, visibleHand);
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
-  const [rulesOpen, setRulesOpen] = useState(false);
   const legalMoves =
     round && isMyTurn ? getLegalMoves(round, handOwnerId) : [];
 
@@ -333,8 +423,86 @@ export function BridgeTable({
     !(round.treatyDeclarationRequired && !round.treatyDeclared);
 
   useEffect(() => {
-    setCoachSuggestion(null);
-  }, [activePlayerId, round?.roundNumber]);
+    if (!coachAvailable) {
+      setCoachSuggestion(null);
+      return;
+    }
+    if (!teachingMode) {
+      setCoachSuggestion(null);
+    }
+  }, [activePlayerId, round?.roundNumber, coachAvailable, teachingMode]);
+
+  const coachAnnouncedKeyRef = useRef<string | null>(null);
+
+  const announceCoachUse = useCallback(async () => {
+    if (!round) {
+      return;
+    }
+    const key = `${round.roundNumber}:${handOwnerId}:${activePlayerId}`;
+    if (coachAnnouncedKeyRef.current === key) {
+      return;
+    }
+    coachAnnouncedKeyRef.current = key;
+
+    const signal: CoachPresence = {
+      coachRequestedAt: new Date().toISOString(),
+      coachRoundNumber: round.roundNumber,
+      coachUsedThisRound: true,
+    };
+
+    if (isOnline && onCoachSignal) {
+      await onCoachSignal();
+    } else {
+      setLocalCoachSignals((current) => ({
+        ...current,
+        [handOwnerId]: signal,
+      }));
+    }
+  }, [
+    activePlayerId,
+    handOwnerId,
+    isOnline,
+    onCoachSignal,
+    round,
+  ]);
+
+  const applyCoachSuggestion = useCallback(
+    (suggestion: CoachSuggestion, options?: { announce?: boolean }) => {
+      setCoachSuggestion(suggestion);
+      setLastMessage(null);
+
+      const chart = coachChartMove(suggestion.action);
+      if (chart) {
+        setSelectedTile(chart.coordinate);
+      }
+
+      if (options?.announce) {
+        void announceCoachUse();
+      }
+    },
+    [announceCoachUse]
+  );
+
+  useEffect(() => {
+    if (!teachingMode || !coachAvailable) {
+      return;
+    }
+
+    const suggestion = getCoachSuggestion(game, handOwnerId);
+    if (!suggestion) {
+      setCoachSuggestion(null);
+      setLastMessage('Advisor unavailable this turn');
+      return;
+    }
+
+    applyCoachSuggestion(suggestion, { announce: true });
+  }, [
+    applyCoachSuggestion,
+    coachAvailable,
+    game,
+    handOwnerId,
+    teachingMode,
+  ]);
 
   const trainConnectValue = useMemo(() => {
     if (!round) {
@@ -387,17 +555,25 @@ export function BridgeTable({
     );
   }, [legalMoves, selectedTile]);
 
-  const newSector = useCallback(() => {
-    if (mode === 'local') {
-      if (onRematch) {
-        onRematch();
-      } else {
-        setLocalGame(createDemoGame());
-      }
-      setSelectedTile(null);
-      setLastMessage(null);
+  const handleRematch = useCallback(() => {
+    if (mode !== 'local') {
+      return;
     }
+    if (onRematch) {
+      setRematchConfirmOpen(true);
+      return;
+    }
+    setLocalGame(createDemoGame());
+    setSelectedTile(null);
+    setLastMessage(null);
   }, [mode, onRematch]);
+
+  const confirmRematch = useCallback(() => {
+    setRematchConfirmOpen(false);
+    onRematch?.();
+    setSelectedTile(null);
+    setLastMessage(null);
+  }, [onRematch]);
 
   const dispatch = useCallback(
     async (
@@ -467,6 +643,60 @@ export function BridgeTable({
     void exportLocalDebug();
   };
 
+  const handleLeaveSetup = useCallback(() => {
+    if (!onLeaveSetup) {
+      return;
+    }
+    setSetupConfirmOpen(true);
+  }, [onLeaveSetup]);
+
+  const confirmLeaveSetup = useCallback(() => {
+    setSetupConfirmOpen(false);
+    onLeaveSetup?.();
+  }, [onLeaveSetup]);
+
+  useEffect(() => {
+    const actions: {
+      id: string;
+      label: string;
+      onClick: () => void;
+    }[] = [];
+
+    if (mode === 'local') {
+      actions.push({
+        id: 'rematch',
+        label: isVsAi ? 'Rematch' : 'New sector',
+        onClick: handleRematch,
+      });
+    }
+    if (onLeaveSetup) {
+      actions.push({
+        id: 'setup',
+        label: 'Setup',
+        onClick: handleLeaveSetup,
+      });
+    }
+    actions.push({
+      id: 'options',
+      label: 'Options',
+      onClick: openOptions,
+    });
+
+    registerActions(actions);
+  }, [
+    mode,
+    isVsAi,
+    onLeaveSetup,
+    handleRematch,
+    handleLeaveSetup,
+    openOptions,
+    registerActions,
+  ]);
+
+  useEffect(() => {
+    return () => clearActions();
+  }, [clearActions]);
+
   const showDebugExport =
     (isOnlineHost && !!onExportDebug) || (!isOnline && mode === 'local');
   const debugBusy = isOnline ? debugExportBusy : localExportBusy;
@@ -507,59 +737,63 @@ export function BridgeTable({
         return;
       }
 
-      setCoachSuggestion(suggestion);
-      setLastMessage(null);
-
-      const signal: CoachPresence = {
-        coachRequestedAt: new Date().toISOString(),
-        coachRoundNumber: round.roundNumber,
-        coachUsedThisRound: true,
-      };
-
-      if (isOnline && onCoachSignal) {
-        await onCoachSignal();
-      } else {
-        setLocalCoachSignals((current) => ({
-          ...current,
-          [handOwnerId]: signal,
-        }));
-      }
-
-      const chart = coachChartMove(suggestion.action);
-      if (chart) {
-        setSelectedTile(chart.coordinate);
-      }
+      applyCoachSuggestion(suggestion, { announce: true });
     } finally {
       setCoachBusy(false);
     }
   }, [
+    applyCoachSuggestion,
     coachAvailable,
     coachBusy,
     game,
     handOwnerId,
-    isOnline,
-    onCoachSignal,
     round,
   ]);
 
   const aiBusy = useRef(false);
 
+  const roundAwaitingScore =
+    game.phase === 'active' &&
+    round?.phase === 'ended' &&
+    Boolean(round.roundWinnerId || round.roundBlocked);
+
+  useEffect(() => {
+    if (!roundAwaitingScore || !round) {
+      roundEndReviewKeyRef.current = null;
+      return;
+    }
+    const key = `${round.roundNumber}:${round.roundWinnerId ?? 'blocked'}:${round.roundBlocked}`;
+    if (roundEndReviewKeyRef.current !== key) {
+      roundEndReviewKeyRef.current = key;
+      setRoundEndSummaryOpen(true);
+    }
+  }, [
+    roundAwaitingScore,
+    round?.roundBlocked,
+    round?.roundNumber,
+    round?.roundWinnerId,
+  ]);
+
+  const roundPenaltySummary = useMemo(() => {
+    if (!round || !roundAwaitingScore || game.objective !== 'penalty') {
+      return [];
+    }
+    return roundPenaltyAdds(game, round);
+  }, [game, round, roundAwaitingScore]);
+
+  const scoreCurrentRound = useCallback(() => {
+    if (!round || !roundAwaitingScore) {
+      return;
+    }
+    void dispatch({
+      type: 'END_ROUND',
+      winnerId: round.roundBlocked ? null : round.roundWinnerId!,
+    });
+  }, [dispatch, round, roundAwaitingScore]);
+
   useEffect(() => {
     if (!isVsAi || !aiPlayers || !round || game.phase === 'complete') {
       return;
-    }
-
-    if (round.phase === 'ended' && round.roundWinnerId) {
-      const timer = window.setTimeout(() => {
-        void dispatch(
-          {
-            type: 'END_ROUND',
-            winnerId: round.roundWinnerId!,
-          },
-          { source: 'auto' }
-        );
-      }, 600);
-      return () => clearTimeout(timer);
     }
 
     if (round.phase !== 'playing') return;
@@ -668,43 +902,12 @@ export function BridgeTable({
       >
         <div className={styles.controls}>
           <div className={styles.controlsRow}>
-            {mode === 'local' && (
-              <button type="button" className={styles.controlBtn} onClick={newSector}>
-                {isVsAi ? 'Rematch' : 'New sector'}
-              </button>
-            )}
-            {onLeaveSetup && (
-              <button
-                type="button"
-                className={styles.controlBtn}
-                onClick={onLeaveSetup}
-              >
-                Setup
-              </button>
-            )}
             {onLeave && (
               <button type="button" className={styles.controlBtn} onClick={onLeave}>
                 Leave bridge
               </button>
             )}
-            <button
-              type="button"
-              className={styles.controlBtn}
-              onClick={() => setRulesOpen(true)}
-            >
-              Rules
-            </button>
-            {showDebugExport && (
-              <button
-                type="button"
-                className={styles.controlBtn}
-                disabled={debugBusy}
-                onClick={() => void handleExportDebug()}
-              >
-                {debugBusy ? 'Exporting…' : 'Export debug'}
-              </button>
-            )}
-            {coachAvailable && (
+            {coachAvailable && !teachingMode && (
               <button
                 type="button"
                 className={styles.controlBtn}
@@ -712,7 +915,7 @@ export function BridgeTable({
                 disabled={coachBusy}
                 onClick={() => void askCoach()}
               >
-                {coachBusy ? 'Advisor…' : 'Ask coach'}
+                {coachBusy ? 'Advisor…' : 'Ask advisor'}
               </button>
             )}
             <button
@@ -777,64 +980,63 @@ export function BridgeTable({
               </button>
             )}
           </div>
-          <div className={`${styles.controlsRow} ${styles.appearanceControls}`}>
+        </div>
+
+        <TableOptionsDialog
+          open={optionsOpen}
+          onClose={() => setOptionsOpen(false)}
+          layoutStyle={layoutStyle}
+          onLayoutStyleChange={setLayoutStyle}
+          tileBg={tileBg}
+          onTileBgChange={setTileBg}
+          holographicTiles={holographicTiles}
+          onHolographicTilesChange={setHolographicTiles}
+          pipPreset={pipPreset}
+          onPipPresetChange={setPipPreset}
+          teachingMode={teachingMode}
+          onTeachingModeChange={setTeachingMode}
+          autoFollowAction={autoFollowAction}
+          onAutoFollowActionChange={setAutoFollowAction}
+        />
+
+        <ConfirmDialog
+          open={rematchConfirmOpen}
+          title="Start rematch?"
+          titleId="warp12-rematch-confirm-title"
+          message="The current sector will be discarded and a new game will be dealt with the same settings."
+          confirmLabel="Start rematch"
+          cancelLabel="Keep playing"
+          confirmTone="danger"
+          onConfirm={confirmRematch}
+          onClose={() => setRematchConfirmOpen(false)}
+        />
+
+        <ConfirmDialog
+          open={setupConfirmOpen}
+          title="Return to setup?"
+          titleId="warp12-setup-confirm-title"
+          message="You will leave the current sector and any progress in this game will be lost."
+          confirmLabel="Return to setup"
+          cancelLabel="Keep playing"
+          confirmTone="danger"
+          onConfirm={confirmLeaveSetup}
+          onClose={() => setSetupConfirmOpen(false)}
+        />
+
+        {showDebugExport && (
+          <div className={styles.debugControl}>
             <button
               type="button"
-              className={styles.controlBtn}
-              data-active={layoutStyle === 'offset'}
-              onClick={() =>
-                setLayoutStyle((current) =>
-                  current === 'offset' ? 'linear' : 'offset'
-                )
-              }
+              className={styles.debugBtn}
+              disabled={debugBusy}
+              aria-label={debugBusy ? 'Exporting debug log' : 'Export debug log'}
+              title={debugBusy ? 'Exporting…' : 'Export debug log'}
+              onClick={() => void handleExportDebug()}
             >
-              Layout: {layoutStyle === 'offset' ? 'Offset' : 'Linear'}
-            </button>
-            <button
-              type="button"
-              className={styles.controlBtn}
-              disabled={holographicTiles}
-              data-active={tileBg === 'light'}
-              title={
-                holographicTiles
-                  ? 'Turn off Holo tiles to change tile background'
-                  : undefined
-              }
-              onClick={() =>
-                setTileBg((current) => (current === 'dark' ? 'light' : 'dark'))
-              }
-            >
-              Bg: {tileBgLabel[tileBg]}
-            </button>
-            <button
-              type="button"
-              className={styles.controlBtn}
-              data-active={holographicTiles}
-              onClick={() => setHolographicTiles((current) => !current)}
-            >
-              Holo tiles
-            </button>
-            <button
-              type="button"
-              className={styles.controlBtn}
-              disabled={holographicTiles}
-              data-active={!holographicTiles && pipPreset !== 'default'}
-              title={
-                holographicTiles
-                  ? 'Turn off Holo tiles to try pip presets'
-                  : undefined
-              }
-              onClick={() =>
-                setPipPreset((current) => {
-                  const index = PIP_PRESET_CYCLE.indexOf(current);
-                  return PIP_PRESET_CYCLE[(index + 1) % PIP_PRESET_CYCLE.length];
-                })
-              }
-            >
-              Pips: {pipPresetLabel[pipPreset]}
+              {debugBusy ? '…' : '🐛'}
             </button>
           </div>
-        </div>
+        )}
 
         <div className={styles.topRightHud}>
           <QActiveOrb game={game} names={names} />
@@ -894,6 +1096,8 @@ export function BridgeTable({
         <TableViewport
           tableWidth={TABLE_WIDTH}
           tableHeight={TABLE_HEIGHT}
+          autoFollowAction={autoFollowAction}
+          actionFocus={actionFocus}
           focusControl={{
             active: bridgeFocus,
             onToggle: toggleFocus,
@@ -935,6 +1139,78 @@ export function BridgeTable({
           )}
         </TableViewport>
 
+        {roundAwaitingScore && round && roundEndSummaryOpen && (
+          <div
+            className={styles.roundEndOverlay}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="warp12-round-end-title"
+          >
+            <div className={styles.roundEndCard}>
+              <p className={styles.roundEndEyebrow}>Round {round.roundNumber}</p>
+              <h3 id="warp12-round-end-title" className={styles.roundEndTitle}>
+                {roundEndTitle(round, names)}
+              </h3>
+              <p className={styles.roundEndBody}>
+                {roundEndHeadline(round, names)}
+              </p>
+              {game.objective === 'penalty' && (
+                <ul className={styles.roundEndPenalties}>
+                  {roundPenaltySummary.map((entry) => (
+                    <li key={entry.id}>
+                      {entry.name}: +{entry.points} penalty
+                    </li>
+                  ))}
+                  {roundPenaltySummary.length === 0 && (
+                    <li>No penalty tiles held.</li>
+                  )}
+                </ul>
+              )}
+              <div className={styles.roundEndActions}>
+                <button
+                  type="button"
+                  className={styles.roundEndBtnSecondary}
+                  onClick={() => setRoundEndSummaryOpen(false)}
+                >
+                  View board
+                </button>
+                <button
+                  type="button"
+                  className={styles.roundEndBtn}
+                  onClick={scoreCurrentRound}
+                >
+                  {roundEndContinueLabel(game, round)}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {roundAwaitingScore && round && !roundEndSummaryOpen && (
+          <div className={styles.roundEndDock} role="status">
+            <div className={styles.roundEndDockText}>
+              <strong>{roundEndTitle(round, names)}</strong>
+              <span>Pan and zoom to review the final layout.</span>
+            </div>
+            <div className={styles.roundEndActions}>
+              <button
+                type="button"
+                className={styles.roundEndBtnSecondary}
+                onClick={() => setRoundEndSummaryOpen(true)}
+              >
+                Summary
+              </button>
+              <button
+                type="button"
+                className={styles.roundEndBtn}
+                onClick={scoreCurrentRound}
+              >
+                {roundEndContinueLabel(game, round)}
+              </button>
+            </div>
+          </div>
+        )}
+
         <QFlashPanel
           game={game}
           playerId={handOwnerId}
@@ -953,11 +1229,15 @@ export function BridgeTable({
           <h2 className={styles.commandTitle}>
             {game.phase === 'complete'
               ? `${names[round?.roundWinnerId ?? ''] ?? 'Captain'} wins the sector`
-              : isMyTurn
-                ? `${names[handOwnerId] ?? 'Captain'}'s coordinates`
-                : activePlayerIsAi
-                  ? `${names[activePlayerId] ?? 'Captain'} is charting…`
-                  : `Awaiting ${names[activePlayerId] ?? 'captain'}`}
+              : roundAwaitingScore && round
+                ? round.roundBlocked
+                  ? `Round ${round.roundNumber} blocked`
+                  : `${names[round.roundWinnerId ?? ''] ?? 'Captain'} wins round ${round.roundNumber}`
+                : isMyTurn
+                  ? `${names[handOwnerId] ?? 'Captain'}'s coordinates`
+                  : activePlayerIsAi
+                    ? `${names[activePlayerId] ?? 'Captain'} is charting…`
+                    : `Awaiting ${names[activePlayerId] ?? 'captain'}`}
           </h2>
           <span className={styles.handCount}>
             {showOwnHand
@@ -966,26 +1246,33 @@ export function BridgeTable({
           </span>
         </header>
 
-        {(lastMessage ||
+        {(roundAwaitingScore ||
+          lastMessage ||
           (syncPending && isMyTurn) ||
           (!isMyTurn && (isOnline || isVsAi) && !syncPending)) && (
           <p className={styles.feedback} role="status">
-            {syncPending && isMyTurn
-              ? 'Transmitting to subspace…'
-              : lastMessage ??
-                (activePlayerIsAi
-                  ? `${names[activePlayerId] ?? 'Captain'} is thinking…`
-                  : isOnline
-                    ? 'Subspace link active — not your turn.'
-                    : null)}
+            {roundAwaitingScore
+              ? roundEndSummaryOpen
+                ? 'Review the summary, view the board, then continue when ready.'
+                : 'Review the final board — open Summary or continue when ready.'
+              : syncPending && isMyTurn
+                ? 'Transmitting to subspace…'
+                : lastMessage ??
+                  (activePlayerIsAi
+                    ? `${names[activePlayerId] ?? 'Captain'} is thinking…`
+                    : isOnline
+                      ? 'Subspace link active — not your turn.'
+                      : null)}
           </p>
         )}
 
         {coachSuggestion && (
           <CoachPanel
             suggestion={coachSuggestion.action}
+            reasons={coachSuggestion.reasons}
             names={names}
             busy={coachBusy}
+            pinned={teachingMode}
             onApply={applyCoachHighlight}
             onDismiss={() => setCoachSuggestion(null)}
           />
@@ -1183,32 +1470,6 @@ export function BridgeTable({
           </div>
         )}
 
-        {isMyTurn &&
-          !isOnline &&
-          game.objective === 'penalty' &&
-          round?.phase === 'ended' &&
-          (round.roundWinnerId || round.roundBlocked) && (
-            <div className={styles.roundEnd}>
-              <p>
-                {round.roundBlocked
-                  ? 'Sector blocked — draw pile empty with no legal charts.'
-                  : `${names[round.roundWinnerId!]} charts the final coordinate.`}
-              </p>
-              <button
-                type="button"
-                className={styles.controlBtn}
-                onClick={() =>
-                  void dispatch({
-                    type: 'END_ROUND',
-                    winnerId: round.roundBlocked ? null : round.roundWinnerId!,
-                  })
-                }
-              >
-                Score round
-              </button>
-            </div>
-          )}
-
         {isOnline &&
           isOnlineHost &&
           onHostResetSector &&
@@ -1226,8 +1487,8 @@ export function BridgeTable({
         {game.objective === 'penalty' ? (
           <>
             <p className={styles.scoreLegend}>
-              Campaign totals update when a round is scored. In-hand values are
-              pip counts for tiles held right now.
+              Campaign totals are public. In-hand pip count is shown only for
+              your hand — opponents&apos; tiles stay hidden until a round scores.
             </p>
             <ul
               className={styles.captainScores}
@@ -1254,7 +1515,6 @@ export function BridgeTable({
                       round,
                       round?.hands[captain.id],
                       {
-                        isOnline,
                         handOwnerId,
                         isOnlineHost,
                         salamanderEnabled:
@@ -1298,8 +1558,6 @@ export function BridgeTable({
           )
         )}
       </section>
-
-      <RulesDialog open={rulesOpen} onClose={() => setRulesOpen(false)} />
     </div>
     </DominoThemeProvider>
   );

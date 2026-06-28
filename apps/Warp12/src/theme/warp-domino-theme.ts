@@ -12,28 +12,83 @@ const WARP_TILE_BG_CLASSES = {
   light: styles.warpTileLight,
 } as const;
 
-/** Pip appearance presets — experiment without touching inline styles or vendor code. */
-const WARP_PIP_PRESET_CLASSES = {
-  default: undefined,
-  plasma: styles.warpTilePipPlasma,
-  tactical: styles.warpTilePipTactical,
-  active: styles.warpTilePipActive,
+/** Pip readout presets — styled via [data-pip-preset] on the tile root. */
+const WARP_PIP_PRESETS = {
+  classic: 'classic',
+  bridge: 'bridge',
+  lcars: 'lcars',
+  okudagram: 'okudagram',
+  isolinear: 'isolinear',
+  warpCore: 'warpCore',
 } as const;
 
 export type WarpDominoEffect = keyof typeof WARP_TILE_EFFECT_CLASSES;
 
 export type WarpTileBg = keyof typeof WARP_TILE_BG_CLASSES;
 
-export type WarpPipPreset = keyof typeof WARP_PIP_PRESET_CLASSES;
+export type WarpPipPreset = keyof typeof WARP_PIP_PRESETS;
+
+export const WARP_PIP_PRESET_ORDER: readonly WarpPipPreset[] = [
+  'classic',
+  'bridge',
+  'lcars',
+  'okudagram',
+  'isolinear',
+  'warpCore',
+];
+
+export const WARP_PIP_PRESET_META: Record<
+  WarpPipPreset,
+  { label: string; hint: string }
+> = {
+  classic: {
+    label: 'Classic',
+    hint: 'Traditional domino — solid pips, full contrast',
+  },
+  bridge: {
+    label: 'Bridge',
+    hint: 'Deflector display — soft cyan sensor glow',
+  },
+  lcars: {
+    label: 'LCARS',
+    hint: 'PADD readout — warm orange highlight, violet frame',
+  },
+  okudagram: {
+    label: 'Okudagram',
+    hint: 'Technical schematic — bracket rings and scan pulse',
+  },
+  isolinear: {
+    label: 'Isolinear',
+    hint: 'Optical chip — glassy rim with isolinear translucency',
+  },
+  warpCore: {
+    label: 'Warp core',
+    hint: 'Plasma injectors — bright core with energy pulse',
+  },
+};
+
+export const WARP_TILE_BG_META: Record<
+  WarpTileBg,
+  { label: string; hint: string }
+> = {
+  dark: {
+    label: 'Bridge dark',
+    hint: 'Command console panel on deep space black',
+  },
+  light: {
+    label: 'PADD light',
+    hint: 'Light isolinear display surface',
+  },
+};
 
 export const WARP_TILE_SURFACE = {
   dark: {
-    fill: '#0f172a',
+    fill: '#0a1220',
     border: '#334155',
   },
   light: {
-    fill: '#f8fafc',
-    border: '#cbd5e1',
+    fill: '#eef2f7',
+    border: '#94a3b8',
   },
 } as const;
 
@@ -46,7 +101,7 @@ export interface WarpDominoThemeOptions {
   holographic?: boolean;
   /** Tile body fill when not in holographic mode. */
   tileBg?: WarpTileBg;
-  /** Pip look preset — positioning stays in DoubleTwelve. */
+  /** Pip readout preset — positioning stays in DoubleTwelve. */
   pipPreset?: WarpPipPreset;
 }
 
@@ -59,16 +114,13 @@ function resolveWarpDominoEffects(
   };
 }
 
-/** Compose base + enabled effect + pip preset classes for DoubleTwelve tiles. */
+/** Compose base + enabled effect classes for DoubleTwelve tiles. */
 export function composeWarpTileClassName(
   effects: WarpDominoEffects = {},
-  pipPreset: WarpPipPreset = 'default',
+  _pipPreset: WarpPipPreset = 'bridge',
   tileBg: WarpTileBg = 'dark'
 ): string {
   const resolved = resolveWarpDominoEffects({ effects });
-  const pipClass = resolved.holographic
-    ? undefined
-    : WARP_PIP_PRESET_CLASSES[pipPreset];
 
   return [
     styles.warpTile,
@@ -76,7 +128,6 @@ export function composeWarpTileClassName(
     ...(Object.keys(WARP_TILE_EFFECT_CLASSES) as WarpDominoEffect[])
       .filter((effect) => resolved[effect])
       .map((effect) => WARP_TILE_EFFECT_CLASSES[effect]),
-    pipClass,
   ]
     .filter(Boolean)
     .join(' ');
@@ -90,6 +141,7 @@ function warpTileDataAttributes(
   const attrs: NonNullable<DominoTheme['tileDataAttributes']> = {
     warp: true,
     'tile-bg': tileBg,
+    'pip-preset': pipPreset,
   };
 
   for (const [effect, enabled] of Object.entries(effects) as [
@@ -101,10 +153,6 @@ function warpTileDataAttributes(
     }
   }
 
-  if (pipPreset !== 'default') {
-    attrs['pip-preset'] = pipPreset;
-  }
-
   return attrs;
 }
 
@@ -113,7 +161,7 @@ export function createWarpDominoTheme(
   options: WarpDominoThemeOptions = {}
 ): DominoTheme {
   const effects = resolveWarpDominoEffects(options);
-  const pipPreset = options.pipPreset ?? 'default';
+  const pipPreset = options.pipPreset ?? 'bridge';
   const tileBg = options.tileBg ?? 'dark';
   const surface = WARP_TILE_SURFACE[tileBg];
 
@@ -139,6 +187,11 @@ export function createWarpDominoTheme(
           },
     pipStyle: (ctx) => ({
       ['--pip-color' as string]: ctx.color,
+      // Let theme CSS own pip paint and shape — DefaultPip otherwise sets solid circles.
+      backgroundColor: 'transparent',
+      border: 'none',
+      boxShadow: 'none',
+      borderRadius: undefined,
     }),
   };
 }

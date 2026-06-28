@@ -8,20 +8,57 @@
 
 .header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  padding: 1.25rem 2rem;
+  gap: 1rem;
+  padding: 1.25rem 2rem 0.85rem;
   border-bottom: 1px solid var(--warp-panel-border);
   background: rgba(5, 8, 22, 0.9);
   backdrop-filter: blur(12px);
 }
 
-.logo {
+.headerStart {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.25rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.headerGameActions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-bottom: 0.1rem;
+}
+
+.headerActionBtn {
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--warp-text, #e2e8f0);
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--warp-panel-border, #334155);
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.85);
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    border-color: var(--warp-accent, #38bdf8);
+    color: var(--warp-accent, #38bdf8);
+  }
+}
+
+.logo {
+  display: flex;
+  align-items: flex-end;
   gap: 1rem;
   text-decoration: none;
   color: inherit;
+  flex-shrink: 0;
 }
 
 .nav {
@@ -40,6 +77,8 @@
   padding: 0.45rem 0.65rem;
   border: 1px solid transparent;
   border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
 
   &:hover {
     color: var(--warp-accent, #38bdf8);
@@ -93,7 +132,7 @@
 }
 
 .headerFocus {
-  padding: 0.35rem 1rem;
+  padding: 0.35rem 1rem 0.3rem;
   flex-shrink: 0;
 
   .subtitle {
@@ -103,6 +142,15 @@
   .logoSvg {
     max-height: 32px;
     width: auto;
+  }
+
+  .headerGameActions {
+    padding-bottom: 0;
+  }
+
+  .headerActionBtn {
+    font-size: 0.68rem;
+    padding: 0.35rem 0.55rem;
   }
 }
 
