@@ -1,4 +1,4 @@
-import type { WarpSkillLevel } from '@warp12/Warp12-lib';
+import type { WarpSkillLevel } from 'warp12-engine';
 
 import {
   addAiCaptain,

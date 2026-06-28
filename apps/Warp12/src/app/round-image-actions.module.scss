@@ -1,0 +1,64 @@
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.splitGroup {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--warp-panel-border, #334155);
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.splitBtn {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: var(--warp-text, #e2e8f0);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+
+  &:not(:last-child) {
+    border-right: 1px solid var(--warp-panel-border, #334155);
+  }
+
+  &:hover:not(:disabled) {
+    color: var(--warp-accent, #38bdf8);
+    background: rgba(56, 189, 248, 0.08);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  &[data-busy='true'] {
+    opacity: 0.55;
+    cursor: wait;
+  }
+}
+
+.busyGlyph {
+  font-size: 0.95rem;
+  line-height: 1;
+  animation: roundImagePulse 1s ease-in-out infinite;
+}
+
+@keyframes roundImagePulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}

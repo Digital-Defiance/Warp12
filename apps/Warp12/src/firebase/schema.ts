@@ -1,8 +1,8 @@
-import type { GameObjective, WarpSkillLevel } from '@warp12/Warp12-lib';
+import type { GameObjective, WarpSkillLevel } from 'warp12-engine';
 
 export interface FirestoreGameDocument {
   id: string;
-  phase: import('@warp12/Warp12-lib').GamePhase;
+  phase: import('warp12-engine').GamePhase;
   hostId: string;
   createdAt: string;
   updatedAt: string;
@@ -53,7 +53,7 @@ export interface OnlineLobbySettings {
 export interface FirestorePublicRound {
   roundNumber: number;
   spacedockValue: number;
-  phase: import('@warp12/Warp12-lib').RoundPhase;
+  phase: import('warp12-engine').RoundPhase;
   activePlayerId: string;
   turnOrder: string[];
   handCounts: Record<string, number>;

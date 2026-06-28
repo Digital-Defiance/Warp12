@@ -2,7 +2,7 @@ import type {
   GameModuleConfig,
   GameObjective,
   WarpSkillLevel,
-} from '@warp12/Warp12-lib';
+} from 'warp12-engine';
 
 export const LOCAL_MIN_PLAYERS = 3;
 export const LOCAL_MAX_PLAYERS = 8;

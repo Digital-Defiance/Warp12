@@ -80,3 +80,34 @@
     accent-color: var(--warp-accent, #38bdf8);
   }
 }
+
+.actionBtn {
+  align-self: flex-start;
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  background: rgba(15, 23, 42, 0.9);
+  color: var(--warp-text, #e2e8f0);
+  border: 1px solid #475569;
+  transition: border-color 0.15s, color 0.15s;
+
+  &:hover:not(:disabled) {
+    border-color: var(--warp-accent, #38bdf8);
+    color: var(--warp-accent, #38bdf8);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: wait;
+  }
+}
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

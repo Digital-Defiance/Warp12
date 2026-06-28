@@ -1,5 +1,5 @@
 import type { CoachIndicator } from '../firebase/coach-presence';
-import type { TrailSpokeStatus } from '../game/trail-access';
+import type { TrailSpokeStatus } from 'warp12-react';
 import styles from './trail-spoke-indicators.module.scss';
 
 /** Distance from hub center to badge center — just outside the spacedock ring. */

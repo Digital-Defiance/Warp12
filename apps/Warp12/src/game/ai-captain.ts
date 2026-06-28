@@ -1,4 +1,4 @@
-import type { WarpSkillLevel } from '@warp12/Warp12-lib';
+import type { WarpSkillLevel } from 'warp12-engine';
 
 import type { FirestoreCaptain } from '../firebase/schema.js';
 import type { AiCaptainConfig } from './local-game-config.js';

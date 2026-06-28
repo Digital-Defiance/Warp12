@@ -5,7 +5,9 @@ import {
   canPassRedAlert,
   canPassTurn,
   canRaiseShieldsByCharting,
-  GAME_OBJECTIVE_LABELS,
+  captainNameMap,
+  createDemoGame,
+  formatViolation,
   getLegalMoves,
   handPenaltyPoints,
   countActiveDistressBeacons,
@@ -20,62 +22,61 @@ import {
   type LegalMove,
   type RoundState,
   type WarpAiPlayer,
-} from '@warp12/Warp12-lib';
+} from 'warp12-engine';
 import { DominoHub, DoubleTwelve, DominoThemeProvider } from 'doubletwelve';
-
-import { captainNameMap, createDemoGame } from '../game/create-demo-game';
-import {
-  createActionLog,
-  playerIdForAction,
-  type ActionLogSource,
-} from '../game/action-log.js';
-import { downloadDebugExport } from '../game/debug-export.js';
-import type { LocalGameConfig } from '../game/local-game-config';
-import {
-  coordinatesEqual,
-  gameStateToTrains,
-  routeLabel,
-} from '../game/game-to-trains';
-import {
-  buildTrailSpokeStatuses,
-  openTrailCaptainNames,
-  type TrailAccessState,
-} from '../game/trail-access';
-import { coordinateKey, displayCoordinateValues } from '../game/hand-layout';
-import { formatViolation } from '../game/violation-messages.js';
-import { useGameSoundEffects } from '../game/use-game-sounds.js';
 import {
   coachActionKind,
   coachChartMove,
+  coordinatesEqual,
+  createActionLog,
+  gameStateToTrains,
+  buildTrailSpokeStatuses,
+  computeTableFocusPoint,
+  detectNewChart,
+  formatRedAlertStatus,
   getCoachSuggestion,
+  openTrailCaptainNames,
+  playerIdForAction,
+  routeLabel,
+  coordinateKey,
+  displayCoordinateValues,
+  useHandLayout,
+  type ActionLogSource,
   type CoachSuggestion,
-} from '../game/warp-coach.js';
+  type TableFocusPoint,
+  type TrailAccessState,
+} from 'warp12-react';
+import { downloadDebugExport } from '../game/debug-export.js';
+import {
+  canUseSystemShare,
+  deliverRoundImage,
+  formatPenaltyStatLines,
+  type ShareRoundDelivery,
+  type ShareRoundImageMode,
+  type ShareRoundMetadata,
+} from '../game/share-round.js';
+import type { LocalGameConfig } from '../game/local-game-config';
+import { useGameSoundEffects } from '../game/use-game-sounds.js';
 import {
   resolveCoachIndicator,
   type CoachIndicator,
   type CoachPresence,
 } from '../firebase/coach-presence';
 import {
-  computeTableFocusPoint,
-  detectNewChart,
-  type TableFocusPoint,
-} from '../game/table-focus.js';
-import { useHandLayout } from '../game/use-hand-layout';
-import { WARP_PIP_COLORS, warpPalette } from '../theme/warp-theme';
-import {
   createWarpDominoTheme,
+  WARP_PIP_COLORS,
   WARP_TILE_SURFACE,
+  warpPalette,
   type WarpPipPreset,
   type WarpTileBg,
-} from '../theme/warp-domino-theme';
+} from 'warp12-theme';
 import { useBridgeFocus } from './bridge-focus-context';
 import { useBridgeHeaderActionRegistration } from './bridge-header-actions-context';
 import { useGameAudio } from './game-audio-context';
-import { CoachPanel } from './coach-panel';
+import { FloatingCoachPanel } from './floating-coach-panel';
+import { CaptainTailsHud } from './captain-tails-hud';
 import styles from './bridge-table.module.scss';
 import {
-  ActiveQFlashBanner,
-  PeekedSectorBanner,
   QActiveOrb,
   QFlashPanel,
   QGamblePanel,
@@ -84,7 +85,16 @@ import { TrailSpokeIndicators } from './trail-spoke-indicators';
 import spokeStyles from './trail-spoke-indicators.module.scss';
 import { TableViewport } from './table-viewport';
 import { TableOptionsDialog } from './table-options-dialog';
+import {
+  readCaptainTailsDisplay,
+  readCaptainTailsHudEnabled,
+  writeCaptainTailsDisplay,
+  writeCaptainTailsHudEnabled,
+  type CaptainTailsDisplay,
+} from './table-view-prefs';
 import { ConfirmDialog } from './confirm-dialog';
+import { RoundImageActions } from './round-image-actions';
+import { SectorStatusHud } from './sector-status-hud';
 
 const TABLE_WIDTH = 1200;
 const TABLE_HEIGHT = 800;
@@ -199,6 +209,7 @@ export interface BridgeTableProps {
   onHostResetSector?: () => void;
   onExportDebug?: () => void | Promise<void>;
   debugExportBusy?: boolean;
+  sectorCode?: string;
   syncPending?: boolean;
   /** Online: tactical-advisor signals from Firestore presence subcollection. */
   coachPresence?: Record<string, CoachPresence>;
@@ -221,6 +232,7 @@ export function BridgeTable({
   onHostResetSector,
   onExportDebug,
   debugExportBusy = false,
+  sectorCode,
   syncPending = false,
   coachPresence = {},
   onCoachSignal,
@@ -233,7 +245,11 @@ export function BridgeTable({
     () => externalGame ?? createDemoGame()
   );
   const [localExportBusy, setLocalExportBusy] = useState(false);
+  const [roundImageBusy, setRoundImageBusy] = useState<string | null>(null);
+  const systemShareAvailable = canUseSystemShare();
   const actionLogRef = useRef(createActionLog());
+  const tableContentRef = useRef<HTMLDivElement>(null);
+  const bridgeSurfaceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isOnline && externalGame) {
@@ -249,6 +265,10 @@ export function BridgeTable({
   const [pipPreset, setPipPreset] = useState<WarpPipPreset>('classic');
   const [teachingMode, setTeachingMode] = useState(false);
   const [autoFollowAction, setAutoFollowAction] = useState(false);
+  const [captainTailsHud, setCaptainTailsHud] = useState(readCaptainTailsHudEnabled);
+  const [captainTailsDisplay, setCaptainTailsDisplay] = useState<CaptainTailsDisplay>(
+    readCaptainTailsDisplay
+  );
   const [actionFocus, setActionFocus] = useState<TableFocusPoint | null>(null);
   const prevRoundRef = useRef<RoundState | null>(null);
   const [selectedTile, setSelectedTile] = useState<Coordinate | null>(null);
@@ -757,6 +777,53 @@ export function BridgeTable({
     round?.phase === 'ended' &&
     Boolean(round.roundWinnerId || round.roundBlocked);
 
+  const canShareRound = Boolean(round && roundAwaitingScore);
+
+  const shareRoundMetadata = useMemo((): ShareRoundMetadata | null => {
+    if (!canShareRound || !round) {
+      return null;
+    }
+
+    const statsLines =
+      game.objective === 'penalty'
+        ? formatPenaltyStatLines(roundPenaltyAdds(game, round))
+        : game.captains.map(
+            (captain) =>
+              `${names[captain.id] ?? captain.displayName}: ${
+                round.hands[captain.id]?.length ?? 0
+              } in hand`
+          );
+
+    return {
+      roundNumber: round.roundNumber,
+      headline: roundEndTitle(round, names),
+      subtitle: roundEndHeadline(round, names),
+      statsLines,
+      sectorCode: sectorCode ?? (isOnline ? undefined : 'local'),
+    };
+  }, [canShareRound, game, isOnline, names, round, sectorCode]);
+
+  const handleRoundImage = useCallback(
+    async (mode: ShareRoundImageMode, delivery: ShareRoundDelivery) => {
+      if (!shareRoundMetadata || !tableContentRef.current) {
+        return;
+      }
+      const busyKey = `${delivery}-${mode}`;
+      setRoundImageBusy(busyKey);
+      try {
+        await deliverRoundImage({
+          tableContent: tableContentRef.current,
+          meta: shareRoundMetadata,
+          mode,
+          delivery,
+        });
+      } finally {
+        setRoundImageBusy(null);
+      }
+    },
+    [shareRoundMetadata]
+  );
+
   useEffect(() => {
     if (!roundAwaitingScore || !round) {
       roundEndReviewKeyRef.current = null;
@@ -878,6 +945,7 @@ export function BridgeTable({
         data-focus={bridgeFocus ? 'true' : 'false'}
       >
       <div
+        ref={bridgeSurfaceRef}
         className={styles.bridge}
         style={{
           ...(bridgeFocus
@@ -997,6 +1065,23 @@ export function BridgeTable({
           onTeachingModeChange={setTeachingMode}
           autoFollowAction={autoFollowAction}
           onAutoFollowActionChange={setAutoFollowAction}
+          captainTailsHud={captainTailsHud}
+          onCaptainTailsHudChange={(next) => {
+            setCaptainTailsHud(next);
+            writeCaptainTailsHudEnabled(next);
+          }}
+          captainTailsDisplay={captainTailsDisplay}
+          onCaptainTailsDisplayChange={(next) => {
+            setCaptainTailsDisplay(next);
+            writeCaptainTailsDisplay(next);
+          }}
+          showDebugExport={showDebugExport}
+          debugExportBusy={debugBusy}
+          onExportDebug={handleExportDebug}
+          showShareRound={canShareRound}
+          systemShareAvailable={systemShareAvailable}
+          roundImageBusy={roundImageBusy}
+          onRoundImage={handleRoundImage}
         />
 
         <ConfirmDialog
@@ -1023,79 +1108,67 @@ export function BridgeTable({
           onClose={() => setSetupConfirmOpen(false)}
         />
 
-        {showDebugExport && (
-          <div className={styles.debugControl}>
-            <button
-              type="button"
-              className={styles.debugBtn}
-              disabled={debugBusy}
-              aria-label={debugBusy ? 'Exporting debug log' : 'Export debug log'}
-              title={debugBusy ? 'Exporting…' : 'Export debug log'}
-              onClick={() => void handleExportDebug()}
-            >
-              {debugBusy ? '…' : '🐛'}
-            </button>
-          </div>
-        )}
-
         <div className={styles.topRightHud}>
           <QActiveOrb game={game} names={names} />
-          <dl className={styles.statusPanel}>
-          <div>
-            <dt>Objective:</dt>
-            <dd>{GAME_OBJECTIVE_LABELS[game.objective]}</dd>
-          </div>
-          <div>
-            <dt>Spacedock:</dt>
-            <dd>Double-{round?.spacedockValue ?? 12}</dd>
-          </div>
-          <div>
-            <dt>Helm:</dt>
-            <dd>{names[activePlayerId] ?? '—'}</dd>
-          </div>
-          <div>
-            <dt>Uncharted:</dt>
-            <dd>{round?.unchartedSectors.length ?? 0}</dd>
-          </div>
-          <div>
-            <dt>Beacons:</dt>
-            <dd>
-              {beaconCount}
-              {openTrailNames.length > 0
-                ? ` · open: ${openTrailNames.join(', ')}`
-                : ''}
-            </dd>
-          </div>
-          {shieldsDown && (
-            <div className={styles.alert}>
-              <dt>Shields:</dt>
-              <dd>
-                {canRaiseShields
-                  ? 'Down — chart on your warp trail to raise'
-                  : 'Down — trail open to all captains'}
-              </dd>
-            </div>
-          )}
-          {fracture?.active && (
-            <div className={styles.alert}>
-              <dt>Fracture:</dt>
-              <dd>{fracture.stabilizers.length}/3</dd>
-            </div>
-          )}
-          {redAlert?.active && (
-            <div className={styles.alert}>
-              <dt>Red alert:</dt>
-              <dd>{names[redAlert.responsiblePlayerId ?? ''] ?? 'fleet'}</dd>
-            </div>
-          )}
-          <ActiveQFlashBanner game={game} names={names} />
-          <PeekedSectorBanner game={game} viewerId={handOwnerId} />
-          </dl>
         </div>
+
+        <SectorStatusHud
+          containerRef={bridgeSurfaceRef}
+          game={game}
+          round={round}
+          names={names}
+          activePlayerId={activePlayerId}
+          handOwnerId={handOwnerId}
+          viewerId={handOwnerId}
+          isMyTurn={isMyTurn}
+          activePlayerIsAi={activePlayerIsAi}
+          isOnline={isOnline}
+          syncPending={syncPending}
+          roundAwaitingScore={roundAwaitingScore}
+          roundEndSummaryOpen={roundEndSummaryOpen}
+          lastMessage={lastMessage}
+          spacedockValue={round?.spacedockValue ?? 12}
+          unchartedCount={round?.unchartedSectors.length ?? 0}
+          beaconCount={beaconCount}
+          openTrailNames={openTrailNames}
+          shieldsDown={shieldsDown}
+          canRaiseShields={canRaiseShields}
+          fractureActive={Boolean(fracture?.active)}
+          fractureStabilizers={fracture?.stabilizers.length ?? 0}
+          redAlertActive={Boolean(redAlert?.active)}
+          redAlertSummary={
+            redAlert?.active ? formatRedAlertStatus(redAlert, names) : ''
+          }
+        />
+
+        {coachSuggestion && (
+          <FloatingCoachPanel
+            containerRef={bridgeSurfaceRef}
+            suggestion={coachSuggestion.action}
+            reasons={coachSuggestion.reasons}
+            names={names}
+            busy={coachBusy}
+            pinned={teachingMode}
+            onApply={applyCoachHighlight}
+            onDismiss={() => setCoachSuggestion(null)}
+          />
+        )}
+
+        {captainTailsHud && round && (
+          <CaptainTailsHud
+            containerRef={bridgeSurfaceRef}
+            round={round}
+            trailSpokes={trailSpokes}
+            activePlayerId={activePlayerId}
+            display={captainTailsDisplay}
+            tileBg={tileBg}
+          />
+        )}
 
         <TableViewport
           tableWidth={TABLE_WIDTH}
           tableHeight={TABLE_HEIGHT}
+          contentRef={tableContentRef}
           autoFollowAction={autoFollowAction}
           actionFocus={actionFocus}
           focusControl={{
@@ -1166,6 +1239,12 @@ export function BridgeTable({
                   )}
                 </ul>
               )}
+              <RoundImageActions
+                className={styles.roundEndShareActions}
+                systemShareAvailable={systemShareAvailable}
+                roundImageBusy={roundImageBusy}
+                onRoundImage={handleRoundImage}
+              />
               <div className={styles.roundEndActions}>
                 <button
                   type="button"
@@ -1192,6 +1271,12 @@ export function BridgeTable({
               <strong>{roundEndTitle(round, names)}</strong>
               <span>Pan and zoom to review the final layout.</span>
             </div>
+            <RoundImageActions
+              className={styles.roundEndShareActions}
+              systemShareAvailable={systemShareAvailable}
+              roundImageBusy={roundImageBusy}
+              onRoundImage={handleRoundImage}
+            />
             <div className={styles.roundEndActions}>
               <button
                 type="button"
@@ -1264,18 +1349,6 @@ export function BridgeTable({
                       ? 'Subspace link active — not your turn.'
                       : null)}
           </p>
-        )}
-
-        {coachSuggestion && (
-          <CoachPanel
-            suggestion={coachSuggestion.action}
-            reasons={coachSuggestion.reasons}
-            names={names}
-            busy={coachBusy}
-            pinned={teachingMode}
-            onApply={applyCoachHighlight}
-            onDismiss={() => setCoachSuggestion(null)}
-          />
         )}
 
         {selectedTile && movesForSelected.length > 1 && (

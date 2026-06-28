@@ -1,0 +1,52 @@
+{
+  "name": "warp12-theme",
+  "version": "0.1.0",
+  "description": "Warp 12 Star Trek domino theme presets for DoubleTwelve",
+  "license": "MIT",
+  "author": "Jessica Mulein",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@warp12/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "warp12",
+    "doubletwelve",
+    "dominoes",
+    "theme"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Digital-Defiance/Warp12.git",
+    "directory": "libs/theme"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "prepublishOnly": "cd ../.. && yarn build:theme"
+  },
+  "peerDependencies": {
+    "doubletwelve": ">=0.3.0"
+  },
+  "devDependencies": {
+    "doubletwelve": "workspace:*"
+  }
+}

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-import { GAME_OBJECTIVE_LABELS } from '@warp12/Warp12-lib';
+import { GAME_OBJECTIVE_LABELS } from 'warp12-engine';
 
 import type { FirestoreGameDocument } from '../firebase';
 import { ONLINE_MAX_PLAYERS } from '../firebase';

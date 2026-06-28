@@ -1,0 +1,50 @@
+{
+  "name": "warp12-engine",
+  "version": "0.1.0",
+  "description": "Warp 12 game engine — rules, state machine, Warp AI, and advisor explanations",
+  "license": "MIT",
+  "author": "Jessica Mulein",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@warp12/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "warp12",
+    "mexican-train",
+    "dominoes",
+    "game-engine",
+    "board-game"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Digital-Defiance/Warp12.git",
+    "directory": "libs/engine"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "prepublishOnly": "cd ../.. && yarn build:engine && yarn test:engine"
+  },
+  "peerDependencies": {
+    "doubletwelve": ">=0.3.0"
+  },
+  "devDependencies": {
+    "doubletwelve": "workspace:*"
+  }
+}

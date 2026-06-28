@@ -1,4 +1,4 @@
-import type { GameAction } from '@warp12/Warp12-lib';
+import type { GameAction } from 'warp12-engine';
 
 import { isAiCaptain } from '../game/ai-captain.js';
 import type { FirestoreGameDocument } from './schema.js';

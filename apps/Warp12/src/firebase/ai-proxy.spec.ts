@@ -1,4 +1,4 @@
-import type { GameAction } from '@warp12/Warp12-lib';
+import type { GameAction } from 'warp12-engine';
 import { describe, expect, it } from 'vitest';
 
 import {

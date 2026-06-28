@@ -6891,19 +6891,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@warp12/Warp12-lib@workspace:*, @warp12/Warp12-lib@workspace:libs/Warp12-lib":
-  version: 0.0.0-use.local
-  resolution: "@warp12/Warp12-lib@workspace:libs/Warp12-lib"
-  languageName: unknown
-  linkType: soft
-
 "@warp12/Warp12@workspace:apps/Warp12":
   version: 0.0.0-use.local
   resolution: "@warp12/Warp12@workspace:apps/Warp12"
   dependencies:
-    "@warp12/Warp12-lib": "workspace:*"
     doubletwelve: "workspace:*"
     firebase: "npm:^12.15.0"
+    html-to-image: "npm:^1.11.13"
+    warp12-engine: "workspace:*"
+    warp12-react: "workspace:*"
+    warp12-theme: "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -11496,6 +11493,13 @@ __metadata:
   version: 2.0.2
   resolution: "html-escaper@npm:2.0.2"
   checksum: 10c0/208e8a12de1a6569edbb14544f4567e6ce8ecc30b9394fcaa4e7bb1e60c12a7c9a1ed27e31290817157e8626f3a4f29e76c8747030822eb84a6abb15c255f0a0
+  languageName: node
+  linkType: hard
+
+"html-to-image@npm:^1.11.13":
+  version: 1.11.13
+  resolution: "html-to-image@npm:1.11.13"
+  checksum: 10c0/03bd7192d87b99499e37ff12a8e2b41ddce4cf8e33a93dfadff18df0f213434c7f1ba8328db2158f4805da07b7aec3c90aec3152908281153217e86784218b10
   languageName: node
   linkType: hard
 
@@ -17714,6 +17718,40 @@ __metadata:
   checksum: 10c0/8712774c1aeb62dec22928bf1cdfd11426c2c9383a1a63f2bcae18db87ca574165a0fbe96b312b73652149167ac6c7f4cf5409f2eb101d9c805efe0e4bae798b
   languageName: node
   linkType: hard
+
+"warp12-engine@workspace:*, warp12-engine@workspace:libs/engine":
+  version: 0.0.0-use.local
+  resolution: "warp12-engine@workspace:libs/engine"
+  dependencies:
+    doubletwelve: "workspace:*"
+  peerDependencies:
+    doubletwelve: ">=0.3.0"
+  languageName: unknown
+  linkType: soft
+
+"warp12-react@workspace:*, warp12-react@workspace:libs/react":
+  version: 0.0.0-use.local
+  resolution: "warp12-react@workspace:libs/react"
+  dependencies:
+    doubletwelve: "workspace:*"
+    react: "npm:^19.0.0"
+    warp12-engine: "workspace:*"
+  peerDependencies:
+    doubletwelve: ">=0.3.0"
+    react: ">=18.0.0"
+    warp12-engine: ">=0.1.0"
+  languageName: unknown
+  linkType: soft
+
+"warp12-theme@workspace:*, warp12-theme@workspace:libs/theme":
+  version: 0.0.0-use.local
+  resolution: "warp12-theme@workspace:libs/theme"
+  dependencies:
+    doubletwelve: "workspace:*"
+  peerDependencies:
+    doubletwelve: ">=0.3.0"
+  languageName: unknown
+  linkType: soft
 
 "watchpack@npm:^2.5.1, watchpack@npm:^2.5.2":
   version: 2.5.2

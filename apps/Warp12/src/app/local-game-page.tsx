@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import {
   type GameObjective,
   type WarpSkillLevel,
-} from '@warp12/Warp12-lib';
+} from 'warp12-engine';
 
 import { BridgeTable } from './bridge-table';
 import styles from './lobby.module.scss';

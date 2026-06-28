@@ -13,9 +13,17 @@ export default defineConfig(() => ({
         import.meta.dirname,
         '../../vendor/DoubleTwelve/dist/index.js'
       ),
-      '@warp12/Warp12-lib': path.resolve(
+      'warp12-engine': path.resolve(
         import.meta.dirname,
-        '../../libs/Warp12-lib/src/index.ts'
+        '../../libs/engine/src/index.ts'
+      ),
+      'warp12-react': path.resolve(
+        import.meta.dirname,
+        '../../libs/react/src/index.ts'
+      ),
+      'warp12-theme': path.resolve(
+        import.meta.dirname,
+        '../../libs/theme/src/index.ts'
       ),
     },
   },
@@ -28,10 +36,6 @@ export default defineConfig(() => ({
     host: 'localhost',
   },
   plugins: [react()],
-  // Uncomment this if you are using workers.
-  // worker: {
-  //  plugins: [],
-  // },
   build: {
     outDir: './dist',
     emptyOutDir: true,

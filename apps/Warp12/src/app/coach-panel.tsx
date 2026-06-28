@@ -1,6 +1,6 @@
-import type { WarpAiAction } from '@warp12/Warp12-lib';
+import type { WarpAiAction } from 'warp12-engine';
 
-import { formatCoachSuggestion } from '../game/warp-coach';
+import { formatCoachSuggestion } from 'warp12-react';
 import styles from './coach-panel.module.scss';
 
 export interface CoachPanelProps {
@@ -9,6 +9,7 @@ export interface CoachPanelProps {
   names: Readonly<Record<string, string>>;
   busy?: boolean;
   pinned?: boolean;
+  embedded?: boolean;
   onApply: () => void;
   onDismiss: () => void;
 }
@@ -19,17 +20,24 @@ export function CoachPanel({
   names,
   busy = false,
   pinned = false,
+  embedded = false,
   onApply,
   onDismiss,
 }: CoachPanelProps) {
   return (
-    <div className={styles.panel} role="region" aria-label="Tactical advisor">
-      <div className={styles.header}>
-        <span className={styles.badge} aria-hidden>
-          ★
-        </span>
-        <p className={styles.title}>Tactical advisor</p>
-      </div>
+    <div
+      className={embedded ? styles.embedded : styles.panel}
+      role="region"
+      aria-label="Tactical advisor"
+    >
+      {!embedded && (
+        <div className={styles.header}>
+          <span className={styles.badge} aria-hidden>
+            ★
+          </span>
+          <p className={styles.title}>Tactical advisor</p>
+        </div>
+      )}
       <p className={styles.suggestion}>{formatCoachSuggestion(suggestion, names)}</p>
       {reasons.length > 0 && (
         <ul className={styles.reasons}>

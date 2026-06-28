@@ -6,7 +6,7 @@ import {
   type ActionViolation,
   type GameAction,
   type GameState,
-} from '@warp12/Warp12-lib';
+} from 'warp12-engine';
 
 import {
   fetchHostDebugSnapshot,
@@ -23,12 +23,12 @@ import { isAiCaptain } from '../game/ai-captain.js';
 import {
   createActionLog,
   playerIdForAction,
-} from '../game/action-log.js';
+} from 'warp12-react';
 import { downloadDebugExport } from '../game/debug-export.js';
 import { useBridgeFocus } from './bridge-focus-context';
 import { BridgeTable } from './bridge-table';
 import { useHostAiRunner } from './use-host-ai-runner';
-import { formatViolation } from '../game/violation-messages.js';
+import { formatViolation } from 'warp12-engine';
 import styles from './lobby.module.scss';
 
 function violationMessage(violation: string): string {
@@ -323,6 +323,7 @@ export function OnlineGamePage() {
         onHostResetSector={hostResetSector}
         onExportDebug={isHost ? exportDebug : undefined}
         debugExportBusy={exportBusy}
+        sectorCode={code}
         syncPending={syncPending}
         coachPresence={coachPresence}
         onCoachSignal={signalCoach}

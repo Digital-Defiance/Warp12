@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 
-import type { GameState } from '@warp12/Warp12-lib';
+import type { GameState } from 'warp12-engine';
 
 import { fetchAiCaptainHand, submitOnlineAction } from '../firebase';
 import {
@@ -8,12 +8,12 @@ import {
   isAiCaptain,
   onlineAiSeed,
 } from '../game/ai-captain.js';
-import type { ActionLogEntry } from '../game/action-log.js';
-import { playerIdForAction } from '../game/action-log.js';
+import type { ActionLogEntry } from 'warp12-react';
+import { playerIdForAction } from 'warp12-react';
 import { buildAiRosterFromConfigs } from '../game/create-local-game.js';
 import type { AiCaptainConfig } from '../game/local-game-config.js';
 import { mergeAiHandsIntoGame } from '../game/merge-ai-hands.js';
-import { formatViolation } from '../game/violation-messages.js';
+import { formatViolation } from 'warp12-engine';
 import type { FirestoreCaptain } from '../firebase/schema.js';
 
 function violationMessage(violation: string): string {
