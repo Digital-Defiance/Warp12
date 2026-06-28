@@ -144,7 +144,8 @@ export function SectorStatusHud({
     <FloatingPanelShell
       containerRef={containerRef}
       storageKey={STORAGE_KEY}
-      defaultAnchor="bottom-left"
+      defaultAnchor="top-right"
+      panelClassName={styles.belowQOrb}
       title="Sector status"
       width={300}
       accent="cyan"

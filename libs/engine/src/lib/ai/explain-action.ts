@@ -22,6 +22,7 @@ import {
 } from './heuristics.js';
 import { observe } from './observation.js';
 import { getWarpSkillProfile } from './skill.js';
+import { explainTurnResolution } from './explain-turn-resolution.js';
 
 const H = WARP_HEURISTIC_IDS;
 
@@ -182,24 +183,24 @@ function describeHeuristicContribution(
   }
 }
 
-function describeActionKind(action: WarpAiAction): string | null {
+function describeActionKind(
+  action: WarpAiAction,
+  state: GameState,
+  playerId: PlayerId
+): string[] {
   switch (action.kind) {
-    case 'draw':
-      return 'No legal chart — draw from Uncharted Sectors.';
-    case 'deploy-beacon':
-      return 'Stuck with no chart — Distress Beacon opens your trail.';
-    case 'pass-turn':
-      return 'Voluntary pass — shields down on your trail.';
-    case 'pass-red-alert':
-      return 'Cannot cover the Red Alert — pass to the next captain.';
     case 'declare-treaty':
-      return 'Neutral Zone win available — drop to impulse.';
+      return ['Neutral Zone win available — drop to impulse.'];
     case 'invoke-q-flash':
-      return `Reality shift: ${action.effect.replaceAll('-', ' ')}.`;
+      return [`Reality shift: ${action.effect.replaceAll('-', ' ')}.`];
     case 'resolve-q-gamble':
-      return `Keep gamble tile ${action.keepIndex + 1} for the best hand shape.`;
+      return [
+        `Keep gamble tile ${action.keepIndex + 1} for the best hand shape.`,
+      ];
     case 'chart':
-      return null;
+      return [];
+    default:
+      return explainTurnResolution(state, playerId, { focus: action.kind });
   }
 }
 
@@ -216,9 +217,9 @@ export function explainWarpAiAction(
     return [];
   }
 
-  const kindReason = describeActionKind(action);
-  if (kindReason) {
-    return [kindReason];
+  const kindReasons = describeActionKind(action, state, playerId);
+  if (kindReasons.length > 0) {
+    return kindReasons.slice(0, maxReasons);
   }
 
   const skill = getWarpSkillProfile('advanced', state.objective);

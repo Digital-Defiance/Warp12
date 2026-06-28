@@ -67,8 +67,6 @@ import {
   WARP_PIP_COLORS,
   WARP_TILE_SURFACE,
   warpPalette,
-  type WarpPipPreset,
-  type WarpTileBg,
 } from 'warp12-theme';
 import { useBridgeFocus } from './bridge-focus-context';
 import { useBridgeHeaderActionRegistration } from './bridge-header-actions-context';
@@ -86,11 +84,8 @@ import spokeStyles from './trail-spoke-indicators.module.scss';
 import { TableViewport } from './table-viewport';
 import { TableOptionsDialog } from './table-options-dialog';
 import {
-  readCaptainTailsDisplay,
-  readCaptainTailsHudEnabled,
-  writeCaptainTailsDisplay,
-  writeCaptainTailsHudEnabled,
-  type CaptainTailsDisplay,
+  readTableOptions,
+  writeTableOptions,
 } from './table-view-prefs';
 import { ConfirmDialog } from './confirm-dialog';
 import { RoundImageActions } from './round-image-actions';
@@ -102,12 +97,9 @@ const HUB_SLOTS = 8;
 
 function canShowInHandPenalty(
   captainId: string,
-  options: {
-    handOwnerId: string;
-    isOnlineHost: boolean;
-  }
+  handOwnerId: string
 ): boolean {
-  return captainId === options.handOwnerId || options.isOnlineHost;
+  return captainId === handOwnerId;
 }
 
 function formatPenaltyScoreLine(
@@ -117,12 +109,15 @@ function formatPenaltyScoreLine(
   hand: readonly Coordinate[] | undefined,
   options: {
     handOwnerId: string;
-    isOnlineHost: boolean;
     salamanderEnabled: boolean;
   }
 ): string {
   const campaign = `${campaignScore} campaign`;
-  if (!round || !canShowInHandPenalty(captainId, options) || hand === undefined) {
+  if (
+    !round ||
+    !canShowInHandPenalty(captainId, options.handOwnerId) ||
+    hand === undefined
+  ) {
     return campaign;
   }
 
@@ -259,15 +254,27 @@ export function BridgeTable({
 
   const game = isOnline ? (externalGame ?? localGame) : localGame;
 
-  const [layoutStyle, setLayoutStyle] = useState<'offset' | 'linear'>('offset');
-  const [holographicTiles, setHolographicTiles] = useState(false);
-  const [tileBg, setTileBg] = useState<WarpTileBg>('dark');
-  const [pipPreset, setPipPreset] = useState<WarpPipPreset>('classic');
-  const [teachingMode, setTeachingMode] = useState(false);
-  const [autoFollowAction, setAutoFollowAction] = useState(false);
-  const [captainTailsHud, setCaptainTailsHud] = useState(readCaptainTailsHudEnabled);
-  const [captainTailsDisplay, setCaptainTailsDisplay] = useState<CaptainTailsDisplay>(
-    readCaptainTailsDisplay
+  const [tablePrefs, setTablePrefs] = useState(readTableOptions);
+  const {
+    layoutStyle,
+    tileBg,
+    holographicTiles,
+    pipPreset,
+    teachingMode,
+    autoFollowAction,
+    captainTailsHud,
+    captainTailsDisplay,
+  } = tablePrefs;
+
+  const patchTablePrefs = useCallback(
+    (patch: Partial<typeof tablePrefs>) => {
+      setTablePrefs((current) => {
+        const next = { ...current, ...patch };
+        writeTableOptions(patch);
+        return next;
+      });
+    },
+    []
   );
   const [actionFocus, setActionFocus] = useState<TableFocusPoint | null>(null);
   const prevRoundRef = useRef<RoundState | null>(null);
@@ -307,16 +314,11 @@ export function BridgeTable({
     [holographicTiles, tileBg, pipPreset]
   );
   const tileSurface = WARP_TILE_SURFACE[tileBg];
-  const { focus: bridgeFocus, toggleFocus, setFocus: setBridgeFocus } =
-    useBridgeFocus();
+  const { focus: bridgeFocus, toggleFocus } = useBridgeFocus();
   const { registerActions, clearActions } = useBridgeHeaderActionRegistration();
   const { muted: soundsMuted, toggleMuted: toggleSoundsMuted } = useGameAudio();
 
   const openOptions = useCallback(() => setOptionsOpen(true), []);
-
-  useEffect(() => {
-    return () => setBridgeFocus(false);
-  }, [setBridgeFocus]);
 
   const trains = useMemo(
     () => (round ? gameStateToTrains(round, HUB_SLOTS) : []),
@@ -508,7 +510,7 @@ export function BridgeTable({
       return;
     }
 
-    const suggestion = getCoachSuggestion(game, handOwnerId);
+    const suggestion = getCoachSuggestion(game, handOwnerId, names);
     if (!suggestion) {
       setCoachSuggestion(null);
       setLastMessage('Advisor unavailable this turn');
@@ -751,7 +753,7 @@ export function BridgeTable({
 
     setCoachBusy(true);
     try {
-      const suggestion = getCoachSuggestion(game, handOwnerId);
+      const suggestion = getCoachSuggestion(game, handOwnerId, names);
       if (!suggestion) {
         setLastMessage('Advisor unavailable this turn');
         return;
@@ -1054,27 +1056,29 @@ export function BridgeTable({
           open={optionsOpen}
           onClose={() => setOptionsOpen(false)}
           layoutStyle={layoutStyle}
-          onLayoutStyleChange={setLayoutStyle}
+          onLayoutStyleChange={(next) => patchTablePrefs({ layoutStyle: next })}
           tileBg={tileBg}
-          onTileBgChange={setTileBg}
+          onTileBgChange={(next) => patchTablePrefs({ tileBg: next })}
           holographicTiles={holographicTiles}
-          onHolographicTilesChange={setHolographicTiles}
+          onHolographicTilesChange={(next) =>
+            patchTablePrefs({ holographicTiles: next })
+          }
           pipPreset={pipPreset}
-          onPipPresetChange={setPipPreset}
+          onPipPresetChange={(next) => patchTablePrefs({ pipPreset: next })}
           teachingMode={teachingMode}
-          onTeachingModeChange={setTeachingMode}
+          onTeachingModeChange={(next) => patchTablePrefs({ teachingMode: next })}
           autoFollowAction={autoFollowAction}
-          onAutoFollowActionChange={setAutoFollowAction}
+          onAutoFollowActionChange={(next) =>
+            patchTablePrefs({ autoFollowAction: next })
+          }
           captainTailsHud={captainTailsHud}
-          onCaptainTailsHudChange={(next) => {
-            setCaptainTailsHud(next);
-            writeCaptainTailsHudEnabled(next);
-          }}
+          onCaptainTailsHudChange={(next) =>
+            patchTablePrefs({ captainTailsHud: next })
+          }
           captainTailsDisplay={captainTailsDisplay}
-          onCaptainTailsDisplayChange={(next) => {
-            setCaptainTailsDisplay(next);
-            writeCaptainTailsDisplay(next);
-          }}
+          onCaptainTailsDisplayChange={(next) =>
+            patchTablePrefs({ captainTailsDisplay: next })
+          }
           showDebugExport={showDebugExport}
           debugExportBusy={debugBusy}
           onExportDebug={handleExportDebug}
@@ -1318,11 +1322,7 @@ export function BridgeTable({
                 ? round.roundBlocked
                   ? `Round ${round.roundNumber} blocked`
                   : `${names[round.roundWinnerId ?? ''] ?? 'Captain'} wins round ${round.roundNumber}`
-                : isMyTurn
-                  ? `${names[handOwnerId] ?? 'Captain'}'s coordinates`
-                  : activePlayerIsAi
-                    ? `${names[activePlayerId] ?? 'Captain'} is charting…`
-                    : `Awaiting ${names[activePlayerId] ?? 'captain'}`}
+                : `${names[handOwnerId] ?? 'Captain'}'s coordinates`}
           </h2>
           <span className={styles.handCount}>
             {showOwnHand
@@ -1333,8 +1333,7 @@ export function BridgeTable({
 
         {(roundAwaitingScore ||
           lastMessage ||
-          (syncPending && isMyTurn) ||
-          (!isMyTurn && (isOnline || isVsAi) && !syncPending)) && (
+          (syncPending && isMyTurn)) && (
           <p className={styles.feedback} role="status">
             {roundAwaitingScore
               ? roundEndSummaryOpen
@@ -1342,12 +1341,7 @@ export function BridgeTable({
                 : 'Review the final board — open Summary or continue when ready.'
               : syncPending && isMyTurn
                 ? 'Transmitting to subspace…'
-                : lastMessage ??
-                  (activePlayerIsAi
-                    ? `${names[activePlayerId] ?? 'Captain'} is thinking…`
-                    : isOnline
-                      ? 'Subspace link active — not your turn.'
-                      : null)}
+                : lastMessage}
           </p>
         )}
 
@@ -1589,7 +1583,6 @@ export function BridgeTable({
                       round?.hands[captain.id],
                       {
                         handOwnerId,
-                        isOnlineHost,
                         salamanderEnabled:
                           game.modules.salamanderPenalty.enabled,
                       }

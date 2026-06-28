@@ -1,31 +1,54 @@
+import type { WarpPipPreset, WarpTileBg } from 'warp12-theme';
+
 export type CaptainTailsDisplay = 'number' | 'domino';
+export type TrailLayoutStyle = 'offset' | 'linear';
 
-const ENABLED_KEY = 'warp12-captain-tails-hud';
-const DISPLAY_KEY = 'warp12-captain-tails-display';
+export interface TableOptionsPrefs {
+  layoutStyle: TrailLayoutStyle;
+  tileBg: WarpTileBg;
+  holographicTiles: boolean;
+  pipPreset: WarpPipPreset;
+  teachingMode: boolean;
+  autoFollowAction: boolean;
+  captainTailsHud: boolean;
+  captainTailsDisplay: CaptainTailsDisplay;
+}
 
-export function readCaptainTailsHudEnabled(): boolean {
+const STORAGE_KEY = 'warp12-table-options';
+const LEGACY_CAPTAIN_TAILS_KEY = 'warp12-captain-tails-hud';
+const LEGACY_CAPTAIN_TAILS_DISPLAY_KEY = 'warp12-captain-tails-display';
+
+export const DEFAULT_TABLE_OPTIONS: TableOptionsPrefs = {
+  layoutStyle: 'offset',
+  tileBg: 'dark',
+  holographicTiles: false,
+  pipPreset: 'classic',
+  teachingMode: false,
+  autoFollowAction: false,
+  captainTailsHud: false,
+  captainTailsDisplay: 'number',
+};
+
+const PIP_PRESETS = new Set<WarpPipPreset>([
+  'classic',
+  'bridge',
+  'lcars',
+  'okudagram',
+  'isolinear',
+  'warpCore',
+]);
+
+function readLegacyCaptainTailsHud(): boolean {
   try {
-    return localStorage.getItem(ENABLED_KEY) === 'true';
+    return localStorage.getItem(LEGACY_CAPTAIN_TAILS_KEY) === 'true';
   } catch {
     return false;
   }
 }
 
-export function writeCaptainTailsHudEnabled(enabled: boolean): void {
+function readLegacyCaptainTailsDisplay(): CaptainTailsDisplay {
   try {
-    if (enabled) {
-      localStorage.setItem(ENABLED_KEY, 'true');
-    } else {
-      localStorage.removeItem(ENABLED_KEY);
-    }
-  } catch {
-    // ignore quota / private mode
-  }
-}
-
-export function readCaptainTailsDisplay(): CaptainTailsDisplay {
-  try {
-    const value = localStorage.getItem(DISPLAY_KEY);
+    const value = localStorage.getItem(LEGACY_CAPTAIN_TAILS_DISPLAY_KEY);
     if (value === 'number' || value === 'domino') {
       return value;
     }
@@ -35,10 +58,89 @@ export function readCaptainTailsDisplay(): CaptainTailsDisplay {
   return 'number';
 }
 
-export function writeCaptainTailsDisplay(display: CaptainTailsDisplay): void {
+function sanitizePartial(raw: unknown): Partial<TableOptionsPrefs> {
+  if (!raw || typeof raw !== 'object') {
+    return {};
+  }
+  const value = raw as Record<string, unknown>;
+  const next: Partial<TableOptionsPrefs> = {};
+
+  if (value.layoutStyle === 'offset' || value.layoutStyle === 'linear') {
+    next.layoutStyle = value.layoutStyle;
+  }
+  if (value.tileBg === 'dark' || value.tileBg === 'light') {
+    next.tileBg = value.tileBg;
+  }
+  if (typeof value.holographicTiles === 'boolean') {
+    next.holographicTiles = value.holographicTiles;
+  }
+  if (
+    typeof value.pipPreset === 'string' &&
+    PIP_PRESETS.has(value.pipPreset as WarpPipPreset)
+  ) {
+    next.pipPreset = value.pipPreset as WarpPipPreset;
+  }
+  if (typeof value.teachingMode === 'boolean') {
+    next.teachingMode = value.teachingMode;
+  }
+  if (typeof value.autoFollowAction === 'boolean') {
+    next.autoFollowAction = value.autoFollowAction;
+  }
+  if (typeof value.captainTailsHud === 'boolean') {
+    next.captainTailsHud = value.captainTailsHud;
+  }
+  if (value.captainTailsDisplay === 'number' || value.captainTailsDisplay === 'domino') {
+    next.captainTailsDisplay = value.captainTailsDisplay;
+  }
+
+  return next;
+}
+
+export function readTableOptions(): TableOptionsPrefs {
   try {
-    localStorage.setItem(DISPLAY_KEY, display);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      return {
+        ...DEFAULT_TABLE_OPTIONS,
+        ...sanitizePartial(JSON.parse(raw)),
+      };
+    }
+  } catch {
+    // fall through to legacy defaults
+  }
+
+  return {
+    ...DEFAULT_TABLE_OPTIONS,
+    captainTailsHud: readLegacyCaptainTailsHud(),
+    captainTailsDisplay: readLegacyCaptainTailsDisplay(),
+  };
+}
+
+export function writeTableOptions(patch: Partial<TableOptionsPrefs>): void {
+  const next = { ...readTableOptions(), ...patch };
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   } catch {
     // ignore quota / private mode
   }
+}
+
+/** @deprecated Use {@link readTableOptions}. */
+export function readCaptainTailsHudEnabled(): boolean {
+  return readTableOptions().captainTailsHud;
+}
+
+/** @deprecated Use {@link writeTableOptions}. */
+export function writeCaptainTailsHudEnabled(enabled: boolean): void {
+  writeTableOptions({ captainTailsHud: enabled });
+}
+
+/** @deprecated Use {@link readTableOptions}. */
+export function readCaptainTailsDisplay(): CaptainTailsDisplay {
+  return readTableOptions().captainTailsDisplay;
+}
+
+/** @deprecated Use {@link writeTableOptions}. */
+export function writeCaptainTailsDisplay(display: CaptainTailsDisplay): void {
+  writeTableOptions({ captainTailsDisplay: display });
 }
