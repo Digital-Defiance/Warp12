@@ -142,10 +142,25 @@ export function computeLogoOverlayLayout(boardWidth: number): {
   return { padding, logoWidth, logoHeight };
 }
 
+export function compactOverlaySubtitle(
+  subtitle: string,
+  roundNumber: number
+): string {
+  const completeSuffix = ` — round ${roundNumber} complete.`;
+  if (subtitle.endsWith(completeSuffix)) {
+    return `${subtitle.slice(0, -completeSuffix.length)}.`;
+  }
+  const blockedPrefix = `Round ${roundNumber} blocked — `;
+  if (subtitle.startsWith(blockedPrefix)) {
+    return subtitle.slice(blockedPrefix.length);
+  }
+  return subtitle;
+}
+
 export function statsOverlayLines(meta: ShareRoundMetadata): string[] {
   const lines = [`Round ${meta.roundNumber}`, meta.headline];
   if (meta.subtitle) {
-    lines.push(meta.subtitle);
+    lines.push(compactOverlaySubtitle(meta.subtitle, meta.roundNumber));
   }
   if (meta.statsLines?.length) {
     lines.push(...meta.statsLines);

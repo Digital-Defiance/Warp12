@@ -55,6 +55,20 @@ describe('share-round', () => {
       'Round complete.',
       'Picard: +12 penalty',
     ]);
+
+    expect(
+      statsOverlayLines({
+        roundNumber: 1,
+        headline: 'Picard wins the round',
+        subtitle: 'Picard charts the final coordinate — round 1 complete.',
+        statsLines: ['Riker: +8 penalty'],
+      })
+    ).toEqual([
+      'Round 1',
+      'Picard wins the round',
+      'Picard charts the final coordinate.',
+      'Riker: +8 penalty',
+    ]);
   });
 
   it('builds share message text with headline, narrative, and stats', () => {
