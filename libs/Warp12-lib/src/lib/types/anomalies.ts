@@ -16,7 +16,10 @@ export interface RedAlert {
   readonly active: boolean;
   readonly anchor: PlacedCoordinate;
   readonly responsiblePlayerId: string | null;
+  /** Warp trail hosting the uncovered double (ignored when neutralZone is true). */
   readonly trailPlayerId: string;
+  /** Uncovered double was charted on the Neutral Zone. */
+  readonly neutralZone?: boolean;
 }
 
 export function stabilizersPlaced(

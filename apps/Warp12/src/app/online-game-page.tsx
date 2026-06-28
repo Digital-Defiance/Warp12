@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   applyAction,
@@ -9,6 +9,7 @@ import {
 } from '@warp12/Warp12-lib';
 
 import {
+  fetchHostDebugSnapshot,
   resetSectorToLobby,
   signalCoachRequest,
   subscribeCoachPresence,
@@ -16,13 +17,22 @@ import {
   submitOnlineAction,
   useFirebaseAuth,
   type CoachPresence,
+  type FirestoreCaptain,
 } from '../firebase';
+import { isAiCaptain } from '../game/ai-captain.js';
+import {
+  createActionLog,
+  playerIdForAction,
+} from '../game/action-log.js';
+import { downloadDebugExport } from '../game/debug-export.js';
 import { useBridgeFocus } from './bridge-focus-context';
 import { BridgeTable } from './bridge-table';
+import { useHostAiRunner } from './use-host-ai-runner';
+import { formatViolation } from '../game/violation-messages.js';
 import styles from './lobby.module.scss';
 
 function violationMessage(violation: string): string {
-  return violation.replaceAll('_', ' ').toLowerCase();
+  return formatViolation(violation);
 }
 
 export function OnlineGamePage() {
@@ -32,19 +42,35 @@ export function OnlineGamePage() {
   const [serverGame, setServerGame] = useState<GameState | null>(null);
   const [optimisticGame, setOptimisticGame] = useState<GameState | null>(null);
   const [hostId, setHostId] = useState('');
+  const [sectorCaptains, setSectorCaptains] = useState<
+    readonly FirestoreCaptain[]
+  >([]);
   const [handCounts, setHandCounts] = useState<Record<string, number>>({});
+  const [aiHands, setAiHands] = useState<
+    Record<string, readonly { low: number; high: number }[]>
+  >({});
   const [connected, setConnected] = useState(false);
   const [syncPending, setSyncPending] = useState(false);
   const [coachPresence, setCoachPresence] = useState<
     Record<string, CoachPresence>
   >({});
   const [error, setError] = useState<string | null>(null);
+  const [exportBusy, setExportBusy] = useState(false);
   const endRoundInFlight = useRef(false);
+  const actionLogRef = useRef(createActionLog());
 
   const uid = auth.user?.uid;
   const code = gameId?.toUpperCase() ?? '';
   const game = optimisticGame ?? serverGame;
   const { focus: bridgeFocus } = useBridgeFocus();
+  const isHost = Boolean(uid && hostId && hostId === uid);
+  const onlineAiCaptainIds = useMemo(
+    () =>
+      new Set(
+        sectorCaptains.filter(isAiCaptain).map((captain) => captain.id)
+      ),
+    [sectorCaptains]
+  );
 
   useEffect(() => {
     if (!code || !uid || !auth.ready) {
@@ -54,10 +80,19 @@ export function OnlineGamePage() {
     return subscribeOnlineGame(
       code,
       uid,
-      ({ state, handCounts: counts, connected: live, hostId: sectorHost }) => {
+      ({
+        state,
+        handCounts: counts,
+        connected: live,
+        hostId: sectorHost,
+        sectorCaptains: captains,
+        aiHands: hostAiHands,
+      }) => {
         setServerGame(state);
         setHostId(sectorHost);
+        setSectorCaptains(captains);
         setHandCounts(counts);
+        setAiHands(hostAiHands);
         setConnected(live);
         setOptimisticGame(null);
         setSyncPending(false);
@@ -92,7 +127,10 @@ export function OnlineGamePage() {
       return;
     }
     const round = serverGame.round;
-    if (!round || round.phase !== 'ended' || !round.roundWinnerId) {
+    if (!round || round.phase !== 'ended') {
+      return;
+    }
+    if (!round.roundWinnerId && !round.roundBlocked) {
       return;
     }
     if (endRoundInFlight.current) {
@@ -100,11 +138,19 @@ export function OnlineGamePage() {
     }
 
     endRoundInFlight.current = true;
-    void submitOnlineAction(code, uid, {
-      type: 'END_ROUND',
-      winnerId: round.roundWinnerId,
-    })
+    const action = {
+      type: 'END_ROUND' as const,
+      winnerId: round.roundBlocked ? null : round.roundWinnerId,
+    };
+    void submitOnlineAction(code, uid, action)
       .then((result) => {
+        actionLogRef.current.append({
+          playerId: playerIdForAction(action),
+          action,
+          ok: result.ok,
+          violation: result.ok ? undefined : result.violation,
+          source: 'auto',
+        });
         if (!result.ok) {
           setError(violationMessage(result.violation));
         }
@@ -117,16 +163,25 @@ export function OnlineGamePage() {
     uid,
     serverGame?.round?.phase,
     serverGame?.round?.roundWinnerId,
+    serverGame?.round?.roundBlocked,
   ]);
 
   const dispatch = useCallback(
     async (action: GameAction): Promise<ActionResult> => {
-      if (!code || !uid || !serverGame) {
+      const baseGame = optimisticGame ?? serverGame;
+      if (!code || !uid || !baseGame) {
         return { ok: false, violation: 'GAME_NOT_ACTIVE' };
       }
 
-      const preview = applyAction(serverGame, action);
+      const preview = applyAction(baseGame, action);
       if (!preview.ok) {
+        actionLogRef.current.append({
+          playerId: playerIdForAction(action),
+          action,
+          ok: false,
+          violation: preview.violation,
+          source: 'human',
+        });
         setError(violationMessage(preview.violation));
         return preview;
       }
@@ -137,6 +192,13 @@ export function OnlineGamePage() {
 
       try {
         const result = await submitOnlineAction(code, uid, action);
+        actionLogRef.current.append({
+          playerId: playerIdForAction(action),
+          action,
+          ok: result.ok,
+          violation: result.ok ? undefined : result.violation,
+          source: 'human',
+        });
         if (!result.ok) {
           setOptimisticGame(null);
           setError(violationMessage(result.violation));
@@ -145,6 +207,13 @@ export function OnlineGamePage() {
 
         return { ok: true, state: preview.state };
       } catch (err) {
+        actionLogRef.current.append({
+          playerId: playerIdForAction(action),
+          action,
+          ok: false,
+          violation: 'GAME_NOT_ACTIVE',
+          source: 'human',
+        });
         setOptimisticGame(null);
         setError(
           err instanceof Error ? err.message : 'Could not transmit move'
@@ -154,8 +223,32 @@ export function OnlineGamePage() {
         setSyncPending(false);
       }
     },
-    [code, uid, serverGame]
+    [code, uid, serverGame, optimisticGame]
   );
+
+  const reportAiError = useCallback((message: string) => {
+    setError(message);
+  }, []);
+
+  const logAction = useCallback(
+    (entry: Parameters<typeof actionLogRef.current.append>[0]) => {
+      actionLogRef.current.append(entry);
+    },
+    []
+  );
+
+  useHostAiRunner({
+    enabled: isHost,
+    code,
+    hostUid: uid,
+    hostId,
+    game: serverGame,
+    sectorCaptains,
+    aiHands,
+    syncPending,
+    onError: reportAiError,
+    onActionLogged: logAction,
+  });
 
   const signalCoach = useCallback(async () => {
     if (!code || !uid || !serverGame?.round) {
@@ -174,6 +267,56 @@ export function OnlineGamePage() {
       navigate(`/online/${code}`, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not reset sector');
+    }
+  };
+
+  const exportDebug = async () => {
+    if (!code || !uid || !serverGame) {
+      return;
+    }
+    setExportBusy(true);
+    try {
+      const exportedAt = new Date().toISOString();
+      const captainIds = serverGame.captains.map((captain) => captain.id);
+      const firestore = await fetchHostDebugSnapshot(code, captainIds);
+      const notes = [
+        'Host export includes all captain hands and a merged fullGameState.',
+        'Deploy updated firestore.rules for host hand reads in production.',
+      ];
+      if (Object.keys(firestore.handReadErrors).length > 0) {
+        notes.push(
+          `Hand read errors: ${Object.keys(firestore.handReadErrors).join(', ')}`
+        );
+      }
+
+      downloadDebugExport({
+        exportedAt,
+        mode: 'online',
+        sectorCode: code,
+        viewerId: uid,
+        hostId,
+        client: {
+          connected,
+          syncPending,
+          displayGameState: game,
+          serverGameState: serverGame,
+          optimisticGameState: optimisticGame,
+          fullGameState: firestore.fullGameState,
+          handCounts,
+          aiHands,
+          coachPresence,
+          sectorCaptains,
+          actionLog: actionLogRef.current.snapshot(),
+        },
+        firestore,
+        notes,
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Could not export debug data'
+      );
+    } finally {
+      setExportBusy(false);
     }
   };
 
@@ -218,10 +361,13 @@ export function OnlineGamePage() {
         game={game}
         viewerId={uid ?? ''}
         handCounts={handCounts}
+        onlineAiCaptainIds={onlineAiCaptainIds}
         onAction={dispatch}
         onLeave={() => navigate('/')}
-        isOnlineHost={Boolean(uid && hostId === uid)}
+        isOnlineHost={isHost}
         onHostResetSector={hostResetSector}
+        onExportDebug={isHost ? exportDebug : undefined}
+        debugExportBusy={exportBusy}
         syncPending={syncPending}
         coachPresence={coachPresence}
         onCoachSignal={signalCoach}

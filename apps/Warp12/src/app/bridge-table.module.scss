@@ -377,6 +377,14 @@
   }
 }
 
+.scoreLegend {
+  margin: 1rem 0 0;
+  font-family: var(--font-federation);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--warp-text-muted, #94a3b8);
+}
+
 .captainScores {
   list-style: none;
   margin: 1rem 0 0;

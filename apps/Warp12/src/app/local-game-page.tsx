@@ -43,7 +43,7 @@ export function LocalGamePage() {
   const [objective, setObjective] = useState<GameObjective>('go-out');
   const [salamander, setSalamander] = useState(false);
   const [qContinuum, setQContinuum] = useState(false);
-  const [subspaceFracture, setSubspaceFracture] = useState(true);
+  const [subspaceFracture, setSubspaceFracture] = useState(false);
   const [aiSkills, setAiSkills] = useState<Record<string, WarpSkillLevel>>({});
   const [aiLookahead, setAiLookahead] = useState<Record<string, boolean>>({});
 

@@ -38,6 +38,15 @@ function penaltyForHand(
   return total;
 }
 
+/** Pip penalty for tiles still in hand (same rules as end-of-round scoring). */
+export function handPenaltyPoints(
+  hand: readonly { low: number; high: number }[],
+  salamanderEnabled: boolean,
+  roundNumber: number
+): number {
+  return penaltyForHand(hand, salamanderEnabled, roundNumber);
+}
+
 function clearActiveQFlash(state: GameState): GameState {
   return {
     ...state,
@@ -79,7 +88,7 @@ function tallyRoundPenalties(state: GameState, round: RoundState) {
   }
 
   return state.captains.map((captain) => {
-    if (captain.id === round.roundWinnerId) {
+    if (!round.roundBlocked && captain.id === round.roundWinnerId) {
       return captain;
     }
     const hand = round.hands[captain.id] ?? [];
@@ -106,7 +115,10 @@ export function scoreRound(
   round: RoundState,
   random: () => number = Math.random
 ): ActionResult {
-  if (round.phase !== 'ended' || !round.roundWinnerId) {
+  if (round.phase !== 'ended') {
+    return { ok: false, violation: 'ROUND_NOT_PLAYING' };
+  }
+  if (!round.roundBlocked && !round.roundWinnerId) {
     return { ok: false, violation: 'ROUND_NOT_PLAYING' };
   }
 

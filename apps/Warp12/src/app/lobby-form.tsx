@@ -137,7 +137,7 @@ export function LobbyForm({
         <label className={styles.checkboxRow}>
           <input
             type="checkbox"
-            checked={createOptions.modules?.subspaceFracture ?? true}
+            checked={createOptions.modules?.subspaceFracture ?? false}
             onChange={(e) =>
               setModules({ subspaceFracture: e.target.checked })
             }

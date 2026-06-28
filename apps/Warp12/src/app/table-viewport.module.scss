@@ -21,7 +21,13 @@
   }
 }
 
-.focusToggle {
+.viewportToolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hudIconToggle {
   display: grid;
   place-items: center;
   width: 2.25rem;
@@ -47,7 +53,7 @@
   }
 }
 
-.focusToggleIcon {
+.hudIconToggleGlyph {
   font-size: 1.05rem;
   line-height: 1;
 }

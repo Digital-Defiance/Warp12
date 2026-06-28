@@ -43,7 +43,7 @@ function newOpenEndValue(
 }
 
 /**
- * Keep play moving. Charting beats everything but a mandatory treaty; drawing is
+ * Keep play moving. Charting beats everything but a mandatory impulse drop; drawing is
  * neutral; deploying a beacon / passing a Red Alert are last resorts. Competent
  * profiles thus always chart when they can — mistakes come from the blunder rate.
  */
@@ -123,18 +123,17 @@ const coverRelief: WarpHeuristic = {
 };
 
 /**
- * Don't trigger a Red Alert you can't neutralize: charting a double on your own
- * trail raises an alert you must immediately cover. If nothing in hand can cover
- * the double's value, this is a trap — penalize it heavily.
+ * Don't trigger a Red Alert you can't neutralize: charting a double on any
+ * eligible route raises an alert you must immediately cover.
  */
 const redAlertSafe: WarpHeuristic = {
   id: H.redAlertSafe,
   score(action: WarpAiAction, ctx: WarpEvalContext): number {
     if (action.kind !== 'chart') return 0;
     const { coordinate, route } = action.move;
-    const ownTrailPlay =
-      route.kind === 'warp-trail' && route.playerId === ctx.obs.playerId;
-    if (!ownTrailPlay || !isDouble(coordinate)) return 0;
+    const eligibleDoubleRoute =
+      route.kind === 'warp-trail' || route.kind === 'neutral-zone';
+    if (!eligibleDoubleRoute || !isDouble(coordinate)) return 0;
 
     const doubleValue = coordinate.low;
     const tileKey = coordinateKey(coordinate);

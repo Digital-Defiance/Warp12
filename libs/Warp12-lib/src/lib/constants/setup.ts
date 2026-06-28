@@ -12,6 +12,9 @@ export const HAND_SIZE_BY_PLAYER_COUNT: Readonly<Record<number, number>> = {
 /** Total coordinates in a double-twelve set. */
 export const DOUBLE_TWELVE_SET_SIZE = 91;
 
+/** Highest pip value in a double-twelve set. */
+export const DOUBLE_TWELVE_MAX_PIPS = 12;
+
 /** Starting Spacedock double for round 1. */
 export const INITIAL_SPACEDOCK_VALUE = 12;
 

@@ -57,7 +57,7 @@ export function formatCoachSuggestion(
     case 'pass-turn':
       return 'Pass turn (voluntary shields down)';
     case 'declare-treaty':
-      return 'Declare Neutral Zone Treaty';
+      return 'Drop to impulse · Neutral Zone win';
     case 'invoke-q-flash':
       return `Invoke Q-Flash · ${action.effect.replaceAll('-', ' ')}`;
     case 'resolve-q-gamble':

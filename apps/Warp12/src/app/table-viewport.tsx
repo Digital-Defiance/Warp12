@@ -17,11 +17,17 @@ export interface TableViewportFocusControl {
   onToggle: () => void;
 }
 
+export interface TableViewportSoundControl {
+  muted: boolean;
+  onToggle: () => void;
+}
+
 export interface TableViewportProps {
   tableWidth: number;
   tableHeight: number;
   children: React.ReactNode;
   focusControl?: TableViewportFocusControl;
+  soundControl?: TableViewportSoundControl;
 }
 
 export function TableViewport({
@@ -29,6 +35,7 @@ export function TableViewport({
   tableHeight,
   children,
   focusControl,
+  soundControl,
 }: TableViewportProps) {
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -112,21 +119,39 @@ export function TableViewport({
       </div>
 
       <div className={styles.viewportHud}>
-        {focusControl ? (
-          <button
-            type="button"
-            className={styles.focusToggle}
-            aria-pressed={focusControl.active}
-            aria-label={
-              focusControl.active ? 'Restore standard layout' : 'Expand play area'
-            }
-            title={focusControl.active ? 'Exit focus mode' : 'Focus mode'}
-            onClick={focusControl.onToggle}
-          >
-            <span className={styles.focusToggleIcon} aria-hidden>
-              {focusControl.active ? '▣' : '⛶'}
-            </span>
-          </button>
+        {soundControl || focusControl ? (
+          <div className={styles.viewportToolbar}>
+            {soundControl ? (
+              <button
+                type="button"
+                className={styles.hudIconToggle}
+                aria-pressed={soundControl.muted}
+                aria-label={soundControl.muted ? 'Unmute bridge sounds' : 'Mute bridge sounds'}
+                title={soundControl.muted ? 'Unmute sounds' : 'Mute sounds'}
+                onClick={soundControl.onToggle}
+              >
+                <span className={styles.hudIconToggleGlyph} aria-hidden>
+                  {soundControl.muted ? '🔇' : '🔊'}
+                </span>
+              </button>
+            ) : null}
+            {focusControl ? (
+              <button
+                type="button"
+                className={styles.hudIconToggle}
+                aria-pressed={focusControl.active}
+                aria-label={
+                  focusControl.active ? 'Restore standard layout' : 'Expand play area'
+                }
+                title={focusControl.active ? 'Exit focus mode' : 'Focus mode'}
+                onClick={focusControl.onToggle}
+              >
+                <span className={styles.hudIconToggleGlyph} aria-hidden>
+                  {focusControl.active ? '▣' : '⛶'}
+                </span>
+              </button>
+            ) : null}
+          </div>
         ) : null}
         <div className={styles.viewportControls} aria-label="Table view controls">
           <button type="button" className={styles.viewportBtn} onClick={() => zoomBy(ZOOM_STEP)}>

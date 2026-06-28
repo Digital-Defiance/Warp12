@@ -121,6 +121,9 @@ export function createRoundStateFromDeal(deal: RoundDealResult): RoundState {
     qPendingInvoker: null,
     qEffects: null,
     qGamblePending: null,
+    mandatoryPlay: null,
+    pendingRoundWin: null,
+    roundBlocked: false,
   };
 }
 
@@ -195,14 +198,9 @@ export function collectRoundCoordinatesForRecycle(
 
   const fracture = round.table.subspaceFracture;
   if (fracture) {
-    recycled.push(fracture.anchor.coordinate);
     for (const placed of fracture.stabilizers) {
       recycled.push(placed.coordinate);
     }
-  }
-
-  if (round.table.redAlert) {
-    recycled.push(round.table.redAlert.anchor.coordinate);
   }
 
   recycled.push(

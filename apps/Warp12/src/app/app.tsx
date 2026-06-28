@@ -1,6 +1,7 @@
 import { Link, Route, Routes } from 'react-router-dom';
 
 import { BridgeFocusProvider, useBridgeFocus } from './bridge-focus-context';
+import { GameAudioProvider } from './game-audio-context';
 import { LocalGamePage } from './local-game-page';
 import { HomePage } from './home-page';
 import { OnlineGamePage } from './online-game-page';
@@ -55,9 +56,11 @@ function AppShell() {
 
 export function App() {
   return (
-    <BridgeFocusProvider>
-      <AppShell />
-    </BridgeFocusProvider>
+    <GameAudioProvider>
+      <BridgeFocusProvider>
+        <AppShell />
+      </BridgeFocusProvider>
+    </GameAudioProvider>
   );
 }
 

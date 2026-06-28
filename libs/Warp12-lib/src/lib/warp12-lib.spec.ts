@@ -34,13 +34,19 @@ function seededRandom(seed: number): () => number {
   };
 }
 
-function buildTestGame(seed = 42) {
+function buildTestGame(
+  seed = 42,
+  modules?: { subspaceFracture?: boolean; qContinuum?: boolean }
+) {
   const shuffled = shuffleCoordinates(
     generateCoordinateSet(12),
     seededRandom(seed)
   );
 
-  return startGame({ id: 'test', captains }, { shuffledCoordinates: shuffled });
+  return startGame(
+    { id: 'test', captains, modules },
+    { shuffledCoordinates: shuffled }
+  );
 }
 
 describe('Warp12-lib setup', () => {
@@ -148,7 +154,7 @@ describe('applyAction', () => {
   });
 
   it('opens red alert and subspace fracture when charting a double', () => {
-    let state = buildTestGame(7);
+    let state = buildTestGame(7, { subspaceFracture: true });
     const playerId = state.round!.activePlayerId;
 
     for (let attempt = 0; attempt < 40; attempt++) {
@@ -190,7 +196,7 @@ describe('applyAction', () => {
   });
 
   it('requires stabilizers while subspace fracture is active', () => {
-    let state = buildTestGame(42);
+    let state = buildTestGame(42, { subspaceFracture: true });
     let fractureActive = false;
 
     for (let step = 0; step < 120 && !fractureActive; step++) {

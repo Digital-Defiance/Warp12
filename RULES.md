@@ -1,99 +1,196 @@
 # WARP 12: Navigational Operations Manual
 
-*A Double-Twelve Domino Variant*
+*Standard double-twelve Mexican Train, with Starfleet terminology.*
 
-**Objective:** To be the first captain to successfully chart all **Navigational Coordinates** (tiles) in your hand, bringing your warp core offline safely. The player with the lowest cumulative penalty score at the end of the game wins.
+This document is the authoritative rules reference for Warp 12. **Sections I–V** follow published Mexican Train tournament practice (double-twelve set, engine double set aside before the deal, personal trains, Mexican Train / Neutral Zone, train markers, doubles, boneyard, multi-round scoring). **Section VI** lists optional Warp 12 modules agreed before launch.
 
-### I. Operations Lexicon
+---
 
-- **Navigational Coordinates:** The tiles (dominoes).
-- **Spacedock:** The central hub where the round begins.
-- **Warp Trail:** A player’s personal line of coordinates.
-- **The Neutral Zone:** The communal line of coordinates open to all players.
-- **Distress Beacon:** A marker placed on a player’s Warp Trail indicating their "Shields are Down."
-- **Uncharted Sectors:** The face-down draw pile of remaining coordinates.
+## Victory conditions
 
-### II. Mission Setup
+Fleet command chooses one objective before the sector opens:
 
-Setup follows standard double-twelve Mexican Train practice (tournament rules):
+| Mode | Goal |
+| --- | --- |
+| **Penalty campaign** *(standard)* | Thirteen rounds — Spacedock descends **12-12** through **0-0**. Lowest **cumulative penalty score** wins the campaign. |
+| **Go out** | First captain to empty their hand in a single round wins the sector immediately (no thirteen-round tally). |
 
-1. **Scramble Coordinates:** Place all tiles face down and shuffle them thoroughly.
-2. **Set Aside Spacedock:** Before dealing, remove the round’s engine double from the pile and set it aside — **12-12** for round 1, **11-11** for round 2, and so on through **0-0** on round 13. This tile is **not dealt** to any captain.
-3. **Draw Hands:** From the remaining tiles, each captain draws:
-   - *2–4 Players:* 15 coordinates.
-   - *5–6 Players:* 12 coordinates.
-   - *7–8 Players:* 10 coordinates.
-4. **Establish Spacedock:** Place the set-aside double in the center of the table as Spacedock.
-5. **Uncharted Sectors:** All remaining tiles stay face down as the draw pile.
+---
 
-**Round starter:** Fleet command designates who opens round 1 (typically the host or first seat). Each later round, the opening captain rotates clockwise through the turn order — the round starter places Spacedock and charts first, even though the engine tile was set aside before the deal.
+## I. Operations lexicon
 
-### III. Standard Gameplay
+| Mexican Train | Warp 12 |
+| --- | --- |
+| Dominoes | **Navigational Coordinates** |
+| Engine / station double | **Spacedock** |
+| Personal train | **Warp Trail** |
+| Mexican Train | **Neutral Zone** |
+| Train marker | **Distress Beacon** *(Shields Down)* |
+| Boneyard | **Uncharted Sectors** |
+| — | **Red Alert** — a double must be covered before normal play continues |
+| — | **Subspace Fracture** — optional chicken-foot variant on own-trail doubles |
+| — | **Q-Flash** — optional Module Alpha anomaly on 0-0 |
 
-The round starter charts first, and play continues clockwise.
+---
 
-**Opening the round:** On the first turn of a round, a captain who can play must begin either **their own Warp Trail** or **the Neutral Zone** with a coordinate whose pip value matches Spacedock (e.g. any tile containing a twelve when Spacedock is 12-12). If they cannot play, they draw one tile from Uncharted Sectors; if the drawn tile can be played, they must play it immediately. If they still cannot play, they deploy their **Distress Beacon** on their Warp Trail.
+## II. Mission setup
 
-**Charting a Course:** On later turns, you must play one valid matching Navigational Coordinate on an available route when you can. Available routes include:
+Setup matches standard double-twelve Mexican Train:
 
-1. **Your own Warp Trail.**
-2. **The Neutral Zone** (which can be started at any time by playing off Spacedock).
-3. **Another Captain's Warp Trail,** *only* if their Distress Beacon is active (Shields Down).
+1. **Scramble** all 91 coordinates face down.
+2. **Set aside Spacedock** before dealing — **12-12** (round 1), **11-11** (round 2), … **0-0** (round 13). This tile is **not** dealt.
+3. **Deal hands** from the remainder:
 
-**Engaging the Distress Beacon:** If you cannot make a valid play on any available route, you must draw one tile from the **Uncharted Sectors**.
+   | Captains | Hand size |
+   | --- | --- |
+   | 2–4 | 15 |
+   | 5–6 | 12 |
+   | 7–8 | 10 |
 
-- If the drawn tile can be played, play it immediately.
-- If you still cannot play, you must deploy your **Distress Beacon** onto your Warp Trail.
-- **Shields Down:** While your beacon is active, other players may chart coordinates on your Warp Trail.
-- **Shields Up:** Your beacon is only removed when you successfully chart a coordinate on your *own* Warp Trail again (not the Neutral Zone or another captain's trail).
-- **Strategic pass:** Once you have established your warp trail, you may voluntarily deploy your Distress Beacon and end your turn even when other routes are available — opening your trail to the fleet by choice.
+4. **Place Spacedock** in the center.
+5. **Uncharted Sectors** — all remaining tiles face down.
 
-### IV. Tactical Maneuvers & Anomalies
+**Round starter:** Round 1 opener is designated by fleet command (typically the host). Each later round, the starter rotates clockwise. The starter charts first; Spacedock was still set aside before the deal.
 
-**Red Alert Protocol (Standard Doubles)** When you play a double tile (matching numbers on both ends), you must immediately announce **"Red Alert!"** The ship's alarms are blaring, and the threat must be neutralized immediately.
+**Optional modules** (Section VI) and **Subspace Fracture** must be agreed before launch. Defaults in the digital table: Salamander Penalty on; Q-Continuum and Subspace Fracture off unless enabled in the lobby.
 
-- You must immediately "cover" the double by playing a second, valid tile from your hand onto the double.
-- If you cannot cover the double, you must draw from the Uncharted Sectors. If you still cannot cover it, you place your Distress Beacon, and the burden of neutralizing the Red Alert passes to the next player. The alert isn't canceled until the double is covered.
+---
 
-**The Subspace Fracture (Chicken Foot Rule)** *Optional game option (not a Directive); agree before launch.* Whenever a player charts a double tile on their own Warp Trail, the fleet may use **Subspace Fracture** rules:
+## III. Standard gameplay
 
-- The double is placed sideways across the trail.
-- The fleet’s navigation is completely halted. **No other routes may be played on by any player** until the Subspace Fracture is stabilized.
-- To stabilize the fracture, the next three consecutive plays must branch off that double tile, forming a "tripod" or delta shape.
-- If a player cannot add to the fracture on their turn, they must draw from the Uncharted Sectors and, if unable to play, deploy their Distress Beacon. Normal play across all routes resumes *only* when the third stabilizing coordinate is placed.
+Play proceeds clockwise. Each turn, unless a special protocol applies (Red Alert, Subspace Fracture, Q-Flash resolution), a captain does **one** of the following:
 
-When Subspace Fracture is **off**, doubles still trigger **Red Alert** (cover the double) but do not halt the fleet or require stabilizers.
+1. **Chart** one legal coordinate, if any exist.
+2. **Draw** one tile from Uncharted Sectors, then follow the draw rules below.
+3. **Deploy a Distress Beacon** only when unable to chart and the draw pile is empty (or immediately after drawing, if still unable to chart).
+4. **Pass** only when their Distress Beacon is already active, they still cannot chart, and Uncharted Sectors are empty.
 
-### V. End of Round & Scoring
+### Must play when able
 
-The round ends immediately when one captain plays their final Navigational Coordinate.
+If you hold a coordinate that can be legally charted, you **must** chart one tile this turn. You may **not** skip charting while legal moves exist.
 
-**The Neutral Zone Treaty** If a captain plays their final, game-winning tile into the Neutral Zone, they must formally declare a **"Treaty"** or **"Ceasefire."**
+### Eligible routes
 
-- If they forget to announce this declaration before the next player takes a turn or acknowledges the end of the game, the treaty fails. The winning captain must draw a penalty tile from the Uncharted Sectors, and the game continues.
+When charting, you may play on:
 
-**Scoring Penalty**
+1. **Your own Warp Trail** (or start it from Spacedock on your first matching play).
+2. **The Neutral Zone** — communal line; any captain may start or extend it with a matching end.
+3. **Another captain's Warp Trail** — **only while their Distress Beacon is active** (Shields Down).
 
-- When a round successfully ends, all other captains must count the total pip value of the remaining coordinates in their hands.
-- This number is recorded as their penalty score.
-- The next round begins by establishing Spacedock with the next lowest double tile (e.g., 11-11, then 10-10).
+You may choose **any** eligible route when more than one is legal — you are not required to chart on your own trail.
 
-### VI. Optional Directives (Opt-In Modules)
+### Opening the round
 
-*These rules must be mutually agreed upon by fleet command prior to launching the game.*
+On the first turn of a round, a captain who can play must open **their own Warp Trail** or the **Neutral Zone** with a coordinate matching Spacedock (e.g. any tile containing twelve when Spacedock is 12-12). If they cannot play, they draw once; if the drawn tile is playable, they must chart it immediately (choosing any legal route). If they still cannot play, they deploy their Distress Beacon.
 
-> **Module Alpha: The Q-Continuum** The blank coordinates (0-0) are highly volatile anomalies. When a captain charts the double-blank on their warp trail, they trigger a **Q-Flash** before helm passes. That captain immediately chooses **one** directive below; it lasts for the remainder of the round (cleared when the sector scores).
->
-> | Q-Flash | Effect |
-> | --- | --- |
-> | **Reverse turn order** | Helm passes counter-clockwise for the rest of the round. |
-> | **Skip lowest penalty** | The captain with the lowest campaign penalty score skips their next turn. |
-> | **Peek Uncharted Sector** | The invoker sees the top tile in the Uncharted Sectors (hidden from others). |
-> | **Temporal inversion** | Turn order reverses until the next double is charted on the table. |
-> | **Distress amplification** | All warp trails are open to every captain without a Distress Beacon. |
-> | **Fracture immunity** | The next double charted on an own trail will not open Subspace Fracture (Red Alert still applies). |
-> | **Salamander swap** *(requires Module Beta)* | If anyone holds 12-12 at round end, that Salamander penalty applies to the highest-penalty captain instead. |
-> | **Treaty echo** | Any captain going out must declare a Treaty before the sector closes. |
-> | **Q's gamble** | Draw two tiles from Uncharted Sectors — keep one, return the other face-down. |
+### Drawing from Uncharted Sectors
 
-> **Module Beta: The Salamander Penalty** Pushing warp engines beyond standard thresholds carries severe evolutionary consequences. If a round ends and a captain is caught holding the **12-12 Navigational Coordinate** in their hand, the point value of that specific tile is doubled (**24 points** instead of 12). This cannot occur in **round 1**, because 12-12 is set aside as Spacedock and is never dealt. From **round 2 onward**, when 12-12 re-enters circulation, the Salamander penalty applies as usual.
+When you cannot chart and tiles remain in the pile, you **must draw** one coordinate.
+
+- If the drawn tile can be played, you **must** chart it immediately (any legal route).
+- If it cannot be played, you deploy your **Distress Beacon** if the pile is now empty; otherwise your turn ends and you keep the tile.
+
+### Distress Beacon (train marker)
+
+Deploy your beacon when — and **only** when — you cannot make a legal chart after drawing, or when the pile is already empty and you still cannot chart.
+
+- **Shields Down:** While your beacon is active, other captains may chart on your Warp Trail.
+- **Shields Up:** Your beacon is removed **automatically** when **you** chart on **your own** Warp Trail. Charting on the Neutral Zone or another captain's trail leaves your beacon active.
+- **You cannot** deploy a beacon voluntarily while you still have a legal chart elsewhere. *(Standard Mexican Train — no “strategic pass.”)*
+- **Passing:** If your beacon is already up, you cannot chart, and Uncharted Sectors are empty, you may **pass** your turn without charting; your beacon stays up.
+
+### Red Alert pass
+
+If you cannot cover an active Red Alert after drawing (or with an empty pile), you deploy your Distress Beacon and **Red Alert responsibility passes** to the next captain. The alert remains until the double is covered.
+
+---
+
+## IV. Doubles — Red Alert protocol
+
+When a **double** (matching pips on both ends) is charted on any eligible route — your Warp Trail, the Neutral Zone, or an open opponent trail — announce **"Red Alert!"**
+
+- The captain who charted the double must **cover** it by playing another valid tile on that double **on the same turn sequence**, unless turn rules below apply.
+- If you cannot cover, draw from Uncharted Sectors; if you still cannot cover, deploy your Distress Beacon and pass Red Alert to the next captain.
+- While Red Alert is active, **no other routes** may be played until the double is covered.
+- **Dead double:** If every tile in the set containing that pip is already charted (all thirteen tiles showing that number in a double-twelve set), the double cannot be covered — Red Alert ends and normal play resumes.
+- Covering a double on another captain's open trail **does not** clear their Distress Beacon.
+
+**Subspace Fracture** (Section VI) replaces or adds to this flow for doubles on **your own** trail when that option is enabled.
+
+---
+
+## V. End of round and scoring
+
+### Winning the round
+
+The round ends when one captain charts their **last** coordinate (empty hand).
+
+**Dropping to Impulse:** If that winning chart was on the **Neutral Zone**, the winner must announce **"Dropping to Impulse"** before the sector closes. If they fail to announce before play would otherwise continue, they draw a penalty tile from Uncharted Sectors and the round **continues** (they do not win yet).
+
+**Impulse echo** (Q-Flash Module Alpha): when active, any round win requires dropping to impulse before scoring.
+
+### Blocked sector
+
+If Uncharted Sectors are empty and **no captain** can make a legal chart (after dead doubles are resolved), the round ends **without** a domino winner. **Every** captain scores the pip total of tiles in hand — no exempt captain. All table tiles, hands, and any remaining pile are shuffled for the next round's deal (standard Mexican Train recycle — trails are not trimmed to open ends).
+
+### Penalty scoring *(penalty campaign)*
+
+When a round ends with a winner, every **other** captain totals pip values in hand and adds that to their campaign score. The round winner scores **0** for that round.
+
+**Next round:** Spacedock steps down one double (12-12 → 11-11 → … → 0-0). After round 13, lowest cumulative penalty wins.
+
+---
+
+## VI. Optional directives and variants
+
+*Agree before launch. Unless noted, these are **not** part of standard Mexican Train.*
+
+### Subspace Fracture *(chicken foot — off by default)*
+
+When **enabled**, a double charted on **your own** Warp Trail may open **Subspace Fracture** instead of using only Red Alert:
+
+- Fleet navigation halts until the fracture is **stabilized**.
+- The next **three** plays must branch from that double (stabilizers).
+- If you cannot add a stabilizer, draw; if still unable, deploy your Distress Beacon.
+- When the third stabilizer is placed, normal play resumes across all routes.
+
+When Subspace Fracture is **off**, own-trail doubles use **Red Alert only** (cover the double).
+
+### Module Alpha — The Q-Continuum *(off by default)*
+
+When **enabled**, charting **0-0 on your own Warp Trail** triggers a **Q-Flash** before helm passes. That captain immediately chooses **one** directive for the rest of the round (cleared when the sector scores):
+
+| Q-Flash | Effect |
+| --- | --- |
+| **Reverse turn order** | Helm passes counter-clockwise for the rest of the round. |
+| **Skip lowest penalty** | The captain with the lowest campaign penalty score skips their next turn. |
+| **Peek Uncharted Sector** | The invoker sees the top tile in Uncharted Sectors (hidden from others). |
+| **Temporal inversion** | Turn order reverses until the next double is charted on the table. |
+| **Distress amplification** | All warp trails are open to every captain without a Distress Beacon. |
+| **Fracture immunity** | The next double on an own trail will not open Subspace Fracture (Red Alert still applies). |
+| **Salamander swap** *(requires Module Beta)* | If anyone holds 12-12 at round end, that Salamander penalty applies to the highest-penalty captain instead. |
+| **Impulse echo** | Any captain going out this round must drop to impulse before the sector closes. |
+| **Q's gamble** | Draw two tiles from Uncharted Sectors — keep one, return the other face-down. |
+
+0-0 charted on the Neutral Zone or an opponent's trail does **not** trigger Q-Flash. A winning 0-0 on your own trail still requires Q-Flash resolution before the sector can close.
+
+### Module Beta — The Salamander Penalty *(on by default in digital play)*
+
+If a round ends and a captain holds **12-12** in hand, that tile scores **24** penalty points instead of 12. Round 1 never applies (12-12 is Spacedock). From round 2 onward, 12-12 is in circulation.
+
+---
+
+## Quick reference — standard vs Warp 12 extras
+
+| Rule | Standard Mexican Train | Warp 12 |
+| --- | --- | --- |
+| Train marker when stuck | Required | Distress Beacon — same |
+| Voluntary marker while able to play | **No** | **No** |
+| Play elsewhere while marked | Allowed; marker stays | Same |
+| Play on own trail while marked | Marker **must** come off | Shields Up — same |
+| Doubles | Must satisfy / cover | Red Alert — same |
+| Chicken foot on own double | Optional house variant | Subspace Fracture — opt-in |
+| 0-0 anomaly | — | Q-Continuum — opt-in |
+| 12-12 hand penalty | — | Salamander — opt-in (default on) |
+| NZ win announcement | — | Dropping to Impulse |
+| Blocked boneyard | Round ends, all score | Blocked sector — same |

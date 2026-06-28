@@ -33,6 +33,7 @@ export {
 
 export {
   createLobby,
+  addAiCaptain,
   dissolveLobby,
   generateGameCode,
   joinLobby,
@@ -44,9 +45,17 @@ export {
   subscribeLobby,
   subscribeOnlineGame,
   submitOnlineAction,
+  fetchHostDebugSnapshot,
+  updateAiCaptain,
   updateLobbySettings,
+  type AddAiCaptainOptions,
   type CreateLobbyOptions,
+  type HostDebugFirestoreSnapshot,
   type OnlineGameSnapshot,
+  type UpdateAiCaptainPatch,
 } from './game-service.js';
+
+export { subscribeAiHands, subscribeHostAiHands, fetchAiCaptainHand } from './ai-hands.js';
+export { canHostProxyAiMove, assertActorMaySubmit } from './ai-proxy.js';
 
 export { useFirebaseAuth } from './use-firebase-auth.js';

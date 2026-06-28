@@ -21,7 +21,7 @@ export function HomePage() {
         <p className={styles.heroBody}>
           Match pips to chart routes on your trail, the communal Neutral Zone, or
           a rival&apos;s line when their distress beacon is down. Doubles trigger
-          red alert. Optional modules add subspace fractures, treaty drama, and
+          red alert. Optional modules add subspace fractures, impulse-drop drama, and
           Q-Continuum chaos. Play a quick first-out sprint or a full penalty
           campaign across thirteen spacedock rounds.
         </p>

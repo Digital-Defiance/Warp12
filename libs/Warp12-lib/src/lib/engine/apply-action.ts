@@ -46,6 +46,11 @@ import {
   canPassTurn,
 } from './beacon.js';
 import { scoreRound } from './scoring.js';
+import {
+  finalizeRoundWinAfterQ,
+  maybeEndBlockedRound,
+} from './round-resolution.js';
+import { resolveDeadRedAlert } from './dead-red-alert.js';
 
 function appendToTrail(
   trail: WarpTrail,
@@ -94,13 +99,15 @@ function openSubspaceFracture(
 function openRedAlert(
   anchor: PlacedCoordinate,
   responsiblePlayerId: string,
-  trailPlayerId: string
+  trailPlayerId: string,
+  neutralZone = false
 ): RedAlert {
   return {
     active: true,
     anchor,
     responsiblePlayerId,
     trailPlayerId,
+    ...(neutralZone ? { neutralZone: true } : {}),
   };
 }
 
@@ -128,18 +135,27 @@ function resolvePostChartAnomalies(
     nextRound = clearTemporalInversionOnDouble(nextRound);
   }
 
-  if (playedDouble && onOwnTrail && !wasCover) {
-    redAlert = openRedAlert(placed, playerId, playerId);
-    const { round: afterImmunity, consumed } = consumeFractureImmunity(nextRound);
-    nextRound = afterImmunity;
-    table = {
-      ...table,
-      redAlert,
-      subspaceFracture:
-        subspaceFractureEnabled && !consumed
-          ? openSubspaceFracture(placed, table.subspaceFracture)
-          : table.subspaceFracture,
-    };
+  if (playedDouble && !wasCover) {
+    if (route.kind === 'warp-trail' || route.kind === 'neutral-zone') {
+      redAlert = openRedAlert(
+        placed,
+        playerId,
+        route.kind === 'warp-trail' ? route.playerId : '',
+        route.kind === 'neutral-zone'
+      );
+      const { round: afterImmunity, consumed } = consumeFractureImmunity(nextRound);
+      nextRound = afterImmunity;
+      table = {
+        ...table,
+        redAlert,
+        subspaceFracture:
+          onOwnTrail && subspaceFractureEnabled && !consumed
+            ? openSubspaceFracture(placed, table.subspaceFracture)
+            : table.subspaceFracture,
+      };
+    } else {
+      table = { ...table, redAlert };
+    }
   } else {
     table = { ...table, redAlert };
   }
@@ -190,7 +206,29 @@ function applyChartToRoute(
       break;
     }
     case 'red-alert-cover': {
-      const trail = table.warpTrails[route.trailPlayerId];
+      if (route.neutralZone) {
+        const connectingValue = neutralZoneOpenValue(
+          table.neutralZone,
+          round.spacedockValue
+        );
+        const tile = placedTile(
+          removed,
+          table.neutralZone.tiles.length,
+          connectingValue
+        )!;
+        placed = tile;
+        wasCover = true;
+        table = {
+          ...table,
+          neutralZone: {
+            tiles: [...table.neutralZone.tiles, tile],
+          },
+        };
+        break;
+      }
+
+      const trailPlayerId = route.trailPlayerId!;
+      const trail = table.warpTrails[trailPlayerId];
       const connectingValue = trailOpenValue(trail, round.spacedockValue);
       const tile = placedTile(removed, trail.tiles.length, connectingValue)!;
       placed = tile;
@@ -199,10 +237,7 @@ function applyChartToRoute(
         ...table,
         warpTrails: {
           ...table.warpTrails,
-          [route.trailPlayerId]: appendToTrail(
-            clearDistressBeacon(trail),
-            tile
-          ),
+          [trailPlayerId]: appendToTrail(trail, tile),
         },
       };
       break;
@@ -253,30 +288,46 @@ function applyChartToRoute(
     options.subspaceFractureEnabled
   );
 
+  nextRound = resolveDeadRedAlert(nextRound);
+
   const playedZeroZero =
     options.qContinuumEnabled &&
     isDouble(placed.coordinate) &&
-    placed.coordinate.low === 0;
-
-  const winnerHand = nextRound.hands[playerId] ?? [];
-  if (winnerHand.length === 0) {
-    const treatyRequired = treatyRequiredForWin(nextRound, route.kind);
-    return {
-      ...nextRound,
-      treatyDeclarationRequired: treatyRequired,
-      treatyDeclared: !treatyRequired,
-      roundWinnerId: playerId,
-      phase: treatyRequired ? 'playing' : 'ended',
-    };
-  }
+    placed.coordinate.low === 0 &&
+    route.kind === 'warp-trail' &&
+    route.playerId === playerId;
 
   if (playedZeroZero) {
     nextRound = { ...nextRound, qPendingInvoker: playerId };
   }
 
+  const winnerHand = nextRound.hands[playerId] ?? [];
+  const emptyHandWin = winnerHand.length === 0;
+
   if (nextRound.qPendingInvoker || nextRound.qGamblePending) {
-    return nextRound;
+    if (emptyHandWin) {
+      nextRound = {
+        ...nextRound,
+        pendingRoundWin: { playerId, routeKind: route.kind },
+      };
+    }
+    return { ...nextRound, mandatoryPlay: null };
   }
+
+  if (emptyHandWin) {
+    const treatyRequired = treatyRequiredForWin(nextRound, route.kind);
+    nextRound = {
+      ...nextRound,
+      treatyDeclarationRequired: treatyRequired,
+      treatyDeclared: !treatyRequired,
+      roundWinnerId: playerId,
+      phase: treatyRequired ? 'playing' : 'ended',
+      mandatoryPlay: null,
+    };
+    return maybeEndBlockedRound(nextRound);
+  }
+
+  nextRound = { ...nextRound, mandatoryPlay: null };
 
   if (
     isRedAlertBlocking(nextRound.table.redAlert, playerId) ||
@@ -285,7 +336,7 @@ function applyChartToRoute(
     return nextRound;
   }
 
-  return advanceTurn(nextRound);
+  return maybeEndBlockedRound(advanceTurn(nextRound));
 }
 
 function advanceTurn(round: RoundState): RoundState {
@@ -323,12 +374,11 @@ function handleDraw(
   );
 
   if (legalWithDrawn.length > 0) {
-    return applyAction(withRound(state, nextRound), {
-      type: 'CHART_COORDINATE',
-      playerId,
-      coordinate: drawn,
-      route: legalWithDrawn[0].route,
-    });
+    nextRound = {
+      ...nextRound,
+      mandatoryPlay: { playerId, coordinate: drawn },
+    };
+    return { ok: true, state: withRound(state, nextRound) };
   }
 
   if (isRedAlertBlocking(nextRound.table.redAlert, playerId)) {
@@ -345,7 +395,10 @@ function handleDraw(
     return handlePassTurn(state, nextRound, playerId, { afterDraw: true });
   }
 
-  return { ok: true, state: withRound(state, advanceTurn(nextRound)) };
+  return {
+    ok: true,
+    state: withRound(state, maybeEndBlockedRound(advanceTurn(nextRound))),
+  };
 }
 
 function handlePassRedAlert(
@@ -394,6 +447,7 @@ function handlePassRedAlert(
   };
 
   nextRound = advanceTurn(nextRound);
+  nextRound = maybeEndBlockedRound(nextRound);
   return { ok: true, state: withRound(state, nextRound) };
 }
 
@@ -406,7 +460,44 @@ function handlePassTurn(
   if (!canPassTurn(round, playerId, options)) {
     return fail('PASS_NOT_ALLOWED');
   }
-  return { ok: true, state: withRound(state, advanceTurn(round)) };
+  let nextRound = maybeEndBlockedRound(advanceTurn(round));
+  return { ok: true, state: withRound(state, nextRound) };
+}
+
+function handleForfeitImpulse(
+  state: GameState,
+  round: RoundState,
+  playerId: string
+): ActionResult {
+  if (!round.treatyDeclarationRequired || round.treatyDeclared) {
+    return fail('IMPULSE_FORFEIT_NOT_ALLOWED');
+  }
+  if (round.roundWinnerId !== playerId) {
+    return fail('IMPULSE_FORFEIT_NOT_ALLOWED');
+  }
+  if (round.unchartedSectors.length === 0) {
+    return fail('EMPTY_UNCHARTED');
+  }
+
+  const [drawn, ...remaining] = round.unchartedSectors;
+  let nextRound: RoundState = {
+    ...round,
+    unchartedSectors: remaining,
+    roundWinnerId: null,
+    treatyDeclarationRequired: false,
+    treatyDeclared: false,
+    phase: 'playing',
+    pendingRoundWin: null,
+    mandatoryPlay: null,
+  };
+  nextRound = updateHands(nextRound, playerId, [
+    ...(nextRound.hands[playerId] ?? []),
+    drawn,
+  ]);
+  nextRound = advanceTurn(nextRound);
+  nextRound = maybeEndBlockedRound(nextRound);
+
+  return { ok: true, state: withRound(state, nextRound) };
 }
 
 function handleDeployBeacon(
@@ -449,6 +540,7 @@ function handleDeployBeacon(
   });
 
   nextRound = advanceTurn(nextRound);
+  nextRound = maybeEndBlockedRound(nextRound);
   return { ok: true, state: withRound(state, nextRound) };
 }
 
@@ -457,12 +549,23 @@ function handleDeclareTreaty(
   round: RoundState,
   playerId: string
 ): ActionResult {
-  if (!round.treatyDeclarationRequired || round.roundWinnerId !== playerId) {
+  if (!round.treatyDeclarationRequired || round.treatyDeclared) {
+    return fail('TREATY_NOT_REQUIRED');
+  }
+
+  const winnerId = round.roundWinnerId;
+  if (winnerId != null && winnerId !== playerId) {
+    return fail('TREATY_NOT_REQUIRED');
+  }
+
+  const hand = round.hands[playerId] ?? [];
+  if (winnerId == null && hand.length > 0) {
     return fail('TREATY_NOT_REQUIRED');
   }
 
   const nextRound: RoundState = {
     ...round,
+    roundWinnerId: winnerId ?? playerId,
     treatyDeclared: true,
     phase: 'ended',
   };
@@ -500,7 +603,7 @@ function handleQFlash(
   }
 
   const { round: afterEffect } = applyQFlashEffect(round, effect, playerId);
-  let nextRound = afterEffect;
+  let nextRound = finalizeRoundWinAfterQ(afterEffect);
 
   const flash: QFlash = { invokedBy: playerId, effect };
   let nextState: GameState = {
@@ -515,12 +618,16 @@ function handleQFlash(
     round: nextRound,
   };
 
+  if (nextRound.phase === 'ended') {
+    return { ok: true, state: nextState };
+  }
+
   if (
     !nextRound.qGamblePending &&
     !isRedAlertBlocking(nextRound.table.redAlert, playerId) &&
     !isNavigationHaltedByFracture(nextRound.table.subspaceFracture)
   ) {
-    nextRound = advanceTurn(nextRound);
+    nextRound = maybeEndBlockedRound(advanceTurn(nextRound));
     nextState = withRound(nextState, nextRound);
   }
 
@@ -541,13 +648,17 @@ function handleQGamble(
     return fail('Q_GAMBLE_NOT_PENDING');
   }
 
-  let nextRound = resolveQGamble(round, playerId, keepIndex);
+  let nextRound = finalizeRoundWinAfterQ(resolveQGamble(round, playerId, keepIndex));
+
+  if (nextRound.phase === 'ended') {
+    return { ok: true, state: withRound(state, nextRound) };
+  }
 
   if (
     !isRedAlertBlocking(nextRound.table.redAlert, playerId) &&
     !isNavigationHaltedByFracture(nextRound.table.subspaceFracture)
   ) {
-    nextRound = advanceTurn(nextRound);
+    nextRound = maybeEndBlockedRound(advanceTurn(nextRound));
   }
 
   return { ok: true, state: withRound(state, nextRound) };
@@ -559,7 +670,16 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
       return fail('GAME_NOT_ACTIVE');
     }
     const round = state.round;
-    if (round.phase !== 'ended' || round.roundWinnerId !== action.winnerId) {
+    if (round.phase !== 'ended') {
+      return fail('ROUND_NOT_PLAYING');
+    }
+    if (round.roundBlocked) {
+      if (action.winnerId !== null) {
+        return fail('ROUND_NOT_PLAYING');
+      }
+      return scoreRound(state, round);
+    }
+    if (round.roundWinnerId !== action.winnerId) {
       return fail('ROUND_NOT_PLAYING');
     }
     return scoreRound(state, round);
@@ -675,6 +795,14 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
 
     case 'DECLARE_TREATY': {
       return handleDeclareTreaty(state, round, action.playerId);
+    }
+
+    case 'FORFEIT_IMPULSE': {
+      const turnCheck = requirePlayerTurn(round, action.playerId);
+      if (turnCheck !== true) {
+        return fail(turnCheck);
+      }
+      return handleForfeitImpulse(state, round, action.playerId);
     }
 
     case 'INVOKE_Q_FLASH': {

@@ -8,7 +8,7 @@ export type ChartRoute =
   | { kind: 'warp-trail'; playerId: PlayerId }
   | { kind: 'neutral-zone' }
   | { kind: 'fracture-stabilizer' }
-  | { kind: 'red-alert-cover'; trailPlayerId: PlayerId };
+  | { kind: 'red-alert-cover'; trailPlayerId?: PlayerId; neutralZone?: true };
 
 export type GameAction =
   | {
@@ -22,9 +22,10 @@ export type GameAction =
   | { type: 'PASS_TURN'; playerId: PlayerId }
   | { type: 'DEPLOY_DISTRESS_BEACON'; playerId: PlayerId }
   | { type: 'DECLARE_TREATY'; playerId: PlayerId }
+  | { type: 'FORFEIT_IMPULSE'; playerId: PlayerId }
   | { type: 'INVOKE_Q_FLASH'; playerId: PlayerId; effect: QFlashEffectKind }
   | { type: 'RESOLVE_Q_GAMBLE'; playerId: PlayerId; keepIndex: 0 | 1 }
-  | { type: 'END_ROUND'; winnerId: PlayerId };
+  | { type: 'END_ROUND'; winnerId: PlayerId | null };
 
 export type ActionResult =
   | { ok: true; state: import('./game-state.js').GameState }
@@ -50,7 +51,8 @@ export type ActionViolation =
   | 'BEACON_ALREADY_ACTIVE'
   | 'MUST_DRAW_FIRST'
   | 'RED_ALERT_COVER_AVAILABLE'
-  | 'PASS_NOT_ALLOWED';
+  | 'PASS_NOT_ALLOWED'
+  | 'IMPULSE_FORFEIT_NOT_ALLOWED';
 
 export interface LegalMove {
   coordinate: Coordinate;

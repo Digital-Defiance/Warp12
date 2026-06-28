@@ -38,7 +38,7 @@ export interface QRoundEffects {
   }> | null;
   /** At round scoring, 12-12 penalty transfers to the highest-penalty captain. */
   readonly salamanderSwap: boolean;
-  /** Any round win requires a Treaty declaration before scoring. */
+  /** Any round win requires dropping to impulse before scoring. */
   readonly treatyEcho: boolean;
 }
 
@@ -98,9 +98,9 @@ export const Q_FLASH_CATALOG: readonly QFlashCatalogEntry[] = [
   },
   {
     kind: 'treaty-echo',
-    label: 'Treaty echo',
+    label: 'Impulse echo',
     description:
-      'Any captain going out this round must declare a Treaty before the sector closes.',
+      'Any captain going out this round must drop to impulse before the sector closes.',
   },
   {
     kind: 'q-gamble',
