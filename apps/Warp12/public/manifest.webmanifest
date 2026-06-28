@@ -1,0 +1,12 @@
+{
+    "name": "Warp 12",
+    "short_name": "Warp12",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#0a0a12",
+    "theme_color": "#0a0a12",
+    "icons": [
+      { "src": "/W12-1-1.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    ]
+  }
