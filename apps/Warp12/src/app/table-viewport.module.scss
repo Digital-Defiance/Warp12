@@ -4,16 +4,60 @@
   z-index: 1;
 }
 
-.viewportControls {
+.viewportHud {
   position: absolute;
-  bottom: 12px;
   right: 12px;
-  z-index: 120;
+  bottom: 12px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: calc(100% - 24px);
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+  }
+}
+
+.focusToggle {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--warp-text, #e2e8f0);
+  background: var(--warp-panel, rgba(15, 23, 42, 0.92));
+  border: 1px solid var(--warp-panel-border, #334155);
+  backdrop-filter: blur(8px);
+  transition: border-color 0.15s, box-shadow 0.15s, color 0.15s;
+
+  &:hover {
+    border-color: var(--warp-accent, #38bdf8);
+    color: var(--warp-accent, #38bdf8);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+  }
+
+  &[aria-pressed='true'] {
+    border-color: rgba(251, 191, 36, 0.55);
+    color: #fde68a;
+  }
+}
+
+.focusToggleIcon {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.viewportControls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 6px;
-  max-width: calc(100% - 24px);
 }
 
 .viewportBtn {
