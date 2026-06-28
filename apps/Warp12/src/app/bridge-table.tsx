@@ -509,20 +509,6 @@ export function BridgeTable({
         className={styles.bridgeLayout}
         data-focus={bridgeFocus ? 'true' : 'false'}
       >
-      <button
-        type="button"
-        className={styles.focusToggle}
-        aria-pressed={bridgeFocus}
-        aria-label={
-          bridgeFocus ? 'Restore standard layout' : 'Expand play area'
-        }
-        title={bridgeFocus ? 'Exit focus mode' : 'Focus mode'}
-        onClick={toggleFocus}
-      >
-        <span className={styles.focusToggleIcon} aria-hidden>
-          {bridgeFocus ? '▣' : '⛶'}
-        </span>
-      </button>
       <div
         className={styles.bridge}
         style={{
@@ -761,7 +747,14 @@ export function BridgeTable({
           </dl>
         </div>
 
-        <TableViewport tableWidth={TABLE_WIDTH} tableHeight={TABLE_HEIGHT}>
+        <TableViewport
+          tableWidth={TABLE_WIDTH}
+          tableHeight={TABLE_HEIGHT}
+          focusControl={{
+            active: bridgeFocus,
+            onToggle: toggleFocus,
+          }}
+        >
           <div
             className={styles.hubOverlay}
             style={{ left: centerX, top: centerY }}

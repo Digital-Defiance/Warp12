@@ -12,16 +12,23 @@ const MIN_SCALE = 0.35;
 const MAX_SCALE = 2.5;
 const ZOOM_STEP = 0.15;
 
+export interface TableViewportFocusControl {
+  active: boolean;
+  onToggle: () => void;
+}
+
 export interface TableViewportProps {
   tableWidth: number;
   tableHeight: number;
   children: React.ReactNode;
+  focusControl?: TableViewportFocusControl;
 }
 
 export function TableViewport({
   tableWidth,
   tableHeight,
   children,
+  focusControl,
 }: TableViewportProps) {
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -84,19 +91,6 @@ export function TableViewport({
 
   return (
     <div className={styles.viewport}>
-      <div className={styles.viewportControls} aria-label="Table view controls">
-        <button type="button" className={styles.viewportBtn} onClick={() => zoomBy(ZOOM_STEP)}>
-          Zoom in
-        </button>
-        <button type="button" className={styles.viewportBtn} onClick={() => zoomBy(-ZOOM_STEP)}>
-          Zoom out
-        </button>
-        <button type="button" className={styles.viewportBtn} onClick={resetView}>
-          Reset view
-        </button>
-        <span className={styles.viewportScale}>{Math.round(scale * 100)}%</span>
-      </div>
-
       <div
         className={styles.viewportSurface}
         onWheel={onWheel}
@@ -114,6 +108,37 @@ export function TableViewport({
           }}
         >
           {children}
+        </div>
+      </div>
+
+      <div className={styles.viewportHud}>
+        {focusControl ? (
+          <button
+            type="button"
+            className={styles.focusToggle}
+            aria-pressed={focusControl.active}
+            aria-label={
+              focusControl.active ? 'Restore standard layout' : 'Expand play area'
+            }
+            title={focusControl.active ? 'Exit focus mode' : 'Focus mode'}
+            onClick={focusControl.onToggle}
+          >
+            <span className={styles.focusToggleIcon} aria-hidden>
+              {focusControl.active ? '▣' : '⛶'}
+            </span>
+          </button>
+        ) : null}
+        <div className={styles.viewportControls} aria-label="Table view controls">
+          <button type="button" className={styles.viewportBtn} onClick={() => zoomBy(ZOOM_STEP)}>
+            Zoom in
+          </button>
+          <button type="button" className={styles.viewportBtn} onClick={() => zoomBy(-ZOOM_STEP)}>
+            Zoom out
+          </button>
+          <button type="button" className={styles.viewportBtn} onClick={resetView}>
+            Reset view
+          </button>
+          <span className={styles.viewportScale}>{Math.round(scale * 100)}%</span>
         </div>
       </div>
     </div>
