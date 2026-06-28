@@ -8,6 +8,7 @@ interface RulesMarkdownProps {
 
 type Block =
   | { type: 'h1'; text: string }
+  | { type: 'h2'; text: string }
   | { type: 'h3'; text: string }
   | { type: 'p'; text: string }
   | { type: 'hr' }
@@ -33,6 +34,12 @@ function renderBlock(block: Block, index: number) {
         <h1 key={index} className={styles.h1}>
           {renderInline(block.text)}
         </h1>
+      );
+    case 'h2':
+      return (
+        <h2 key={index} className={styles.h2}>
+          {renderInline(block.text)}
+        </h2>
       );
     case 'h3':
       return (
@@ -130,6 +137,11 @@ function parseLines(lines: string[], inBlockquote: boolean): Block[] {
 
     if (!inBlockquote && line.startsWith('# ')) {
       blocks.push({ type: 'h1', text: line.slice(2).trim() });
+      continue;
+    }
+
+    if (!inBlockquote && line.startsWith('## ')) {
+      blocks.push({ type: 'h2', text: line.slice(3).trim() });
       continue;
     }
 
