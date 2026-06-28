@@ -1,4 +1,4 @@
-import type { GameState } from '@warp12/Warp12-lib';
+import type { GameState } from 'warp12-engine';
 
 type Coordinate = { low: number; high: number };
 

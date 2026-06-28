@@ -1,0 +1,54 @@
+{
+  "name": "warp12-react",
+  "version": "0.1.0",
+  "description": "React adapters for Warp 12 — state to trains, coach, hand layout",
+  "license": "MIT",
+  "author": "Jessica Mulein",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@warp12/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "warp12",
+    "react",
+    "mexican-train",
+    "dominoes",
+    "game"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Digital-Defiance/Warp12.git",
+    "directory": "libs/react"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "prepublishOnly": "cd ../.. && yarn build:react && yarn test:react"
+  },
+  "peerDependencies": {
+    "doubletwelve": ">=0.3.0",
+    "react": ">=18.0.0",
+    "warp12-engine": ">=0.1.0"
+  },
+  "devDependencies": {
+    "doubletwelve": "workspace:*",
+    "react": "^19.0.0",
+    "warp12-engine": "workspace:*"
+  }
+}

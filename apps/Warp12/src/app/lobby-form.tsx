@@ -1,4 +1,4 @@
-import { type GameObjective } from '@warp12/Warp12-lib';
+import { type GameObjective } from 'warp12-engine';
 
 import type { CreateLobbyOptions } from '../firebase';
 import { clampOnlineMaxPlayers } from '../firebase';

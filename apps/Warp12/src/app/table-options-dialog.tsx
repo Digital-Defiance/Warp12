@@ -6,7 +6,13 @@ import {
   WARP_TILE_BG_META,
   type WarpPipPreset,
   type WarpTileBg,
-} from '../theme/warp-domino-theme';
+} from 'warp12-theme';
+import type {
+  ShareRoundDelivery,
+  ShareRoundImageMode,
+} from '../game/share-round.js';
+import type { CaptainTailsDisplay } from './table-view-prefs';
+import { RoundImageActions } from './round-image-actions';
 import styles from './rules-view.module.scss';
 import optionStyles from './table-options-dialog.module.scss';
 
@@ -25,6 +31,20 @@ export interface TableOptionsDialogProps {
   onTeachingModeChange: (next: boolean) => void;
   autoFollowAction: boolean;
   onAutoFollowActionChange: (next: boolean) => void;
+  captainTailsHud: boolean;
+  onCaptainTailsHudChange: (next: boolean) => void;
+  captainTailsDisplay: CaptainTailsDisplay;
+  onCaptainTailsDisplayChange: (next: CaptainTailsDisplay) => void;
+  showDebugExport?: boolean;
+  debugExportBusy?: boolean;
+  onExportDebug?: () => void | Promise<void>;
+  showShareRound?: boolean;
+  systemShareAvailable?: boolean;
+  roundImageBusy?: string | null;
+  onRoundImage?: (
+    mode: ShareRoundImageMode,
+    delivery: ShareRoundDelivery
+  ) => void | Promise<void>;
 }
 
 export function TableOptionsDialog({
@@ -42,6 +62,17 @@ export function TableOptionsDialog({
   onTeachingModeChange,
   autoFollowAction,
   onAutoFollowActionChange,
+  captainTailsHud,
+  onCaptainTailsHudChange,
+  captainTailsDisplay,
+  onCaptainTailsDisplayChange,
+  showDebugExport = false,
+  debugExportBusy = false,
+  onExportDebug,
+  showShareRound = false,
+  systemShareAvailable = false,
+  roundImageBusy = null,
+  onRoundImage,
 }: TableOptionsDialogProps) {
   useEffect(() => {
     if (!open) {
@@ -160,6 +191,47 @@ export function TableOptionsDialog({
           </section>
 
           <section className={optionStyles.section}>
+            <h3 className={optionStyles.sectionTitle}>Quick look</h3>
+            <label className={optionStyles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={captainTailsHud}
+                onChange={(event) =>
+                  onCaptainTailsHudChange(event.target.checked)
+                }
+              />
+              <span>Tails panel</span>
+            </label>
+            <div className={optionStyles.row}>
+              <button
+                type="button"
+                className={optionStyles.optionBtn}
+                disabled={!captainTailsHud}
+                data-active={captainTailsDisplay === 'number'}
+                onClick={() => onCaptainTailsDisplayChange('number')}
+              >
+                Coordinate
+              </button>
+              <button
+                type="button"
+                className={optionStyles.optionBtn}
+                disabled={!captainTailsHud}
+                data-active={captainTailsDisplay === 'domino'}
+                onClick={() => onCaptainTailsDisplayChange('domino')}
+              >
+                Domino tile
+              </button>
+            </div>
+            <p className={optionStyles.hint}>
+              {captainTailsHud
+                ? captainTailsDisplay === 'domino'
+                  ? 'Floating panel — mini tile and coordinate for each captain and Neutral zone.'
+                  : 'Floating panel — tail coordinate for each captain and Neutral zone (e.g. 6:12, 6:6).'
+                : 'Turn on for a draggable panel listing each trail tail at a glance.'}
+            </p>
+          </section>
+
+          <section className={optionStyles.section}>
             <h3 className={optionStyles.sectionTitle}>Advisor</h3>
             <label className={optionStyles.checkboxRow}>
               <input
@@ -196,6 +268,40 @@ export function TableOptionsDialog({
               {WARP_PIP_PRESET_META[pipPreset].hint}
             </p>
           </section>
+
+          {showShareRound && onRoundImage && (
+            <section className={optionStyles.section}>
+              <h3 className={optionStyles.sectionTitle}>Share</h3>
+              <RoundImageActions
+                systemShareAvailable={systemShareAvailable}
+                roundImageBusy={roundImageBusy}
+                onRoundImage={onRoundImage}
+              />
+              <p className={optionStyles.hint}>
+                Left segment: board + logo. Right segment (layer group icon):
+                adds stats overlay. Hover for labels; save downloads, share opens
+                the system sheet.
+              </p>
+            </section>
+          )}
+
+          {showDebugExport && onExportDebug && (
+            <section className={optionStyles.section}>
+              <h3 className={optionStyles.sectionTitle}>Diagnostics</h3>
+              <button
+                type="button"
+                className={optionStyles.actionBtn}
+                disabled={debugExportBusy}
+                onClick={() => void onExportDebug()}
+              >
+                {debugExportBusy ? 'Exporting…' : 'Export debug log'}
+              </button>
+              <p className={optionStyles.hint}>
+                Downloads a JSON snapshot of game state and action history — useful
+                after a round ends or when reporting a bug.
+              </p>
+            </section>
+          )}
         </div>
       </div>
     </div>

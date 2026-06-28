@@ -1,9 +1,9 @@
-import type { GameAction, GameState } from '@warp12/Warp12-lib';
+import type { GameAction, GameState } from 'warp12-engine';
 import {
   Q_FLASH_CATALOG,
   describeQFlashEffect,
   getAvailableQFlashEffects,
-} from '@warp12/Warp12-lib';
+} from 'warp12-engine';
 
 import styles from './q-flash-panel.module.scss';
 
@@ -118,9 +118,11 @@ export function QGamblePanel({ game, playerId, onResolve }: QGamblePanelProps) {
 export function ActiveQFlashBanner({
   game,
   names,
+  className,
 }: {
   game: GameState;
   names: Readonly<Record<string, string>>;
+  className?: string;
 }) {
   const flash = game.modules.qContinuum.activeFlash;
   if (!flash || !game.modules.qContinuum.enabled) {
@@ -128,7 +130,7 @@ export function ActiveQFlashBanner({
   }
 
   return (
-    <div className={styles.banner}>
+    <div className={className ?? styles.banner}>
       <dt>Q-Flash:</dt>
       <dd>{describeQFlashEffect(flash.effect, names)}</dd>
     </div>
@@ -200,9 +202,11 @@ export function QActiveOrb({
 export function PeekedSectorBanner({
   game,
   viewerId,
+  className,
 }: {
   game: GameState;
   viewerId: string;
+  className?: string;
 }) {
   const peek = game.round?.qEffects?.peekedSector;
   if (!peek || peek.visibleTo !== viewerId) {
@@ -211,7 +215,7 @@ export function PeekedSectorBanner({
 
   const { low, high } = peek.coordinate;
   return (
-    <div className={styles.peek}>
+    <div className={className ?? styles.peek}>
       <dt>Peek:</dt>
       <dd>
         Top Uncharted tile is {low}-{high}

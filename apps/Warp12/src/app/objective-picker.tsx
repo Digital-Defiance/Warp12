@@ -1,7 +1,7 @@
 import {
   GAME_OBJECTIVE_LABELS,
   type GameObjective,
-} from '@warp12/Warp12-lib';
+} from 'warp12-engine';
 
 import styles from './lobby.module.scss';
 

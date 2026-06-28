@@ -1,4 +1,4 @@
-import { applyAction, type GameState } from '@warp12/Warp12-lib';
+import { applyAction, type GameState } from 'warp12-engine';
 import { describe, expect, it } from 'vitest';
 
 import { shouldRedealHandsAfterScore } from './round-end-hands.js';

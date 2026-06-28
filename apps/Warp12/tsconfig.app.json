@@ -35,7 +35,13 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
-      "path": "../../libs/Warp12-lib/tsconfig.lib.json"
+      "path": "../../libs/engine/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/react/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/theme/tsconfig.lib.json"
     }
   ]
 }

@@ -13,7 +13,9 @@ warp-12/
 ├── apps/
 │   └── Warp12/                 # The Bridge — React client (Firebase, lobby, game table)
 ├── libs/
-│   └── Warp12-lib/             # Pure game engine — state machine & rules
+│   ├── engine/                 # warp12-engine — rules, AI, advisor (npm)
+│   ├── react/                  # warp12-react — adapters, coach, hand layout (npm)
+│   └── theme/                  # warp12-theme — DoubleTwelve skins (npm)
 ├── vendor/
 │   └── DoubleTwelve/           # Domino rendering submodule (own Nx workspace)
 └── RULES.md                    # Navigational Operations Manual
@@ -21,9 +23,11 @@ warp-12/
 
 | Layer | Package | Responsibility |
 |-------|---------|----------------|
-| **Engine** | `@warp12/Warp12-lib` | Deterministic state machine: turns, scoring, Distress Beacon, Subspace Fracture, opt-in modules |
+| **Engine** | `warp12-engine` | Deterministic state machine: turns, scoring, Distress Beacon, Subspace Fracture, Warp AI, advisor explanations |
+| **React adapters** | `warp12-react` | `RoundState` → trains, tactical coach, hand layout hooks |
+| **Theme** | `warp12-theme` | Star Trek domino tile presets for DoubleTwelve |
 | **Rendering** | `doubletwelve` | React domino components, train layout, chicken-foot geometry, pip theming |
-| **Client** | `@warp12/Warp12` | Space-themed UI, Firebase Auth + Firestore sync |
+| **Client** | `@warp12/Warp12` | Space-themed UI, Firebase Auth + Firestore sync (private app) |
 | **Multiplayer** | Firebase (`warp-12`) | Auth, game documents, action log, private hands |
 
 ### Vendor boundary (`vendor/DoubleTwelve`)
@@ -48,7 +52,9 @@ yarn build:all
 
 # Or step by step:
 yarn build:doubletwelve   # vendor/DoubleTwelve → dist/
-yarn build:engine         # libs/Warp12-lib → dist/
+yarn build:engine         # libs/engine → dist/  (warp12-engine)
+yarn build:react          # libs/react → dist/   (warp12-react)
+yarn build:theme          # libs/theme → dist/   (warp12-theme)
 yarn build:bridge         # apps/Warp12 → dist/
 
 # Serve the client (dev server)
@@ -56,6 +62,7 @@ yarn serve:bridge
 
 # Run tests
 yarn test:engine
+yarn test:react
 yarn test:bridge
 yarn test:e2e      # Playwright (builds bridge, then runs e2e)
 yarn test:all      # all of the above
@@ -188,7 +195,7 @@ See [RULES.md](./RULES.md) for the full Navigational Operations Manual — Space
 
 ## 🤖 Agentic Development
 
-- **Strict typing** — no `any`; engine types live in `@warp12/Warp12-lib`
+- **Strict typing** — no `any`; engine types live in `warp12-engine`
 - **Immutability** — engine state is never mutated in place; pure functions return new state
 - **Specs first** — update Markdown specs in `tools/agent-specs/` before changing rules (coming soon)
 

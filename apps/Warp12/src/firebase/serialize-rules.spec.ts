@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GameState } from '@warp12/Warp12-lib';
+import type { GameState } from 'warp12-engine';
 
 import { serializePublicGame } from './serialize.js';
 

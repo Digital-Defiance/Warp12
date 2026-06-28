@@ -3,9 +3,12 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
-    "@warp12/Warp12-lib": "workspace:*",
     "doubletwelve": "workspace:*",
-    "firebase": "^12.15.0"
+    "firebase": "^12.15.0",
+    "html-to-image": "^1.11.13",
+    "warp12-engine": "workspace:*",
+    "warp12-react": "workspace:*",
+    "warp12-theme": "workspace:*"
   },
   "nx": {
     "implicitDependencies": [

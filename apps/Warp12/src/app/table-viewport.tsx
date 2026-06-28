@@ -4,10 +4,11 @@ import {
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
+  type RefObject,
   type WheelEvent as ReactWheelEvent,
 } from 'react';
 
-import { panToCenterContentPoint } from '../game/table-focus.js';
+import { panToCenterContentPoint } from 'warp12-react';
 import styles from './table-viewport.module.scss';
 
 const MIN_SCALE = 0.35;
@@ -34,6 +35,7 @@ export interface TableViewportProps {
   tableWidth: number;
   tableHeight: number;
   children: React.ReactNode;
+  contentRef?: RefObject<HTMLDivElement | null>;
   focusControl?: TableViewportFocusControl;
   soundControl?: TableViewportSoundControl;
   autoFollowAction?: boolean;
@@ -44,6 +46,7 @@ export function TableViewport({
   tableWidth,
   tableHeight,
   children,
+  contentRef,
   focusControl,
   soundControl,
   autoFollowAction = false,
@@ -138,12 +141,19 @@ export function TableViewport({
         <div
           className={styles.viewportCanvas}
           style={{
-            width: `${tableWidth}px`,
-            height: `${tableHeight}px`,
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
           }}
         >
-          {children}
+          <div
+            ref={contentRef}
+            className={styles.viewportContent}
+            style={{
+              width: `${tableWidth}px`,
+              height: `${tableHeight}px`,
+            }}
+          >
+            {children}
+          </div>
         </div>
       </div>
 

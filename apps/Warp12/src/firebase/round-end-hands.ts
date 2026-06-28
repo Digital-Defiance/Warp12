@@ -39,7 +39,7 @@ export function toHandDocument(
 
 /** Whether END_ROUND should redeals tiles into the hands subcollection. */
 export function shouldRedealHandsAfterScore(
-  phase: import('@warp12/Warp12-lib').GamePhase
+  phase: import('warp12-engine').GamePhase
 ): boolean {
   return phase === 'active';
 }

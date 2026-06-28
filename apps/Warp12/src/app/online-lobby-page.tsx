@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   GAME_OBJECTIVE_LABELS,
   type GameObjective,
-} from '@warp12/Warp12-lib';
+} from 'warp12-engine';
 
 import {
   clampOnlineMaxPlayers,

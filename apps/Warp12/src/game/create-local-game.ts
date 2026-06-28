@@ -7,7 +7,7 @@ import {
   type GameObjective,
   type GameState,
   type WarpAiPlayer,
-} from '@warp12/Warp12-lib';
+} from 'warp12-engine';
 
 import type { LocalGameConfig } from './local-game-config.js';
 

@@ -7,7 +7,7 @@ import {
   type GameObjective,
   type GameState,
   type WarpSkillLevel,
-} from '@warp12/Warp12-lib';
+} from 'warp12-engine';
 import {
   deleteDoc,
   doc,

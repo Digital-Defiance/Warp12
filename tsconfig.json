@@ -10,7 +10,13 @@
       "path": "./apps/Warp12"
     },
     {
-      "path": "./libs/Warp12-lib"
+      "path": "./libs/engine"
+    },
+    {
+      "path": "./libs/react"
+    },
+    {
+      "path": "./libs/theme"
     }
   ]
 }

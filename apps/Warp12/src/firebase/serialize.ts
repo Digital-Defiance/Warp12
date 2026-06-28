@@ -2,7 +2,7 @@ import type {
   GameAction,
   GameState,
   RoundState,
-} from '@warp12/Warp12-lib';
+} from 'warp12-engine';
 
 import type {
   FirestoreCoordinate,
@@ -263,7 +263,7 @@ export function mergeHandsIntoGame(
         pendingRoundWin: doc.round.pendingRoundWin
           ? {
               playerId: doc.round.pendingRoundWin.playerId,
-              routeKind: doc.round.pendingRoundWin.routeKind as import('@warp12/Warp12-lib').ChartRoute['kind'],
+              routeKind: doc.round.pendingRoundWin.routeKind as import('warp12-engine').ChartRoute['kind'],
             }
           : null,
         roundBlocked: doc.round.roundBlocked ?? false,
@@ -322,7 +322,7 @@ export function mergeHandsIntoGame(
           ? {
               invokedBy: doc.qFlash.invokedBy,
               effect: {
-                kind: doc.qFlash.effect.kind as import('@warp12/Warp12-lib').QFlashEffectKind,
+                kind: doc.qFlash.effect.kind as import('warp12-engine').QFlashEffectKind,
                 ...(doc.qFlash.effect.targetPlayerId
                   ? { targetPlayerId: doc.qFlash.effect.targetPlayerId }
                   : {}),
