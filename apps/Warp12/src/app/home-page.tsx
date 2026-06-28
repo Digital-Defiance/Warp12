@@ -73,6 +73,11 @@ export function HomePage() {
       </section>
       <section>
         <div>© 2026 Digital Defiance, Jessica Mulein.</div>
+        <div>
+          <Link to="/privacy" className="no-underline">
+            Privacy Policy
+          </Link>
+        </div>
         <div>Source code available on <a className="no-underline" target="_blank" rel="noopener noreferrer" href="https://github.com/Digital-Defiance/Warp12">GitHub</a>.</div>
         <div><a className="no-underline" target="_blank" rel="noopener noreferrer" href="https://github.com/Digital-Defiance/Warp12/blob/main/LICENSE">MIT License</a></div>
       </section>

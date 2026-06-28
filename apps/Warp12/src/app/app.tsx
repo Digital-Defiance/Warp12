@@ -6,6 +6,7 @@ import { LocalGamePage } from './local-game-page';
 import { HomePage } from './home-page';
 import { OnlineGamePage } from './online-game-page';
 import { OnlineLobbyPage } from './online-lobby-page';
+import { PrivacyPage } from './privacy-page';
 import { RulesPage } from './rules-page';
 import styles from './app.module.scss';
 import { Warp12Logo } from './Warp12Logo';
@@ -35,6 +36,9 @@ function AppShell() {
           <Link to="/rules" className={styles.navLink}>
             Rules
           </Link>
+          <Link to="/privacy" className={styles.navLink}>
+            Privacy
+          </Link>
         </nav>
       </header>
 
@@ -43,6 +47,7 @@ function AppShell() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/rules" element={<RulesPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/local" element={<LocalGamePage />} />
             <Route path="/online" element={<OnlineLobbyPage />} />
             <Route path="/online/:gameId" element={<OnlineLobbyPage />} />
