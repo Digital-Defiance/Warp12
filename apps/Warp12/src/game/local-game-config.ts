@@ -12,6 +12,8 @@ export interface AiCaptainConfig {
   readonly displayName: string;
   readonly skill: WarpSkillLevel;
   readonly useLookahead?: boolean;
+  /** Officer pool slot when the captain was created from {@link AI_OFFICER_POOL}. */
+  readonly poolId?: string;
 }
 
 /** Options chosen at the local bridge before a simulation launches. */
@@ -63,7 +65,7 @@ export function defaultLocalGameConfig(
     humanName: humanName.trim() || 'You',
     playerCount: count,
     objective: 'go-out',
-    modules: { salamanderPenalty: true, qContinuum: false, subspaceFracture: true },
+    modules: { salamanderPenalty: true, qContinuum: false, subspaceFracture: false },
     aiCaptains: buildAiCaptains(count - 1),
   };
 }

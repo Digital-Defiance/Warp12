@@ -4,6 +4,7 @@ import {
   getWarpSkillProfile,
   shuffleCoordinates,
   startGame,
+  type GameObjective,
   type GameState,
   type WarpAiPlayer,
 } from '@warp12/Warp12-lib';
@@ -56,17 +57,18 @@ export function createLocalGame(
   );
 }
 
-export function buildAiRoster(
-  config: LocalGameConfig,
+export function buildAiRosterFromConfigs(
+  aiCaptains: readonly AiCaptainConfig[],
+  objective: GameObjective,
   seed: number
 ): ReadonlyMap<string, WarpAiPlayer> {
   const roster = new Map<string, WarpAiPlayer>();
-  for (const [index, ai] of config.aiCaptains.entries()) {
+  for (const [index, ai] of aiCaptains.entries()) {
     roster.set(
       ai.id,
       createWarpAiPlayer({
-        skill: getWarpSkillProfile(ai.skill, config.objective),
-        objective: config.objective,
+        skill: getWarpSkillProfile(ai.skill, objective),
+        objective,
         lookahead: ai.useLookahead
           ? { depth: 2, determinizations: 4, maxBranch: 5 }
           : undefined,
@@ -75,4 +77,11 @@ export function buildAiRoster(
     );
   }
   return roster;
+}
+
+export function buildAiRoster(
+  config: LocalGameConfig,
+  seed: number
+): ReadonlyMap<string, WarpAiPlayer> {
+  return buildAiRosterFromConfigs(config.aiCaptains, config.objective, seed);
 }

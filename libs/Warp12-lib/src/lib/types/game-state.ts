@@ -4,6 +4,7 @@ import type { PlayerId } from './player.js';
 import type { NeutralZone, Spacedock, WarpTrail } from './trails.js';
 import type { RedAlert, SubspaceFracture } from './anomalies.js';
 import type { QGamblePending, QRoundEffects } from './q-continuum.js';
+import type { ChartRoute } from './actions.js';
 
 export type GamePhase = 'lobby' | 'active' | 'round-end' | 'complete';
 
@@ -35,6 +36,15 @@ export interface RoundState {
   readonly qEffects: QRoundEffects | null;
   /** Awaiting keep/discard after Q's gamble. */
   readonly qGamblePending: QGamblePending | null;
+  /** After a draw, this tile must be charted immediately if playable. */
+  readonly mandatoryPlay: { readonly playerId: PlayerId; readonly coordinate: Coordinate } | null;
+  /** Win deferred until a pending Q-Flash resolves. */
+  readonly pendingRoundWin: {
+    readonly playerId: PlayerId;
+    readonly routeKind: ChartRoute['kind'];
+  } | null;
+  /** Sector ended with an empty draw pile and no legal charts (no domino winner). */
+  readonly roundBlocked: boolean;
 }
 
 export interface GameState {

@@ -7,6 +7,7 @@ import {
   canRaiseShieldsByCharting,
   GAME_OBJECTIVE_LABELS,
   getLegalMoves,
+  handPenaltyPoints,
   trailOpenValue,
   type ActionResult,
   type ChartRoute,
@@ -14,11 +15,18 @@ import {
   type GameAction,
   type GameState,
   type LegalMove,
+  type RoundState,
   type WarpAiPlayer,
 } from '@warp12/Warp12-lib';
 import { DominoHub, DoubleTwelve, DominoThemeProvider } from 'doubletwelve';
 
 import { captainNameMap, createDemoGame } from '../game/create-demo-game';
+import {
+  createActionLog,
+  playerIdForAction,
+  type ActionLogSource,
+} from '../game/action-log.js';
+import { downloadDebugExport } from '../game/debug-export.js';
 import type { LocalGameConfig } from '../game/local-game-config';
 import {
   coordinatesEqual,
@@ -31,6 +39,8 @@ import {
   type TrailAccessState,
 } from '../game/trail-access';
 import { coordinateKey, displayCoordinateValues } from '../game/hand-layout';
+import { formatViolation } from '../game/violation-messages.js';
+import { useGameSoundEffects } from '../game/use-game-sounds.js';
 import {
   coachActionKind,
   coachChartMove,
@@ -51,6 +61,7 @@ import {
   type WarpTileBg,
 } from '../theme/warp-domino-theme';
 import { useBridgeFocus } from './bridge-focus-context';
+import { useGameAudio } from './game-audio-context';
 import { CoachPanel } from './coach-panel';
 import styles from './bridge-table.module.scss';
 import {
@@ -88,6 +99,45 @@ const tileBgLabel: Record<WarpTileBg, string> = {
   light: 'Light',
 };
 
+function canShowInHandPenalty(
+  captainId: string,
+  options: {
+    isOnline: boolean;
+    handOwnerId: string;
+    isOnlineHost: boolean;
+  }
+): boolean {
+  if (!options.isOnline) {
+    return true;
+  }
+  return captainId === options.handOwnerId || options.isOnlineHost;
+}
+
+function formatPenaltyScoreLine(
+  captainId: string,
+  campaignScore: number,
+  round: RoundState | null | undefined,
+  hand: readonly Coordinate[] | undefined,
+  options: {
+    isOnline: boolean;
+    handOwnerId: string;
+    isOnlineHost: boolean;
+    salamanderEnabled: boolean;
+  }
+): string {
+  const campaign = `${campaignScore} campaign`;
+  if (!round || !canShowInHandPenalty(captainId, options) || hand === undefined) {
+    return campaign;
+  }
+
+  const inHand = handPenaltyPoints(
+    hand,
+    options.salamanderEnabled,
+    round.roundNumber
+  );
+  return `${campaign} · ${inHand} in hand`;
+}
+
 export interface BridgeTableProps {
   mode?: 'local' | 'online';
   game?: GameState;
@@ -98,10 +148,14 @@ export interface BridgeTableProps {
   onLeaveSetup?: () => void;
   viewerId?: string;
   handCounts?: Record<string, number>;
+  /** Online sectors with host-run AI officers (by captain id). */
+  onlineAiCaptainIds?: ReadonlySet<string>;
   onAction?: (action: GameAction) => Promise<ActionResult>;
   onLeave?: () => void;
   isOnlineHost?: boolean;
   onHostResetSector?: () => void;
+  onExportDebug?: () => void | Promise<void>;
+  debugExportBusy?: boolean;
   syncPending?: boolean;
   /** Online: tactical-advisor signals from Firestore presence subcollection. */
   coachPresence?: Record<string, CoachPresence>;
@@ -117,10 +171,13 @@ export function BridgeTable({
   onLeaveSetup,
   viewerId,
   handCounts = {},
+  onlineAiCaptainIds,
   onAction,
   onLeave,
   isOnlineHost = false,
   onHostResetSector,
+  onExportDebug,
+  debugExportBusy = false,
   syncPending = false,
   coachPresence = {},
   onCoachSignal,
@@ -132,6 +189,8 @@ export function BridgeTable({
   const [localGame, setLocalGame] = useState<GameState>(
     () => externalGame ?? createDemoGame()
   );
+  const [localExportBusy, setLocalExportBusy] = useState(false);
+  const actionLogRef = useRef(createActionLog());
 
   useEffect(() => {
     if (!isOnline && externalGame) {
@@ -156,6 +215,13 @@ export function BridgeTable({
   >({});
 
   const round = game.round;
+  const activePlayerIsAi =
+    isVsAi ||
+    Boolean(
+      isOnline &&
+        round?.activePlayerId &&
+        onlineAiCaptainIds?.has(round.activePlayerId)
+    );
   const centerX = TABLE_WIDTH / 2;
   const centerY = TABLE_HEIGHT / 2;
   const names = useMemo(() => captainNameMap(game), [game]);
@@ -171,6 +237,7 @@ export function BridgeTable({
   const tileSurface = WARP_TILE_SURFACE[tileBg];
   const { focus: bridgeFocus, toggleFocus, setFocus: setBridgeFocus } =
     useBridgeFocus();
+  const { muted: soundsMuted, toggleMuted: toggleSoundsMuted } = useGameAudio();
 
   useEffect(() => {
     return () => setBridgeFocus(false);
@@ -182,14 +249,35 @@ export function BridgeTable({
   );
 
   const activePlayerId = round?.activePlayerId ?? '';
-  const isMyTurn = isVsAi
-    ? activePlayerId === humanId
-    : !isOnline || viewerId === activePlayerId;
   const handOwnerId = isVsAi
     ? humanId
     : isOnline
       ? (viewerId ?? '')
       : activePlayerId;
+  const treatyTurnPending =
+    !!round &&
+    round.treatyDeclarationRequired &&
+    !round.treatyDeclared &&
+    (round.roundWinnerId === handOwnerId ||
+      (round.roundWinnerId == null && activePlayerId === handOwnerId));
+  const isMyTurn = isVsAi
+    ? activePlayerId === humanId
+    : treatyTurnPending ||
+      !isOnline ||
+      viewerId === activePlayerId;
+
+  useGameSoundEffects({
+    enabled: game.phase === 'active' && !!round,
+    gamePhase: game.phase,
+    roundPhase: round?.phase,
+    roundNumber: round?.roundNumber,
+    isMyTurn,
+    redAlertActive: round?.table.redAlert?.active === true,
+    qFlashActive: game.modules.qContinuum.activeFlash != null,
+    treatyDeclared: round?.treatyDeclared === true,
+    treatyDeclarationRequired: round?.treatyDeclarationRequired === true,
+  });
+
   const visibleHand = round?.hands[handOwnerId] ?? [];
   const showOwnHand =
     !!round &&
@@ -312,11 +400,14 @@ export function BridgeTable({
   }, [mode, onRematch]);
 
   const dispatch = useCallback(
-    async (action: GameAction) => {
+    async (
+      action: GameAction,
+      meta?: { source?: ActionLogSource }
+    ) => {
       if (onAction) {
         const result = await onAction(action);
         if (!result.ok) {
-          setLastMessage(result.violation.replaceAll('_', ' ').toLowerCase());
+          setLastMessage(formatViolation(result.violation));
         } else {
           setLastMessage(null);
           setSelectedTile(null);
@@ -325,10 +416,18 @@ export function BridgeTable({
         return;
       }
 
+      const source = meta?.source ?? 'human';
       setLocalGame((current) => {
         const result = applyAction(current, action);
+        actionLogRef.current.append({
+          playerId: playerIdForAction(action),
+          action,
+          ok: result.ok,
+          violation: result.ok ? undefined : result.violation,
+          source,
+        });
         if (!result.ok) {
-          setLastMessage(result.violation.replaceAll('_', ' ').toLowerCase());
+          setLastMessage(formatViolation(result.violation));
           return current;
         }
         setLastMessage(null);
@@ -339,6 +438,38 @@ export function BridgeTable({
     },
     [onAction]
   );
+
+  const exportLocalDebug = async () => {
+    setLocalExportBusy(true);
+    try {
+      downloadDebugExport({
+        exportedAt: new Date().toISOString(),
+        mode: 'local',
+        sectorCode: 'local',
+        viewerId: humanId,
+        client: {
+          gameState: game,
+          localConfig,
+          actionLog: actionLogRef.current.snapshot(),
+        },
+        notes: ['Local simulation — full hands included in gameState.'],
+      });
+    } finally {
+      setLocalExportBusy(false);
+    }
+  };
+
+  const handleExportDebug = () => {
+    if (onExportDebug) {
+      void onExportDebug();
+      return;
+    }
+    void exportLocalDebug();
+  };
+
+  const showDebugExport =
+    (isOnlineHost && !!onExportDebug) || (!isOnline && mode === 'local');
+  const debugBusy = isOnline ? debugExportBusy : localExportBusy;
 
   const playMove = useCallback(
     (move: LegalMove) => {
@@ -420,10 +551,13 @@ export function BridgeTable({
 
     if (round.phase === 'ended' && round.roundWinnerId) {
       const timer = window.setTimeout(() => {
-        void dispatch({
-          type: 'END_ROUND',
-          winnerId: round.roundWinnerId!,
-        });
+        void dispatch(
+          {
+            type: 'END_ROUND',
+            winnerId: round.roundWinnerId!,
+          },
+          { source: 'auto' }
+        );
       }, 600);
       return () => clearTimeout(timer);
     }
@@ -439,7 +573,7 @@ export function BridgeTable({
       const action = ai.decideGameAction(game, round.activePlayerId);
       aiBusy.current = false;
       if (action) {
-        void dispatch(action);
+        void dispatch(action, { source: 'ai' });
       }
     }, 450);
 
@@ -560,6 +694,16 @@ export function BridgeTable({
             >
               Rules
             </button>
+            {showDebugExport && (
+              <button
+                type="button"
+                className={styles.controlBtn}
+                disabled={debugBusy}
+                onClick={() => void handleExportDebug()}
+              >
+                {debugBusy ? 'Exporting…' : 'Export debug'}
+              </button>
+            )}
             {coachAvailable && (
               <button
                 type="button"
@@ -754,6 +898,10 @@ export function BridgeTable({
             active: bridgeFocus,
             onToggle: toggleFocus,
           }}
+          soundControl={{
+            muted: soundsMuted,
+            onToggle: toggleSoundsMuted,
+          }}
         >
           <div
             className={styles.hubOverlay}
@@ -807,7 +955,7 @@ export function BridgeTable({
               ? `${names[round?.roundWinnerId ?? ''] ?? 'Captain'} wins the sector`
               : isMyTurn
                 ? `${names[handOwnerId] ?? 'Captain'}'s coordinates`
-                : isVsAi
+                : activePlayerIsAi
                   ? `${names[activePlayerId] ?? 'Captain'} is charting…`
                   : `Awaiting ${names[activePlayerId] ?? 'captain'}`}
           </h2>
@@ -825,10 +973,10 @@ export function BridgeTable({
             {syncPending && isMyTurn
               ? 'Transmitting to subspace…'
               : lastMessage ??
-                (isOnline
-                  ? 'Subspace link active — not your turn.'
-                  : isVsAi
-                    ? `${names[activePlayerId] ?? 'Captain'} is thinking…`
+                (activePlayerIsAi
+                  ? `${names[activePlayerId] ?? 'Captain'} is thinking…`
+                  : isOnline
+                    ? 'Subspace link active — not your turn.'
                     : null)}
           </p>
         )}
@@ -986,20 +1134,34 @@ export function BridgeTable({
           </div>
         ) : null}
 
-        {isMyTurn && round?.treatyDeclarationRequired && !round.treatyDeclared && (
-          <button
-            type="button"
-            className={styles.treatyBtn}
-            data-coach={coachKind === 'declare-treaty'}
-            onClick={() =>
-              void dispatch({
-                type: 'DECLARE_TREATY',
-                playerId: handOwnerId,
-              })
-            }
-          >
-            Declare treaty
-          </button>
+        {treatyTurnPending && (!isOnline || !syncPending) && (
+          <>
+            <button
+              type="button"
+              className={styles.treatyBtn}
+              data-coach={coachKind === 'declare-treaty'}
+              onClick={() =>
+                void dispatch({
+                  type: 'DECLARE_TREATY',
+                  playerId: handOwnerId,
+                })
+              }
+            >
+              Drop to impulse
+            </button>
+            <button
+              type="button"
+              className={styles.controlBtn}
+              onClick={() =>
+                void dispatch({
+                  type: 'FORFEIT_IMPULSE',
+                  playerId: handOwnerId,
+                })
+              }
+            >
+              Miss impulse (draw penalty)
+            </button>
+          </>
         )}
 
         {game.phase === 'complete' && (
@@ -1025,16 +1187,20 @@ export function BridgeTable({
           !isOnline &&
           game.objective === 'penalty' &&
           round?.phase === 'ended' &&
-          round.roundWinnerId && (
+          (round.roundWinnerId || round.roundBlocked) && (
             <div className={styles.roundEnd}>
-              <p>{names[round.roundWinnerId]} charts the final coordinate.</p>
+              <p>
+                {round.roundBlocked
+                  ? 'Sector blocked — draw pile empty with no legal charts.'
+                  : `${names[round.roundWinnerId!]} charts the final coordinate.`}
+              </p>
               <button
                 type="button"
                 className={styles.controlBtn}
                 onClick={() =>
                   void dispatch({
                     type: 'END_ROUND',
-                    winnerId: round.roundWinnerId!,
+                    winnerId: round.roundBlocked ? null : round.roundWinnerId!,
                   })
                 }
               >
@@ -1058,25 +1224,48 @@ export function BridgeTable({
           )}
 
         {game.objective === 'penalty' ? (
-          <ul className={styles.captainScores} aria-label="Penalty scores">
-            {game.captains.map((captain) => (
-              <li key={captain.id}>
-                <span>
-                  {captain.displayName}
-                  {coachByCaptain[captain.id] && (
-                    <span
-                      className={spokeStyles.captainCoachTag}
-                      data-flash={coachByCaptain[captain.id]?.flash}
-                    >
-                      {' '}
-                      Advisor
-                    </span>
-                  )}
-                </span>
-                <span>{captain.penaltyScore} pts</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            <p className={styles.scoreLegend}>
+              Campaign totals update when a round is scored. In-hand values are
+              pip counts for tiles held right now.
+            </p>
+            <ul
+              className={styles.captainScores}
+              aria-label="Penalty scores"
+            >
+              {game.captains.map((captain) => (
+                <li key={captain.id}>
+                  <span>
+                    {captain.displayName}
+                    {coachByCaptain[captain.id] && (
+                      <span
+                        className={spokeStyles.captainCoachTag}
+                        data-flash={coachByCaptain[captain.id]?.flash}
+                      >
+                        {' '}
+                        Advisor
+                      </span>
+                    )}
+                  </span>
+                  <span>
+                    {formatPenaltyScoreLine(
+                      captain.id,
+                      captain.penaltyScore,
+                      round,
+                      round?.hands[captain.id],
+                      {
+                        isOnline,
+                        handOwnerId,
+                        isOnlineHost,
+                        salamanderEnabled:
+                          game.modules.salamanderPenalty.enabled,
+                      }
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
         ) : (
           round && (
             <ul className={styles.captainScores} aria-label="Hand counts">

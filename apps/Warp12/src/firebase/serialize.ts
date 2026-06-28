@@ -110,8 +110,16 @@ function serializePublicRound(round: RoundState): FirestorePublicRound {
     unchartedSectors: round.unchartedSectors.map(toFirestoreCoordinate),
     treatyDeclarationRequired: round.treatyDeclarationRequired,
     treatyDeclared: round.treatyDeclared,
-    roundWinnerId: round.roundWinnerId,
-    qPendingInvoker: round.qPendingInvoker,
+    roundWinnerId: round.roundWinnerId ?? null,
+    roundBlocked: round.roundBlocked,
+    mandatoryPlay: round.mandatoryPlay
+      ? {
+          playerId: round.mandatoryPlay.playerId,
+          coordinate: toFirestoreCoordinate(round.mandatoryPlay.coordinate),
+        }
+      : null,
+    pendingRoundWin: round.pendingRoundWin ?? null,
+    qPendingInvoker: round.qPendingInvoker ?? null,
     qEffects: round.qEffects
       ? {
           reverseTurnOrder: round.qEffects.reverseTurnOrder,
@@ -172,8 +180,9 @@ function serializeTable(round: RoundState): FirestoreTableDocument {
       ? {
           active: table.redAlert.active,
           anchor: toPlaced(table.redAlert.anchor),
-          responsiblePlayerId: table.redAlert.responsiblePlayerId,
+          responsiblePlayerId: table.redAlert.responsiblePlayerId ?? null,
           trailPlayerId: table.redAlert.trailPlayerId,
+          ...(table.redAlert.neutralZone ? { neutralZone: true } : {}),
         }
       : null,
   };
@@ -212,7 +221,7 @@ export function mergeHandsIntoGame(
         unchartedSectors: doc.round.unchartedSectors.map(fromFirestoreCoordinate),
         treatyDeclarationRequired: doc.round.treatyDeclarationRequired,
         treatyDeclared: doc.round.treatyDeclared,
-        roundWinnerId: doc.round.roundWinnerId,
+        roundWinnerId: doc.round.roundWinnerId ?? null,
         qPendingInvoker: doc.round.qPendingInvoker ?? null,
         qEffects: doc.round.qEffects
           ? {
@@ -243,6 +252,21 @@ export function mergeHandsIntoGame(
               ],
             }
           : null,
+        mandatoryPlay: doc.round.mandatoryPlay
+          ? {
+              playerId: doc.round.mandatoryPlay.playerId,
+              coordinate: fromFirestoreCoordinate(
+                doc.round.mandatoryPlay.coordinate
+              ),
+            }
+          : null,
+        pendingRoundWin: doc.round.pendingRoundWin
+          ? {
+              playerId: doc.round.pendingRoundWin.playerId,
+              routeKind: doc.round.pendingRoundWin.routeKind as import('@warp12/Warp12-lib').ChartRoute['kind'],
+            }
+          : null,
+        roundBlocked: doc.round.roundBlocked ?? false,
         table: tableDoc
           ? {
               spacedock: tableDoc.spacedock,
@@ -265,6 +289,9 @@ export function mergeHandsIntoGame(
                     anchor: fromPlaced(tableDoc.redAlert.anchor),
                     responsiblePlayerId: tableDoc.redAlert.responsiblePlayerId,
                     trailPlayerId: tableDoc.redAlert.trailPlayerId,
+                    ...(tableDoc.redAlert.neutralZone
+                      ? { neutralZone: true }
+                      : {}),
                   }
                 : null,
             }
@@ -317,7 +344,7 @@ export function mergeHandsIntoGame(
         enabled: doc.modules.salamanderPenalty,
       },
       subspaceFracture: {
-        enabled: doc.modules.subspaceFracture ?? true,
+        enabled: doc.modules.subspaceFracture ?? false,
       },
     },
     objective: doc.objective ?? 'penalty',

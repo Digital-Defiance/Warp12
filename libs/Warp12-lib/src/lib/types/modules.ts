@@ -31,7 +31,7 @@ export interface GameModules {
 export const DEFAULT_MODULES: GameModules = {
   qContinuum: { enabled: false, activeFlash: null },
   salamanderPenalty: { enabled: false },
-  subspaceFracture: { enabled: true },
+  subspaceFracture: { enabled: false },
 };
 
 export interface GameModuleConfig {
@@ -50,7 +50,7 @@ export function resolveModules(config: GameModuleConfig = {}): GameModules {
       enabled: config.salamanderPenalty ?? false,
     },
     subspaceFracture: {
-      enabled: config.subspaceFracture ?? true,
+      enabled: config.subspaceFracture ?? false,
     },
   };
 }

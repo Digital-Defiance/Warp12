@@ -99,7 +99,7 @@ describe('distress beacon helpers', () => {
     expect(hasEstablishedWarpTrail(round, 'b')).toBe(false);
   });
 
-  it('allows strategic beacon deploy when the warp trail is established', () => {
+  it('does not allow voluntary beacon deploy while legal charts remain', () => {
     const state = roundWithHands(
       {
         a: [normalizeCoordinate(6, 7), normalizeCoordinate(1, 2)],
@@ -136,20 +136,7 @@ describe('distress beacon helpers', () => {
 
     const round = state.round!;
     expect(getLegalMoves(round, 'a').length).toBeGreaterThan(0);
-    expect(canDeployDistressBeacon(round, 'a')).toBe(true);
-
-    const deploy = applyAction(state, {
-      type: 'DEPLOY_DISTRESS_BEACON',
-      playerId: 'a',
-    });
-
-    expect(deploy.ok).toBe(true);
-    if (deploy.ok) {
-      expect(
-        deploy.state.round?.table.warpTrails.a.distressBeacon.active
-      ).toBe(true);
-      expect(deploy.state.round?.activePlayerId).toBe('b');
-    }
+    expect(canDeployDistressBeacon(round, 'a')).toBe(false);
   });
 
   it('deploys after drawing when the drawn tile is unplayable', () => {

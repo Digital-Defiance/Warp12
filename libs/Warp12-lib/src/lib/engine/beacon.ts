@@ -44,9 +44,9 @@ export function mustDrawBeforePassing(
 /**
  * Deploy the Distress Beacon (shields down).
  *
- * - Forced: no legal chart moves and the draw pile is empty (or red-alert pass).
- * - Strategic: own warp trail is established — may forfeit the turn to open the
- *   trail even when other routes are available.
+ * Forced only: no legal chart moves and the draw pile is empty (or after
+ * drawing on a Red Alert pass). Matches standard Mexican Train — the marker
+ * is not deployed voluntarily while other routes are available.
  */
 export function canDeployDistressBeacon(
   round: RoundState,
@@ -67,14 +67,14 @@ export function canDeployDistressBeacon(
   }
 
   const legalMoves = getLegalMoves(round, playerId);
-  if (legalMoves.length === 0) {
-    if (options?.afterDraw) {
-      return true;
-    }
-    return !mustDrawBeforePassing(round, playerId);
+  if (legalMoves.length > 0) {
+    return false;
   }
 
-  return hasEstablishedWarpTrail(round, playerId);
+  if (options?.afterDraw) {
+    return true;
+  }
+  return !mustDrawBeforePassing(round, playerId);
 }
 
 /**

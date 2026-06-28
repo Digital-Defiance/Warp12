@@ -52,7 +52,13 @@ export function connectingValueForRoute(
       return trail ? trailOpenValue(trail, round.spacedockValue) : null;
     }
     case 'red-alert-cover': {
-      const trail = round.table.warpTrails[route.trailPlayerId];
+      if (route.neutralZone) {
+        return neutralZoneOpenValue(
+          round.table.neutralZone,
+          round.spacedockValue
+        );
+      }
+      const trail = round.table.warpTrails[route.trailPlayerId!];
       return trail ? trailOpenValue(trail, round.spacedockValue) : null;
     }
     case 'neutral-zone':

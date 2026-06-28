@@ -184,7 +184,7 @@ Anonymous Auth will fail on a domain that is not listed there.
 
 ## 📜 Rules
 
-See [RULES.md](./RULES.md) for the full Navigational Operations Manual — Spacedock, Warp Trails, Neutral Zone, Distress Beacon, Subspace Fracture, Treaty declaration, and opt-in modules (Q-Continuum, Salamander Penalty).
+See [RULES.md](./RULES.md) for the full Navigational Operations Manual — Spacedock, Warp Trails, Neutral Zone, Distress Beacon, Subspace Fracture, dropping to impulse, and opt-in modules (Q-Continuum, Salamander Penalty).
 
 ## 🤖 Agentic Development
 

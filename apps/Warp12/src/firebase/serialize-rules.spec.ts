@@ -1,0 +1,69 @@
+import { describe, expect, it } from 'vitest';
+import type { GameState } from '@warp12/Warp12-lib';
+
+import { serializePublicGame } from './serialize.js';
+
+describe('serialize round rule fields', () => {
+  it('persists mandatoryPlay, pendingRoundWin, and roundBlocked', () => {
+    const state = {
+      id: 'test',
+      phase: 'active',
+      objective: 'penalty',
+      completedRounds: 0,
+      captains: [{ id: 'a', displayName: 'A', penaltyScore: 0 }],
+      modules: {
+        qContinuum: { enabled: false, activeFlash: null },
+        salamanderPenalty: { enabled: false },
+        subspaceFracture: { enabled: false },
+      },
+      round: {
+        roundNumber: 1,
+        spacedockValue: 12,
+        phase: 'ended',
+        activePlayerId: 'a',
+        turnOrder: ['a', 'b'],
+        hands: { a: [], b: [] },
+        unchartedSectors: [],
+        treatyDeclarationRequired: false,
+        treatyDeclared: false,
+        roundWinnerId: null,
+        qPendingInvoker: null,
+        qEffects: null,
+        qGamblePending: null,
+        mandatoryPlay: { playerId: 'a', coordinate: { low: 6, high: 12 } },
+        pendingRoundWin: { playerId: 'a', routeKind: 'warp-trail' as const },
+        roundBlocked: true,
+        table: {
+          spacedock: { value: 12, placedBy: 'a' },
+          warpTrails: {
+            a: {
+              playerId: 'a',
+              tiles: [],
+              distressBeacon: { active: false },
+            },
+            b: {
+              playerId: 'b',
+              tiles: [],
+              distressBeacon: { active: false },
+            },
+          },
+          neutralZone: { tiles: [] },
+          subspaceFracture: null,
+          redAlert: null,
+        },
+      },
+    } satisfies GameState;
+
+    const doc = serializePublicGame(state);
+
+    expect(doc.round?.mandatoryPlay).toEqual({
+      playerId: 'a',
+      coordinate: { low: 6, high: 12 },
+    });
+    expect(doc.round?.pendingRoundWin).toEqual({
+      playerId: 'a',
+      routeKind: 'warp-trail',
+    });
+    expect(doc.round?.roundBlocked).toBe(true);
+  });
+});

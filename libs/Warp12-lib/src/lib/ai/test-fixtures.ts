@@ -36,6 +36,9 @@ export function makeRound(over: Partial<RoundState>): RoundState {
     qPendingInvoker: null,
     qEffects: null,
     qGamblePending: null,
+    mandatoryPlay: null,
+    pendingRoundWin: null,
+    roundBlocked: false,
   };
   return { ...base, ...over };
 }

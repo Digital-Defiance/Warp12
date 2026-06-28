@@ -38,6 +38,18 @@ service cloud.firestore {
           == resource.data.captains.size() - 1;
     }
 
+    function isAiCaptainId(playerId) {
+      return playerId.matches('^ai:.+');
+    }
+
+    function lobbyAiCaptainAdded() {
+      return request.resource.data.captainIds.size()
+          == resource.data.captainIds.size() + 1
+        && request.resource.data.captains.size()
+          == resource.data.captains.size() + 1
+        && request.resource.data.captains[request.resource.data.captains.size() - 1].isAi == true;
+    }
+
     match /games/{gameId} {
       // Any authenticated captain (or lobby guest who knows the code) can read.
       allow read: if isSignedIn();
@@ -85,6 +97,12 @@ service cloud.firestore {
           && isHost(resource.data)
           && lobbyRosterShrankByOne()
           && lobbyMissionSettingsUnchanged())
+        ||
+        // Host adds an AI officer to the lobby.
+        (resource.data.phase == 'lobby'
+          && isHost(resource.data)
+          && lobbyAiCaptainAdded()
+          && lobbyMissionSettingsUnchanged())
       );
 
       allow delete: if isHost(resource.data) && resource.data.phase == 'lobby';
@@ -115,6 +133,9 @@ service cloud.firestore {
 
         allow read: if isSignedIn() && (
           request.auth.uid == playerId
+          // Sector host: full table view for AI proxying and debug export.
+          || (isHost(parentGame())
+            && playerId in parentGame().captainIds)
           || (isMember(parentGame()) && roundAwaitingScore(parentGame()))
         );
 
@@ -126,6 +147,12 @@ service cloud.firestore {
             ||
             // In play, each captain syncs only their own private hand subdoc.
             (request.auth.uid == playerId
+              && parentGame().phase == 'active'
+              && !roundAwaitingScore(parentGame()))
+            ||
+            // Host proxies AI captain hands during active play.
+            (isHost(parentGame())
+              && isAiCaptainId(playerId)
               && parentGame().phase == 'active'
               && !roundAwaitingScore(parentGame()))
             ||

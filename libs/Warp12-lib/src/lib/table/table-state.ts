@@ -54,3 +54,12 @@ export function isUncoveredDoubleAtTrailEnd(trail: WarpTrail): boolean {
   const { coordinate, openValue } = last;
   return coordinate.low === coordinate.high && openValue === coordinate.low;
 }
+
+export function isUncoveredDoubleAtNeutralZoneEnd(zone: NeutralZone): boolean {
+  if (zone.tiles.length === 0) {
+    return false;
+  }
+  const last = zone.tiles[zone.tiles.length - 1];
+  const { coordinate, openValue } = last;
+  return coordinate.low === coordinate.high && openValue === coordinate.low;
+}

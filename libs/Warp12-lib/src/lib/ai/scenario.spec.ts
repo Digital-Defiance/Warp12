@@ -148,6 +148,25 @@ describe('scenario — treaty declaration gate', () => {
       expect(declare.state.round?.treatyDeclared).toBe(true);
     }
   });
+
+  it('repairs a missing roundWinnerId when the winner declares', () => {
+    const round = makeRound({
+      hands: { a: [], b: [N(1, 2)] },
+      treatyDeclarationRequired: true,
+      treatyDeclared: false,
+      roundWinnerId: null,
+      activePlayerId: 'a',
+      phase: 'playing',
+    });
+    const state = stateFromRound(round);
+
+    const declare = applyAction(state, { type: 'DECLARE_TREATY', playerId: 'a' });
+    expect(declare.ok).toBe(true);
+    if (declare.ok) {
+      expect(declare.state.round?.roundWinnerId).toBe('a');
+      expect(declare.state.round?.phase).toBe('ended');
+    }
+  });
 });
 
 describe('scenario — distress beacon pass turn', () => {

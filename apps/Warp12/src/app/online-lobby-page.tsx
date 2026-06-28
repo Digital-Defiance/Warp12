@@ -24,17 +24,19 @@ import {
   type FirestoreGameDocument,
 } from '../firebase';
 import { LobbyForm } from './lobby-form';
+import { OnlineAiOfficersPanel } from './online-ai-officers-panel';
 import {
   JoinSectorPanel,
   SectorUnavailablePanel,
 } from './join-sector-panel';
 import { ObjectivePicker, ObjectiveSummary } from './objective-picker';
+import { isAiCaptain } from '../game/ai-captain.js';
 import styles from './lobby.module.scss';
 
 const DEFAULT_CREATE_OPTIONS: CreateLobbyOptions = {
   objective: 'go-out',
   maxPlayers: 4,
-  modules: { salamanderPenalty: true, qContinuum: false, subspaceFracture: true },
+  modules: { salamanderPenalty: true, qContinuum: false, subspaceFracture: false },
 };
 
 export function OnlineLobbyPage() {
@@ -299,6 +301,7 @@ export function OnlineLobbyPage() {
               <span>
                 {captain.displayName}
                 {captain.id === lobby.hostId ? ' · Host' : ''}
+                {isAiCaptain(captain) ? ' · AI' : ''}
               </span>
               {isHost && captain.id !== lobby.hostId && (
                 <button
@@ -313,6 +316,17 @@ export function OnlineLobbyPage() {
             </li>
           ))}
         </ul>
+
+        {isHost && (
+          <OnlineAiOfficersPanel
+            lobby={lobby}
+            busy={busy}
+            hostId={lobby.hostId}
+            uid={uid ?? ''}
+            onBusy={setBusy}
+            onError={setError}
+          />
+        )}
 
         {isHost ? (
           <ObjectivePicker
@@ -385,7 +399,7 @@ export function OnlineLobbyPage() {
             <label className={styles.checkboxRow}>
               <input
                 type="checkbox"
-                checked={lobby.modules.subspaceFracture ?? true}
+                checked={lobby.modules.subspaceFracture ?? false}
                 disabled={busy}
                 onChange={(e) =>
                   void saveSettings({

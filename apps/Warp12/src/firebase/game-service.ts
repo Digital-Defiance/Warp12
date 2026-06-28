@@ -6,10 +6,12 @@ import {
   type GameAction,
   type GameObjective,
   type GameState,
+  type WarpSkillLevel,
 } from '@warp12/Warp12-lib';
 import {
   deleteDoc,
   doc,
+  getDoc,
   onSnapshot,
   runTransaction,
   setDoc,
@@ -22,6 +24,13 @@ import {
   mergeHandsIntoGame,
   serializePublicGame,
 } from './serialize.js';
+import {
+  isAiCaptain,
+  isAiCaptainId,
+  pickNextAiOfficer,
+  toAiCaptainId,
+} from '../game/ai-captain.js';
+import { assertActorMaySubmit } from './ai-proxy.js';
 import { allocateUniqueCallSign } from './display-name.js';
 import { patchHandCounts } from './hand-counts.js';
 import {
@@ -40,6 +49,7 @@ import {
   ONLINE_MAX_PLAYERS,
   ONLINE_MIN_PLAYERS,
 } from './schema.js';
+import { stripUndefined } from './strip-undefined.js';
 
 function gameRef(gameId: string) {
   const db = getFirestoreDb();
@@ -72,12 +82,22 @@ function mergeCaptainMetadata(
   const now = new Date().toISOString();
   return nextCaptains.map((captain) => {
     const prior = previous.find((entry) => entry.id === captain.id);
-    return {
+    const merged: FirestoreCaptain = {
       id: captain.id,
       displayName: captain.displayName,
       penaltyScore: captain.penaltyScore,
       joinedAt: prior?.joinedAt ?? now,
     };
+    if (prior && isAiCaptain(prior)) {
+      merged.isAi = true;
+      if (prior.skill !== undefined) {
+        merged.skill = prior.skill;
+      }
+      if (prior.useLookahead !== undefined) {
+        merged.useLookahead = prior.useLookahead;
+      }
+    }
+    return merged;
   });
 }
 
@@ -89,7 +109,7 @@ function buildPublicDoc(
 ): FirestoreGameDocument {
   const serialized = serializePublicGame(state);
   const captains = mergeCaptainMetadata(state.captains, meta.captains);
-  return {
+  return stripUndefined({
     ...serialized,
     hostId: meta.hostId,
     createdAt: meta.createdAt,
@@ -97,7 +117,7 @@ function buildPublicDoc(
     captainIds: captainIds(captains),
     captains,
     maxPlayers: meta.maxPlayers ?? serialized.maxPlayers ?? ONLINE_MAX_PLAYERS,
-  };
+  });
 }
 
 export function generateGameCode(): string {
@@ -141,7 +161,7 @@ export async function createLobby(
     modules: {
       qContinuum: options.modules?.qContinuum ?? false,
       salamanderPenalty: options.modules?.salamanderPenalty ?? true,
-      subspaceFracture: options.modules?.subspaceFracture ?? true,
+      subspaceFracture: options.modules?.subspaceFracture ?? false,
     },
     captainIds: [hostId],
     captains,
@@ -222,6 +242,125 @@ export async function leaveLobby(
       updatedAt: now,
     });
     tx.delete(handRef(gameId, playerId));
+  });
+}
+
+export interface AddAiCaptainOptions {
+  displayName?: string;
+  skill?: WarpSkillLevel;
+  useLookahead?: boolean;
+}
+
+export async function addAiCaptain(
+  gameId: string,
+  hostId: string,
+  options: AddAiCaptainOptions = {}
+): Promise<FirestoreCaptain> {
+  let created: FirestoreCaptain | null = null;
+
+  await runTransaction(getFirestoreDb()!, async (tx) => {
+    const snap = await tx.get(gameRef(gameId));
+    if (!snap.exists()) {
+      throw new Error('Game not found');
+    }
+    const data = snap.data() as FirestoreGameDocument;
+    if (data.hostId !== hostId) {
+      throw new Error('Only the host can add AI officers');
+    }
+    if (data.phase !== 'lobby') {
+      throw new Error('AI officers can only be added in the waiting room');
+    }
+    if (data.captains.length >= maxPlayersFor(data)) {
+      throw new Error('Fleet is at capacity');
+    }
+
+    const officer = pickNextAiOfficer(data.captains);
+    if (!officer) {
+      throw new Error('All AI officer slots are already aboard');
+    }
+
+    const displayName = allocateUniqueCallSign(
+      data.captains,
+      options.displayName?.trim() || officer.displayName
+    );
+    const now = new Date().toISOString();
+    created = {
+      id: toAiCaptainId(officer.id),
+      displayName,
+      penaltyScore: 0,
+      joinedAt: now,
+      isAi: true,
+      skill: options.skill ?? 'intermediate',
+      useLookahead: options.useLookahead ?? false,
+    };
+
+    const captains = [...data.captains, created];
+    tx.update(gameRef(gameId), {
+      captains,
+      captainIds: captainIds(captains),
+      updatedAt: now,
+    });
+  });
+
+  return created!;
+}
+
+export interface UpdateAiCaptainPatch {
+  displayName?: string;
+  skill?: WarpSkillLevel;
+  useLookahead?: boolean;
+}
+
+export async function updateAiCaptain(
+  gameId: string,
+  hostId: string,
+  aiCaptainId: string,
+  patch: UpdateAiCaptainPatch
+): Promise<void> {
+  await runTransaction(getFirestoreDb()!, async (tx) => {
+    const snap = await tx.get(gameRef(gameId));
+    if (!snap.exists()) {
+      throw new Error('Game not found');
+    }
+    const data = snap.data() as FirestoreGameDocument;
+    if (data.hostId !== hostId) {
+      throw new Error('Only the host can configure AI officers');
+    }
+    if (data.phase !== 'lobby') {
+      throw new Error('AI officers are locked once the mission launches');
+    }
+
+    const index = data.captains.findIndex((captain) => captain.id === aiCaptainId);
+    if (index === -1) {
+      throw new Error('AI officer not found');
+    }
+    if (!isAiCaptain(data.captains[index]!)) {
+      throw new Error('Only AI officers can be configured here');
+    }
+
+    const current = data.captains[index]!;
+    const nextDisplayName =
+      patch.displayName !== undefined
+        ? allocateUniqueCallSign(
+            data.captains.filter((captain) => captain.id !== aiCaptainId),
+            patch.displayName.trim() || current.displayName
+          )
+        : current.displayName;
+
+    const captains = [...data.captains];
+    captains[index] = {
+      ...current,
+      displayName: nextDisplayName,
+      ...(patch.skill !== undefined ? { skill: patch.skill } : {}),
+      ...(patch.useLookahead !== undefined
+        ? { useLookahead: patch.useLookahead }
+        : {}),
+    };
+
+    tx.update(gameRef(gameId), {
+      captains,
+      updatedAt: new Date().toISOString(),
+    });
   });
 }
 
@@ -441,6 +580,19 @@ export interface OnlineGameSnapshot {
   handCounts: Record<string, number>;
   connected: boolean;
   hostId: string;
+  sectorCaptains: FirestoreCaptain[];
+  aiHands: Record<string, readonly { low: number; high: number }[]>;
+}
+
+/** Captain hand subdocs the host mirrors for live state and debug export. */
+function remoteHandCaptainIdsForHost(
+  doc: FirestoreGameDocument | null,
+  viewerId: string
+): string[] {
+  if (!doc || doc.hostId !== viewerId) {
+    return [];
+  }
+  return doc.captainIds.filter((captainId) => captainId !== viewerId);
 }
 
 export function subscribeOnlineGame(
@@ -457,8 +609,42 @@ export function subscribeOnlineGame(
 
   let latestDoc: FirestoreGameDocument | null = null;
   let ownHand: FirestorePlayerHandDocument | null = null;
+  let remoteHandsByCaptain: Record<
+    string,
+    readonly { low: number; high: number }[]
+  > = {};
   let gameConnected = false;
   let handConnected = false;
+  let remoteHandUnsubs: Unsubscribe[] = [];
+
+  const resubscribeRemoteHands = () => {
+    for (const unsub of remoteHandUnsubs) {
+      unsub();
+    }
+    remoteHandUnsubs = [];
+    remoteHandsByCaptain = {};
+
+    const ids = remoteHandCaptainIdsForHost(latestDoc, viewerId);
+    if (ids.length === 0) {
+      publish();
+      return;
+    }
+
+    for (const captainId of ids) {
+      remoteHandUnsubs.push(
+        onSnapshot(
+          handRef(gameId, captainId),
+          (snap) => {
+            remoteHandsByCaptain[captainId] = snap.exists()
+              ? (snap.data() as FirestorePlayerHandDocument).coordinates
+              : [];
+            publish();
+          },
+          (err) => onError(err)
+        )
+      );
+    }
+  };
 
   const publish = () => {
     if (!latestDoc) {
@@ -471,17 +657,27 @@ export function subscribeOnlineGame(
       for (const captainId of latestDoc.round.turnOrder) {
         if (captainId === viewerId && ownHand) {
           hands[captainId] = ownHand.coordinates;
+        } else if (remoteHandsByCaptain[captainId]) {
+          hands[captainId] = remoteHandsByCaptain[captainId];
         } else {
           hands[captainId] = [];
         }
       }
     }
 
+    const aiHands = Object.fromEntries(
+      Object.entries(remoteHandsByCaptain).filter(([captainId]) =>
+        isAiCaptainId(captainId)
+      )
+    );
+
     onSnapshotState({
       state: mergeHandsIntoGame(latestDoc, hands),
       handCounts: latestDoc.round?.handCounts ?? {},
       connected: gameConnected && handConnected,
       hostId: latestDoc.hostId,
+      sectorCaptains: latestDoc.captains,
+      aiHands,
     });
   };
 
@@ -489,7 +685,16 @@ export function subscribeOnlineGame(
     gameRef(gameId),
     (snap) => {
       gameConnected = true;
-      latestDoc = snap.exists() ? (snap.data() as FirestoreGameDocument) : null;
+      const nextDoc = snap.exists()
+        ? (snap.data() as FirestoreGameDocument)
+        : null;
+      const remoteIdsChanged =
+        remoteHandCaptainIdsForHost(latestDoc, viewerId).join('|') !==
+        remoteHandCaptainIdsForHost(nextDoc, viewerId).join('|');
+      latestDoc = nextDoc;
+      if (remoteIdsChanged) {
+        resubscribeRemoteHands();
+      }
       publish();
     },
     (err) => {
@@ -513,44 +718,15 @@ export function subscribeOnlineGame(
     }
   );
 
+  resubscribeRemoteHands();
+
   return () => {
     unsubGame();
     unsubHand();
+    for (const unsub of remoteHandUnsubs) {
+      unsub();
+    }
   };
-}
-
-function assertActorMaySubmit(
-  docData: FirestoreGameDocument,
-  actorId: string,
-  action: GameAction
-): string | null {
-  if (!docData.captainIds.includes(actorId)) {
-    return 'NOT_YOUR_TURN';
-  }
-
-  if (action.type === 'END_ROUND') {
-    if (!docData.round || docData.round.phase !== 'ended') {
-      return 'ROUND_NOT_PLAYING';
-    }
-    if (action.winnerId !== docData.round.roundWinnerId) {
-      return 'ROUND_NOT_PLAYING';
-    }
-    return null;
-  }
-
-  if (action.playerId !== actorId) {
-    return 'NOT_YOUR_TURN';
-  }
-
-  if (!docData.round || docData.round.phase !== 'playing') {
-    return 'ROUND_NOT_PLAYING';
-  }
-
-  if (docData.round.activePlayerId !== actorId) {
-    return 'NOT_YOUR_TURN';
-  }
-
-  return null;
 }
 
 export async function submitOnlineAction(
@@ -652,6 +828,49 @@ export async function submitOnlineAction(
 
     return { ok: true as const };
   });
+}
+
+export interface HostDebugFirestoreSnapshot {
+  game: FirestoreGameDocument | null;
+  hands: Record<string, FirestorePlayerHandDocument | null>;
+  handReadErrors: Record<string, string>;
+  fullGameState: GameState | null;
+}
+
+export async function fetchHostDebugSnapshot(
+  gameId: string,
+  captainIds: readonly string[]
+): Promise<HostDebugFirestoreSnapshot> {
+  const gameSnap = await getDoc(gameRef(gameId));
+  const game = gameSnap.exists()
+    ? (gameSnap.data() as FirestoreGameDocument)
+    : null;
+  const hands: Record<string, FirestorePlayerHandDocument | null> = {};
+  const handReadErrors: Record<string, string> = {};
+
+  await Promise.all(
+    captainIds.map(async (captainId) => {
+      try {
+        const handSnap = await getDoc(handRef(gameId, captainId));
+        hands[captainId] = handSnap.exists()
+          ? (handSnap.data() as FirestorePlayerHandDocument)
+          : null;
+      } catch (err) {
+        handReadErrors[captainId] =
+          err instanceof Error ? err.message : 'Could not read hand';
+      }
+    })
+  );
+
+  const handsByPlayer = Object.fromEntries(
+    captainIds.map((captainId) => [
+      captainId,
+      hands[captainId]?.coordinates ?? [],
+    ])
+  );
+  const fullGameState = game ? mergeHandsIntoGame(game, handsByPlayer) : null;
+
+  return { game, hands, handReadErrors, fullGameState };
 }
 
 export function lobbyDocumentToState(doc: FirestoreGameDocument): GameState {

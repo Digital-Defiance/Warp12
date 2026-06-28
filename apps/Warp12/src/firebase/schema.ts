@@ -1,4 +1,4 @@
-import type { GameObjective } from '@warp12/Warp12-lib';
+import type { GameObjective, WarpSkillLevel } from '@warp12/Warp12-lib';
 
 export interface FirestoreGameDocument {
   id: string;
@@ -35,6 +35,9 @@ export interface FirestoreCaptain {
   displayName: string;
   penaltyScore: number;
   joinedAt: string;
+  isAi?: boolean;
+  skill?: WarpSkillLevel;
+  useLookahead?: boolean;
 }
 
 export interface OnlineLobbySettings {
@@ -58,6 +61,15 @@ export interface FirestorePublicRound {
   treatyDeclarationRequired: boolean;
   treatyDeclared: boolean;
   roundWinnerId: string | null;
+  roundBlocked?: boolean;
+  mandatoryPlay?: {
+    playerId: string;
+    coordinate: FirestoreCoordinate;
+  } | null;
+  pendingRoundWin?: {
+    playerId: string;
+    routeKind: string;
+  } | null;
   qPendingInvoker?: string | null;
   qEffects?: FirestoreQRoundEffects | null;
   qGamblePending?: {
@@ -136,6 +148,7 @@ export interface FirestoreRedAlertDocument {
   anchor: FirestorePlacedCoordinate;
   responsiblePlayerId: string | null;
   trailPlayerId: string;
+  neutralZone?: boolean;
 }
 
 export interface FirestoreTableDocument {

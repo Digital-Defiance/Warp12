@@ -12,11 +12,14 @@ import {
   isRedAlertBlocking,
 } from '../types/anomalies.js';
 import {
+  isUncoveredDoubleAtNeutralZoneEnd,
   isUncoveredDoubleAtTrailEnd,
   neutralZoneOpenValue,
   trailOpenValue,
 } from '../table/table-state.js';
+import { coordinateKey } from '../types/coordinate.js';
 import { trailsOpenToOthers } from './q-continuum.js';
+import { resolveDeadRedAlert } from './dead-red-alert.js';
 
 function placedTile(
   coordinate: Coordinate,
@@ -95,6 +98,8 @@ export function getLegalMoves(
   round: RoundState,
   playerId: PlayerId
 ): LegalMove[] {
+  round = resolveDeadRedAlert(round);
+
   if (
     round.qPendingInvoker === playerId ||
     round.qGamblePending?.playerId === playerId
@@ -103,16 +108,27 @@ export function getLegalMoves(
   }
 
   const hand = round.hands[playerId] ?? [];
+  const mandatory = round.mandatoryPlay;
+  const playableHand =
+    mandatory?.playerId === playerId
+      ? hand.filter(
+          (coordinate) =>
+            coordinateKey(coordinate) === coordinateKey(mandatory.coordinate)
+        )
+      : hand;
   const moves: LegalMove[] = [];
   const fractureActive = isNavigationHaltedByFracture(
     round.table.subspaceFracture
   );
-  const redAlertBlocking = isRedAlertBlocking(
-    round.table.redAlert,
-    playerId
-  );
+  const redAlert = round.table.redAlert;
 
-  for (const coordinate of hand) {
+  if (redAlert?.active && redAlert.responsiblePlayerId !== playerId) {
+    return [];
+  }
+
+  const redAlertBlocking = isRedAlertBlocking(redAlert, playerId);
+
+  for (const coordinate of playableHand) {
     if (fractureActive) {
       if (canStabilizeFracture(round, coordinate)) {
         moves.push({ coordinate, route: { kind: 'fracture-stabilizer' } });
@@ -121,21 +137,37 @@ export function getLegalMoves(
     }
 
     if (redAlertBlocking) {
-      const trailPlayerId = round.table.redAlert!.trailPlayerId;
-      if (
-        canPlayOnTrail(
-          round,
-          playerId,
-          playerId,
-          coordinate,
-          trailPlayerId,
-          true
-        )
-      ) {
-        moves.push({
-          coordinate,
-          route: { kind: 'red-alert-cover', trailPlayerId },
-        });
+      if (redAlert!.neutralZone) {
+        const connectingValue = neutralZoneOpenValue(
+          round.table.neutralZone,
+          round.spacedockValue
+        );
+        if (
+          isUncoveredDoubleAtNeutralZoneEnd(round.table.neutralZone) &&
+          coordinateMatchesValue(coordinate, connectingValue)
+        ) {
+          moves.push({
+            coordinate,
+            route: { kind: 'red-alert-cover', neutralZone: true },
+          });
+        }
+      } else {
+        const trailPlayerId = redAlert!.trailPlayerId;
+        if (
+          canPlayOnTrail(
+            round,
+            playerId,
+            playerId,
+            coordinate,
+            trailPlayerId,
+            true
+          )
+        ) {
+          moves.push({
+            coordinate,
+            route: { kind: 'red-alert-cover', trailPlayerId },
+          });
+        }
       }
       continue;
     }
@@ -203,7 +235,11 @@ function routesEqual(a: ChartRoute, b: ChartRoute): boolean {
       return b.kind === 'fracture-stabilizer';
     case 'red-alert-cover':
       return (
-        b.kind === 'red-alert-cover' && a.trailPlayerId === b.trailPlayerId
+        b.kind === 'red-alert-cover' &&
+        Boolean(a.neutralZone) === Boolean(b.neutralZone) &&
+        (a.neutralZone === true ||
+          (a.trailPlayerId !== undefined &&
+            a.trailPlayerId === b.trailPlayerId))
       );
   }
 }
