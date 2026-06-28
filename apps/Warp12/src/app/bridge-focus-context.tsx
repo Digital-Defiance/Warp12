@@ -20,9 +20,13 @@ const BridgeFocusContext = createContext<BridgeFocusContextValue | null>(null);
 
 function readStoredFocus(): boolean {
   try {
-    return sessionStorage.getItem(STORAGE_KEY) === 'true';
+    const stored = sessionStorage.getItem(STORAGE_KEY);
+    if (stored === null) {
+      return true;
+    }
+    return stored === 'true';
   } catch {
-    return false;
+    return true;
   }
 }
 

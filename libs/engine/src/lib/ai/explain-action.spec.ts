@@ -76,7 +76,7 @@ describe('explainWarpAiAction', () => {
     });
     const state = makeGame(round);
     const reasons = explainWarpAiAction(state, 'a', { kind: 'draw' });
-    expect(reasons[0]).toContain('draw');
+    expect(reasons[0]).toContain('must draw');
   });
 
   it('explains a round-winning chart', () => {

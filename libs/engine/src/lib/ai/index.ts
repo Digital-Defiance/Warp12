@@ -27,6 +27,7 @@ export type {
 export { createWarpAiPlayer } from './create-warp-ai.js';
 
 export { explainWarpAiAction } from './explain-action.js';
+export { explainTurnResolution } from './explain-turn-resolution.js';
 
 export { chooseQFlashEffect, chooseQGambleKeepIndex } from './q-flash.js';
 

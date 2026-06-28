@@ -1,7 +1,31 @@
 import type { WarpAiAction } from 'warp12-engine';
 
-import { formatCoachSuggestion } from 'warp12-react';
+import { coachActionKind, formatCoachSuggestion } from 'warp12-react';
 import styles from './coach-panel.module.scss';
+
+function coachHint(
+  action: WarpAiAction,
+  pinned: boolean,
+  reasonsCount: number
+): string {
+  if (pinned) {
+    return 'Teaching mode — advisor updates on your turn. You still confirm each move.';
+  }
+  if (reasonsCount === 0) {
+    return 'Highlight shows the recommended play — you still confirm the move.';
+  }
+  switch (coachActionKind(action)) {
+    case 'draw':
+    case 'pass-red-alert':
+    case 'pass-turn':
+    case 'deploy-beacon':
+      return 'Bullets above cite the rules for why this resolution is legal now.';
+    case 'chart':
+      return 'Looks a few moves ahead; bullets above are the main factors for this chart.';
+    default:
+      return 'Bullets above explain the recommended action.';
+  }
+}
 
 export interface CoachPanelProps {
   suggestion: WarpAiAction;
@@ -47,11 +71,7 @@ export function CoachPanel({
         </ul>
       )}
       <p className={styles.hint}>
-        {pinned
-          ? 'Teaching mode — advisor updates on your turn. You still confirm each move.'
-          : reasons.length > 0
-            ? 'Looks a few moves ahead; bullets above are the main factors for this chart.'
-            : 'Highlight shows the recommended play — you still confirm the move.'}
+        {coachHint(suggestion, pinned, reasons.length)}
       </p>
       <div className={styles.actions}>
         <button

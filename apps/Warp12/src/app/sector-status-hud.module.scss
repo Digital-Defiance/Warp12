@@ -3,6 +3,10 @@
   padding: 0 0 0.35rem;
 }
 
+.belowQOrb[data-anchor='top-right'] {
+  top: 58px;
+}
+
 .row {
   display: grid;
   grid-template-columns: 6.2rem minmax(0, 1fr);

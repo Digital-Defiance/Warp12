@@ -14,6 +14,7 @@ export interface FloatingPanelShellProps {
   titleAdornment?: ReactNode;
   width?: number;
   accent?: 'cyan' | 'amber';
+  panelClassName?: string;
   children: ReactNode;
 }
 
@@ -25,6 +26,7 @@ export function FloatingPanelShell({
   titleAdornment,
   width = 300,
   accent = 'cyan',
+  panelClassName,
   children,
 }: FloatingPanelShellProps) {
   const { panelRef, anchor, style, headerHandlers } = useFloatingPanel(
@@ -36,7 +38,7 @@ export function FloatingPanelShell({
   return (
     <div
       ref={panelRef}
-      className={shellStyles.panel}
+      className={`${shellStyles.panel}${panelClassName ? ` ${panelClassName}` : ''}`}
       data-anchor={anchor}
       data-accent={accent}
       style={{ ...style, width: `min(${width}px, calc(100% - 24px))`, maxWidth: width }}

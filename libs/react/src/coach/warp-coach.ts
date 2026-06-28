@@ -1,5 +1,6 @@
 import {
   createWarpAiPlayer,
+  explainTurnResolution,
   explainWarpAiAction,
   getWarpSkillProfile,
   observe,
@@ -21,7 +22,8 @@ export interface CoachSuggestion {
 
 export function getCoachSuggestion(
   state: GameState,
-  playerId: PlayerId
+  playerId: PlayerId,
+  names: Readonly<Record<string, string>> = {}
 ): CoachSuggestion | null {
   const observation = observe(state, playerId);
   if (!observation) {
@@ -35,11 +37,34 @@ export function getCoachSuggestion(
   });
 
   const action = coach.decide(observation);
+  const reasons = mergeCoachReasons(
+    explainWarpAiAction(state, playerId, action),
+    explainTurnResolution(state, playerId, { names, focus: action.kind })
+  );
   return {
     action,
     gameAction: toGameAction(action, playerId),
-    reasons: explainWarpAiAction(state, playerId, action),
+    reasons,
   };
+}
+
+function mergeCoachReasons(
+  primary: readonly string[],
+  supplemental: readonly string[]
+): string[] {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+  for (const line of [...primary, ...supplemental]) {
+    if (seen.has(line)) {
+      continue;
+    }
+    seen.add(line);
+    merged.push(line);
+    if (merged.length >= 4) {
+      break;
+    }
+  }
+  return merged;
 }
 
 export function formatCoachSuggestion(
