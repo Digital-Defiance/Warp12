@@ -20,7 +20,8 @@ import styles from './app.module.scss';
 import { Warp12Logo } from './Warp12Logo';
 
 function AppShell() {
-  const { focus } = useBridgeFocus();
+  const { focus, tableSessionActive } = useBridgeFocus();
+  const layoutFocus = focus && tableSessionActive;
   const { actions: headerActions, invokeAction } = useBridgeHeaderActions();
   const location = useLocation();
   const overlayDocs = preservesGameSession(location.pathname);
@@ -29,7 +30,7 @@ function AppShell() {
 
   return (
     <div
-      className={`${styles.shell} ${focus ? styles.shellFocus : ''}`}
+      className={`${styles.shell} ${layoutFocus ? styles.shellFocus : ''}`}
       style={{
         ['--warp-void' as string]: '#050816',
         ['--warp-text' as string]: '#e2e8f0',
@@ -38,11 +39,11 @@ function AppShell() {
         ['--warp-panel-border' as string]: '#334155',
       }}
     >
-      <header className={`${styles.header} ${focus ? styles.headerFocus : ''}`}>
+      <header className={`${styles.header} ${layoutFocus ? styles.headerFocus : ''}`}>
         <div className={styles.headerStart}>
           <Link to="/" className={styles.logo}>
             <div>
-              <Warp12Logo className={styles.logoSvg} width={focus ? 180 : 320} />
+              <Warp12Logo className={styles.logoSvg} width={layoutFocus ? 180 : 320} />
               <p className={styles.subtitle}>The Bridge — Navigational Operations</p>
             </div>
           </Link>
@@ -92,8 +93,8 @@ function AppShell() {
         </nav>
       </header>
 
-      <main className={`${styles.main} ${focus ? styles.mainFocus : ''}`}>
-        <div className={focus ? styles.mainStage : undefined}>
+      <main className={`${styles.main} ${layoutFocus ? styles.mainFocus : ''}`}>
+        <div className={layoutFocus ? styles.mainStage : undefined}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/rules" element={<RulesPage />} />

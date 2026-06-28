@@ -14,6 +14,15 @@
   margin: 0 0 0.75rem;
 }
 
+.h2 {
+  font-family: var(--font-federation-wide, var(--font-federation, system-ui));
+  font-size: 1.05rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--warp-accent, #38bdf8);
+  margin: 1.75rem 0 0.75rem;
+}
+
 .h3 {
   font-size: 0.95rem;
   letter-spacing: 0.06em;

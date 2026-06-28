@@ -68,7 +68,7 @@ import {
   WARP_TILE_SURFACE,
   warpPalette,
 } from 'warp12-theme';
-import { useBridgeFocus } from './bridge-focus-context';
+import { useBridgeFocus, useTableSession } from './bridge-focus-context';
 import { useBridgeHeaderActionRegistration } from './bridge-header-actions-context';
 import { useGameAudio } from './game-audio-context';
 import { FloatingCoachPanel } from './floating-coach-panel';
@@ -315,6 +315,7 @@ export function BridgeTable({
   );
   const tileSurface = WARP_TILE_SURFACE[tileBg];
   const { focus: bridgeFocus, toggleFocus } = useBridgeFocus();
+  useTableSession();
   const { registerActions, clearActions } = useBridgeHeaderActionRegistration();
   const { muted: soundsMuted, toggleMuted: toggleSoundsMuted } = useGameAudio();
 
