@@ -161,7 +161,10 @@ export function warpCandidateGenerator(
 
   const moves = getLegalMoves(round, playerId, houseRules);
   if (moves.length > 0) {
-    const candidates = moves.map((move) => ({ kind: 'chart' as const, move }));
+    const candidates: WarpAiAction[] = moves.map((move) => ({
+      kind: 'chart' as const,
+      move,
+    }));
     const declare = dropToImpulseDeclareCandidate(round, playerId, houseRules);
     if (declare) {
       candidates.push(declare);
