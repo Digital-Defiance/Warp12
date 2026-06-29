@@ -2,13 +2,19 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import {
+  DEFAULT_CAMPAIGN_ROUNDS,
+  DEFAULT_SUBSPACE_FRACTURE_SCOPE,
   type GameObjective,
+  type HouseRulesConfig,
+  type SubspaceFractureScope,
   type WarpSkillLevel,
 } from 'warp12-engine';
 
 import { BridgeTable } from './bridge-table';
 import styles from './lobby.module.scss';
-import { ObjectivePicker } from './objective-picker';
+import { CampaignRoundsField, ObjectivePicker } from './objective-picker';
+import { HouseRulesOptions } from './house-rules-options';
+import { SubspaceFractureOptions } from './subspace-fracture-options';
 import {
   buildAiRoster,
   createLocalGame,
@@ -21,6 +27,7 @@ import {
   type AiCaptainConfig,
   type LocalGameConfig,
 } from '../game/local-game-config.js';
+import { LOOKAHEAD_TOOLTIP } from '../game/ai-lookahead.js';
 
 type SetupPhase = 'configure' | 'playing';
 
@@ -41,9 +48,13 @@ export function LocalGamePage() {
   const [humanName, setHumanName] = useState('Picard');
   const [playerCount, setPlayerCount] = useState(4);
   const [objective, setObjective] = useState<GameObjective>('go-out');
+  const [campaignRounds, setCampaignRounds] = useState(DEFAULT_CAMPAIGN_ROUNDS);
   const [salamander, setSalamander] = useState(false);
   const [qContinuum, setQContinuum] = useState(false);
   const [subspaceFracture, setSubspaceFracture] = useState(false);
+  const [subspaceFractureScope, setSubspaceFractureScope] =
+    useState<SubspaceFractureScope>(DEFAULT_SUBSPACE_FRACTURE_SCOPE);
+  const [houseRules, setHouseRules] = useState<HouseRulesConfig>({});
   const [aiSkills, setAiSkills] = useState<Record<string, WarpSkillLevel>>({});
   const [aiLookahead, setAiLookahead] = useState<Record<string, boolean>>({});
 
@@ -75,11 +86,14 @@ export function LocalGamePage() {
       humanName: humanName.trim() || 'You',
       playerCount: count,
       objective,
+      campaignRounds,
       modules: {
         salamanderPenalty: salamander,
         qContinuum,
         subspaceFracture,
+        subspaceFractureScope,
       },
+      houseRules,
       aiCaptains: applyAiOverrides(buildAiCaptains(count - 1), aiSkills, aiLookahead),
     };
     const seed = Date.now();
@@ -155,6 +169,16 @@ export function LocalGamePage() {
         onChange={setObjective}
       />
 
+      {objective === 'penalty' && (
+        <fieldset className={styles.fieldset}>
+          <legend>Campaign length</legend>
+          <CampaignRoundsField
+            value={campaignRounds}
+            onChange={setCampaignRounds}
+          />
+        </fieldset>
+      )}
+
       <fieldset className={styles.fieldset}>
         <legend>Optional directives</legend>
         <label className={styles.checkboxRow}>
@@ -177,14 +201,18 @@ export function LocalGamePage() {
 
       <fieldset className={styles.fieldset}>
         <legend>Game options</legend>
-        <label className={styles.checkboxRow}>
-          <input
-            type="checkbox"
-            checked={subspaceFracture}
-            onChange={(e) => setSubspaceFracture(e.target.checked)}
-          />
-          <span>Subspace Fracture (chicken foot on doubles)</span>
-        </label>
+        <SubspaceFractureOptions
+          enabled={subspaceFracture}
+          scope={subspaceFractureScope}
+          onEnabledChange={setSubspaceFracture}
+          onScopeChange={setSubspaceFractureScope}
+        />
+        <HouseRulesOptions
+          value={houseRules}
+          onChange={(patch) =>
+            setHouseRules((current) => ({ ...current, ...patch }))
+          }
+        />
       </fieldset>
 
       <fieldset className={styles.fieldset}>
@@ -208,7 +236,7 @@ export function LocalGamePage() {
               <option value="intermediate">Intermediate</option>
               <option value="advanced">Advanced</option>
             </select>
-            <label className={styles.checkboxRow}>
+            <label className={styles.checkboxRow} title={LOOKAHEAD_TOOLTIP}>
               <input
                 type="checkbox"
                 checked={aiLookahead[ai.id] ?? ai.useLookahead ?? false}

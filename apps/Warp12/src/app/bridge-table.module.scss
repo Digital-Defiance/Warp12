@@ -1,4 +1,6 @@
 .bridge {
+  --bridge-log-width: min(50%, 520px);
+  --bridge-log-bottom-clearance: 104px;
   position: relative;
   width: 100%;
   max-width: 1200px;
@@ -27,7 +29,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
-  max-width: calc(100% - 280px);
+  max-width: calc(100% - var(--bridge-log-width) - 16px);
   padding-right: 8px;
 }
 
@@ -321,12 +323,12 @@
   border: 1px solid var(--warp-panel-border, #334155);
 }
 
-.treatyBtn,
+.dropToImpulseBtn,
 .roundEnd {
   margin-top: 1rem;
 }
 
-.treatyBtn {
+.dropToImpulseBtn {
   font-family: var(--font-federation);
   letter-spacing: 0.06em;
   text-transform: uppercase;

@@ -1,4 +1,20 @@
 import type { QFlashEffect } from './q-continuum.js';
+import {
+  DEFAULT_SUBSPACE_FRACTURE_SCOPE,
+  type SubspaceFractureScope,
+} from './subspace-fracture-scope.js';
+
+export type { SubspaceFractureScope } from './subspace-fracture-scope.js';
+export type { HouseRules, HouseRulesConfig } from './house-rules.js';
+export {
+  DEFAULT_HOUSE_RULES,
+  resolveHouseRules,
+} from './house-rules.js';
+export {
+  DEFAULT_SUBSPACE_FRACTURE_SCOPE,
+  SUBSPACE_FRACTURE_SCOPES,
+  subspaceFractureAppliesToDouble,
+} from './subspace-fracture-scope.js';
 
 /** Module Alpha: The Q-Continuum — 0-0 triggers reality-bending rule changes. */
 export interface QContinuumModule {
@@ -17,9 +33,10 @@ export interface SalamanderPenaltyModule {
   readonly enabled: boolean;
 }
 
-/** Subspace Fracture (chicken foot) — doubles halt the fleet until three stabilizers branch off. */
+/** Subspace Fracture (chicken foot) — scope controls which doubles open a fracture. */
 export interface SubspaceFractureModule {
   readonly enabled: boolean;
+  readonly scope: SubspaceFractureScope;
 }
 
 export interface GameModules {
@@ -31,13 +48,14 @@ export interface GameModules {
 export const DEFAULT_MODULES: GameModules = {
   qContinuum: { enabled: false, activeFlash: null },
   salamanderPenalty: { enabled: false },
-  subspaceFracture: { enabled: false },
+  subspaceFracture: { enabled: false, scope: DEFAULT_SUBSPACE_FRACTURE_SCOPE },
 };
 
 export interface GameModuleConfig {
   qContinuum?: boolean;
   salamanderPenalty?: boolean;
   subspaceFracture?: boolean;
+  subspaceFractureScope?: SubspaceFractureScope;
 }
 
 export function resolveModules(config: GameModuleConfig = {}): GameModules {
@@ -51,6 +69,7 @@ export function resolveModules(config: GameModuleConfig = {}): GameModules {
     },
     subspaceFracture: {
       enabled: config.subspaceFracture ?? false,
+      scope: config.subspaceFractureScope ?? DEFAULT_SUBSPACE_FRACTURE_SCOPE,
     },
   };
 }

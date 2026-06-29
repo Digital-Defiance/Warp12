@@ -5,6 +5,8 @@ import type { RoundState } from 'warp12-engine';
 import {
   buildTrailSpokeStatuses,
   formatRedAlertStatus,
+  formatSectorRedAlertRow,
+  isRedAlertFresh,
   openTrailCaptainNames,
 } from './trail-access';
 import { NEUTRAL_ZONE_SLOT } from './game-to-trains';
@@ -172,5 +174,73 @@ describe('formatRedAlertStatus', () => {
         names
       )
     ).toBe('Beta · 3:3 · Alpha must cover');
+  });
+});
+
+describe('formatSectorRedAlertRow', () => {
+  const roundBase = {
+    spacedockValue: 12,
+    turnOrder: ['alpha', 'beta'],
+    table: {
+      warpTrails: {
+        alpha: {
+          playerId: 'alpha',
+          tiles: [],
+          distressBeacon: { active: false },
+        },
+        beta: {
+          playerId: 'beta',
+          tiles: [],
+          distressBeacon: { active: false },
+        },
+      },
+      neutralZone: { tiles: [] },
+      subspaceFracture: null,
+      redAlert: {
+        active: true,
+        trailPlayerId: 'alpha',
+        responsiblePlayerId: 'alpha',
+        anchor: {
+          coordinate: { low: 6, high: 6 },
+          index: 0,
+          openValue: 6,
+        },
+      },
+    },
+  } as RoundState;
+
+  it('shows caution when a double is first charted', () => {
+    expect(formatSectorRedAlertRow(roundBase, names)).toEqual({
+      label: 'Caution',
+      summary: 'A double has been played — 6:6',
+      tone: 'caution',
+    });
+  });
+
+  it('shows red alert after someone passes', () => {
+    const passed: RoundState = {
+      ...roundBase,
+      table: {
+        ...roundBase.table,
+        warpTrails: {
+          ...roundBase.table.warpTrails,
+          alpha: {
+            ...roundBase.table.warpTrails.alpha,
+            distressBeacon: { active: true },
+          },
+        },
+        redAlert: {
+          ...roundBase.table.redAlert!,
+          responsiblePlayerId: 'beta',
+        },
+      },
+    };
+
+    expect(isRedAlertFresh(passed)).toBe(false);
+    expect(formatSectorRedAlertRow(passed, names)).toEqual({
+      label: 'Red alert',
+      summary: 'Alpha · 6:6 · Beta must cover',
+      tone: 'alert',
+    });
   });
 });

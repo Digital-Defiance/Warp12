@@ -1,10 +1,11 @@
 import { coordinatePipValue } from '../types/coordinate.js';
-import type { GameState, RoundState } from '../types/game-state.js';
 import type { ActionResult } from '../types/actions.js';
 import {
+  DEFAULT_CAMPAIGN_ROUNDS,
   SALAMANDER_PENALTY_TILE_VALUE,
   salamanderPenaltyApplies,
 } from '../constants/setup.js';
+import type { GameState, RoundState } from '../types/game-state.js';
 import { shuffleCoordinates } from '../domino/coordinates.js';
 import {
   collectRoundCoordinatesForRecycle,
@@ -141,7 +142,8 @@ export function scoreRound(
   }
 
   const nextRoundNumber = round.roundNumber + 1;
-  const gameComplete = nextRoundNumber > 13;
+  const campaignRounds = state.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS;
+  const gameComplete = nextRoundNumber > campaignRounds;
 
   if (gameComplete) {
     return {

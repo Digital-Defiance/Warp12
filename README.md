@@ -193,6 +193,27 @@ Anonymous Auth will fail on a domain that is not listed there.
 
 See [RULES.md](./RULES.md) for the full Navigational Operations Manual — Spacedock, Warp Trails, Neutral Zone, Distress Beacon, Subspace Fracture, dropping to impulse, and opt-in modules (Q-Continuum, Salamander Penalty).
 
+## Warp AI & tactical coach
+
+Warp 12 ships with offline AI captains and a human-facing **tactical coach**, both built on the same `warp12-engine` decision stack and validated with self-play tests.
+
+### Captain AI (`createWarpAiPlayer`)
+
+Each AI officer runs entirely inside the rules engine — Distress Beacons, Red Alerts, Subspace Fractures, the Neutral Zone, house rules, and modules are all honored. Decisions use [DoubleTwelve](https://www.npmjs.com/package/doubletwelve)'s model-agnostic policy layer on top of Warp-specific heuristics (dump heavy pips, own-trail pressure, Red Alert safety, Q-Continuum timing, go-out vs penalty objective, and more).
+
+| Setting | What it does |
+|---------|----------------|
+| **Skill** (Beginner / Intermediate / Advanced) | Controls blunder rate and how sharply the bot prefers high-scoring moves. Beginners make more mistakes; Advanced plays tighter heuristics. |
+| **Lookahead** (per-captain checkbox) | Opts into **forward search** instead of greedy one-ply scoring. The bot simulates candidate moves through the real engine, guesses plausible opponent holdings (same hand counts, random tiles from the unseen pool) and draw order several times, and evaluates outcomes ~2 plies ahead. **It does not see your tiles.** Slower, but it can reason about consequences. Full detail: [RULES.md §VII](./RULES.md#vii-ai-officers--tactical-advisor-digital). |
+
+Without Lookahead, captains use the fast heuristic policy. With Lookahead enabled, the client uses a bounded search (depth 2, a handful of determinizations and branches per node). Self-play suites in `libs/engine` verify that lookahead captains beat greedy beginners heads-up and that full games stay legal end-to-end.
+
+### Tactical coach (`warp12-react`)
+
+The in-game **tactical advisor** reuses the same AI stack at Advanced skill with lookahead always on. It suggests a move plus plain-language reasons (`explainWarpAiAction`, turn-resolution hints) so humans can see *why* a line is strong — not just what to play.
+
+Published packages: `warp12-engine` (AI + rules), `warp12-react` (coach + table adapters).
+
 ## 🤖 Agentic Development
 
 - **Strict typing** — no `any`; engine types live in `warp12-engine`

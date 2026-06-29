@@ -20,6 +20,15 @@ import {
 import { coordinateKey } from '../types/coordinate.js';
 import { trailsOpenToOthers } from './q-continuum.js';
 import { resolveDeadRedAlert } from './dead-red-alert.js';
+import {
+  canChartOnNeutralZone,
+  canChartOnOpponentTrail,
+  mustRestrictToOwnTrailForOpening,
+} from './house-rules.js';
+import {
+  DEFAULT_HOUSE_RULES,
+  type HouseRules,
+} from '../types/house-rules.js';
 
 function placedTile(
   coordinate: Coordinate,
@@ -39,7 +48,8 @@ function canPlayOnTrail(
   actingPlayerId: PlayerId,
   coordinate: Coordinate,
   trailPlayerId: PlayerId,
-  forRedAlertCover: boolean
+  forRedAlertCover: boolean,
+  houseRules: HouseRules
 ): boolean {
   const trail = round.table.warpTrails[trailPlayerId];
   if (!trail) {
@@ -48,6 +58,9 @@ function canPlayOnTrail(
 
   if (trailPlayerId !== actingPlayerId) {
     if (!trailsOpenToOthers(round, trailPlayerId)) {
+      return false;
+    }
+    if (!canChartOnOpponentTrail(round, actingPlayerId, trailPlayerId, houseRules)) {
       return false;
     }
   }
@@ -74,8 +87,12 @@ function canPlayOnTrail(
 
 function canPlayOnNeutralZone(
   round: RoundState,
-  coordinate: Coordinate
+  coordinate: Coordinate,
+  houseRules: HouseRules
 ): boolean {
+  if (!canChartOnNeutralZone(round, houseRules)) {
+    return false;
+  }
   const connectingValue = neutralZoneOpenValue(
     round.table.neutralZone,
     round.spacedockValue
@@ -96,7 +113,8 @@ function canStabilizeFracture(
 
 export function getLegalMoves(
   round: RoundState,
-  playerId: PlayerId
+  playerId: PlayerId,
+  houseRules: HouseRules = DEFAULT_HOUSE_RULES
 ): LegalMove[] {
   round = resolveDeadRedAlert(round);
 
@@ -118,7 +136,8 @@ export function getLegalMoves(
       : hand;
   const moves: LegalMove[] = [];
   const fractureActive = isNavigationHaltedByFracture(
-    round.table.subspaceFracture
+    round.table.subspaceFracture,
+    round.table.redAlert
   );
   const redAlert = round.table.redAlert;
 
@@ -127,6 +146,11 @@ export function getLegalMoves(
   }
 
   const redAlertBlocking = isRedAlertBlocking(redAlert, playerId);
+  const openingOwnTrailOnly = mustRestrictToOwnTrailForOpening(
+    round,
+    playerId,
+    houseRules
+  );
 
   for (const coordinate of playableHand) {
     if (fractureActive) {
@@ -160,7 +184,8 @@ export function getLegalMoves(
             playerId,
             coordinate,
             trailPlayerId,
-            true
+            true,
+            houseRules
           )
         ) {
           moves.push({
@@ -172,15 +197,22 @@ export function getLegalMoves(
       continue;
     }
 
-    if (canPlayOnTrail(round, playerId, playerId, coordinate, playerId, false)) {
+    if (canPlayOnTrail(round, playerId, playerId, coordinate, playerId, false, houseRules)) {
       moves.push({
         coordinate,
         route: { kind: 'warp-trail', playerId },
       });
     }
 
-    if (canPlayOnNeutralZone(round, coordinate)) {
+    if (
+      !openingOwnTrailOnly &&
+      canPlayOnNeutralZone(round, coordinate, houseRules)
+    ) {
       moves.push({ coordinate, route: { kind: 'neutral-zone' } });
+    }
+
+    if (openingOwnTrailOnly) {
+      continue;
     }
 
     for (const captainId of round.turnOrder) {
@@ -194,7 +226,8 @@ export function getLegalMoves(
           playerId,
           coordinate,
           captainId,
-          false
+          false,
+          houseRules
         )
       ) {
         moves.push({
@@ -212,9 +245,10 @@ export function isLegalMove(
   round: RoundState,
   playerId: PlayerId,
   coordinate: Coordinate,
-  route: ChartRoute
+  route: ChartRoute,
+  houseRules: HouseRules = DEFAULT_HOUSE_RULES
 ): boolean {
-  return getLegalMoves(round, playerId).some(
+  return getLegalMoves(round, playerId, houseRules).some(
     (move) =>
       routesEqual(move.route, route) &&
       move.coordinate.low === coordinate.low &&

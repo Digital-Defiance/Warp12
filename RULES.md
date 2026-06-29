@@ -4,6 +4,8 @@
 
 This document is the authoritative rules reference for Warp 12. **Sections I–V** follow published Mexican Train tournament practice (double-twelve set, engine double set aside before the deal, personal trains, Mexican Train / Neutral Zone, train markers, doubles, boneyard, multi-round scoring). **Section VI** lists optional Warp 12 modules agreed before launch.
 
+> **Digital implementation note:** Warp 12 enforces these rules in software. Live tournament directors may adopt the same text, but should confirm module toggles (Subspace Fracture, Q-Continuum, Salamander Penalty) and objective mode before play. This manual describes behavior when modules are **on** or **off** as stated in each section. **Section VII** describes AI officers and the tactical advisor (digital play only).
+
 ---
 
 ## Victory conditions
@@ -27,8 +29,8 @@ Fleet command chooses one objective before the sector opens:
 | Mexican Train | **Neutral Zone** |
 | Train marker | **Distress Beacon** *(Shields Down)* |
 | Boneyard | **Uncharted Sectors** |
-| — | **Red Alert** — a double must be covered before normal play continues |
-| — | **Subspace Fracture** — optional chicken-foot variant on own-trail doubles |
+| — | **Red Alert** — a double must be satisfied before normal play continues (cover tile, or stabilizers when Subspace Fracture applies) |
+| — | **Subspace Fracture** — optional chicken-foot protocol on doubles (scope: Own Trail, All Captains, or All Doubles) |
 | — | **Q-Flash** — optional Module Alpha anomaly on 0-0 |
 
 ---
@@ -101,7 +103,9 @@ Deploy your beacon when — and **only** when — you cannot make a legal chart 
 
 ### Red Alert pass
 
-If you cannot cover an active Red Alert after drawing (or with an empty pile), you deploy your Distress Beacon and **Red Alert responsibility passes** to the next captain. The alert remains until the double is covered.
+If you cannot satisfy an active Red Alert after drawing (or with an empty pile), you deploy your Distress Beacon and **Red Alert responsibility passes** to the next captain. The alert remains until the double is satisfied.
+
+When **Subspace Fracture** is active (Section VI), “satisfy” means **stabilizers** — not a separate cover tile. Pass Red Alert only when you cannot add the next stabilizer.
 
 ---
 
@@ -109,13 +113,33 @@ If you cannot cover an active Red Alert after drawing (or with an empty pile), y
 
 When a **double** (matching pips on both ends) is charted on any eligible route — your Warp Trail, the Neutral Zone, or an open opponent trail — announce **"Red Alert!"**
 
-- The captain who charted the double must **cover** it by playing another valid tile on that double **on the same turn sequence**, unless turn rules below apply.
-- If you cannot cover, draw from Uncharted Sectors; if you still cannot cover, deploy your Distress Beacon and pass Red Alert to the next captain.
-- While Red Alert is active, **no other routes** may be played until the double is covered.
-- **Dead double:** If every tile in the set containing that pip is already charted (all thirteen tiles showing that number in a double-twelve set), the double cannot be covered — Red Alert ends and normal play resumes.
+- The captain who charted the double must **satisfy** it by playing another valid tile on that double **in the same turn sequence**, unless turn rules below apply. *(Standard cover: one matching tile on the double. Subspace Fracture: three stabilizers — Section VI.)*
+- **Going out:** An empty hand does **not** win the round while your chart left a double unsatisfied. Chart the cover (or final stabilizer) first; only then may an empty hand end the sector.
+- If you cannot satisfy it, draw from Uncharted Sectors; if you still cannot, deploy your Distress Beacon and pass Red Alert to the next captain.
+- While Red Alert is active, **no other routes** may be played until the double is satisfied.
+- **Dead double:** If every tile in the set containing that pip is already charted (all thirteen tiles showing that number in a double-twelve set), the double cannot be satisfied — Red Alert ends and normal play resumes.
 - Covering a double on another captain's open trail **does not** clear their Distress Beacon.
 
-**Subspace Fracture** (Section VI) replaces or adds to this flow for doubles on **your own** trail when that option is enabled.
+### Subspace Fracture interaction *(Section VI — opt-in)*
+
+When Subspace Fracture is **enabled**, scope is chosen at launch:
+
+| Scope | Doubles that open Subspace Fracture |
+| --- | --- |
+| **Own Trail** *(default)* | Only on **your own** Warp Trail |
+| **All Captains** | On **any** Warp Trail (yours or an opponent's open trail) |
+| **All Doubles** | On any Warp Trail **or** the Neutral Zone |
+
+When a double in scope is charted:
+
+1. **Subspace Fracture and Red Alert open together** on that double.
+2. While the fracture is open (fewer than three stabilizers), the responsible captain may play **only stabilizers** — not a cover tile, not other routes.
+3. The **third stabilizer satisfies the double** and clears **both** Subspace Fracture and Red Alert. No fourth tile is required on the trail to “cover” the double.
+4. If the responsible captain cannot stabilize, draw and/or pass Red Alert as usual; the next responsible captain continues adding stabilizers until all three are placed.
+
+Doubles **outside** the chosen scope never open Subspace Fracture — Red Alert cover rules in this section apply unchanged.
+
+When Subspace Fracture is **off**, all doubles use **Red Alert only** (single cover tile).
 
 ---
 
@@ -123,7 +147,7 @@ When a **double** (matching pips on both ends) is charted on any eligible route 
 
 ### Winning the round
 
-The round ends when one captain charts their **last** coordinate (empty hand).
+The round ends when one captain charts their **last** coordinate (empty hand) **and** no Red Alert or Subspace Fracture on that chart still requires satisfaction. You **cannot** go out on an open double — cover it (or complete three stabilizers when Subspace Fracture applies) before the sector closes.
 
 **Dropping to Impulse:** If that winning chart was on the **Neutral Zone**, the winner must announce **"Dropping to Impulse"** before the sector closes. If they fail to announce before play would otherwise continue, they draw a penalty tile from Uncharted Sectors and the round **continues** (they do not win yet).
 
@@ -147,14 +171,38 @@ When a round ends with a winner, every **other** captain totals pip values in ha
 
 ### Subspace Fracture *(chicken foot — off by default)*
 
-When **enabled**, a double charted on **your own** Warp Trail may open **Subspace Fracture** instead of using only Red Alert:
+When **enabled**, choose a **fracture scope** before launch:
 
-- Fleet navigation halts until the fracture is **stabilized**.
-- The next **three** plays must branch from that double (stabilizers).
-- If you cannot add a stabilizer, draw; if still unable, deploy your Distress Beacon.
-- When the third stabilizer is placed, normal play resumes across all routes.
+| Scope | Doubles that open Subspace Fracture |
+| --- | --- |
+| **Own Trail** *(default)* | Only on **your own** Warp Trail |
+| **All Captains** | On **any** Warp Trail |
+| **All Doubles** | On any Warp Trail **or** the Neutral Zone |
 
-When Subspace Fracture is **off**, own-trail doubles use **Red Alert only** (cover the double).
+When a double in scope is charted, **Subspace Fracture** and **Red Alert** open together:
+
+- Fleet navigation halts until the fracture is **stabilized** (three branches from the double).
+- While the fracture is open, the captain holding Red Alert responsibility may play **only stabilizers** matching the fracture pip — no cover tile, no other routes.
+- Each stabilizer must match the double's pip (e.g. any tile containing nine on a 9-9 fracture).
+- If you cannot add a stabilizer, draw; if still unable, deploy your Distress Beacon and pass Red Alert. The next responsible captain continues stabilizing.
+- Layout: the first two stabilizers branch from the double; the **third stabilizer is the center foot** and continues the warp trail from the double.
+- The **third stabilizer satisfies the double** — it clears both Subspace Fracture and Red Alert. **No separate cover tile** is required afterward.
+- When the third stabilizer is placed, normal play resumes across all routes from the center foot's open end.
+
+When Subspace Fracture is **off**, doubles use **Red Alert only** (one cover tile on the double).
+
+**Fracture immunity** (Q-Flash Module Alpha): the next double on your own trail opens Red Alert but **does not** open Subspace Fracture (regardless of scope).
+
+### House rules *(Deluxe-style — off by default)*
+
+Hosts may enable any combination before launch. Defaults match **standard Mexican Train**.
+
+| Toggle | When enabled |
+| --- | --- |
+| **Require own trail first** | You must chart at least one tile on **your own** Warp Trail before playing on an opponent's open trail. The Neutral Zone and your own trail are unaffected. |
+| **Neutral Zone after all trails started** | The Neutral Zone cannot be started until **every** captain has at least one tile on their own Warp Trail. |
+| **Beacon clears on any play** | Any legal chart removes **your** Distress Beacon — not only a chart on your own trail. |
+| **Round starter plays two** | The round starter must chart **two tiles on their own Warp Trail** on their opening turn (Spacedock + two from hand). If the first tile is a double, the Red Alert cover counts as the second. If you cannot play the second tile, deploy your Distress Beacon — no extra draw. Cannot start the Neutral Zone or opponent trails until both are played. |
 
 ### Module Alpha — The Q-Continuum *(off by default)*
 
@@ -180,6 +228,43 @@ If a round ends and a captain holds **12-12** in hand, that tile scores **24** p
 
 ---
 
+## VII. AI officers & tactical advisor *(digital)*
+
+Local simulation and online sectors can fill empty chairs with **AI officers**. The in-game **tactical advisor** uses the same decision stack to suggest moves and explain reasoning. This section describes what those systems know and how **Lookahead** works.
+
+### What an AI officer can see
+
+An AI captain has the same **public** information you do:
+
+- Its **own** hand (coordinates held).
+- Every coordinate already **charted** on the table (all Warp Trails, Neutral Zone, fracture stabilizers).
+- How many tiles each opponent is **holding** (hand count only — not which coordinates).
+- How many tiles remain in **Uncharted Sectors**.
+
+An AI officer **cannot** see which specific coordinates are in an opponent's hand. It does not read hidden tiles from the game state when choosing a move.
+
+### Skill (Beginner / Intermediate / Advanced)
+
+Controls how often the officer blunders and how sharply it prefers high-scoring lines. All skill levels still obey the same legal-move and rules-engine constraints.
+
+### Lookahead (per-officer opt-in)
+
+When **Lookahead** is **off**, the officer uses a fast **greedy** policy: score each legal move for this turn with heuristics (shed heavy pips, own-trail pressure, Red Alert safety, objective mode, modules, and so on) and pick among them.
+
+When **Lookahead** is **on**, the officer **forward-searches** before acting:
+
+1. For each candidate move, it runs the move through the **real Warp 12 rules engine** a few turns ahead.
+2. Because opponent hands and the draw order are hidden, each simulation **guesses** plausible holdings: opponents receive a random assignment from the pool of tiles not on the table and not in the AI's hand, while preserving each opponent's **actual hand count**. Uncharted Sectors are filled from the same unseen pool.
+3. The search repeats that guess several times (**determinizations**), averages the outcomes, and picks the move that tends to work best across those possible worlds.
+
+Lookahead is **imperfect-information search** — not clairvoyance. It is slower but can reason about consequences (for example, whether a play sets up an opponent to go out). Skill level still applies on top (blunders and noisy tie-breaking).
+
+### Tactical advisor
+
+The tactical advisor always uses **Advanced** skill with **Lookahead** enabled. It suggests one move plus plain-language reasons so humans can see *why* a line is strong, not only what to play.
+
+---
+
 ## Quick reference — standard vs Warp 12 extras
 
 | Rule | Standard Mexican Train | Warp 12 |
@@ -189,8 +274,13 @@ If a round ends and a captain holds **12-12** in hand, that tile scores **24** p
 | Play elsewhere while marked | Allowed; marker stays | Same |
 | Play on own trail while marked | Marker **must** come off | Shields Up — same |
 | Doubles | Must satisfy / cover | Red Alert — same |
-| Chicken foot on own double | Optional house variant | Subspace Fracture — opt-in |
+| Chicken foot on doubles | Optional house variant | Subspace Fracture — opt-in; scope: Own Trail / All Captains / All Doubles |
+| Own trail before opponents | Optional Deluxe variant | House rule — opt-in |
+| NZ after all trails | Optional Deluxe variant | House rule — opt-in |
+| Beacon clears on any play | Optional Deluxe variant | House rule — opt-in |
+| Round starter plays two | Optional Deluxe variant | House rule — opt-in |
 | 0-0 anomaly | — | Q-Continuum — opt-in |
 | 12-12 hand penalty | — | Salamander — opt-in (default on) |
 | NZ win announcement | — | Dropping to Impulse |
 | Blocked boneyard | Round ends, all score | Blocked sector — same |
+| AI officers / tactical advisor | — | Section VII — digital only |

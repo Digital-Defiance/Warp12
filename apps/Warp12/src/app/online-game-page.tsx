@@ -9,6 +9,7 @@ import {
 } from 'warp12-engine';
 
 import {
+  dissolveLobby,
   fetchHostDebugSnapshot,
   resetSectorToLobby,
   signalCoachRequest,
@@ -25,7 +26,7 @@ import {
   playerIdForAction,
 } from 'warp12-react';
 import { downloadDebugExport } from '../game/debug-export.js';
-import { useBridgeFocus } from './bridge-focus-context';
+import { useBridgeHeaderStatusRegistration } from './bridge-header-status-context';
 import { BridgeTable } from './bridge-table';
 import { useHostAiRunner } from './use-host-ai-runner';
 import { formatViolation } from 'warp12-engine';
@@ -57,11 +58,12 @@ export function OnlineGamePage() {
   const [error, setError] = useState<string | null>(null);
   const [exportBusy, setExportBusy] = useState(false);
   const actionLogRef = useRef(createActionLog());
+  const abandoningRef = useRef(false);
 
   const uid = auth.user?.uid;
   const code = gameId?.toUpperCase() ?? '';
   const game = optimisticGame ?? serverGame;
-  const { focus: bridgeFocus } = useBridgeFocus();
+  const { setHeaderStatus } = useBridgeHeaderStatusRegistration();
   const isHost = Boolean(uid && hostId && hostId === uid);
   const onlineAiCaptainIds = useMemo(
     () =>
@@ -86,7 +88,25 @@ export function OnlineGamePage() {
         hostId: sectorHost,
         sectorCaptains: captains,
         aiHands: hostAiHands,
+        dissolved,
       }) => {
+        if (dissolved) {
+          setServerGame(null);
+          setOptimisticGame(null);
+          setHeaderStatus(null);
+          if (abandoningRef.current) {
+            abandoningRef.current = false;
+            return;
+          }
+          navigate('/online', {
+            replace: true,
+            state: { callSignNotice: 'Sector dissolved by the host.' },
+          });
+          return;
+        }
+        if (!state) {
+          return;
+        }
         setServerGame(state);
         setHostId(sectorHost);
         setSectorCaptains(captains);
@@ -101,7 +121,19 @@ export function OnlineGamePage() {
         setError(err.message);
       }
     );
-  }, [code, uid, auth.ready]);
+  }, [code, uid, auth.ready, navigate, setHeaderStatus]);
+
+  useEffect(() => {
+    if (!code || !serverGame || serverGame.phase !== 'lobby') {
+      return;
+    }
+    navigate(`/online/${code}`, {
+      replace: true,
+      state: {
+        callSignNotice: 'Host returned the sector to the waiting room.',
+      },
+    });
+  }, [code, navigate, serverGame]);
 
   useEffect(() => {
     if (!code) {
@@ -205,6 +237,37 @@ export function OnlineGamePage() {
     onActionLogged: logAction,
   });
 
+  useEffect(() => {
+    if (!auth.ready || !game || !uid) {
+      setHeaderStatus(null);
+      return;
+    }
+
+    const captainName =
+      game.captains.find((captain) => captain.id === uid)?.displayName ??
+      'Captain';
+
+    setHeaderStatus({
+      sectorLabel: `Sector ${code} · ${captainName}`,
+      connectionLabel: syncPending
+        ? 'Transmitting move…'
+        : connected
+          ? 'Subspace link active'
+          : 'Reconnecting…',
+      connectionLive: connected && !syncPending,
+    });
+
+    return () => setHeaderStatus(null);
+  }, [
+    auth.ready,
+    code,
+    connected,
+    game,
+    setHeaderStatus,
+    syncPending,
+    uid,
+  ]);
+
   const signalCoach = useCallback(async () => {
     if (!code || !uid || !serverGame?.round) {
       return;
@@ -224,6 +287,24 @@ export function OnlineGamePage() {
       setError(err instanceof Error ? err.message : 'Could not reset sector');
     }
   };
+
+  const hostAbandonSector = useCallback(async () => {
+    if (!code || !uid) {
+      return;
+    }
+    setError(null);
+    try {
+      abandoningRef.current = true;
+      await dissolveLobby(code, uid);
+      setHeaderStatus(null);
+      navigate('/', { replace: true });
+    } catch (err) {
+      abandoningRef.current = false;
+      setError(
+        err instanceof Error ? err.message : 'Could not abandon sector'
+      );
+    }
+  }, [code, navigate, setHeaderStatus, uid]);
 
   const exportDebug = async () => {
     if (!code || !uid || !serverGame) {
@@ -284,28 +365,7 @@ export function OnlineGamePage() {
   }
 
   return (
-    <div
-      className={bridgeFocus ? styles.onlinePlayFocus : styles.onlinePlay}
-    >
-      <div className={styles.onlineStatusBar}>
-        {uid && (
-          <p className={styles.onlineBadge}>
-            Sector {code} ·{' '}
-            {game.captains.find((c) => c.id === uid)?.displayName ?? 'Captain'}
-          </p>
-        )}
-        <p
-          className={styles.connectionBadge}
-          data-live={connected && !syncPending}
-          role="status"
-        >
-          {syncPending
-            ? 'Transmitting move…'
-            : connected
-              ? 'Subspace link active'
-              : 'Reconnecting…'}
-        </p>
-      </div>
+    <div className={styles.onlinePlay}>
       {error && (
         <p className={styles.error} role="alert">
           {error}
@@ -320,7 +380,8 @@ export function OnlineGamePage() {
         onAction={dispatch}
         onLeave={() => navigate('/')}
         isOnlineHost={isHost}
-        onHostResetSector={hostResetSector}
+        onHostAbandonSector={isHost ? hostAbandonSector : undefined}
+        onHostResetSector={isHost ? hostResetSector : undefined}
         onExportDebug={isHost ? exportDebug : undefined}
         debugExportBusy={exportBusy}
         sectorCode={code}

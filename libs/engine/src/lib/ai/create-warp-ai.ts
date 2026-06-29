@@ -86,13 +86,13 @@ export function createWarpAiPlayer(
       if (obs.round.unchartedSectors.length > 0) {
         return { kind: 'draw' };
       }
-      if (canPassRedAlert(obs.round, obs.playerId)) {
+      if (canPassRedAlert(obs.round, obs.playerId, { houseRules: obs.houseRules })) {
         return { kind: 'pass-red-alert' };
       }
-      if (canDeployDistressBeacon(obs.round, obs.playerId)) {
+      if (canDeployDistressBeacon(obs.round, obs.playerId, { houseRules: obs.houseRules })) {
         return { kind: 'deploy-beacon' };
       }
-      if (canPassTurn(obs.round, obs.playerId)) {
+      if (canPassTurn(obs.round, obs.playerId, { houseRules: obs.houseRules })) {
         return { kind: 'pass-turn' };
       }
       return { kind: 'deploy-beacon' };

@@ -1,5 +1,6 @@
 import type { Coordinate } from './coordinate.js';
 import type { GameObjective } from './objective.js';
+import type { HouseRules, HouseRulesConfig } from './house-rules.js';
 import type { PlayerId } from './player.js';
 import type { NeutralZone, Spacedock, WarpTrail } from './trails.js';
 import type { RedAlert, SubspaceFracture } from './anomalies.js';
@@ -27,8 +28,8 @@ export interface RoundState {
   readonly table: TableState;
   readonly unchartedSectors: readonly Coordinate[];
   readonly hands: Readonly<Record<PlayerId, readonly Coordinate[]>>;
-  readonly treatyDeclarationRequired: boolean;
-  readonly treatyDeclared: boolean;
+  readonly dropToImpulseRequired: boolean;
+  readonly dropToImpulseDeclared: boolean;
   readonly roundWinnerId: PlayerId | null;
   /** Captain who must invoke a Q-Flash after charting 0-0. */
   readonly qPendingInvoker: PlayerId | null;
@@ -45,6 +46,10 @@ export interface RoundState {
   } | null;
   /** Sector ended with an empty draw pile and no legal charts (no domino winner). */
   readonly roundBlocked: boolean;
+  /** Deluxe opening: round starter owes a second own-trail chart this turn. */
+  readonly roundStarterOpening: {
+    readonly playerId: PlayerId;
+  } | null;
 }
 
 export interface GameState {
@@ -54,15 +59,21 @@ export interface GameState {
   readonly round: RoundState | null;
   readonly completedRounds: number;
   readonly modules: import('./modules.js').GameModules;
+  /** Optional house-rule toggles (default standard Mexican Train). */
+  readonly houseRules: HouseRules;
   /** Fleet victory condition — penalty campaign vs first captain out. */
   readonly objective: GameObjective;
+  /** Penalty campaigns end after this many rounds (1–13). Ignored for go-out. */
+  readonly campaignRounds: number;
 }
 
 export interface CreateGameInput {
   readonly id: string;
   readonly captains: readonly { id: string; displayName: string }[];
   readonly modules?: import('./modules.js').GameModuleConfig;
+  readonly houseRules?: HouseRulesConfig;
   readonly objective?: GameObjective;
+  readonly campaignRounds?: number;
 }
 
 export interface CreateRoundInput {

@@ -18,8 +18,31 @@ export const DOUBLE_TWELVE_MAX_PIPS = 12;
 /** Starting Spacedock double for round 1. */
 export const INITIAL_SPACEDOCK_VALUE = 12;
 
+/** Default penalty campaign length (12-12 through 0-0). */
+export const DEFAULT_CAMPAIGN_ROUNDS = 13;
+
+/** Shortest penalty campaign (single spacedock round). */
+export const MIN_CAMPAIGN_ROUNDS = 1;
+
+/** Longest penalty campaign for a double-twelve set. */
+export const MAX_CAMPAIGN_ROUNDS = 13;
+
 /** Standard Salamander penalty multiplier for the 12-12 tile. */
 export const SALAMANDER_PENALTY_TILE_VALUE = 24;
+
+export function clampCampaignRounds(rounds: number): number {
+  return Math.min(
+    MAX_CAMPAIGN_ROUNDS,
+    Math.max(MIN_CAMPAIGN_ROUNDS, Math.round(rounds))
+  );
+}
+
+export function formatCampaignRoundProgress(
+  roundNumber: number,
+  campaignRounds: number
+): string {
+  return `Round ${roundNumber} of ${campaignRounds}`;
+}
 
 export function handSizeForPlayerCount(playerCount: number): number {
   const size = HAND_SIZE_BY_PLAYER_COUNT[playerCount];

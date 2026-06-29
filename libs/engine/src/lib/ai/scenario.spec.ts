@@ -94,7 +94,7 @@ describe('scenario — red alert pass chain', () => {
         hands: {
           a: [N(1, 2)],
           b: [N(3, 4)],
-          c: [N(5, 7)],
+          c: [N(6, 8)],
         },
         unchartedSectors: [],
         table: redAlertTable('a', 'a') as RoundState['table'],
@@ -121,12 +121,12 @@ describe('scenario — red alert pass chain', () => {
   });
 });
 
-describe('scenario — treaty declaration gate', () => {
+describe('scenario — drop to impulse gate', () => {
   it('keeps the round open until the winner declares', () => {
     const round = makeRound({
       hands: { a: [], b: [N(1, 2)] },
-      treatyDeclarationRequired: true,
-      treatyDeclared: false,
+      dropToImpulseRequired: true,
+      dropToImpulseDeclared: false,
       roundWinnerId: 'a',
       activePlayerId: 'a',
       phase: 'playing',
@@ -135,32 +135,32 @@ describe('scenario — treaty declaration gate', () => {
 
     expect(getLegalMoves(round, 'a')).toHaveLength(0);
     expect(warpCandidateGenerator(obsFor(round))).toEqual([
-      { kind: 'declare-treaty' },
+      { kind: 'drop-to-impulse' },
     ]);
 
     const draw = applyAction(state, { type: 'DRAW_FROM_UNCHARTED', playerId: 'a' });
     expect(draw.ok).toBe(false);
 
-    const declare = applyAction(state, { type: 'DECLARE_TREATY', playerId: 'a' });
+    const declare = applyAction(state, { type: 'DROP_TO_IMPULSE', playerId: 'a' });
     expect(declare.ok).toBe(true);
     if (declare.ok) {
       expect(declare.state.round?.phase).toBe('ended');
-      expect(declare.state.round?.treatyDeclared).toBe(true);
+      expect(declare.state.round?.dropToImpulseDeclared).toBe(true);
     }
   });
 
   it('repairs a missing roundWinnerId when the winner declares', () => {
     const round = makeRound({
       hands: { a: [], b: [N(1, 2)] },
-      treatyDeclarationRequired: true,
-      treatyDeclared: false,
+      dropToImpulseRequired: true,
+      dropToImpulseDeclared: false,
       roundWinnerId: null,
       activePlayerId: 'a',
       phase: 'playing',
     });
     const state = stateFromRound(round);
 
-    const declare = applyAction(state, { type: 'DECLARE_TREATY', playerId: 'a' });
+    const declare = applyAction(state, { type: 'DROP_TO_IMPULSE', playerId: 'a' });
     expect(declare.ok).toBe(true);
     if (declare.ok) {
       expect(declare.state.round?.roundWinnerId).toBe('a');

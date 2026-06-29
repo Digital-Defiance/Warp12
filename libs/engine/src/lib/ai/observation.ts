@@ -1,4 +1,5 @@
 import type { GameState, RoundState } from '../types/game-state.js';
+import type { HouseRules } from '../types/house-rules.js';
 import type { GameModules } from '../types/modules.js';
 import type { GameObjective } from '../types/objective.js';
 import type { Captain, PlayerId } from '../types/player.js';
@@ -13,7 +14,9 @@ export interface WarpAiObservation {
   readonly round: RoundState;
   readonly playerId: PlayerId;
   readonly modules: GameModules;
+  readonly houseRules: HouseRules;
   readonly objective: GameObjective;
+  readonly campaignRounds: number;
   readonly captains: readonly Captain[];
 }
 
@@ -29,7 +32,9 @@ export function observe(
     round: state.round,
     playerId,
     modules: state.modules,
+    houseRules: state.houseRules,
     objective: state.objective,
+    campaignRounds: state.campaignRounds,
     captains: state.captains,
   };
 }

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { applyAction } from './apply-action.js';
 import { getLegalMoves } from './legal-moves.js';
 import { resolveDeadRedAlert } from './dead-red-alert.js';
+import { isPipExhausted } from '../table/pip-inventory.js';
 import {
   endBlockedRound,
   isRoundBlocked,
@@ -146,6 +147,40 @@ describe('tile recycle integrity', () => {
     expect(fractured).toBe(true);
     assertCoordinateSetSize(collectRoundCoordinatesForRecycle(state.round!));
   });
+
+  it('deals a full Uncharted pile after scoring a normal blocked round', () => {
+    const captains = ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({
+      id,
+      displayName: id,
+      penaltyScore: 0,
+    }));
+    const deal = dealRoundFromShuffled({
+      roundNumber: 2,
+      captains,
+      turnOrder: captains.map((c) => c.id),
+      shuffledCoordinates: generateCoordinateSet(12),
+    });
+    const endedRound = endBlockedRound(createRoundStateFromDeal(deal));
+
+    assertCoordinateSetSize(collectRoundCoordinatesForRecycle(endedRound));
+
+    const state = makeGame(endedRound, {
+      completedRounds: 1,
+      campaignRounds: 5,
+      captains,
+    });
+    const scored = scoreRound(state, endedRound, () => 0.5);
+    expect(scored.ok).toBe(true);
+    if (!scored.ok) {
+      return;
+    }
+
+    expect(scored.state.round?.roundNumber).toBe(3);
+    expect(scored.state.round?.unchartedSectors.length).toBe(18);
+    assertCoordinateSetSize(
+      collectRoundCoordinatesForRecycle(scored.state.round!)
+    );
+  });
 });
 
 describe('dead double (Red Alert release)', () => {
@@ -175,6 +210,61 @@ describe('dead double (Red Alert release)', () => {
     });
 
     expect(resolveDeadRedAlert(round).table.redAlert).toBeNull();
+  });
+
+  it('archives partial stabilizers when a dead double dismisses an active fracture', () => {
+    const twos = allTilesWithPip(2);
+    const anchor = placed(T(2, 2), 8, 2);
+    const round = makeRound(['a', 'b'], {
+      spacedockValue: 12,
+      hands: { a: [], b: [] },
+      table: {
+        ...createInitialTable(['a', 'b'], 12, 'a'),
+        warpTrails: {
+          a: {
+            playerId: 'a',
+            tiles: [
+              ...twos
+                .filter((c) => !(c.low === 2 && c.high === 2))
+                .map((coordinate, index) => placed(coordinate, index, 2)),
+              anchor,
+            ],
+            distressBeacon: { active: false },
+          },
+          b: { playerId: 'b', tiles: [], distressBeacon: { active: false } },
+        },
+        subspaceFracture: {
+          active: true,
+          anchor,
+          stabilizers: [placed(T(2, 10), 0, 2), placed(T(2, 4), 1, 2)],
+          requiredValue: 2,
+          trailCaptainId: 'a',
+        },
+        redAlert: {
+          active: true,
+          anchor,
+          responsiblePlayerId: 'b',
+          trailPlayerId: 'a',
+        },
+      },
+    });
+
+    const countTiles = (state: typeof round) =>
+      state.unchartedSectors.length +
+      (state.hands.a?.length ?? 0) +
+      (state.hands.b?.length ?? 0) +
+      state.table.warpTrails.a.tiles.length +
+      state.table.warpTrails.b.tiles.length +
+      (state.table.subspaceFracture?.stabilizers.length ?? 0) +
+      1;
+
+    expect(countTiles(round)).toBe(16);
+
+    const resolved = resolveDeadRedAlert(round);
+    expect(resolved.table.redAlert).toBeNull();
+    expect(resolved.table.subspaceFracture).toBeNull();
+    expect(resolved.table.warpTrails.a.tiles).toHaveLength(15);
+    expect(countTiles(resolved)).toBe(16);
   });
 
   it('unlocks non-cover routes for other captains once the double is dead', () => {
@@ -216,6 +306,120 @@ describe('dead double (Red Alert release)', () => {
     expect(moves.every((move) => move.route.kind === 'red-alert-cover')).toBe(
       false
     );
+  });
+
+  it('does not open Red Alert or Subspace Fracture when the double pip is dead', () => {
+    const deadDouble = T(6, 6);
+    const sixes = allTilesWithPip(6);
+    const otherSixes = sixes.filter(
+      (coordinate) =>
+        !(coordinate.low === deadDouble.low && coordinate.high === deadDouble.high)
+    );
+
+    let state = makeGame(
+      makeRound(['a', 'b'], {
+        spacedockValue: 12,
+        activePlayerId: 'a',
+        hands: { a: [deadDouble], b: [] },
+        table: {
+          ...createInitialTable(['a', 'b'], 12, 'a'),
+          warpTrails: {
+            a: {
+              playerId: 'a',
+              tiles: otherSixes.map((coordinate, index) =>
+                placed(coordinate, index, 6)
+              ),
+              distressBeacon: { active: false },
+            },
+            b: {
+              playerId: 'b',
+              tiles: [placed(T(12, 6), 0, 6)],
+              distressBeacon: { active: true },
+            },
+          },
+        },
+      }),
+      { modules: resolveModules({ subspaceFracture: true, subspaceFractureScope: 'all-doubles' }) }
+    );
+
+    const chart = applyAction(state, {
+      type: 'CHART_COORDINATE',
+      playerId: 'a',
+      coordinate: deadDouble,
+      route: { kind: 'warp-trail', playerId: 'b' },
+    });
+    expect(chart.ok).toBe(true);
+    if (!chart.ok) return;
+
+    expect(chart.state.round?.table.redAlert).toBeNull();
+    expect(chart.state.round?.table.subspaceFracture).toBeNull();
+    expect(
+      getLegalMoves(chart.state.round!, 'a').some(
+        (move) => move.route.kind === 'fracture-stabilizer'
+      )
+    ).toBe(false);
+  });
+
+  it('opens Red Alert on 12-12 while twelves remain in hands (not dead)', () => {
+    const twelves = allTilesWithPip(12);
+    const doubleTwelve = T(12, 12);
+    const offTable = new Set(
+      [doubleTwelve, T(0, 12), T(4, 12)].map((c) => coordinateKey(c))
+    );
+    const chartedTwelves = twelves.filter(
+      (coordinate) => !offTable.has(coordinateKey(coordinate))
+    );
+
+    let state = makeGame(
+      makeRound(['a', 'b', 'c'], {
+        spacedockValue: 11,
+        activePlayerId: 'a',
+        hands: {
+          a: [doubleTwelve, T(0, 12)],
+          b: [T(4, 12)],
+          c: [],
+        },
+        table: {
+          ...createInitialTable(['a', 'b', 'c'], 11, 'a'),
+          warpTrails: {
+            a: { playerId: 'a', tiles: [], distressBeacon: { active: false } },
+            b: {
+              playerId: 'b',
+              tiles: [placed(T(11, 12), 0, 12)],
+              distressBeacon: { active: true },
+            },
+            c: { playerId: 'c', tiles: [], distressBeacon: { active: false } },
+          },
+          neutralZone: {
+            tiles: chartedTwelves.map((coordinate, index) =>
+              placed(coordinate, index, 12)
+            ),
+          },
+        },
+      })
+    );
+
+    expect(isPipExhausted(state.round!, 12)).toBe(false);
+
+    const chart = applyAction(state, {
+      type: 'CHART_COORDINATE',
+      playerId: 'a',
+      coordinate: doubleTwelve,
+      route: { kind: 'warp-trail', playerId: 'b' },
+    });
+    expect(chart.ok).toBe(true);
+    if (!chart.ok) return;
+
+    expect(chart.state.round?.table.redAlert?.active).toBe(true);
+    expect(chart.state.round?.activePlayerId).toBe('a');
+    expect(
+      getLegalMoves(chart.state.round!, 'a').some(
+        (move) =>
+          move.route.kind === 'red-alert-cover' &&
+          move.coordinate.low === 0 &&
+          move.coordinate.high === 12
+      )
+    ).toBe(true);
   });
 });
 
@@ -287,6 +491,348 @@ describe('blocked sector (empty draw pile, no legal charts)', () => {
     expect(state.round?.phase).toBe('ended');
     expect(state.round?.roundBlocked).toBe(true);
     expect(state.round?.roundWinnerId).toBe(null);
+  });
+
+  it('detects a fracture deadlock when no hand holds the stabilizer pip', () => {
+    const anchor = placed(T(5, 5), 2, 5);
+    const round = makeRound(['a', 'b', 'c'], {
+      activePlayerId: 'a',
+      unchartedSectors: [],
+      hands: {
+        a: [T(1, 3)],
+        b: [T(0, 8)],
+        c: [T(2, 7)],
+      },
+      table: {
+        ...createInitialTable(['a', 'b', 'c'], 12, 'a'),
+        warpTrails: {
+          a: {
+            playerId: 'a',
+            tiles: [placed(T(12, 2), 0, 2)],
+            distressBeacon: { active: true },
+          },
+          b: {
+            playerId: 'b',
+            tiles: [
+              placed(T(1, 12), 0, 1),
+              placed(T(1, 5), 1, 5),
+              anchor,
+            ],
+            distressBeacon: { active: true },
+          },
+          c: {
+            playerId: 'c',
+            tiles: [placed(T(12, 7), 0, 7)],
+            distressBeacon: { active: false },
+          },
+        },
+        subspaceFracture: {
+          active: true,
+          anchor,
+          stabilizers: [placed(T(3, 5), 0, 3), placed(T(0, 5), 1, 0)],
+          requiredValue: 5,
+          trailCaptainId: 'b',
+        },
+        redAlert: {
+          active: true,
+          anchor,
+          responsiblePlayerId: 'a',
+          trailPlayerId: 'b',
+        },
+      },
+    });
+
+    expect(isRoundBlocked(round)).toBe(true);
+  });
+
+  it('does not block a fracture while any hand still holds the stabilizer pip', () => {
+    const anchor = placed(T(5, 5), 2, 5);
+    const round = makeRound(['a', 'b', 'c'], {
+      unchartedSectors: [],
+      hands: {
+        a: [T(1, 3)],
+        b: [T(0, 8)],
+        c: [T(5, 9)],
+      },
+      table: {
+        ...createInitialTable(['a', 'b', 'c'], 12, 'a'),
+        warpTrails: {
+          a: {
+            playerId: 'a',
+            tiles: [placed(T(12, 2), 0, 2)],
+            distressBeacon: { active: true },
+          },
+          b: {
+            playerId: 'b',
+            tiles: [
+              placed(T(1, 12), 0, 1),
+              placed(T(1, 5), 1, 5),
+              anchor,
+            ],
+            distressBeacon: { active: true },
+          },
+          c: {
+            playerId: 'c',
+            tiles: [placed(T(12, 7), 0, 7)],
+            distressBeacon: { active: false },
+          },
+        },
+        subspaceFracture: {
+          active: true,
+          anchor,
+          stabilizers: [placed(T(3, 5), 0, 3), placed(T(0, 5), 1, 0)],
+          requiredValue: 5,
+          trailCaptainId: 'b',
+        },
+        redAlert: {
+          active: true,
+          anchor,
+          responsiblePlayerId: 'a',
+          trailPlayerId: 'b',
+        },
+      },
+    });
+
+    expect(isRoundBlocked(round)).toBe(false);
+  });
+
+  it('ignores a skipped captain stabilizer tile when detecting fracture deadlock', () => {
+    const anchor = placed(T(5, 5), 2, 5);
+    const round = makeRound(['a', 'b', 'c'], {
+      activePlayerId: 'a',
+      unchartedSectors: [],
+      hands: {
+        a: [T(1, 3)],
+        b: [T(0, 8)],
+        c: [T(5, 9)],
+      },
+      qEffects: {
+        reverseTurnOrder: false,
+        temporalInversion: false,
+        openAllTrails: false,
+        suppressNextFracture: false,
+        skipNextTurnFor: ['c'],
+        peekedSector: null,
+        salamanderSwap: false,
+        impulseEcho: false,
+      },
+      table: {
+        ...createInitialTable(['a', 'b', 'c'], 12, 'a'),
+        warpTrails: {
+          a: {
+            playerId: 'a',
+            tiles: [placed(T(12, 2), 0, 2)],
+            distressBeacon: { active: true },
+          },
+          b: {
+            playerId: 'b',
+            tiles: [
+              placed(T(1, 12), 0, 1),
+              placed(T(1, 5), 1, 5),
+              anchor,
+            ],
+            distressBeacon: { active: true },
+          },
+          c: {
+            playerId: 'c',
+            tiles: [placed(T(12, 7), 0, 7)],
+            distressBeacon: { active: false },
+          },
+        },
+        subspaceFracture: {
+          active: true,
+          anchor,
+          stabilizers: [placed(T(3, 5), 0, 3), placed(T(0, 5), 1, 0)],
+          requiredValue: 5,
+          trailCaptainId: 'b',
+        },
+        redAlert: {
+          active: true,
+          anchor,
+          responsiblePlayerId: 'a',
+          trailPlayerId: 'b',
+        },
+      },
+    });
+
+    expect(isRoundBlocked(round)).toBe(true);
+  });
+
+  it('ends the sector after pass Red Alert when only a skipped captain holds the stabilizer pip', () => {
+    const anchor = placed(T(8, 8), 1, 8);
+    let state = makeGame(
+      makeRound(['a', 'b', 'c', 'd'], {
+        activePlayerId: 'b',
+        unchartedSectors: [],
+        hands: {
+          a: [T(3, 8)],
+          b: [T(1, 3)],
+          c: [T(4, 5)],
+          d: [T(6, 7)],
+        },
+        qEffects: {
+          reverseTurnOrder: false,
+          temporalInversion: false,
+          openAllTrails: false,
+          suppressNextFracture: false,
+          skipNextTurnFor: ['a'],
+          peekedSector: null,
+          salamanderSwap: false,
+          impulseEcho: false,
+        },
+        table: {
+          ...createInitialTable(['a', 'b', 'c', 'd'], 12, 'a'),
+          warpTrails: {
+            a: {
+              playerId: 'a',
+              tiles: [placed(T(11, 12), 0, 11)],
+              distressBeacon: { active: true },
+            },
+            b: {
+              playerId: 'b',
+              tiles: [placed(T(11, 1), 0, 1), anchor],
+              distressBeacon: { active: false },
+            },
+            c: {
+              playerId: 'c',
+              tiles: [placed(T(11, 4), 0, 4)],
+              distressBeacon: { active: true },
+            },
+            d: {
+              playerId: 'd',
+              tiles: [placed(T(11, 6), 0, 6)],
+              distressBeacon: { active: true },
+            },
+          },
+          subspaceFracture: {
+            active: true,
+            anchor,
+            stabilizers: [placed(T(6, 8), 0, 6)],
+            requiredValue: 8,
+            trailCaptainId: 'b',
+          },
+          redAlert: {
+            active: true,
+            anchor,
+            responsiblePlayerId: 'b',
+            trailPlayerId: 'b',
+          },
+        },
+      }),
+      { modules: resolveModules({ subspaceFracture: true }) }
+    );
+
+    const pass = applyAction(state, {
+      type: 'PASS_RED_ALERT',
+      playerId: 'b',
+    });
+    expect(pass.ok).toBe(true);
+    if (!pass.ok) return;
+
+    expect(pass.state.round?.phase).toBe('ended');
+    expect(pass.state.round?.roundBlocked).toBe(true);
+  });
+
+  it('does not block a fracture while Uncharted Sectors remain', () => {
+    const anchor = placed(T(5, 5), 2, 5);
+    const round = makeRound(['a', 'b'], {
+      unchartedSectors: [T(5, 9)],
+      hands: { a: [T(1, 3)], b: [T(0, 8)] },
+      table: {
+        ...createInitialTable(['a', 'b'], 12, 'a'),
+        warpTrails: {
+          a: {
+            playerId: 'a',
+            tiles: [placed(T(12, 2), 0, 2)],
+            distressBeacon: { active: true },
+          },
+          b: {
+            playerId: 'b',
+            tiles: [placed(T(1, 12), 0, 1), placed(T(1, 5), 1, 5), anchor],
+            distressBeacon: { active: true },
+          },
+        },
+        subspaceFracture: {
+          active: true,
+          anchor,
+          stabilizers: [placed(T(3, 5), 0, 3), placed(T(0, 5), 1, 0)],
+          requiredValue: 5,
+          trailCaptainId: 'b',
+        },
+        redAlert: {
+          active: true,
+          anchor,
+          responsiblePlayerId: 'a',
+          trailPlayerId: 'b',
+        },
+      },
+    });
+
+    expect(isRoundBlocked(round)).toBe(false);
+  });
+
+  it('ends the sector after pass Red Alert when the fracture cannot be stabilized', () => {
+    const anchor = placed(T(5, 5), 2, 5);
+    let state = makeGame(
+      makeRound(['a', 'b', 'c'], {
+        activePlayerId: 'a',
+        unchartedSectors: [],
+        hands: {
+          a: [T(1, 3)],
+          b: [T(0, 8)],
+          c: [T(2, 7)],
+        },
+        table: {
+          ...createInitialTable(['a', 'b', 'c'], 12, 'a'),
+          warpTrails: {
+            a: {
+              playerId: 'a',
+              tiles: [placed(T(12, 2), 0, 2)],
+              distressBeacon: { active: true },
+            },
+            b: {
+              playerId: 'b',
+              tiles: [
+                placed(T(1, 12), 0, 1),
+                placed(T(1, 5), 1, 5),
+                anchor,
+              ],
+              distressBeacon: { active: true },
+            },
+            c: {
+              playerId: 'c',
+              tiles: [placed(T(12, 7), 0, 7)],
+              distressBeacon: { active: false },
+            },
+          },
+          subspaceFracture: {
+            active: true,
+            anchor,
+            stabilizers: [placed(T(3, 5), 0, 3), placed(T(0, 5), 1, 0)],
+            requiredValue: 5,
+            trailCaptainId: 'b',
+          },
+          redAlert: {
+            active: true,
+            anchor,
+            responsiblePlayerId: 'a',
+            trailPlayerId: 'b',
+          },
+        },
+      }),
+      { modules: resolveModules({ subspaceFracture: true }) }
+    );
+
+    const pass = applyAction(state, {
+      type: 'PASS_RED_ALERT',
+      playerId: 'a',
+    });
+    expect(pass.ok).toBe(true);
+    if (!pass.ok) return;
+
+    expect(pass.state.round?.phase).toBe('ended');
+    expect(pass.state.round?.roundBlocked).toBe(true);
+    expect(pass.state.round?.roundWinnerId).toBe(null);
   });
 
   it('scores every captain on a blocked sector', () => {
@@ -428,18 +974,18 @@ describe('mandatory play after drawing', () => {
     expect(getLegalMoves(draw.state.round!, 'a')).toHaveLength(1);
   });
 
-  it('rejects FORFEIT_IMPULSE when Uncharted Sectors are empty', () => {
+  it('rejects RETURN_TO_WARP when Uncharted Sectors are empty', () => {
     const state = makeGame(
       makeRound(['a', 'b'], {
         activePlayerId: 'a',
         unchartedSectors: [],
-        treatyDeclarationRequired: true,
+        dropToImpulseRequired: true,
         roundWinnerId: 'a',
       })
     );
 
     const result = applyAction(state, {
-      type: 'FORFEIT_IMPULSE',
+      type: 'RETURN_TO_WARP',
       playerId: 'a',
     });
     expect(result.ok).toBe(false);
@@ -448,8 +994,8 @@ describe('mandatory play after drawing', () => {
   });
 });
 
-describe('dropping to impulse (treaty / penalty)', () => {
-  it('requires DECLARE_TREATY after a Neutral Zone win', () => {
+describe('dropping to impulse', () => {
+  it('requires DROP_TO_IMPULSE after a Neutral Zone win', () => {
     const state = makeGame(
       makeRound(['a', 'b'], {
         activePlayerId: 'a',
@@ -473,56 +1019,89 @@ describe('dropping to impulse (treaty / penalty)', () => {
     if (!win.ok) return;
 
     expect(win.state.round?.roundWinnerId).toBe('a');
-    expect(win.state.round?.treatyDeclarationRequired).toBe(true);
+    expect(win.state.round?.dropToImpulseRequired).toBe(true);
     expect(win.state.round?.phase).toBe('playing');
   });
 
-  it('FORFEIT_IMPULSE draws a penalty tile and resumes play without ending the sector', () => {
+  it('RETURN_TO_WARP draws a penalty tile and resumes play without ending the sector', () => {
     let state = makeGame(
       makeRound(['a', 'b'], {
         activePlayerId: 'a',
         hands: { a: [], b: [T(1, 2)] },
         unchartedSectors: [T(3, 4), T(5, 6)],
-        treatyDeclarationRequired: true,
-        treatyDeclared: false,
+        dropToImpulseRequired: true,
+        dropToImpulseDeclared: false,
         roundWinnerId: 'a',
       })
     );
 
-    const forfeit = applyAction(state, {
-      type: 'FORFEIT_IMPULSE',
+    const returnToWarp = applyAction(state, {
+      type: 'RETURN_TO_WARP',
       playerId: 'a',
     });
-    expect(forfeit.ok).toBe(true);
-    if (!forfeit.ok) return;
+    expect(returnToWarp.ok).toBe(true);
+    if (!returnToWarp.ok) return;
 
-    expect(forfeit.state.round?.roundWinnerId).toBeNull();
-    expect(forfeit.state.round?.treatyDeclarationRequired).toBe(false);
-    expect(forfeit.state.round?.phase).toBe('playing');
-    expect(forfeit.state.round?.hands.a).toHaveLength(1);
-    expect(forfeit.state.round?.unchartedSectors).toHaveLength(1);
-    expect(forfeit.state.round?.activePlayerId).toBe('b');
+    expect(returnToWarp.state.round?.roundWinnerId).toBeNull();
+    expect(returnToWarp.state.round?.dropToImpulseRequired).toBe(false);
+    expect(returnToWarp.state.round?.phase).toBe('playing');
+    expect(returnToWarp.state.round?.hands.a).toHaveLength(1);
+    expect(returnToWarp.state.round?.unchartedSectors).toHaveLength(1);
+    expect(returnToWarp.state.round?.activePlayerId).toBe('b');
   });
 
-  it('DECLARE_TREATY closes the sector after a Neutral Zone win', () => {
+  it('DROP_TO_IMPULSE closes the sector after a Neutral Zone win', () => {
     const state = makeGame(
       makeRound(['a', 'b'], {
         activePlayerId: 'a',
         hands: { a: [], b: [T(1, 2)] },
-        treatyDeclarationRequired: true,
-        treatyDeclared: false,
+        dropToImpulseRequired: true,
+        dropToImpulseDeclared: false,
         roundWinnerId: 'a',
       })
     );
 
-    const treaty = applyAction(state, {
-      type: 'DECLARE_TREATY',
+    const dropResult = applyAction(state, {
+      type: 'DROP_TO_IMPULSE',
       playerId: 'a',
     });
-    expect(treaty.ok).toBe(true);
-    if (!treaty.ok) return;
-    expect(treaty.state.round?.phase).toBe('ended');
-    expect(treaty.state.round?.treatyDeclared).toBe(true);
+    expect(dropResult.ok).toBe(true);
+    if (!dropResult.ok) return;
+    expect(dropResult.state.round?.phase).toBe('ended');
+    expect(dropResult.state.round?.dropToImpulseDeclared).toBe(true);
+  });
+
+  it('requires DROP_TO_IMPULSE after a warp-trail win when Impulse echo is active', () => {
+    const state = makeGame(
+      makeRound(['a', 'b'], {
+        activePlayerId: 'a',
+        hands: { a: [T(5, 12)], b: [T(1, 2)] },
+        qEffects: {
+          reverseTurnOrder: false,
+          temporalInversion: false,
+          openAllTrails: false,
+          suppressNextFracture: false,
+          skipNextTurnFor: [],
+          peekedSector: null,
+          salamanderSwap: false,
+          impulseEcho: true,
+        },
+        table: createInitialTable(['a', 'b'], 12, 'a'),
+      })
+    );
+
+    const win = applyAction(state, {
+      type: 'CHART_COORDINATE',
+      playerId: 'a',
+      coordinate: T(5, 12),
+      route: { kind: 'warp-trail', playerId: 'a' },
+    });
+    expect(win.ok).toBe(true);
+    if (!win.ok) return;
+
+    expect(win.state.round?.roundWinnerId).toBe('a');
+    expect(win.state.round?.dropToImpulseRequired).toBe(true);
+    expect(win.state.round?.phase).toBe('playing');
   });
 });
 

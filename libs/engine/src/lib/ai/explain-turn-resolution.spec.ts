@@ -105,4 +105,95 @@ describe('explainTurnResolution', () => {
       'Pass is legal'
     );
   });
+
+  it('requires stabilizers while subspace fracture is active', () => {
+    const anchor = {
+      coordinate: { low: 9, high: 9 },
+      index: 1,
+      openValue: 9,
+    };
+    const state = makeGame(
+      makeRound(['laforge'], {
+        activePlayerId: 'laforge',
+        hands: { laforge: [{ low: 4, high: 9 }] },
+        table: {
+          spacedock: { value: 12, placedBy: 'laforge' },
+          warpTrails: {
+            laforge: {
+              playerId: 'laforge',
+              tiles: [anchor],
+              distressBeacon: { active: false },
+            },
+          },
+          neutralZone: { tiles: [] },
+          subspaceFracture: {
+            active: true,
+            anchor,
+            stabilizers: [],
+            requiredValue: 9,
+          },
+          redAlert: {
+            active: true,
+            anchor,
+            responsiblePlayerId: 'laforge',
+            trailPlayerId: 'laforge',
+          },
+        },
+      })
+    );
+
+    expect(explainTurnResolution(state, 'laforge')[0]).toContain(
+      'third stabilizer clears the fracture and Red Alert'
+    );
+  });
+
+  it('explains draw while fracture is active without a stabilizer in hand', () => {
+    const anchor = {
+      coordinate: { low: 9, high: 9 },
+      index: 1,
+      openValue: 9,
+    };
+    const state = makeGame(
+      makeRound(['laforge'], {
+        activePlayerId: 'laforge',
+        hands: { laforge: [{ low: 0, high: 1 }] },
+        unchartedSectors: [{ low: 2, high: 9 }],
+        table: {
+          spacedock: { value: 12, placedBy: 'laforge' },
+          warpTrails: {
+            laforge: {
+              playerId: 'laforge',
+              tiles: [anchor],
+              distressBeacon: { active: false },
+            },
+          },
+          neutralZone: { tiles: [] },
+          subspaceFracture: {
+            active: true,
+            anchor,
+            stabilizers: [
+              {
+                coordinate: { low: 4, high: 9 },
+                index: 0,
+                openValue: 4,
+              },
+            ],
+            requiredValue: 9,
+          },
+          redAlert: {
+            active: true,
+            anchor,
+            responsiblePlayerId: 'laforge',
+            trailPlayerId: 'laforge',
+          },
+        },
+      })
+    );
+
+    const lines = explainTurnResolution(state, 'laforge');
+    expect(lines[0]).toContain('no stabilizer in your hand');
+    expect(lines.some((line) => line.includes('separate cover tile is not used'))).toBe(
+      true
+    );
+  });
 });

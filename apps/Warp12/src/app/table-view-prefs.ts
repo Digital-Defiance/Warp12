@@ -12,6 +12,7 @@ export interface TableOptionsPrefs {
   autoFollowAction: boolean;
   captainTailsHud: boolean;
   captainTailsDisplay: CaptainTailsDisplay;
+  turnBeepsEnabled: boolean;
 }
 
 const STORAGE_KEY = 'warp12-table-options';
@@ -21,12 +22,13 @@ const LEGACY_CAPTAIN_TAILS_DISPLAY_KEY = 'warp12-captain-tails-display';
 export const DEFAULT_TABLE_OPTIONS: TableOptionsPrefs = {
   layoutStyle: 'offset',
   tileBg: 'dark',
-  holographicTiles: false,
+  holographicTiles: true,
   pipPreset: 'classic',
   teachingMode: false,
   autoFollowAction: false,
   captainTailsHud: false,
   captainTailsDisplay: 'number',
+  turnBeepsEnabled: false,
 };
 
 const PIP_PRESETS = new Set<WarpPipPreset>([
@@ -91,6 +93,9 @@ function sanitizePartial(raw: unknown): Partial<TableOptionsPrefs> {
   }
   if (value.captainTailsDisplay === 'number' || value.captainTailsDisplay === 'domino') {
     next.captainTailsDisplay = value.captainTailsDisplay;
+  }
+  if (typeof value.turnBeepsEnabled === 'boolean') {
+    next.turnBeepsEnabled = value.turnBeepsEnabled;
   }
 
   return next;

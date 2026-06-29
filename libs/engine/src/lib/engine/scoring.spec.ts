@@ -7,7 +7,10 @@ import {
   createRoundStateFromDeal,
   dealRoundFromShuffled,
 } from '../setup/create-game.js';
-import { generateCoordinateSet } from '../domino/coordinates.js';
+import {
+  generateCoordinateSet,
+  shuffleCoordinates,
+} from '../domino/coordinates.js';
 
 describe('handPenaltyPoints', () => {
   it('sums pip values for tiles in hand', () => {
@@ -65,6 +68,25 @@ describe('scoreRound', () => {
     expect(result.ok).toBe(false);
   });
 
+  it('ends a short penalty campaign after the configured round count', () => {
+    const round = endBlockedRound(
+      makeRound(['a', 'b'], {
+        roundNumber: 5,
+        spacedockValue: 8,
+        hands: { a: [T(2, 3)], b: [T(4, 5)] },
+      })
+    );
+    const state = makeGame(round, { completedRounds: 4, campaignRounds: 5 });
+
+    const result = scoreRound(state, round);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.state.phase).toBe('complete');
+    expect(result.state.completedRounds).toBe(5);
+    expect(result.state.round?.roundNumber).toBe(5);
+  });
+
   it('advances to the next campaign round with a fresh deal', () => {
     const deal = dealRoundFromShuffled({
       roundNumber: 1,
@@ -93,5 +115,27 @@ describe('scoreRound', () => {
     expect(result.state.captains.find((c) => c.id === 'b')?.penaltyScore).toBeGreaterThan(
       0
     );
+  });
+
+  it('deals ten Uncharted Sectors for eight captains', () => {
+    const captainIds = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
+    const captains = captainIds.map((id) => ({
+      id,
+      displayName: id,
+      penaltyScore: 0,
+    }));
+    const deal = dealRoundFromShuffled({
+      roundNumber: 3,
+      captains,
+      turnOrder: [...captainIds],
+      shuffledCoordinates: shuffleCoordinates(generateCoordinateSet(12), () => 0.42),
+    });
+
+    expect(deal.unchartedSectors).toHaveLength(10);
+    const dealtTiles = [
+      ...deal.unchartedSectors,
+      ...Object.values(deal.hands).flat(),
+    ];
+    expect(dealtTiles).toHaveLength(90);
   });
 });

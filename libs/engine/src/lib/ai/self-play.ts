@@ -134,8 +134,8 @@ export function playSelfPlayGame(
             ...round,
             phase: 'ended',
             roundWinnerId: blockedRoundWinner(round, state),
-            treatyDeclared: true,
-            treatyDeclarationRequired: false,
+            dropToImpulseDeclared: true,
+            dropToImpulseRequired: false,
           },
         };
         stallGuard = 0;

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { applyAction } from './apply-action.js';
+import { advanceToNextPlayer } from './q-continuum.js';
 import { scoreRound } from './scoring.js';
 import {
   createLobbyState,
@@ -43,6 +44,56 @@ function gameWithQContinuum(seed = 42) {
     { shuffledCoordinates: shuffled }
   );
 }
+
+import { makeRound } from './test-helpers.js';
+
+describe('skip-lowest-penalty', () => {
+  it('consumes the skip when helm passes over the sidelined captain', () => {
+    const round = makeRound(['a', 'b', 'c'], {
+      activePlayerId: 'a',
+      qEffects: {
+        reverseTurnOrder: false,
+        temporalInversion: false,
+        openAllTrails: false,
+        suppressNextFracture: false,
+        skipNextTurnFor: ['b'],
+        peekedSector: null,
+        salamanderSwap: false,
+        impulseEcho: false,
+      },
+    });
+
+    const { nextId, qEffects } = advanceToNextPlayer(round, 'a');
+    expect(nextId).toBe('c');
+    expect(qEffects?.skipNextTurnFor).toEqual([]);
+  });
+
+  it('includes a sidelined captain on the next helm pass after their skip is consumed', () => {
+    const round = makeRound(['a', 'b', 'c', 'd'], {
+      activePlayerId: 'd',
+      qEffects: {
+        reverseTurnOrder: false,
+        temporalInversion: false,
+        openAllTrails: false,
+        suppressNextFracture: false,
+        skipNextTurnFor: ['a'],
+        peekedSector: null,
+        salamanderSwap: false,
+        impulseEcho: false,
+      },
+    });
+
+    const passedOver = advanceToNextPlayer(round, 'd');
+    expect(passedOver.nextId).toBe('b');
+    expect(passedOver.qEffects?.skipNextTurnFor).toEqual([]);
+
+    const afterSkip = advanceToNextPlayer(
+      { ...round, qEffects: passedOver.qEffects },
+      'd'
+    );
+    expect(afterSkip.nextId).toBe('a');
+  });
+});
 
 describe('Q-Continuum', () => {
   it('requires a Q-Flash after charting 0-0', () => {

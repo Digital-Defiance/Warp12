@@ -9,6 +9,7 @@ const SOUND_URLS: Record<GameSound, string> = {
 };
 
 const audioCache = new Map<GameSound, HTMLAudioElement>();
+const turnBeepCache = new Map<string, HTMLAudioElement>();
 let audioUnlocked = false;
 
 export function readStoredGameSoundsMuted(): boolean {
@@ -45,6 +46,10 @@ function stopGameSounds(): void {
     clip.pause();
     clip.currentTime = 0;
   }
+  for (const clip of turnBeepCache.values()) {
+    clip.pause();
+    clip.currentTime = 0;
+  }
 }
 
 function audioFor(sound: GameSound): HTMLAudioElement {
@@ -69,11 +74,34 @@ export function unlockGameAudio(): void {
   }
 }
 
+export function stopGameSound(sound: GameSound): void {
+  const clip = audioCache.get(sound);
+  if (!clip) {
+    return;
+  }
+  clip.pause();
+  clip.currentTime = 0;
+}
+
 export function playGameSound(sound: GameSound): void {
   if (!audioUnlocked || soundsMuted) {
     return;
   }
   const clip = audioFor(sound);
+  clip.currentTime = 0;
+  void clip.play().catch(() => undefined);
+}
+
+export function playTurnBeep(url: string): void {
+  if (!audioUnlocked || soundsMuted) {
+    return;
+  }
+  let clip = turnBeepCache.get(url);
+  if (!clip) {
+    clip = new Audio(url);
+    clip.preload = 'auto';
+    turnBeepCache.set(url, clip);
+  }
   clip.currentTime = 0;
   void clip.play().catch(() => undefined);
 }

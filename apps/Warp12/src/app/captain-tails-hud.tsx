@@ -91,69 +91,82 @@ export function buildCaptainTailRows(
   );
 }
 
+export function resolveTailEnds(
+  lastTile: PlacedCoordinate | null,
+  spacedockValue: number
+): { anchor: number; tail: number } {
+  if (lastTile) {
+    const { coordinate, openValue } = lastTile;
+    const anchor =
+      coordinate.low === openValue ? coordinate.high : coordinate.low;
+    return { anchor, tail: openValue };
+  }
+  return { anchor: spacedockValue, tail: spacedockValue };
+}
+
 export function formatTailCoordinate(
   lastTile: PlacedCoordinate | null,
   spacedockValue: number
 ): string {
-  if (lastTile) {
-    const { low, high } = lastTile.coordinate;
-    return `${low}:${high}`;
-  }
-  return `${spacedockValue}:${spacedockValue}`;
+  const { anchor, tail } = resolveTailEnds(lastTile, spacedockValue);
+  return `${anchor}:${tail}`;
 }
 
 export function tailTileDisplayValues(last: PlacedCoordinate): {
-  top: number;
-  bottom: number;
+  left: number;
+  right: number;
 } {
-  const { coordinate, openValue } = last;
-  const closedEnd =
-    coordinate.low === openValue ? coordinate.high : coordinate.low;
-  return { top: closedEnd, bottom: openValue };
+  const { anchor, tail } = resolveTailEnds(last, 0);
+  return { left: anchor, right: tail };
 }
 
-function TailReadout({
-  row,
-  display,
+function TailCoordinateText({
+  anchor,
+  tail,
+  className,
+  title,
+  compact = false,
+}: {
+  anchor: number;
+  tail: number;
+  className?: string;
+  title?: string;
+  compact?: boolean;
+}) {
+  return (
+    <span
+      className={compact ? styles.coordinateInline : className}
+      title={title ?? `${anchor}:${tail}`}
+    >
+      <span className={styles.coordinateAnchor}>{anchor}</span>
+      <span className={styles.coordinateColon}>:</span>
+      <span className={styles.coordinateTail}>{tail}</span>
+    </span>
+  );
+}
+
+function TailDomino({
+  anchor,
+  tail,
   tileBg,
 }: {
-  row: TailRow;
-  display: CaptainTailsDisplay;
+  anchor: number;
+  tail: number;
   tileBg: WarpTileBg;
 }) {
   const tileSurface = WARP_TILE_SURFACE[tileBg];
-  const coordinateLabel = formatTailCoordinate(row.lastTile, row.connectValue);
-
-  if (display === 'domino' && row.lastTile) {
-    const { top, bottom } = tailTileDisplayValues(row.lastTile);
-    return (
-      <span className={styles.tailReadout}>
-        <span className={styles.dominoWrap} aria-hidden>
-          <DoubleTwelve
-            value1={top}
-            value2={bottom}
-            width={22}
-            height={44}
-            backgroundColor={tileSurface.fill}
-            borderColor={tileSurface.border}
-            pipColors={WARP_PIP_COLORS}
-          />
-        </span>
-        <span className={styles.coordinate}>{coordinateLabel}</span>
-      </span>
-    );
-  }
-
   return (
-    <span
-      className={styles.coordinate}
-      title={
-        row.lastTile
-          ? `Tail ${coordinateLabel} · open ${row.connectValue}`
-          : `Spacedock ${coordinateLabel} · open ${row.connectValue}`
-      }
-    >
-      {coordinateLabel}
+    <span className={styles.dominoWrap} aria-hidden>
+      <DoubleTwelve
+        value1={anchor}
+        value2={tail}
+        width={22}
+        height={44}
+        rotation={-90}
+        backgroundColor={tileSurface.fill}
+        borderColor={tileSurface.border}
+        pipColors={WARP_PIP_COLORS}
+      />
     </span>
   );
 }
@@ -181,22 +194,42 @@ export function CaptainTailsHud({
       accent="cyan"
     >
       <ul className={styles.list} aria-label="Trail tails">
-        {rows.map((row) => (
-          <li
-            key={row.rowId}
-            className={styles.row}
-            data-active={row.isActive ? 'true' : undefined}
-            data-state={row.state}
-          >
-            <span className={styles.name}>{row.label}</span>
-            <TailReadout row={row} display={display} tileBg={tileBg} />
-          </li>
-        ))}
+        {rows.map((row) => {
+          const { anchor, tail } = resolveTailEnds(
+            row.lastTile,
+            row.connectValue
+          );
+          const coordinateTitle = row.lastTile
+            ? `Tail ${anchor}:${tail} · open ${row.connectValue}`
+            : `Spacedock ${anchor}:${tail} · open ${row.connectValue}`;
+
+          return (
+            <li
+              key={row.rowId}
+              className={styles.row}
+              data-display={display}
+              data-active={row.isActive ? 'true' : undefined}
+              data-state={row.state}
+            >
+              <span className={styles.name}>{row.label}</span>
+              {display === 'domino' && (
+                <TailDomino anchor={anchor} tail={tail} tileBg={tileBg} />
+              )}
+              <TailCoordinateText
+                anchor={anchor}
+                tail={tail}
+                className={styles.coordinate}
+                title={coordinateTitle}
+                compact={display === 'domino'}
+              />
+            </li>
+          );
+        })}
       </ul>
       <p className={styles.hint}>
         {display === 'domino'
           ? 'Mini tile plus coordinate · empty lines show the spacedock double.'
-          : 'Tail coordinate for each warp trail and Neutral zone (e.g. 6:12, 6:6).'}
+          : 'Tail coordinate for each warp trail and Neutral zone (e.g. 12:6 — bold tail is open).'}
       </p>
     </FloatingPanelShell>
   );

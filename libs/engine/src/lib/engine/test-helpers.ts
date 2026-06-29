@@ -6,6 +6,7 @@ import {
 } from '../types/coordinate.js';
 import type { GameState, RoundState } from '../types/game-state.js';
 import type { PlayerId } from '../types/player.js';
+import { resolveHouseRules } from '../types/house-rules.js';
 import { resolveModules } from '../types/modules.js';
 
 export const T = normalizeCoordinate;
@@ -43,13 +44,14 @@ export function emptyRoundFields(): Pick<
   | 'qPendingInvoker'
   | 'qEffects'
   | 'qGamblePending'
-  | 'treatyDeclarationRequired'
-  | 'treatyDeclared'
+  | 'dropToImpulseRequired'
+  | 'dropToImpulseDeclared'
   | 'roundWinnerId'
+  | 'roundStarterOpening'
 > {
   return {
-    treatyDeclarationRequired: false,
-    treatyDeclared: false,
+    dropToImpulseRequired: false,
+    dropToImpulseDeclared: false,
     roundWinnerId: null,
     qPendingInvoker: null,
     qEffects: null,
@@ -57,6 +59,7 @@ export function emptyRoundFields(): Pick<
     mandatoryPlay: null,
     pendingRoundWin: null,
     roundBlocked: false,
+    roundStarterOpening: null,
   };
 }
 
@@ -88,6 +91,7 @@ export function makeGame(
     id: 'test',
     phase: 'active',
     objective: 'penalty',
+    campaignRounds: 13,
     completedRounds: 0,
     captains: DEFAULT_CAPTAINS.map((c) => ({ ...c })),
     modules: resolveModules({
@@ -95,6 +99,7 @@ export function makeGame(
       salamanderPenalty: false,
       subspaceFracture: false,
     }),
+    houseRules: resolveHouseRules(),
     round,
     ...over,
   };

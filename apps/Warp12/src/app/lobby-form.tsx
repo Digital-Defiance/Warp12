@@ -1,4 +1,4 @@
-import { type GameObjective } from 'warp12-engine';
+import { DEFAULT_CAMPAIGN_ROUNDS, type GameObjective } from 'warp12-engine';
 
 import type { CreateLobbyOptions } from '../firebase';
 import { clampOnlineMaxPlayers } from '../firebase';
@@ -6,7 +6,9 @@ import {
   LOCAL_MAX_PLAYERS,
   LOCAL_MIN_PLAYERS,
 } from '../game/local-game-config.js';
-import { ObjectivePicker } from './objective-picker';
+import { CampaignRoundsField, ObjectivePicker } from './objective-picker';
+import { HouseRulesOptions } from './house-rules-options';
+import { SubspaceFractureOptions } from './subspace-fracture-options';
 import styles from './lobby.module.scss';
 
 interface LobbyProps {
@@ -40,6 +42,9 @@ export function LobbyForm({
 }: LobbyProps) {
   const setObjective = (objective: GameObjective) =>
     onCreateOptionsChange({ ...createOptions, objective });
+
+  const setCampaignRounds = (campaignRounds: number) =>
+    onCreateOptionsChange({ ...createOptions, campaignRounds });
 
   const setMaxPlayers = (maxPlayers: number) =>
     onCreateOptionsChange({
@@ -91,6 +96,16 @@ export function LobbyForm({
         onChange={setObjective}
       />
 
+      {(createOptions.objective ?? 'go-out') === 'penalty' && (
+        <fieldset className={styles.fieldset}>
+          <legend>Campaign length</legend>
+          <CampaignRoundsField
+            value={createOptions.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS}
+            onChange={setCampaignRounds}
+          />
+        </fieldset>
+      )}
+
       <fieldset className={styles.fieldset}>
         <legend>Host sector settings</legend>
         <label className={styles.field}>
@@ -134,16 +149,23 @@ export function LobbyForm({
 
       <fieldset className={styles.fieldset}>
         <legend>Game options</legend>
-        <label className={styles.checkboxRow}>
-          <input
-            type="checkbox"
-            checked={createOptions.modules?.subspaceFracture ?? false}
-            onChange={(e) =>
-              setModules({ subspaceFracture: e.target.checked })
-            }
-          />
-          <span>Subspace Fracture (chicken foot on doubles)</span>
-        </label>
+        <SubspaceFractureOptions
+          enabled={createOptions.modules?.subspaceFracture ?? false}
+          scope={createOptions.modules?.subspaceFractureScope ?? 'own-trail'}
+          onEnabledChange={(enabled) => setModules({ subspaceFracture: enabled })}
+          onScopeChange={(scope) =>
+            setModules({ subspaceFractureScope: scope })
+          }
+        />
+        <HouseRulesOptions
+          value={createOptions.houseRules ?? {}}
+          onChange={(patch) =>
+            onCreateOptionsChange({
+              ...createOptions,
+              houseRules: { ...createOptions.houseRules, ...patch },
+            })
+          }
+        />
       </fieldset>
 
       <label className={styles.field}>

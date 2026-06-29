@@ -22,7 +22,7 @@ describe('Q-Flash scope and winning 0-0', () => {
         modules: {
           qContinuum: { enabled: true, activeFlash: null },
           salamanderPenalty: { enabled: false },
-          subspaceFracture: { enabled: false },
+          subspaceFracture: { enabled: false, scope: 'own-trail' },
         },
       }
     );
@@ -37,7 +37,9 @@ describe('Q-Flash scope and winning 0-0', () => {
     expect(chart.ok).toBe(true);
     if (!chart.ok) return;
     expect(chart.state.round?.qPendingInvoker).toBeNull();
-    expect(chart.state.round?.roundWinnerId).toBe('a');
+    expect(chart.state.round?.roundWinnerId).toBeNull();
+    expect(chart.state.round?.table.redAlert?.active).toBe(true);
+    expect(chart.state.round?.phase).toBe('playing');
   });
 
   it('defers a winning 0-0 on an own trail until Q-Flash resolves', () => {
@@ -55,7 +57,7 @@ describe('Q-Flash scope and winning 0-0', () => {
         modules: {
           qContinuum: { enabled: true, activeFlash: null },
           salamanderPenalty: { enabled: false },
-          subspaceFracture: { enabled: false },
+          subspaceFracture: { enabled: false, scope: 'own-trail' },
         },
       }
     );
@@ -112,7 +114,7 @@ describe('Q-Flash scope and winning 0-0', () => {
         modules: {
           qContinuum: { enabled: true, activeFlash: null },
           salamanderPenalty: { enabled: false },
-          subspaceFracture: { enabled: false },
+          subspaceFracture: { enabled: false, scope: 'own-trail' },
         },
       }
     );

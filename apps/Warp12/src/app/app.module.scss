@@ -8,7 +8,7 @@
 
 .header {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   padding: 1.25rem 2rem 0.85rem;
@@ -19,7 +19,7 @@
 
 .headerStart {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 1.25rem;
   min-width: 0;
   flex: 1;
@@ -30,12 +30,43 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 0.5rem;
-  padding-bottom: 0.1rem;
+}
+
+.headerStatus {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.85rem;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.headerSector,
+.headerConnection {
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.72rem;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.headerSector {
+  color: var(--warp-text-muted, #94a3b8);
+}
+
+.headerConnection {
+  color: #fbbf24;
+
+  &[data-live='true'] {
+    color: #34d399;
+  }
 }
 
 .headerActionBtn {
   font-family: var(--font-federation, system-ui);
   font-size: 0.72rem;
+  line-height: 1;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--warp-text, #e2e8f0);
@@ -54,7 +85,7 @@
 
 .logo {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 1rem;
   text-decoration: none;
   color: inherit;
@@ -70,6 +101,7 @@
 .navLink {
   font-family: var(--font-federation, system-ui);
   font-size: 0.78rem;
+  line-height: 1;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--warp-text-muted, #94a3b8);
@@ -144,12 +176,19 @@
     width: auto;
   }
 
-  .headerGameActions {
-    padding-bottom: 0;
-  }
-
   .headerActionBtn {
     font-size: 0.68rem;
+    line-height: 1;
+    padding: 0.35rem 0.55rem;
+  }
+
+  .headerSector,
+  .headerConnection {
+    font-size: 0.64rem;
+  }
+
+  .navLink {
+    font-size: 0.64rem;
     padding: 0.35rem 0.55rem;
   }
 }

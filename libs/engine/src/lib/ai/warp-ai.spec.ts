@@ -16,6 +16,7 @@ import {
 import type { ChartRoute } from '../types/actions.js';
 import type { GameState, RoundState, TableState } from '../types/game-state.js';
 import { DEFAULT_MODULES, resolveModules } from '../types/modules.js';
+import { DEFAULT_HOUSE_RULES } from '../types/house-rules.js';
 import { DEFAULT_GAME_OBJECTIVE, type GameObjective } from '../types/objective.js';
 
 import { createWarpAiPlayer, type WarpAiPlayer } from './create-warp-ai.js';
@@ -63,12 +64,16 @@ function makeRound(over: Partial<RoundState>): RoundState {
     table: createInitialTable([...TURN], spacedockValue, 'a'),
     unchartedSectors: [],
     hands: { a: [], b: [] },
-    treatyDeclarationRequired: false,
-    treatyDeclared: false,
+    dropToImpulseRequired: false,
+    dropToImpulseDeclared: false,
     roundWinnerId: null,
     qPendingInvoker: null,
     qEffects: null,
     qGamblePending: null,
+    mandatoryPlay: null,
+    pendingRoundWin: null,
+    roundBlocked: false,
+    roundStarterOpening: null,
   };
   return { ...base, ...over };
 }
@@ -103,7 +108,15 @@ function obsFor(
   modules = DEFAULT_MODULES,
   objective: GameObjective = 'penalty'
 ): WarpAiObservation {
-  return { round, playerId: 'a', modules, objective, captains: TEST_CAPTAINS };
+  return {
+    round,
+    playerId: 'a',
+    modules,
+    houseRules: DEFAULT_HOUSE_RULES,
+    objective,
+    campaignRounds: 13,
+    captains: TEST_CAPTAINS,
+  };
 }
 
 function routeKey(route: ChartRoute): string {
@@ -210,15 +223,15 @@ describe('warpCandidateGenerator', () => {
     ]);
   });
 
-  it('forces the round winner to declare a required treaty', () => {
+  it('forces the round winner to drop to impulse when required', () => {
     const round = makeRound({
       hands: { a: [N(1, 2)], b: [] },
-      treatyDeclarationRequired: true,
-      treatyDeclared: false,
+      dropToImpulseRequired: true,
+      dropToImpulseDeclared: false,
       roundWinnerId: 'a',
     });
     expect(warpCandidateGenerator(obsFor(round))).toEqual([
-      { kind: 'declare-treaty' },
+      { kind: 'drop-to-impulse' },
     ]);
   });
 });
@@ -245,8 +258,8 @@ describe('toGameAction', () => {
       type: 'PASS_RED_ALERT',
       playerId: 'a',
     });
-    expect(toGameAction({ kind: 'declare-treaty' }, 'a')).toEqual({
-      type: 'DECLARE_TREATY',
+    expect(toGameAction({ kind: 'drop-to-impulse' }, 'a')).toEqual({
+      type: 'DROP_TO_IMPULSE',
       playerId: 'a',
     });
   });
@@ -377,17 +390,17 @@ describe('createWarpAiPlayer — RULES.md tactics', () => {
 });
 
 describe('createWarpAiPlayer — control flow & determinism', () => {
-  it('declares a treaty through decideGameAction when obligated', () => {
+  it('drops to impulse through decideGameAction when obligated', () => {
     const round = makeRound({
       hands: { a: [N(1, 2)], b: [] },
-      treatyDeclarationRequired: true,
+      dropToImpulseRequired: true,
       roundWinnerId: 'a',
     });
     const player = createWarpAiPlayer({
       skill: getWarpSkillProfile('advanced'),
       rng: mulberry32(1),
     });
-    expect(player.decide(obsFor(round)).kind).toBe('declare-treaty');
+    expect(player.decide(obsFor(round)).kind).toBe('drop-to-impulse');
   });
 
   it('decideGameAction returns null when there is no active round', () => {

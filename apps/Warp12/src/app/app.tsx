@@ -6,6 +6,10 @@ import {
   BridgeHeaderActionsProvider,
   useBridgeHeaderActions,
 } from './bridge-header-actions-context';
+import {
+  BridgeHeaderStatusProvider,
+  useBridgeHeaderStatus,
+} from './bridge-header-status-context';
 import { GameAudioProvider } from './game-audio-context';
 import { preservesGameSession } from './game-route';
 import { LocalGamePage } from './local-game-page';
@@ -23,6 +27,7 @@ function AppShell() {
   const { focus, tableSessionActive } = useBridgeFocus();
   const layoutFocus = focus && tableSessionActive;
   const { actions: headerActions, invokeAction } = useBridgeHeaderActions();
+  const { headerStatus } = useBridgeHeaderStatus();
   const location = useLocation();
   const overlayDocs = preservesGameSession(location.pathname);
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -59,6 +64,21 @@ function AppShell() {
                   {action.label}
                 </button>
               ))}
+            </div>
+          )}
+          {headerStatus && (
+            <div className={styles.headerStatus} role="status">
+              {headerStatus.sectorLabel ? (
+                <span className={styles.headerSector}>
+                  {headerStatus.sectorLabel}
+                </span>
+              ) : null}
+              <span
+                className={styles.headerConnection}
+                data-live={headerStatus.connectionLive ? 'true' : undefined}
+              >
+                {headerStatus.connectionLabel}
+              </span>
             </div>
           )}
         </div>
@@ -118,7 +138,9 @@ export function App() {
     <GameAudioProvider>
       <BridgeFocusProvider>
         <BridgeHeaderActionsProvider>
-          <AppShell />
+          <BridgeHeaderStatusProvider>
+            <AppShell />
+          </BridgeHeaderStatusProvider>
         </BridgeHeaderActionsProvider>
       </BridgeFocusProvider>
     </GameAudioProvider>

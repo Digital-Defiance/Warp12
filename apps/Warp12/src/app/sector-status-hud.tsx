@@ -1,4 +1,4 @@
-import { GAME_OBJECTIVE_LABELS, type GameState, type RoundState } from 'warp12-engine';
+import { GAME_OBJECTIVE_LABELS, formatCampaignRoundProgress, type GameState, type RoundState } from 'warp12-engine';
 import type { RefObject } from 'react';
 import { ActiveQFlashBanner, PeekedSectorBanner } from './q-flash-panel';
 import { FloatingPanelShell } from './floating-panel-shell';
@@ -17,6 +17,7 @@ export interface SectorStatusHudProps {
   isMyTurn: boolean;
   activePlayerIsAi: boolean;
   isOnline: boolean;
+  isOnlineHost: boolean;
   syncPending: boolean;
   roundAwaitingScore: boolean;
   roundEndSummaryOpen: boolean;
@@ -30,7 +31,20 @@ export interface SectorStatusHudProps {
   fractureActive: boolean;
   fractureStabilizers: number;
   redAlertActive: boolean;
+  redAlertLabel: string;
   redAlertSummary: string;
+  redAlertTone: 'caution' | 'alert';
+}
+
+export function shouldShowAiThinking(props: {
+  activePlayerIsAi: boolean;
+  isOnline: boolean;
+  isOnlineHost: boolean;
+}): boolean {
+  return (
+    props.activePlayerIsAi &&
+    (!props.isOnline || props.isOnlineHost)
+  );
 }
 
 export function formatSectorTurnFooter(props: {
@@ -42,6 +56,7 @@ export function formatSectorTurnFooter(props: {
   isMyTurn: boolean;
   activePlayerIsAi: boolean;
   isOnline: boolean;
+  isOnlineHost: boolean;
   syncPending: boolean;
   roundAwaitingScore: boolean;
   roundEndSummaryOpen: boolean;
@@ -56,6 +71,7 @@ export function formatSectorTurnFooter(props: {
     isMyTurn,
     activePlayerIsAi,
     isOnline,
+    isOnlineHost,
     syncPending,
     roundAwaitingScore,
     roundEndSummaryOpen,
@@ -71,9 +87,9 @@ export function formatSectorTurnFooter(props: {
       return 'Review round summary';
     }
     if (round.roundBlocked) {
-      return `Round ${round.roundNumber} blocked`;
+      return 'Sector blocked';
     }
-    return `${names[round.roundWinnerId ?? ''] ?? 'Captain'} won round ${round.roundNumber}`;
+    return `${names[round.roundWinnerId ?? ''] ?? 'Captain'} won the round`;
   }
 
   if (syncPending && isMyTurn) {
@@ -88,7 +104,7 @@ export function formatSectorTurnFooter(props: {
     return `${names[handOwnerId] ?? 'You'} · your turn`;
   }
 
-  if (activePlayerIsAi) {
+  if (shouldShowAiThinking({ activePlayerIsAi, isOnline, isOnlineHost })) {
     return `${names[activePlayerId] ?? 'Captain'} is thinking…`;
   }
 
@@ -110,6 +126,7 @@ export function SectorStatusHud({
   isMyTurn,
   activePlayerIsAi,
   isOnline,
+  isOnlineHost,
   syncPending,
   roundAwaitingScore,
   roundEndSummaryOpen,
@@ -123,8 +140,15 @@ export function SectorStatusHud({
   fractureActive,
   fractureStabilizers,
   redAlertActive,
+  redAlertLabel,
   redAlertSummary,
+  redAlertTone,
 }: SectorStatusHudProps) {
+  const showAiThinking = shouldShowAiThinking({
+    activePlayerIsAi,
+    isOnline,
+    isOnlineHost,
+  });
   const turnFooter = formatSectorTurnFooter({
     game,
     round,
@@ -134,6 +158,7 @@ export function SectorStatusHud({
     isMyTurn,
     activePlayerIsAi,
     isOnline,
+    isOnlineHost,
     syncPending,
     roundAwaitingScore,
     roundEndSummaryOpen,
@@ -153,8 +178,25 @@ export function SectorStatusHud({
       <dl className={styles.stats}>
         <div className={styles.row}>
           <dt>Objective</dt>
-          <dd>{GAME_OBJECTIVE_LABELS[game.objective]}</dd>
+          <dd>
+            {game.objective === 'penalty'
+              ? `${GAME_OBJECTIVE_LABELS[game.objective]} (${game.campaignRounds} rounds)`
+              : GAME_OBJECTIVE_LABELS[game.objective]}
+          </dd>
         </div>
+        {round && (
+          <div className={styles.row}>
+            <dt>Round</dt>
+            <dd>
+              {game.objective === 'penalty'
+                ? formatCampaignRoundProgress(
+                    round.roundNumber,
+                    game.campaignRounds
+                  )
+                : round.roundNumber}
+            </dd>
+          </div>
+        )}
         <div className={styles.row}>
           <dt>Spacedock</dt>
           <dd>Double-{spacedockValue}</dd>
@@ -193,8 +235,12 @@ export function SectorStatusHud({
           </div>
         )}
         {redAlertActive && (
-          <div className={`${styles.row} ${styles.alert}`}>
-            <dt>Red alert</dt>
+          <div
+            className={`${styles.row} ${
+              redAlertTone === 'caution' ? styles.caution : styles.alert
+            }`}
+          >
+            <dt>{redAlertLabel}</dt>
             <dd>{redAlertSummary}</dd>
           </div>
         )}
@@ -209,7 +255,7 @@ export function SectorStatusHud({
       <p
         className={styles.turnFooter}
         data-my-turn={isMyTurn && !roundAwaitingScore ? 'true' : undefined}
-        data-ai={activePlayerIsAi && !isMyTurn ? 'true' : undefined}
+        data-ai={showAiThinking && !isMyTurn ? 'true' : undefined}
         role="status"
       >
         {turnFooter}

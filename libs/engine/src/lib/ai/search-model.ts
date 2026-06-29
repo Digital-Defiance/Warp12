@@ -11,6 +11,7 @@ import {
 import { applyAction } from '../engine/apply-action.js';
 import type { GameState } from '../types/game-state.js';
 import type { GameModules } from '../types/modules.js';
+import { DEFAULT_HOUSE_RULES } from '../types/house-rules.js';
 import { salamanderPenaltyApplies } from '../constants/setup.js';
 import type { GameObjective } from '../types/objective.js';
 import type { PlayerId } from '../types/player.js';
@@ -128,7 +129,9 @@ export function observationToState(obs: WarpAiObservation): GameState {
     round: obs.round,
     completedRounds: 0,
     modules: obs.modules,
+    houseRules: obs.houseRules,
     objective: obs.objective,
+    campaignRounds: obs.campaignRounds,
   };
 }
 
@@ -138,7 +141,7 @@ function rankAction(
   handSize: number
 ): number {
   switch (action.kind) {
-    case 'declare-treaty':
+    case 'drop-to-impulse':
       return 10_000;
     case 'chart':
       if (objective === 'go-out' && handSize === 1) return 20_000;
@@ -175,7 +178,9 @@ export function createWarpSearchModel(
         round,
         playerId: round.activePlayerId,
         modules: state.modules,
+        houseRules: state.houseRules ?? DEFAULT_HOUSE_RULES,
         objective: state.objective,
+        campaignRounds: state.campaignRounds,
         captains: state.captains,
       });
     },

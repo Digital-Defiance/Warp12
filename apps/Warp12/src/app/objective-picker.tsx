@@ -1,5 +1,8 @@
 import {
+  clampCampaignRounds,
   GAME_OBJECTIVE_LABELS,
+  MAX_CAMPAIGN_ROUNDS,
+  MIN_CAMPAIGN_ROUNDS,
   type GameObjective,
 } from 'warp12-engine';
 
@@ -40,32 +43,81 @@ export function ObjectivePicker({
   );
 }
 
+export interface CampaignRoundsFieldProps {
+  value: number;
+  onChange?: (rounds: number) => void;
+  disabled?: boolean;
+}
+
+/** Penalty campaign length — shown when the points objective is selected. */
+export function CampaignRoundsField({
+  value,
+  onChange,
+  disabled = false,
+}: CampaignRoundsFieldProps) {
+  const readOnly = !onChange;
+
+  return (
+    <label className={styles.field}>
+      <span>
+        Campaign length ({MIN_CAMPAIGN_ROUNDS}–{MAX_CAMPAIGN_ROUNDS} rounds)
+      </span>
+      <select
+        aria-label="Campaign length"
+        value={clampCampaignRounds(value)}
+        disabled={disabled || readOnly}
+        onChange={(event) => onChange?.(clampCampaignRounds(Number(event.target.value)))}
+      >
+        {Array.from(
+          { length: MAX_CAMPAIGN_ROUNDS - MIN_CAMPAIGN_ROUNDS + 1 },
+          (_, index) => MIN_CAMPAIGN_ROUNDS + index
+        ).map((rounds) => (
+          <option key={rounds} value={rounds}>
+            {rounds} round{rounds === 1 ? '' : 's'}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export interface ObjectiveSummaryProps {
   objective: GameObjective;
+  campaignRounds?: number;
 }
 
 /** Read-only objective for joiners in the waiting room. */
-export function ObjectiveSummary({ objective }: ObjectiveSummaryProps) {
+export function ObjectiveSummary({ objective, campaignRounds }: ObjectiveSummaryProps) {
   return (
-    <fieldset className={`${styles.fieldset} ${styles.readOnlyFieldset}`}>
-      <legend>Victory objective</legend>
-      {(['go-out', 'penalty'] as const).map((value) => (
-        <label
-          key={value}
-          className={`${styles.radioRow} ${
-            value === objective ? styles.radioRowSelected : styles.radioRowMuted
-          }`}
-        >
-          <input
-            type="radio"
-            name="sector-objective-summary"
-            checked={value === objective}
-            tabIndex={-1}
-            onChange={() => {}}
-          />
-          <span>{GAME_OBJECTIVE_LABELS[value]}</span>
-        </label>
-      ))}
-    </fieldset>
+    <>
+      <fieldset className={`${styles.fieldset} ${styles.readOnlyFieldset}`}>
+        <legend>Victory objective</legend>
+        {(['go-out', 'penalty'] as const).map((value) => (
+          <label
+            key={value}
+            className={`${styles.radioRow} ${
+              value === objective ? styles.radioRowSelected : styles.radioRowMuted
+            }`}
+          >
+            <input
+              type="radio"
+              name="sector-objective-summary"
+              checked={value === objective}
+              tabIndex={-1}
+              onChange={() => {}}
+            />
+            <span>{GAME_OBJECTIVE_LABELS[value]}</span>
+          </label>
+        ))}
+      </fieldset>
+      {objective === 'penalty' && campaignRounds != null && (
+        <fieldset className={`${styles.fieldset} ${styles.readOnlyFieldset}`}>
+          <legend>Campaign length</legend>
+          <p className={styles.subtitle}>
+            {campaignRounds} round{campaignRounds === 1 ? '' : 's'}
+          </p>
+        </fieldset>
+      )}
+    </>
   );
 }
