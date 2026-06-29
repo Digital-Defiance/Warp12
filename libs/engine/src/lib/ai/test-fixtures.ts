@@ -5,7 +5,9 @@ import {
 } from '../types/coordinate.js';
 import type { RoundState, TableState } from '../types/game-state.js';
 import { DEFAULT_MODULES, resolveModules, type GameModules } from '../types/modules.js';
+import { DEFAULT_HOUSE_RULES } from '../types/house-rules.js';
 import { DEFAULT_GAME_OBJECTIVE, type GameObjective } from '../types/objective.js';
+import { DEFAULT_CAMPAIGN_ROUNDS } from '../constants/setup.js';
 import type { WarpAiObservation } from './observation.js';
 
 export const N = normalizeCoordinate;
@@ -30,8 +32,8 @@ export function makeRound(over: Partial<RoundState>): RoundState {
     table: createInitialTable([...turnOrder], spacedockValue, 'a'),
     unchartedSectors: [],
     hands: Object.fromEntries(turnOrder.map((id) => [id, []])),
-    treatyDeclarationRequired: false,
-    treatyDeclared: false,
+    dropToImpulseRequired: false,
+    dropToImpulseDeclared: false,
     roundWinnerId: null,
     qPendingInvoker: null,
     qEffects: null,
@@ -39,6 +41,7 @@ export function makeRound(over: Partial<RoundState>): RoundState {
     mandatoryPlay: null,
     pendingRoundWin: null,
     roundBlocked: false,
+    roundStarterOpening: null,
   };
   return { ...base, ...over };
 }
@@ -76,13 +79,16 @@ export function obsFor(
   round: RoundState,
   modules: GameModules = DEFAULT_MODULES,
   objective: GameObjective = DEFAULT_GAME_OBJECTIVE,
-  playerId = 'a'
+  playerId = 'a',
+  campaignRounds = DEFAULT_CAMPAIGN_ROUNDS
 ): WarpAiObservation {
   return {
     round,
     playerId,
     modules,
+    houseRules: DEFAULT_HOUSE_RULES,
     objective,
+    campaignRounds,
     captains: TEST_CAPTAINS,
   };
 }

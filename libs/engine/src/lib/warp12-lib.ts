@@ -9,6 +9,7 @@ export * from './types/actions.js';
 export * from './constants/setup.js';
 export * from './domino/coordinates.js';
 export * from './table/table-state.js';
+export * from './table/pip-inventory.js';
 export * from './setup/create-game.js';
 export * from './engine/apply-action.js';
 export * from './engine/legal-moves.js';

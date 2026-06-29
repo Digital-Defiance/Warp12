@@ -28,7 +28,7 @@ export function warpCandidateGenerator(
     rng?: () => number;
   }
 ): WarpAiAction[] {
-  const { round, playerId } = obs;
+  const { round, playerId, houseRules } = obs;
 
   if (round.qPendingInvoker === playerId) {
     return [
@@ -49,14 +49,15 @@ export function warpCandidateGenerator(
   }
 
   if (
-    round.treatyDeclarationRequired &&
-    !round.treatyDeclared &&
-    round.roundWinnerId === playerId
+    round.dropToImpulseRequired &&
+    !round.dropToImpulseDeclared &&
+    (round.roundWinnerId === playerId ||
+      (round.roundWinnerId == null && round.activePlayerId === playerId))
   ) {
-    return [{ kind: 'declare-treaty' }];
+    return [{ kind: 'drop-to-impulse' }];
   }
 
-  const moves = getLegalMoves(round, playerId);
+  const moves = getLegalMoves(round, playerId, houseRules);
   if (moves.length > 0) {
     return moves.map((move) => ({ kind: 'chart', move }));
   }
@@ -65,15 +66,15 @@ export function warpCandidateGenerator(
     return [{ kind: 'draw' }];
   }
 
-  if (canPassRedAlert(round, playerId)) {
+  if (canPassRedAlert(round, playerId, { houseRules })) {
     return [{ kind: 'pass-red-alert' }];
   }
 
-  if (canDeployDistressBeacon(round, playerId)) {
+  if (canDeployDistressBeacon(round, playerId, { houseRules })) {
     return [{ kind: 'deploy-beacon' }];
   }
 
-  if (canPassTurn(round, playerId)) {
+  if (canPassTurn(round, playerId, { houseRules })) {
     return [{ kind: 'pass-turn' }];
   }
 

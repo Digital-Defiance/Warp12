@@ -10,7 +10,7 @@ describe('action-log', () => {
     const log = createActionLog();
     log.append({
       playerId: 'you',
-      action: { type: 'DRAW_FROM_STOCK', playerId: 'you' },
+      action: { type: 'DRAW_FROM_UNCHARTED', playerId: 'you' },
       ok: true,
       source: 'human',
     });

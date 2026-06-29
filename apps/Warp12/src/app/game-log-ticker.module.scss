@@ -1,0 +1,78 @@
+.bridgeLog {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: var(--bridge-log-bottom-clearance, 104px);
+  width: var(--bridge-log-width, min(50%, 520px));
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.35) 10%,
+    rgba(0, 0, 0, 0.95) 24%,
+    rgba(0, 0, 0, 1) 100%
+  );
+}
+
+.feed {
+  flex-shrink: 0;
+  width: 100%;
+  padding: 12px 10px 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.line {
+  margin: 0;
+  font-family: Federation, system-ui, sans-serif;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  letter-spacing: 0.03em;
+  color: rgba(248, 250, 252, 0.92);
+  text-align: right;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.18);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.lineLatest {
+  animation: logLineEnter 0.45s ease-out;
+}
+
+.bridgeLogClickable {
+  pointer-events: auto;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid rgba(56, 189, 248, 0.65);
+    outline-offset: -2px;
+  }
+
+  &:hover .lineLatest {
+    color: rgba(248, 250, 252, 1);
+  }
+}
+
+@keyframes logLineEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lineLatest {
+    animation: none;
+  }
+}

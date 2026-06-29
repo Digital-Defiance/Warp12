@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { GameState } from 'warp12-engine';
 
@@ -21,6 +21,8 @@ function violationMessage(violation: string): string {
 }
 
 const AI_TURN_DELAY_MS = 450;
+const AI_RETRY_DELAY_MS = 800;
+const AI_MAX_SUBMIT_RETRIES = 5;
 
 export function extractAiCaptainConfigs(
   captains: readonly FirestoreCaptain[]
@@ -44,6 +46,8 @@ export function useHostAiRunner(options: {
 }): void {
   const aiBusy = useRef(false);
   const runId = useRef(0);
+  const submitRetries = useRef(0);
+  const [aiRetryTick, setAiRetryTick] = useState(0);
   const gameRef = useRef(options.game);
   const aiHandsRef = useRef(options.aiHands);
   const sectorCaptainsRef = useRef(options.sectorCaptains);
@@ -74,6 +78,10 @@ export function useHostAiRunner(options: {
 
   const activePlayerId = options.game?.round?.activePlayerId;
   const roundPhase = options.game?.round?.phase;
+
+  useEffect(() => {
+    submitRetries.current = 0;
+  }, [activePlayerId, roundPhase]);
 
   useEffect(() => {
     const {
@@ -164,8 +172,18 @@ export function useHostAiRunner(options: {
           source: 'ai',
         });
         if (!result.ok) {
+          if (submitRetries.current < AI_MAX_SUBMIT_RETRIES) {
+            submitRetries.current += 1;
+            window.setTimeout(
+              () => setAiRetryTick((tick) => tick + 1),
+              AI_RETRY_DELAY_MS
+            );
+            return;
+          }
           onError(violationMessage(result.violation));
+          return;
         }
+        submitRetries.current = 0;
       } catch (err) {
         if (currentRun !== runId.current) {
           return;
@@ -177,6 +195,14 @@ export function useHostAiRunner(options: {
           violation: 'GAME_NOT_ACTIVE',
           source: 'ai',
         });
+        if (submitRetries.current < AI_MAX_SUBMIT_RETRIES) {
+          submitRetries.current += 1;
+          window.setTimeout(
+            () => setAiRetryTick((tick) => tick + 1),
+            AI_RETRY_DELAY_MS
+          );
+          return;
+        }
         onError(
           err instanceof Error ? err.message : 'Could not transmit AI move'
         );
@@ -195,6 +221,7 @@ export function useHostAiRunner(options: {
     };
   }, [
     activePlayerId,
+    aiRetryTick,
     options.hostId,
     options.enabled,
     options.hostUid,

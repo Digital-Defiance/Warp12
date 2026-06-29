@@ -17,8 +17,8 @@ function baseRound(overrides: Partial<RoundState> = {}): RoundState {
     turnOrder: ['a', 'b'],
     hands: { a: [], b: [] },
     unchartedSectors: [],
-    treatyDeclarationRequired: false,
-    treatyDeclared: false,
+    dropToImpulseRequired: false,
+    dropToImpulseDeclared: false,
     roundWinnerId: null,
     qPendingInvoker: null,
     qEffects: null,
@@ -26,6 +26,7 @@ function baseRound(overrides: Partial<RoundState> = {}): RoundState {
     mandatoryPlay: null,
     pendingRoundWin: null,
     roundBlocked: false,
+    roundStarterOpening: null,
     table: {
       spacedock: { value: 12, placedBy: 'a' },
       warpTrails: {

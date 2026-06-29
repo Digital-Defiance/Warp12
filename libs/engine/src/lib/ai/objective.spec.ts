@@ -8,6 +8,7 @@ import { createInitialTable } from '../table/table-state.js';
 import { normalizeCoordinate } from '../types/coordinate.js';
 import type { RoundState } from '../types/game-state.js';
 import { DEFAULT_MODULES } from '../types/modules.js';
+import { DEFAULT_HOUSE_RULES } from '../types/house-rules.js';
 
 import {
   createWarpSearchModel,
@@ -31,12 +32,16 @@ function makeEndedRound(winnerId: string): RoundState {
     table: createInitialTable(['a', 'b'], 12, 'a'),
     unchartedSectors: [],
     hands: { a: [], b: [N(6, 6), N(3, 4)] },
-    treatyDeclarationRequired: false,
-    treatyDeclared: true,
+    dropToImpulseRequired: false,
+    dropToImpulseDeclared: true,
     roundWinnerId: winnerId,
     qPendingInvoker: null,
     qEffects: null,
     qGamblePending: null,
+    mandatoryPlay: null,
+    pendingRoundWin: null,
+    roundBlocked: false,
+    roundStarterOpening: null,
   };
 }
 
@@ -78,16 +83,22 @@ describe('game objective', () => {
           a: [N(5, 12)],
           b: [N(9, 9), N(8, 8), N(7, 7)],
         },
-        treatyDeclarationRequired: false,
-        treatyDeclared: false,
+        dropToImpulseRequired: false,
+        dropToImpulseDeclared: false,
         roundWinnerId: null,
         qPendingInvoker: null,
         qEffects: null,
         qGamblePending: null,
+        mandatoryPlay: null,
+        pendingRoundWin: null,
+        roundBlocked: false,
+        roundStarterOpening: null,
       },
       playerId: 'a',
       modules: DEFAULT_MODULES,
+      houseRules: DEFAULT_HOUSE_RULES,
       objective: 'go-out',
+      campaignRounds: 13,
       captains: [
         { id: 'a', displayName: 'Alpha', penaltyScore: 0 },
         { id: 'b', displayName: 'Beta', penaltyScore: 0 },
@@ -127,16 +138,22 @@ describe('game objective', () => {
           a: [N(12, 12)],
           b: [N(0, 1)],
         },
-        treatyDeclarationRequired: false,
-        treatyDeclared: false,
+        dropToImpulseRequired: false,
+        dropToImpulseDeclared: false,
         roundWinnerId: null,
         qPendingInvoker: null,
         qEffects: null,
         qGamblePending: null,
+        mandatoryPlay: null,
+        pendingRoundWin: null,
+        roundBlocked: false,
+        roundStarterOpening: null,
       },
       playerId: 'a',
       modules: DEFAULT_MODULES,
+      houseRules: DEFAULT_HOUSE_RULES,
       objective: 'penalty',
+      campaignRounds: 13,
       captains: [
         { id: 'a', displayName: 'Alpha', penaltyScore: 0 },
         { id: 'b', displayName: 'Beta', penaltyScore: 0 },

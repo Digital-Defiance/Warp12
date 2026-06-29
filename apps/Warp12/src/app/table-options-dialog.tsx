@@ -13,6 +13,7 @@ import type {
 } from '../game/share-round.js';
 import type { CaptainTailsDisplay } from './table-view-prefs';
 import { RoundImageActions } from './round-image-actions';
+import { forceReloadPage } from './force-reload';
 import styles from './rules-view.module.scss';
 import optionStyles from './table-options-dialog.module.scss';
 
@@ -35,6 +36,8 @@ export interface TableOptionsDialogProps {
   onCaptainTailsHudChange: (next: boolean) => void;
   captainTailsDisplay: CaptainTailsDisplay;
   onCaptainTailsDisplayChange: (next: CaptainTailsDisplay) => void;
+  turnBeepsEnabled: boolean;
+  onTurnBeepsEnabledChange: (next: boolean) => void;
   showDebugExport?: boolean;
   debugExportBusy?: boolean;
   onExportDebug?: () => void | Promise<void>;
@@ -45,6 +48,7 @@ export interface TableOptionsDialogProps {
     mode: ShareRoundImageMode,
     delivery: ShareRoundDelivery
   ) => void | Promise<void>;
+  onSaveRoundLog?: () => void;
 }
 
 export function TableOptionsDialog({
@@ -66,6 +70,8 @@ export function TableOptionsDialog({
   onCaptainTailsHudChange,
   captainTailsDisplay,
   onCaptainTailsDisplayChange,
+  turnBeepsEnabled,
+  onTurnBeepsEnabledChange,
   showDebugExport = false,
   debugExportBusy = false,
   onExportDebug,
@@ -73,6 +79,7 @@ export function TableOptionsDialog({
   systemShareAvailable = false,
   roundImageBusy = null,
   onRoundImage,
+  onSaveRoundLog,
 }: TableOptionsDialogProps) {
   useEffect(() => {
     if (!open) {
@@ -232,6 +239,25 @@ export function TableOptionsDialog({
           </section>
 
           <section className={optionStyles.section}>
+            <h3 className={optionStyles.sectionTitle}>Sound</h3>
+            <label className={optionStyles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={turnBeepsEnabled}
+                onChange={(event) =>
+                  onTurnBeepsEnabledChange(event.target.checked)
+                }
+              />
+              <span>Turn beeps</span>
+            </label>
+            <p className={optionStyles.hint}>
+              {turnBeepsEnabled
+                ? 'Plays a random computer beep for each captain turn — once per tile charted until helm passes.'
+                : 'Turn on to hear a random LCARS-style beep whenever anyone charts a coordinate.'}
+            </p>
+          </section>
+
+          <section className={optionStyles.section}>
             <h3 className={optionStyles.sectionTitle}>Advisor</h3>
             <label className={optionStyles.checkboxRow}>
               <input
@@ -276,32 +302,46 @@ export function TableOptionsDialog({
                 systemShareAvailable={systemShareAvailable}
                 roundImageBusy={roundImageBusy}
                 onRoundImage={onRoundImage}
+                onSaveRoundLog={onSaveRoundLog}
               />
               <p className={optionStyles.hint}>
-                Left segment: board + logo. Right segment (layer group icon):
-                adds stats overlay. Hover for labels; save downloads, share opens
-                the system sheet.
+                Book icon opens the round log to review before download. Left save segment:
+                board + logo. Right segment (layer group icon): adds stats
+                overlay. Hover for labels; save downloads, share opens the
+                system sheet.
               </p>
             </section>
           )}
 
-          {showDebugExport && onExportDebug && (
-            <section className={optionStyles.section}>
-              <h3 className={optionStyles.sectionTitle}>Diagnostics</h3>
+          <section className={optionStyles.section}>
+            <h3 className={optionStyles.sectionTitle}>Diagnostics</h3>
+            <div className={optionStyles.actionRow}>
               <button
                 type="button"
                 className={optionStyles.actionBtn}
-                disabled={debugExportBusy}
-                onClick={() => void onExportDebug()}
+                onClick={() => void forceReloadPage()}
               >
-                {debugExportBusy ? 'Exporting…' : 'Export debug log'}
+                Force reload
               </button>
-              <p className={optionStyles.hint}>
-                Downloads a JSON snapshot of game state and action history — useful
-                after a round ends or when reporting a bug.
-              </p>
-            </section>
-          )}
+              {showDebugExport && onExportDebug && (
+                <button
+                  type="button"
+                  className={optionStyles.actionBtn}
+                  disabled={debugExportBusy}
+                  onClick={() => void onExportDebug()}
+                >
+                  {debugExportBusy ? 'Exporting…' : 'Export debug log'}
+                </button>
+              )}
+            </div>
+            <p className={optionStyles.hint}>
+              Force reload clears browser cache storage and refreshes the page —
+              useful if subspace link state looks stale.
+              {showDebugExport && onExportDebug
+                ? ' Export debug log downloads a JSON snapshot for bug reports (host only).'
+                : ''}
+            </p>
+          </section>
         </div>
       </div>
     </div>

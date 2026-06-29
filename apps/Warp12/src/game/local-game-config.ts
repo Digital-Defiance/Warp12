@@ -1,8 +1,10 @@
 import type {
   GameModuleConfig,
   GameObjective,
+  HouseRulesConfig,
   WarpSkillLevel,
 } from 'warp12-engine';
+import { DEFAULT_CAMPAIGN_ROUNDS } from 'warp12-engine';
 
 export const LOCAL_MIN_PLAYERS = 3;
 export const LOCAL_MAX_PLAYERS = 8;
@@ -23,7 +25,10 @@ export interface LocalGameConfig {
   /** Total captains at the table (you + AI officers). */
   readonly playerCount: number;
   readonly objective: GameObjective;
+  /** Penalty campaigns only — ignored when objective is go-out. */
+  readonly campaignRounds: number;
   readonly modules: GameModuleConfig;
+  readonly houseRules?: HouseRulesConfig;
   readonly aiCaptains: readonly AiCaptainConfig[];
 }
 
@@ -65,7 +70,8 @@ export function defaultLocalGameConfig(
     humanName: humanName.trim() || 'You',
     playerCount: count,
     objective: 'go-out',
-    modules: { salamanderPenalty: true, qContinuum: false, subspaceFracture: false },
+    campaignRounds: DEFAULT_CAMPAIGN_ROUNDS,
+    modules: { salamanderPenalty: true, qContinuum: false, subspaceFracture: false, subspaceFractureScope: 'own-trail' },
     aiCaptains: buildAiCaptains(count - 1),
   };
 }

@@ -84,7 +84,7 @@ export function formatCoachSuggestion(
       return 'Pass Red Alert to the next captain';
     case 'pass-turn':
       return 'Pass turn (voluntary shields down)';
-    case 'declare-treaty':
+    case 'drop-to-impulse':
       return 'Drop to impulse · Neutral Zone win';
     case 'invoke-q-flash':
       return `Invoke Q-Flash · ${action.effect.replaceAll('-', ' ')}`;

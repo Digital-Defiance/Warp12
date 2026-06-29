@@ -6,6 +6,9 @@ import {
 import type { GameAction, ActionResult, ChartRoute } from '../types/actions.js';
 import type { GameState, RoundState, TableState } from '../types/game-state.js';
 import type { QFlash } from '../types/modules.js';
+import { subspaceFractureAppliesToDouble } from '../types/modules.js';
+import type { SubspaceFractureScope } from '../types/subspace-fracture-scope.js';
+import type { HouseRules } from '../types/house-rules.js';
 import type { QFlashEffectKind } from '../types/q-continuum.js';
 import type { WarpTrail } from '../types/trails.js';
 import {
@@ -15,6 +18,7 @@ import {
 import {
   isNavigationHaltedByFracture,
   isRedAlertBlocking,
+  blocksRoundWin,
   type RedAlert,
   type SubspaceFracture,
 } from '../types/anomalies.js';
@@ -22,6 +26,7 @@ import {
   neutralZoneOpenValue,
   trailOpenValue,
 } from '../table/table-state.js';
+import { isPipExhausted } from '../table/pip-inventory.js';
 import {
   fail,
   requireActiveRound,
@@ -34,10 +39,10 @@ import {
   buildQFlashEffect,
   clearTemporalInversionOnDouble,
   consumeFractureImmunity,
-  nextActivePlayerId,
+  advanceToNextPlayer,
   resolveQGamble,
   trailsOpenToOthers,
-  treatyRequiredForWin,
+  dropToImpulseRequiredForWin,
 } from './q-continuum.js';
 import { getLegalMoves, isLegalMove, placedTile } from './legal-moves.js';
 import {
@@ -51,6 +56,7 @@ import {
   maybeEndBlockedRound,
 } from './round-resolution.js';
 import { resolveDeadRedAlert } from './dead-red-alert.js';
+import { archiveFractureStabilizers } from '../table/fracture-stabilizers.js';
 
 function appendToTrail(
   trail: WarpTrail,
@@ -86,14 +92,28 @@ function updateTable(round: RoundState, table: TableState): RoundState {
 
 function openSubspaceFracture(
   anchor: PlacedCoordinate,
-  existing: SubspaceFracture | null
+  site: Pick<SubspaceFracture, 'neutralZone' | 'trailCaptainId'>
 ): SubspaceFracture {
   return {
     active: true,
     anchor,
-    stabilizers: existing?.stabilizers ?? [],
+    stabilizers: [],
     requiredValue: anchor.coordinate.low,
+    ...(site.neutralZone ? { neutralZone: true } : {}),
+    ...(site.trailCaptainId ? { trailCaptainId: site.trailCaptainId } : {}),
   };
+}
+
+function fractureSiteForRoute(
+  route: ChartRoute
+): Pick<SubspaceFracture, 'neutralZone' | 'trailCaptainId'> {
+  if (route.kind === 'neutral-zone') {
+    return { neutralZone: true };
+  }
+  if (route.kind === 'warp-trail') {
+    return { trailCaptainId: route.playerId };
+  }
+  return {};
 }
 
 function openRedAlert(
@@ -117,7 +137,7 @@ function resolvePostChartAnomalies(
   placed: PlacedCoordinate,
   route: ChartRoute,
   wasCover: boolean,
-  subspaceFractureEnabled: boolean
+  subspaceFracture: { enabled: boolean; scope: SubspaceFractureScope }
 ): RoundState {
   let table = round.table;
   let redAlert = table.redAlert;
@@ -137,22 +157,37 @@ function resolvePostChartAnomalies(
 
   if (playedDouble && !wasCover) {
     if (route.kind === 'warp-trail' || route.kind === 'neutral-zone') {
-      redAlert = openRedAlert(
-        placed,
-        playerId,
-        route.kind === 'warp-trail' ? route.playerId : '',
-        route.kind === 'neutral-zone'
-      );
-      const { round: afterImmunity, consumed } = consumeFractureImmunity(nextRound);
-      nextRound = afterImmunity;
-      table = {
-        ...table,
-        redAlert,
-        subspaceFracture:
-          onOwnTrail && subspaceFractureEnabled && !consumed
-            ? openSubspaceFracture(placed, table.subspaceFracture)
-            : table.subspaceFracture,
-      };
+      const doubleIsDead = isPipExhausted(round, placed.coordinate.low);
+      if (!doubleIsDead) {
+        redAlert = openRedAlert(
+          placed,
+          playerId,
+          route.kind === 'warp-trail' ? route.playerId : '',
+          route.kind === 'neutral-zone'
+        );
+        const { round: afterImmunity, consumed } = consumeFractureImmunity(nextRound);
+        nextRound = afterImmunity;
+        const fractureApplies =
+          subspaceFracture.enabled &&
+          subspaceFractureAppliesToDouble(route, playerId, subspaceFracture.scope);
+        const fractureImmune = consumed && onOwnTrail;
+        if (fractureApplies && !fractureImmune) {
+          const existingFracture = table.subspaceFracture;
+          if (existingFracture && existingFracture.stabilizers.length > 0) {
+            table = archiveFractureStabilizers(table, existingFracture);
+          }
+          table = {
+            ...table,
+            redAlert,
+            subspaceFracture: openSubspaceFracture(
+              placed,
+              fractureSiteForRoute(route)
+            ),
+          };
+        } else {
+          table = { ...table, redAlert };
+        }
+      }
     } else {
       table = { ...table, redAlert };
     }
@@ -169,8 +204,9 @@ function applyChartToRoute(
   coordinate: Coordinate,
   route: ChartRoute,
   options: {
-    subspaceFractureEnabled: boolean;
+    subspaceFracture: { enabled: boolean; scope: SubspaceFractureScope };
     qContinuumEnabled: boolean;
+    houseRules: HouseRules;
   }
 ): RoundState {
   const { hand, removed } = removeCoordinateFromHand(
@@ -195,14 +231,41 @@ function applyChartToRoute(
         fracture.requiredValue
       )!;
       const stabilizers = [...fracture.stabilizers, placed];
-      table = {
-        ...table,
-        subspaceFracture: {
+      const fractureResolved = stabilizers.length >= 3;
+      if (fractureResolved) {
+        const resolvedFracture = {
           ...fracture,
           stabilizers,
-          active: stabilizers.length < 3,
-        },
-      };
+          active: false,
+        };
+        table = archiveFractureStabilizers(table, resolvedFracture);
+        table = {
+          ...table,
+          subspaceFracture: {
+            ...resolvedFracture,
+            stabilizers: [],
+          },
+        };
+      } else {
+        table = {
+          ...table,
+          subspaceFracture: {
+            ...fracture,
+            stabilizers,
+            active: true,
+          },
+        };
+      }
+      const redAlert = table.redAlert;
+      if (
+        fractureResolved &&
+        redAlert?.active &&
+        redAlert.anchor.index === fracture.anchor.index &&
+        redAlert.anchor.coordinate.low === fracture.anchor.coordinate.low &&
+        redAlert.anchor.coordinate.high === fracture.anchor.coordinate.high
+      ) {
+        table = { ...table, redAlert: null };
+      }
       break;
     }
     case 'red-alert-cover': {
@@ -265,7 +328,7 @@ function applyChartToRoute(
       const connectingValue = trailOpenValue(trail, round.spacedockValue);
       placed = placedTile(removed, trail.tiles.length, connectingValue)!;
       const updatedTrail =
-        route.playerId === playerId
+        route.playerId === playerId && !options.houseRules.beaconClearsOnAnyPlay
           ? appendToTrail(clearDistressBeacon(trail), placed)
           : appendToTrail(trail, placed);
       table = {
@@ -279,13 +342,26 @@ function applyChartToRoute(
     }
   }
 
+  if (options.houseRules.beaconClearsOnAnyPlay) {
+    const trail = table.warpTrails[playerId];
+    if (trail?.distressBeacon.active) {
+      table = {
+        ...table,
+        warpTrails: {
+          ...table.warpTrails,
+          [playerId]: clearDistressBeacon(trail),
+        },
+      };
+    }
+  }
+
   nextRound = resolvePostChartAnomalies(
     updateTable(nextRound, table),
     playerId,
     placed,
     route,
     wasCover,
-    options.subspaceFractureEnabled
+    options.subspaceFracture
   );
 
   nextRound = resolveDeadRedAlert(nextRound);
@@ -303,9 +379,13 @@ function applyChartToRoute(
 
   const winnerHand = nextRound.hands[playerId] ?? [];
   const emptyHandWin = winnerHand.length === 0;
+  const openingIncomplete =
+    options.houseRules.roundStarterPlaysTwo &&
+    playerId === nextRound.table.spacedock.placedBy &&
+    (nextRound.table.warpTrails[playerId]?.tiles.length ?? 0) < 2;
 
   if (nextRound.qPendingInvoker || nextRound.qGamblePending) {
-    if (emptyHandWin) {
+    if (emptyHandWin && !blocksRoundWin(nextRound, playerId) && !openingIncomplete) {
       nextRound = {
         ...nextRound,
         pendingRoundWin: { playerId, routeKind: route.kind },
@@ -314,33 +394,129 @@ function applyChartToRoute(
     return { ...nextRound, mandatoryPlay: null };
   }
 
-  if (emptyHandWin) {
-    const treatyRequired = treatyRequiredForWin(nextRound, route.kind);
+  if (emptyHandWin && !blocksRoundWin(nextRound, playerId) && !openingIncomplete) {
+    const dropToImpulseRequired = dropToImpulseRequiredForWin(nextRound, route.kind);
     nextRound = {
       ...nextRound,
-      treatyDeclarationRequired: treatyRequired,
-      treatyDeclared: !treatyRequired,
+      dropToImpulseRequired,
+      dropToImpulseDeclared: !dropToImpulseRequired,
       roundWinnerId: playerId,
-      phase: treatyRequired ? 'playing' : 'ended',
+      phase: dropToImpulseRequired ? 'playing' : 'ended',
       mandatoryPlay: null,
     };
-    return maybeEndBlockedRound(nextRound);
+    return maybeEndBlockedRound(nextRound, options.houseRules);
   }
 
   nextRound = { ...nextRound, mandatoryPlay: null };
 
   if (
     isRedAlertBlocking(nextRound.table.redAlert, playerId) ||
-    isNavigationHaltedByFracture(nextRound.table.subspaceFracture)
+    isNavigationHaltedByFracture(
+      nextRound.table.subspaceFracture,
+      nextRound.table.redAlert
+    )
+  ) {
+    const ownTiles = nextRound.table.warpTrails[playerId]?.tiles.length ?? 0;
+    if (
+      options.houseRules.roundStarterPlaysTwo &&
+      playerId === nextRound.table.spacedock.placedBy &&
+      ownTiles === 1
+    ) {
+      nextRound = {
+        ...nextRound,
+        roundStarterOpening: { playerId },
+      };
+    }
+    return nextRound;
+  }
+
+  return resolveRoundStarterOpeningTurn(
+    nextRound,
+    playerId,
+    options.houseRules
+  );
+}
+
+function ownTrailChartMoves(
+  round: RoundState,
+  playerId: string,
+  houseRules: HouseRules
+) {
+  return getLegalMoves(round, playerId, houseRules).filter(
+    (move) =>
+      move.route.kind === 'warp-trail' && move.route.playerId === playerId
+  );
+}
+
+function applyRoundStarterOpeningFailure(
+  round: RoundState,
+  playerId: string,
+  houseRules: HouseRules
+): RoundState {
+  const trail = round.table.warpTrails[playerId];
+  const withBeacon = updateTable(round, {
+    ...round.table,
+    warpTrails: {
+      ...round.table.warpTrails,
+      [playerId]: {
+        ...trail,
+        distressBeacon: { active: true },
+      },
+    },
+  });
+  const cleared: RoundState = {
+    ...withBeacon,
+    roundStarterOpening: null,
+  };
+  return maybeEndBlockedRound(advanceTurn(cleared), houseRules);
+}
+
+function resolveRoundStarterOpeningTurn(
+  nextRound: RoundState,
+  playerId: string,
+  houseRules: HouseRules
+): RoundState {
+  if (!houseRules.roundStarterPlaysTwo) {
+    return maybeEndBlockedRound(advanceTurn(nextRound), houseRules);
+  }
+  if (playerId !== nextRound.table.spacedock.placedBy) {
+    return maybeEndBlockedRound(advanceTurn(nextRound), houseRules);
+  }
+
+  const ownTiles = nextRound.table.warpTrails[playerId]?.tiles.length ?? 0;
+  if (ownTiles >= 2) {
+    nextRound = { ...nextRound, roundStarterOpening: null };
+    return maybeEndBlockedRound(advanceTurn(nextRound), houseRules);
+  }
+
+  if (ownTiles !== 1) {
+    return maybeEndBlockedRound(advanceTurn(nextRound), houseRules);
+  }
+
+  nextRound = {
+    ...nextRound,
+    roundStarterOpening: { playerId },
+  };
+
+  if (
+    isRedAlertBlocking(nextRound.table.redAlert, playerId) ||
+    isNavigationHaltedByFracture(
+      nextRound.table.subspaceFracture,
+      nextRound.table.redAlert
+    )
   ) {
     return nextRound;
   }
 
-  return maybeEndBlockedRound(advanceTurn(nextRound));
+  if (ownTrailChartMoves(nextRound, playerId, houseRules).length > 0) {
+    return nextRound;
+  }
+
+  return applyRoundStarterOpeningFailure(nextRound, playerId, houseRules);
 }
 
 function advanceTurn(round: RoundState): RoundState {
-  if (round.treatyDeclarationRequired && !round.treatyDeclared) {
+  if (round.dropToImpulseRequired && !round.dropToImpulseDeclared) {
     return round;
   }
 
@@ -348,7 +524,10 @@ function advanceTurn(round: RoundState): RoundState {
     return round;
   }
 
-  return advanceActivePlayer(round);
+  return advanceActivePlayer({
+    ...round,
+    roundStarterOpening: null,
+  });
 }
 
 function handleDraw(
@@ -367,7 +546,7 @@ function handleDraw(
   ]);
   nextRound = { ...nextRound, unchartedSectors: remaining };
 
-  const legalWithDrawn = getLegalMoves(nextRound, playerId).filter(
+  const legalWithDrawn = getLegalMoves(nextRound, playerId, state.houseRules).filter(
     (move) =>
       move.coordinate.low === drawn.low &&
       move.coordinate.high === drawn.high
@@ -382,22 +561,22 @@ function handleDraw(
   }
 
   if (isRedAlertBlocking(nextRound.table.redAlert, playerId)) {
-    if (canPassRedAlert(nextRound, playerId, { afterDraw: true })) {
+    if (canPassRedAlert(nextRound, playerId, { afterDraw: true, houseRules: state.houseRules })) {
       return handlePassRedAlert(state, nextRound, playerId, { afterDraw: true });
     }
   }
 
-  if (canDeployDistressBeacon(nextRound, playerId, { afterDraw: true })) {
+  if (canDeployDistressBeacon(nextRound, playerId, { afterDraw: true, houseRules: state.houseRules })) {
     return handleDeployBeacon(state, nextRound, playerId, { afterDraw: true });
   }
 
-  if (canPassTurn(nextRound, playerId, { afterDraw: true })) {
+  if (canPassTurn(nextRound, playerId, { afterDraw: true, houseRules: state.houseRules })) {
     return handlePassTurn(state, nextRound, playerId, { afterDraw: true });
   }
 
   return {
     ok: true,
-    state: withRound(state, maybeEndBlockedRound(advanceTurn(nextRound))),
+    state: withRound(state, maybeEndBlockedRound(advanceTurn(nextRound), state.houseRules)),
   };
 }
 
@@ -407,12 +586,12 @@ function handlePassRedAlert(
   playerId: string,
   options?: { afterDraw?: boolean }
 ): ActionResult {
-  if (!canPassRedAlert(round, playerId, options)) {
+  if (!canPassRedAlert(round, playerId, { ...options, houseRules: state.houseRules })) {
     const redAlert = round.table.redAlert;
     if (!redAlert?.active || redAlert.responsiblePlayerId !== playerId) {
       return fail('RED_ALERT_NOT_ACTIVE');
     }
-    if (getLegalMoves(round, playerId).length > 0) {
+    if (getLegalMoves(round, playerId, state.houseRules).length > 0) {
       return fail('RED_ALERT_COVER_AVAILABLE');
     }
     if (round.unchartedSectors.length > 0) {
@@ -423,7 +602,10 @@ function handlePassRedAlert(
 
   const redAlert = round.table.redAlert!;
 
-  const nextResponsible = nextActivePlayerId(round, playerId);
+  const { nextId: nextResponsible, qEffects } = advanceToNextPlayer(
+    round,
+    playerId
+  );
   let nextRound = updateTable(round, {
     ...round.table,
     redAlert: {
@@ -431,6 +613,7 @@ function handlePassRedAlert(
       responsiblePlayerId: nextResponsible,
     },
   });
+  nextRound = { ...nextRound, qEffects };
 
   nextRound = {
     ...nextRound,
@@ -447,7 +630,7 @@ function handlePassRedAlert(
   };
 
   nextRound = advanceTurn(nextRound);
-  nextRound = maybeEndBlockedRound(nextRound);
+  nextRound = maybeEndBlockedRound(nextRound, state.houseRules);
   return { ok: true, state: withRound(state, nextRound) };
 }
 
@@ -457,23 +640,23 @@ function handlePassTurn(
   playerId: string,
   options?: { afterDraw?: boolean }
 ): ActionResult {
-  if (!canPassTurn(round, playerId, options)) {
+  if (!canPassTurn(round, playerId, { ...options, houseRules: state.houseRules })) {
     return fail('PASS_NOT_ALLOWED');
   }
-  let nextRound = maybeEndBlockedRound(advanceTurn(round));
+  let nextRound = maybeEndBlockedRound(advanceTurn(round), state.houseRules);
   return { ok: true, state: withRound(state, nextRound) };
 }
 
-function handleForfeitImpulse(
+function handleReturnToWarp(
   state: GameState,
   round: RoundState,
   playerId: string
 ): ActionResult {
-  if (!round.treatyDeclarationRequired || round.treatyDeclared) {
-    return fail('IMPULSE_FORFEIT_NOT_ALLOWED');
+  if (!round.dropToImpulseRequired || round.dropToImpulseDeclared) {
+    return fail('RETURN_TO_WARP_NOT_ALLOWED');
   }
   if (round.roundWinnerId !== playerId) {
-    return fail('IMPULSE_FORFEIT_NOT_ALLOWED');
+    return fail('RETURN_TO_WARP_NOT_ALLOWED');
   }
   if (round.unchartedSectors.length === 0) {
     return fail('EMPTY_UNCHARTED');
@@ -484,8 +667,8 @@ function handleForfeitImpulse(
     ...round,
     unchartedSectors: remaining,
     roundWinnerId: null,
-    treatyDeclarationRequired: false,
-    treatyDeclared: false,
+    dropToImpulseRequired: false,
+    dropToImpulseDeclared: false,
     phase: 'playing',
     pendingRoundWin: null,
     mandatoryPlay: null,
@@ -495,7 +678,7 @@ function handleForfeitImpulse(
     drawn,
   ]);
   nextRound = advanceTurn(nextRound);
-  nextRound = maybeEndBlockedRound(nextRound);
+  nextRound = maybeEndBlockedRound(nextRound, state.houseRules);
 
   return { ok: true, state: withRound(state, nextRound) };
 }
@@ -509,10 +692,10 @@ function handleDeployBeacon(
   if (round.table.warpTrails[playerId]?.distressBeacon.active) {
     return fail('BEACON_ALREADY_ACTIVE');
   }
-  if (!canDeployDistressBeacon(round, playerId, options)) {
+  if (!canDeployDistressBeacon(round, playerId, { ...options, houseRules: state.houseRules })) {
     if (
       !options?.afterDraw &&
-      getLegalMoves(round, playerId).length === 0 &&
+      getLegalMoves(round, playerId, state.houseRules).length === 0 &&
       round.unchartedSectors.length > 0
     ) {
       return fail('MUST_DRAW_FIRST');
@@ -521,6 +704,16 @@ function handleDeployBeacon(
   }
 
   const trail = round.table.warpTrails[playerId];
+  let qEffects = round.qEffects;
+  let redAlert = round.table.redAlert;
+  if (redAlert?.responsiblePlayerId === playerId) {
+    const advanced = advanceToNextPlayer(round, playerId);
+    qEffects = advanced.qEffects;
+    redAlert = {
+      ...redAlert,
+      responsiblePlayerId: advanced.nextId,
+    };
+  }
   let nextRound = updateTable(round, {
     ...round.table,
     warpTrails: {
@@ -530,43 +723,38 @@ function handleDeployBeacon(
         distressBeacon: { active: true },
       },
     },
-    redAlert:
-      round.table.redAlert?.responsiblePlayerId === playerId
-        ? {
-            ...round.table.redAlert,
-            responsiblePlayerId: nextActivePlayerId(round, playerId),
-          }
-        : round.table.redAlert,
+    redAlert,
   });
+  nextRound = { ...nextRound, qEffects };
 
   nextRound = advanceTurn(nextRound);
-  nextRound = maybeEndBlockedRound(nextRound);
+  nextRound = maybeEndBlockedRound(nextRound, state.houseRules);
   return { ok: true, state: withRound(state, nextRound) };
 }
 
-function handleDeclareTreaty(
+function handleDropToImpulse(
   state: GameState,
   round: RoundState,
   playerId: string
 ): ActionResult {
-  if (!round.treatyDeclarationRequired || round.treatyDeclared) {
-    return fail('TREATY_NOT_REQUIRED');
+  if (!round.dropToImpulseRequired || round.dropToImpulseDeclared) {
+    return fail('DROP_TO_IMPULSE_NOT_REQUIRED');
   }
 
   const winnerId = round.roundWinnerId;
   if (winnerId != null && winnerId !== playerId) {
-    return fail('TREATY_NOT_REQUIRED');
+    return fail('DROP_TO_IMPULSE_NOT_REQUIRED');
   }
 
   const hand = round.hands[playerId] ?? [];
   if (winnerId == null && hand.length > 0) {
-    return fail('TREATY_NOT_REQUIRED');
+    return fail('DROP_TO_IMPULSE_NOT_REQUIRED');
   }
 
   const nextRound: RoundState = {
     ...round,
     roundWinnerId: winnerId ?? playerId,
-    treatyDeclared: true,
+    dropToImpulseDeclared: true,
     phase: 'ended',
   };
 
@@ -603,7 +791,7 @@ function handleQFlash(
   }
 
   const { round: afterEffect } = applyQFlashEffect(round, effect, playerId);
-  let nextRound = finalizeRoundWinAfterQ(afterEffect);
+  let nextRound = finalizeRoundWinAfterQ(afterEffect, state.houseRules);
 
   const flash: QFlash = { invokedBy: playerId, effect };
   let nextState: GameState = {
@@ -625,9 +813,12 @@ function handleQFlash(
   if (
     !nextRound.qGamblePending &&
     !isRedAlertBlocking(nextRound.table.redAlert, playerId) &&
-    !isNavigationHaltedByFracture(nextRound.table.subspaceFracture)
+    !isNavigationHaltedByFracture(
+      nextRound.table.subspaceFracture,
+      nextRound.table.redAlert
+    )
   ) {
-    nextRound = maybeEndBlockedRound(advanceTurn(nextRound));
+    nextRound = maybeEndBlockedRound(advanceTurn(nextRound), state.houseRules);
     nextState = withRound(nextState, nextRound);
   }
 
@@ -648,7 +839,7 @@ function handleQGamble(
     return fail('Q_GAMBLE_NOT_PENDING');
   }
 
-  let nextRound = finalizeRoundWinAfterQ(resolveQGamble(round, playerId, keepIndex));
+  let nextRound = finalizeRoundWinAfterQ(resolveQGamble(round, playerId, keepIndex), state.houseRules);
 
   if (nextRound.phase === 'ended') {
     return { ok: true, state: withRound(state, nextRound) };
@@ -656,9 +847,12 @@ function handleQGamble(
 
   if (
     !isRedAlertBlocking(nextRound.table.redAlert, playerId) &&
-    !isNavigationHaltedByFracture(nextRound.table.subspaceFracture)
+    !isNavigationHaltedByFracture(
+      nextRound.table.subspaceFracture,
+      nextRound.table.redAlert
+    )
   ) {
-    nextRound = maybeEndBlockedRound(advanceTurn(nextRound));
+    nextRound = maybeEndBlockedRound(advanceTurn(nextRound), state.houseRules);
   }
 
   return { ok: true, state: withRound(state, nextRound) };
@@ -707,7 +901,12 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
         return fail('Q_FLASH_NOT_PENDING');
       }
 
-      if (isNavigationHaltedByFracture(round.table.subspaceFracture)) {
+      if (
+        isNavigationHaltedByFracture(
+          round.table.subspaceFracture,
+          round.table.redAlert
+        )
+      ) {
         if (action.route.kind !== 'fracture-stabilizer') {
           return fail('FRACTURE_REQUIRES_STABILIZER');
         }
@@ -730,14 +929,18 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
         return fail('SHIELDS_UP');
       }
 
-      if (!isLegalMove(round, action.playerId, action.coordinate, action.route)) {
+      if (!isLegalMove(round, action.playerId, action.coordinate, action.route, state.houseRules)) {
         return fail('INVALID_ROUTE');
       }
 
       try {
         round = applyChartToRoute(round, action.playerId, action.coordinate, action.route, {
-          subspaceFractureEnabled: state.modules.subspaceFracture.enabled,
+          subspaceFracture: {
+            enabled: state.modules.subspaceFracture.enabled,
+            scope: state.modules.subspaceFracture.scope,
+          },
           qContinuumEnabled: state.modules.qContinuum.enabled,
+          houseRules: state.houseRules,
         });
       } catch {
         return fail('INVALID_ROUTE');
@@ -754,7 +957,7 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
       if (qResolutionBlocksAction(round, action.playerId)) {
         return fail('Q_FLASH_NOT_PENDING');
       }
-      if (getLegalMoves(round, action.playerId).length > 0) {
+      if (getLegalMoves(round, action.playerId, state.houseRules).length > 0) {
         return fail('INVALID_ROUTE');
       }
       return handleDraw(state, round, action.playerId);
@@ -793,16 +996,16 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
       return handleDeployBeacon(state, round, action.playerId);
     }
 
-    case 'DECLARE_TREATY': {
-      return handleDeclareTreaty(state, round, action.playerId);
+    case 'DROP_TO_IMPULSE': {
+      return handleDropToImpulse(state, round, action.playerId);
     }
 
-    case 'FORFEIT_IMPULSE': {
+    case 'RETURN_TO_WARP': {
       const turnCheck = requirePlayerTurn(round, action.playerId);
       if (turnCheck !== true) {
         return fail(turnCheck);
       }
-      return handleForfeitImpulse(state, round, action.playerId);
+      return handleReturnToWarp(state, round, action.playerId);
     }
 
     case 'INVOKE_Q_FLASH': {

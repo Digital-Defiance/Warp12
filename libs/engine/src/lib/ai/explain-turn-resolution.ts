@@ -6,6 +6,7 @@ import {
 } from '../engine/beacon.js';
 import { getLegalMoves } from '../engine/legal-moves.js';
 import {
+  isNavigationHaltedByFracture,
   isRedAlertBlocking,
 } from '../types/anomalies.js';
 import type { GameState } from '../types/game-state.js';
@@ -48,21 +49,59 @@ export function explainTurnResolution(
   }
 
   const lines: string[] = [];
-  const legalMoves = getLegalMoves(round, playerId);
+  const houseRules = state.houseRules;
+  const legalMoves = getLegalMoves(round, playerId, houseRules);
   const uncharted = round.unchartedSectors.length;
-  const mustDraw = mustDrawBeforePassing(round, playerId);
+  const mustDraw = mustDrawBeforePassing(round, playerId, houseRules);
   const redAlertBlocking = isRedAlertBlocking(round.table.redAlert, playerId);
   const beaconActive =
     round.table.warpTrails[playerId]?.distressBeacon.active === true;
-  const fractureBlocks =
-    round.table.subspaceFracture?.active === true &&
-    legalMoves.some((move) => move.route.kind === 'fracture-stabilizer');
+  const fractureActive = isNavigationHaltedByFracture(
+    round.table.subspaceFracture,
+    round.table.redAlert
+  );
+  const canStabilize = legalMoves.some(
+    (move) => move.route.kind === 'fracture-stabilizer'
+  );
 
-  if (fractureBlocks) {
-    lines.push(
-      'Subspace Fracture is active — chart a stabilizer on the fracture before drawing or passing.'
-    );
-    return lines;
+  if (fractureActive) {
+    if (canStabilize) {
+      lines.push(
+        'Subspace Fracture is active — chart a stabilizer on the fracture double. The third stabilizer clears the fracture and Red Alert.'
+      );
+      return lines;
+    }
+
+    if (mustDraw) {
+      lines.push(
+        `Subspace Fracture is active — no stabilizer in your hand. Draw from Uncharted Sectors (${uncharted} tile${uncharted === 1 ? '' : 's'} left).`
+      );
+      if (redAlertBlocking) {
+        lines.push(
+          'If you still cannot stabilize after drawing, you may pass Red Alert. Stabilizers satisfy the double — a separate cover tile is not used.'
+        );
+      }
+      return lines;
+    }
+
+    if (redAlertBlocking && canPassRedAlert(round, playerId, { houseRules })) {
+      lines.push(
+        'Pass Red Alert — you cannot add a stabilizer. Your Distress Beacon deploys and responsibility passes to the next captain.'
+      );
+      lines.push(
+        'The next responsible captain must continue stabilizing until three branches are placed; the third clears both Subspace Fracture and Red Alert.'
+      );
+      return options?.focus
+        ? prioritizeFocus(lines, options.focus)
+        : lines;
+    }
+
+    if (redAlertBlocking) {
+      lines.push(
+        'Subspace Fracture is active — stabilize the double or pass Red Alert once you cannot add a stabilizer.'
+      );
+      return lines;
+    }
   }
 
   if (round.qPendingInvoker === playerId) {
@@ -93,12 +132,12 @@ export function explainTurnResolution(
 
   if (redAlertBlocking) {
     const target = redAlertTargetLabel(state, playerId, options?.names);
-    if (canPassRedAlert(round, playerId)) {
+    if (canPassRedAlert(round, playerId, { houseRules })) {
       lines.push(
         `Pass Red Alert is legal — nothing in your hand covers ${target}, and you have already drawn or Uncharted Sectors is empty.`
       );
       lines.push(
-        'Passing deploys your Distress Beacon and moves Red Alert responsibility to the next captain — the double stays until someone covers it.'
+        'Passing deploys your Distress Beacon and moves Red Alert responsibility to the next captain — the double stays unsatisfied until someone covers it or completes three stabilizers on a Subspace Fracture.'
       );
     } else {
       lines.push(
@@ -107,13 +146,13 @@ export function explainTurnResolution(
     }
   }
 
-  if (canPassTurn(round, playerId)) {
+  if (canPassTurn(round, playerId, { houseRules })) {
     lines.push(
       'Pass is legal — your shields are already down, you have no chart, and Red Alert is not blocking you. The turn ends without drawing.'
     );
   }
 
-  if (canDeployDistressBeacon(round, playerId)) {
+  if (canDeployDistressBeacon(round, playerId, { houseRules })) {
     lines.push(
       'Shields down is required — no legal chart and Uncharted Sectors is empty. Your warp trail opens to all captains.'
     );

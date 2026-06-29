@@ -1,4 +1,4 @@
-import { handSizeForPlayerCount, spacedockValueForRound } from '../constants/setup.js';
+import { handSizeForPlayerCount, spacedockValueForRound, DEFAULT_CAMPAIGN_ROUNDS, clampCampaignRounds } from '../constants/setup.js';
 import {
   coordinateKey,
   normalizeCoordinate,
@@ -9,6 +9,7 @@ import type { CreateGameInput, GameState, RoundState } from '../types/game-state
 import type { Captain, PlayerId } from '../types/player.js';
 import { DEFAULT_GAME_OBJECTIVE } from '../types/objective.js';
 import { resolveModules } from '../types/modules.js';
+import { resolveHouseRules } from '../types/house-rules.js';
 
 export function createCaptain(
   id: string,
@@ -25,7 +26,11 @@ export function createLobbyState(input: CreateGameInput): GameState {
     round: null,
     completedRounds: 0,
     modules: resolveModules(input.modules),
+    houseRules: resolveHouseRules(input.houseRules),
     objective: input.objective ?? DEFAULT_GAME_OBJECTIVE,
+    campaignRounds: clampCampaignRounds(
+      input.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS
+    ),
   };
 }
 
@@ -115,8 +120,8 @@ export function createRoundStateFromDeal(deal: RoundDealResult): RoundState {
     ),
     unchartedSectors: [...deal.unchartedSectors],
     hands: { ...deal.hands },
-    treatyDeclarationRequired: false,
-    treatyDeclared: false,
+    dropToImpulseRequired: false,
+    dropToImpulseDeclared: false,
     roundWinnerId: null,
     qPendingInvoker: null,
     qEffects: null,
@@ -124,6 +129,7 @@ export function createRoundStateFromDeal(deal: RoundDealResult): RoundState {
     mandatoryPlay: null,
     pendingRoundWin: null,
     roundBlocked: false,
+    roundStarterOpening: null,
   };
 }
 

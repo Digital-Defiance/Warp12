@@ -3,6 +3,10 @@ import {
   isNavigationHaltedByFracture,
   isRedAlertBlocking,
 } from '../types/anomalies.js';
+import {
+  DEFAULT_HOUSE_RULES,
+  type HouseRules,
+} from '../types/house-rules.js';
 import type { RoundState } from '../types/game-state.js';
 import type { PlayerId } from '../types/player.js';
 
@@ -21,11 +25,15 @@ function resolutionBlockedByQ(round: RoundState, playerId: PlayerId): boolean {
   );
 }
 
-function mustStabilizeFracture(round: RoundState, playerId: PlayerId): boolean {
-  if (!isNavigationHaltedByFracture(round.table.subspaceFracture)) {
+function mustStabilizeFracture(
+  round: RoundState,
+  playerId: PlayerId,
+  houseRules: HouseRules = DEFAULT_HOUSE_RULES
+): boolean {
+  if (!isNavigationHaltedByFracture(round.table.subspaceFracture, round.table.redAlert)) {
     return false;
   }
-  return getLegalMoves(round, playerId).some(
+  return getLegalMoves(round, playerId, houseRules).some(
     (move) => move.route.kind === 'fracture-stabilizer'
   );
 }
@@ -33,10 +41,11 @@ function mustStabilizeFracture(round: RoundState, playerId: PlayerId): boolean {
 /** Must draw from Uncharted Sectors before passing when tiles remain. */
 export function mustDrawBeforePassing(
   round: RoundState,
-  playerId: PlayerId
+  playerId: PlayerId,
+  houseRules: HouseRules = DEFAULT_HOUSE_RULES
 ): boolean {
   return (
-    getLegalMoves(round, playerId).length === 0 &&
+    getLegalMoves(round, playerId, houseRules).length === 0 &&
     round.unchartedSectors.length > 0
   );
 }
@@ -51,8 +60,9 @@ export function mustDrawBeforePassing(
 export function canDeployDistressBeacon(
   round: RoundState,
   playerId: PlayerId,
-  options?: { afterDraw?: boolean }
+  options?: { afterDraw?: boolean; houseRules?: HouseRules }
 ): boolean {
+  const houseRules = options?.houseRules ?? DEFAULT_HOUSE_RULES;
   if (resolutionBlockedByQ(round, playerId)) {
     return false;
   }
@@ -62,11 +72,11 @@ export function canDeployDistressBeacon(
   if (isRedAlertBlocking(round.table.redAlert, playerId)) {
     return false;
   }
-  if (mustStabilizeFracture(round, playerId)) {
+  if (mustStabilizeFracture(round, playerId, houseRules)) {
     return false;
   }
 
-  const legalMoves = getLegalMoves(round, playerId);
+  const legalMoves = getLegalMoves(round, playerId, houseRules);
   if (legalMoves.length > 0) {
     return false;
   }
@@ -74,7 +84,7 @@ export function canDeployDistressBeacon(
   if (options?.afterDraw) {
     return true;
   }
-  return !mustDrawBeforePassing(round, playerId);
+  return !mustDrawBeforePassing(round, playerId, houseRules);
 }
 
 /**
@@ -84,15 +94,16 @@ export function canDeployDistressBeacon(
 export function canPassTurn(
   round: RoundState,
   playerId: PlayerId,
-  options?: { afterDraw?: boolean }
+  options?: { afterDraw?: boolean; houseRules?: HouseRules }
 ): boolean {
+  const houseRules = options?.houseRules ?? DEFAULT_HOUSE_RULES;
   if (resolutionBlockedByQ(round, playerId)) {
     return false;
   }
-  if (mustStabilizeFracture(round, playerId)) {
+  if (mustStabilizeFracture(round, playerId, houseRules)) {
     return false;
   }
-  if (getLegalMoves(round, playerId).length > 0) {
+  if (getLegalMoves(round, playerId, houseRules).length > 0) {
     return false;
   }
   if (isRedAlertBlocking(round.table.redAlert, playerId)) {
@@ -104,42 +115,48 @@ export function canPassTurn(
   if (options?.afterDraw) {
     return true;
   }
-  return !mustDrawBeforePassing(round, playerId);
+  return !mustDrawBeforePassing(round, playerId, houseRules);
 }
 
 /** Pass a blocking Red Alert to the next captain (also deploys your beacon). */
 export function canPassRedAlert(
   round: RoundState,
   playerId: PlayerId,
-  options?: { afterDraw?: boolean }
+  options?: { afterDraw?: boolean; houseRules?: HouseRules }
 ): boolean {
+  const houseRules = options?.houseRules ?? DEFAULT_HOUSE_RULES;
   if (!isRedAlertBlocking(round.table.redAlert, playerId)) {
     return false;
   }
   if (resolutionBlockedByQ(round, playerId)) {
     return false;
   }
-  if (mustStabilizeFracture(round, playerId)) {
+  if (mustStabilizeFracture(round, playerId, houseRules)) {
     return false;
   }
-  if (getLegalMoves(round, playerId).length > 0) {
+  if (getLegalMoves(round, playerId, houseRules).length > 0) {
     return false;
   }
   if (options?.afterDraw) {
     return true;
   }
-  return !mustDrawBeforePassing(round, playerId);
+  return !mustDrawBeforePassing(round, playerId, houseRules);
 }
 
-/** Shields rise only by charting on your own warp trail while the beacon is active. */
+/** Shields rise by charting while the beacon is active (own trail, or any chart with Deluxe house rule). */
 export function canRaiseShieldsByCharting(
   round: RoundState,
-  playerId: PlayerId
+  playerId: PlayerId,
+  houseRules: HouseRules = DEFAULT_HOUSE_RULES
 ): boolean {
   if (round.table.warpTrails[playerId]?.distressBeacon.active !== true) {
     return false;
   }
-  return getLegalMoves(round, playerId).some(
+  const legalMoves = getLegalMoves(round, playerId, houseRules);
+  if (houseRules.beaconClearsOnAnyPlay) {
+    return legalMoves.length > 0;
+  }
+  return legalMoves.some(
     (move) =>
       move.route.kind === 'warp-trail' && move.route.playerId === playerId
   );

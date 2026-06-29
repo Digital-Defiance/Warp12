@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 
+import '../test/setup.js';
 import {
   DEFAULT_TABLE_OPTIONS,
   readTableOptions,

@@ -5,5 +5,5 @@ export const DEFAULT_GAME_OBJECTIVE: GameObjective = 'penalty';
 
 export const GAME_OBJECTIVE_LABELS: Record<GameObjective, string> = {
   'go-out': 'Go out — first empty hand wins the sector',
-  penalty: 'Points — lowest penalty total wins the campaign (13 rounds)',
+  penalty: 'Points — lowest cumulative penalty wins the campaign',
 };

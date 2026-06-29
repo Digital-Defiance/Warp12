@@ -20,6 +20,7 @@ service cloud.firestore {
       return request.resource.data.hostId == resource.data.hostId
         && request.resource.data.maxPlayers == resource.data.maxPlayers
         && request.resource.data.objective == resource.data.objective
+        && request.resource.data.campaignRounds == resource.data.campaignRounds
         && request.resource.data.modules == resource.data.modules
         && request.resource.data.createdAt == resource.data.createdAt;
     }
@@ -105,7 +106,8 @@ service cloud.firestore {
           && lobbyMissionSettingsUnchanged())
       );
 
-      allow delete: if isHost(resource.data) && resource.data.phase == 'lobby';
+      allow delete: if isHost(resource.data)
+        && resource.data.phase in ['lobby', 'active', 'complete', 'round-end'];
 
       match /presence/{playerId} {
         function parentGame() {

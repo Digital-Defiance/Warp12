@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { ShareRoundDelivery, ShareRoundImageMode } from '../game/share-round.js';
 import {
   LayerGroupIcon,
+  RoundLogIcon,
   SaveImageIcon,
   ShareImageIcon,
 } from './round-image-icons';
@@ -11,10 +12,12 @@ import styles from './round-image-actions.module.scss';
 interface RoundImageActionsProps {
   systemShareAvailable: boolean;
   roundImageBusy: string | null;
+  roundLogBusy?: boolean;
   onRoundImage: (
     mode: ShareRoundImageMode,
     delivery: ShareRoundDelivery
   ) => void | Promise<void>;
+  onSaveRoundLog?: () => void;
   className?: string;
 }
 
@@ -89,13 +92,34 @@ function SplitIconGroup({
 export function RoundImageActions({
   systemShareAvailable,
   roundImageBusy,
+  roundLogBusy = false,
   onRoundImage,
+  onSaveRoundLog,
   className,
 }: RoundImageActionsProps) {
-  const disabled = roundImageBusy !== null;
+  const disabled = roundImageBusy !== null || roundLogBusy;
 
   return (
     <div className={[styles.row, className].filter(Boolean).join(' ')}>
+      {onSaveRoundLog && (
+        <button
+          type="button"
+          className={styles.singleBtn}
+          disabled={disabled}
+          data-busy={roundLogBusy ? 'true' : undefined}
+          aria-label="Open round log"
+          title="Open round log"
+          onClick={onSaveRoundLog}
+        >
+          {roundLogBusy ? (
+            <span className={styles.busyGlyph} aria-hidden>
+              ···
+            </span>
+          ) : (
+            <RoundLogIcon />
+          )}
+        </button>
+      )}
       <SplitIconGroup
         groupLabel="Save round image"
         primaryLabel="Save board image"

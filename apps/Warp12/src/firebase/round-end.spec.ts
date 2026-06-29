@@ -1,4 +1,4 @@
-import { applyAction, type GameState } from 'warp12-engine';
+import { applyAction, resolveHouseRules, type GameState } from 'warp12-engine';
 import { describe, expect, it } from 'vitest';
 
 import { shouldRedealHandsAfterScore } from './round-end-hands.js';
@@ -13,6 +13,7 @@ describe('online round end scoring', () => {
       id: 'test',
       phase: 'active',
       objective: 'penalty',
+      campaignRounds: 13,
       completedRounds: 12,
       captains: [
         { id: 'a', displayName: 'Alpha', penaltyScore: 0 },
@@ -21,8 +22,9 @@ describe('online round end scoring', () => {
       modules: {
         qContinuum: { enabled: false, activeFlash: null },
         salamanderPenalty: { enabled: false },
-        subspaceFracture: { enabled: true },
+        subspaceFracture: { enabled: true, scope: 'own-trail' },
       },
+      houseRules: resolveHouseRules(),
       round: {
         roundNumber: 13,
         spacedockValue: 12,
@@ -34,12 +36,16 @@ describe('online round end scoring', () => {
           b: [tile(6, 6), tile(3, 4)],
         },
         unchartedSectors: [],
-        treatyDeclarationRequired: false,
-        treatyDeclared: true,
+        dropToImpulseRequired: false,
+        dropToImpulseDeclared: true,
         roundWinnerId: 'a',
         qPendingInvoker: null,
         qEffects: null,
         qGamblePending: null,
+        mandatoryPlay: null,
+        pendingRoundWin: null,
+        roundBlocked: false,
+        roundStarterOpening: null,
         table: {
           spacedock: { value: 12, placedBy: 'a' },
           warpTrails: {
@@ -87,13 +93,15 @@ describe('online round end scoring', () => {
       id: 'test',
       phase: 'active',
       objective: 'go-out',
+      campaignRounds: 13,
       completedRounds: 0,
       captains: [{ id: 'a', displayName: 'Alpha', penaltyScore: 0 }],
       modules: {
         qContinuum: { enabled: false, activeFlash: null },
         salamanderPenalty: { enabled: true },
-        subspaceFracture: { enabled: true },
+        subspaceFracture: { enabled: true, scope: 'own-trail' },
       },
+      houseRules: resolveHouseRules(),
       round: {
         roundNumber: 1,
         spacedockValue: 12,
@@ -102,12 +110,16 @@ describe('online round end scoring', () => {
         turnOrder: ['a'],
         hands: { a: [] },
         unchartedSectors: [],
-        treatyDeclarationRequired: false,
-        treatyDeclared: true,
+        dropToImpulseRequired: false,
+        dropToImpulseDeclared: true,
         roundWinnerId: 'a',
         qPendingInvoker: null,
         qEffects: null,
         qGamblePending: null,
+        mandatoryPlay: null,
+        pendingRoundWin: null,
+        roundBlocked: false,
+        roundStarterOpening: null,
         table: {
           spacedock: { value: 12, placedBy: 'a' },
           warpTrails: {

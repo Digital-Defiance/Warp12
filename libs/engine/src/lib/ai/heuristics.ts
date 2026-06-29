@@ -51,7 +51,7 @@ const preferChart: WarpHeuristic = {
   id: H.preferChart,
   score(action: WarpAiAction): number {
     switch (action.kind) {
-      case 'declare-treaty':
+      case 'drop-to-impulse':
         return 200;
       case 'chart':
         return 100;

@@ -7,6 +7,7 @@ export function HomePage() {
 
   return (
     <div className={styles.page}>
+      <img src="/Warp12-feat-tx.png" alt="Warp 12" className={styles.heroImage} />
       <section className={styles.hero}>
         <p className={styles.heroEyebrow}>Double-twelve dominoes · fleet tactics</p>
         <h1 className={styles.heroTitle}>
@@ -49,7 +50,7 @@ export function HomePage() {
           </li>
         </ul>
       </section>
-
+      <br />
       <section>
         <h2 className={styles.playHeading}>Choose your mission</h2>
         <div className={styles.grid}>
@@ -71,6 +72,7 @@ export function HomePage() {
           </button>
         </div>
       </section>
+      <br />
       <section>
         <div>© 2026 Digital Defiance, Jessica Mulein</div>
         <div>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  countTurnBeepsToPlay,
   detectGameSoundTransitions,
   type GameSoundSnapshot,
 } from './use-game-sounds.js';
@@ -11,12 +12,14 @@ describe('detectGameSoundTransitions', () => {
     roundPhase: 'playing',
     isMyTurn: false,
     doublesOnTable: 0,
+    chartedTileCount: 0,
     trueRedAlert: false,
     redAlertResponsibleId: null,
     activeBeaconCount: 0,
     qFlashActive: false,
-    treatyDeclared: false,
-    treatyDeclarationRequired: false,
+    dropToImpulseDeclared: false,
+    dropToImpulseRequired: false,
+    turnBeepsEnabled: false,
   };
 
   it('plays hail when helm passes to you', () => {
@@ -25,7 +28,7 @@ describe('detectGameSoundTransitions', () => {
         ...base,
         isMyTurn: true,
       })
-    ).toEqual(['hail']);
+    ).toEqual({ play: ['hail'], stop: [] });
   });
 
   it('plays console warning when a double is charted', () => {
@@ -34,7 +37,7 @@ describe('detectGameSoundTransitions', () => {
         ...base,
         doublesOnTable: 1,
       })
-    ).toEqual(['consoleWarning']);
+    ).toEqual({ play: ['consoleWarning'], stop: [] });
   });
 
   it('does not play red alert when a double first opens red alert', () => {
@@ -45,7 +48,7 @@ describe('detectGameSoundTransitions', () => {
         trueRedAlert: true,
         redAlertResponsibleId: 'a',
       })
-    ).toEqual(['consoleWarning']);
+    ).toEqual({ play: ['consoleWarning'], stop: [] });
   });
 
   it('plays red alert when red alert is passed and a beacon deploys', () => {
@@ -66,7 +69,26 @@ describe('detectGameSoundTransitions', () => {
           activeBeaconCount: 1,
         }
       )
-    ).toEqual(['redAlert']);
+    ).toEqual({ play: ['redAlert'], stop: [] });
+  });
+
+  it('stops red alert when red alert is cleared', () => {
+    expect(
+      detectGameSoundTransitions(
+        {
+          ...base,
+          doublesOnTable: 1,
+          trueRedAlert: true,
+          redAlertResponsibleId: 'a',
+        },
+        {
+          ...base,
+          doublesOnTable: 1,
+          trueRedAlert: false,
+          redAlertResponsibleId: null,
+        }
+      )
+    ).toEqual({ play: [], stop: ['redAlert'] });
   });
 
   it('does not play red alert when a beacon deploys without passing red alert', () => {
@@ -85,7 +107,7 @@ describe('detectGameSoundTransitions', () => {
           activeBeaconCount: 1,
         }
       )
-    ).toEqual([]);
+    ).toEqual({ play: [], stop: [] });
   });
 
   it('plays q flash when the Q-Continuum module activates', () => {
@@ -94,30 +116,69 @@ describe('detectGameSoundTransitions', () => {
         ...base,
         qFlashActive: true,
       })
-    ).toEqual(['qFlash']);
+    ).toEqual({ play: ['qFlash'], stop: [] });
   });
 
   it('plays warp exit only for impulse declarations', () => {
     expect(
       detectGameSoundTransitions(base, {
         ...base,
-        treatyDeclared: true,
-        treatyDeclarationRequired: true,
+        dropToImpulseDeclared: true,
+        dropToImpulseRequired: true,
       })
-    ).toEqual(['warpExit']);
+    ).toEqual({ play: ['warpExit'], stop: [] });
 
     expect(
       detectGameSoundTransitions(base, {
         ...base,
-        treatyDeclared: true,
-        treatyDeclarationRequired: false,
+        dropToImpulseDeclared: true,
+        dropToImpulseRequired: false,
       })
-    ).toEqual([]);
+    ).toEqual({ play: [], stop: [] });
   });
 
   it('skips hail on the first snapshot', () => {
     expect(detectGameSoundTransitions(null, { ...base, isMyTurn: true })).toEqual(
-      []
+      { play: [], stop: [] }
     );
+  });
+});
+
+describe('countTurnBeepsToPlay', () => {
+  const base: GameSoundSnapshot = {
+    gamePhase: 'active',
+    roundPhase: 'playing',
+    isMyTurn: false,
+    doublesOnTable: 0,
+    chartedTileCount: 2,
+    trueRedAlert: false,
+    redAlertResponsibleId: null,
+    activeBeaconCount: 0,
+    qFlashActive: false,
+    dropToImpulseDeclared: false,
+    dropToImpulseRequired: false,
+    turnBeepsEnabled: true,
+  };
+
+  it('plays once per newly charted tile when enabled', () => {
+    expect(
+      countTurnBeepsToPlay(base, { ...base, chartedTileCount: 3 })
+    ).toBe(1);
+  });
+
+  it('plays for each tile when several are charted in one update', () => {
+    expect(
+      countTurnBeepsToPlay(base, { ...base, chartedTileCount: 5 })
+    ).toBe(3);
+  });
+
+  it('is silent when turn beeps are disabled', () => {
+    expect(
+      countTurnBeepsToPlay(base, {
+        ...base,
+        turnBeepsEnabled: false,
+        chartedTileCount: 3,
+      })
+    ).toBe(0);
   });
 });

@@ -20,7 +20,7 @@ function mergeQEffects(
     skipNextTurnFor: [],
     peekedSector: null,
     salamanderSwap: false,
-    treatyEcho: false,
+    impulseEcho: false,
   };
   return {
     reverseTurnOrder: patch.reverseTurnOrder ?? base.reverseTurnOrder,
@@ -31,7 +31,7 @@ function mergeQEffects(
     peekedSector:
       patch.peekedSector !== undefined ? patch.peekedSector : base.peekedSector,
     salamanderSwap: patch.salamanderSwap ?? base.salamanderSwap,
-    treatyEcho: patch.treatyEcho ?? base.treatyEcho,
+    impulseEcho: patch.impulseEcho ?? base.impulseEcho,
   };
 }
 
@@ -55,33 +55,49 @@ export function consumeSkipForPlayer(
   });
 }
 
-export function nextActivePlayerId(
+/** Advance helm to the next captain, consuming any skip-lowest-penalty effects passed over. */
+export function advanceToNextPlayer(
   round: RoundState,
   currentPlayerId: PlayerId
-): PlayerId {
+): { nextId: PlayerId; qEffects: QRoundEffects | null } {
   const reversed = turnOrderReversed(round);
   const order = reversed
     ? [...round.turnOrder].reverse()
     : [...round.turnOrder];
   const startIndex = order.indexOf(currentPlayerId);
-  const skips = new Set(round.qEffects?.skipNextTurnFor ?? []);
+  let qEffects = round.qEffects ?? null;
 
   for (let step = 1; step <= order.length; step += 1) {
     const candidate = order[(startIndex + step) % order.length]!;
+    const skips = new Set(qEffects?.skipNextTurnFor ?? []);
     if (!skips.has(candidate)) {
-      return candidate;
+      return { nextId: candidate, qEffects };
     }
+    qEffects = consumeSkipForPlayer(qEffects, candidate);
   }
 
-  return order[(startIndex + 1) % order.length]!;
+  return {
+    nextId: order[(startIndex + 1) % order.length]!,
+    qEffects,
+  };
+}
+
+export function nextActivePlayerId(
+  round: RoundState,
+  currentPlayerId: PlayerId
+): PlayerId {
+  return advanceToNextPlayer(round, currentPlayerId).nextId;
 }
 
 export function advanceActivePlayer(round: RoundState): RoundState {
-  const nextId = nextActivePlayerId(round, round.activePlayerId);
+  const { nextId, qEffects } = advanceToNextPlayer(
+    round,
+    round.activePlayerId
+  );
   return {
     ...round,
     activePlayerId: nextId,
-    qEffects: consumeSkipForPlayer(round.qEffects, nextId),
+    qEffects,
   };
 }
 
@@ -143,7 +159,7 @@ export function buildQFlashEffect(
       return { kind };
     case 'salamander-swap':
       return { kind };
-    case 'treaty-echo':
+    case 'impulse-echo':
       return { kind };
     case 'q-gamble':
       return { kind };
@@ -216,10 +232,10 @@ export function applyQFlashEffect(
         qEffects: mergeQEffects(nextRound.qEffects, { salamanderSwap: true }),
       };
       break;
-    case 'treaty-echo':
+    case 'impulse-echo':
       nextRound = {
         ...nextRound,
-        qEffects: mergeQEffects(nextRound.qEffects, { treatyEcho: true }),
+        qEffects: mergeQEffects(nextRound.qEffects, { impulseEcho: true }),
       };
       break;
     case 'q-gamble': {
@@ -294,14 +310,14 @@ export function resolveQGamble(
   };
 }
 
-export function treatyRequiredForWin(
+export function dropToImpulseRequiredForWin(
   round: RoundState,
   routeKind: import('../types/actions.js').ChartRoute['kind']
 ): boolean {
   if (routeKind === 'neutral-zone') {
     return true;
   }
-  return round.qEffects?.treatyEcho === true;
+  return round.qEffects?.impulseEcho === true;
 }
 
 export function trailsOpenToOthers(round: RoundState, trailPlayerId: PlayerId): boolean {

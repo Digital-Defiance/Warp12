@@ -129,17 +129,17 @@ describe('captain-tails-hud', () => {
     ]);
   });
 
-  it('orients tail domino with open pip on the bottom', () => {
+  it('orients tail domino with anchor on the left and open tail on the right', () => {
     expect(
       tailTileDisplayValues({
         coordinate: { low: 3, high: 8 },
         index: 2,
         openValue: 3,
       })
-    ).toEqual({ top: 8, bottom: 3 });
+    ).toEqual({ left: 8, right: 3 });
   });
 
-  it('formats tail coordinates with colon notation', () => {
+  it('formats tail coordinates with anchor on the left and open tail on the right', () => {
     expect(
       formatTailCoordinate(
         {
@@ -150,6 +150,16 @@ describe('captain-tails-hud', () => {
         12
       )
     ).toBe('1:2');
+    expect(
+      formatTailCoordinate(
+        {
+          coordinate: { low: 6, high: 12 },
+          index: 0,
+          openValue: 6,
+        },
+        12
+      )
+    ).toBe('12:6');
     expect(
       formatTailCoordinate(
         {

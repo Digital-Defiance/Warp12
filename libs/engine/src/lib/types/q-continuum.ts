@@ -12,7 +12,7 @@ export type QFlashEffectKind =
   | 'distress-amplification'
   | 'fracture-immunity'
   | 'salamander-swap'
-  | 'treaty-echo'
+  | 'impulse-echo'
   | 'q-gamble';
 
 export interface QFlashEffect {
@@ -39,7 +39,7 @@ export interface QRoundEffects {
   /** At round scoring, 12-12 penalty transfers to the highest-penalty captain. */
   readonly salamanderSwap: boolean;
   /** Any round win requires dropping to impulse before scoring. */
-  readonly treatyEcho: boolean;
+  readonly impulseEcho: boolean;
 }
 
 export interface QGamblePending {
@@ -97,7 +97,7 @@ export const Q_FLASH_CATALOG: readonly QFlashCatalogEntry[] = [
     requiresSalamander: true,
   },
   {
-    kind: 'treaty-echo',
+    kind: 'impulse-echo',
     label: 'Impulse echo',
     description:
       'Any captain going out this round must drop to impulse before the sector closes.',
@@ -118,7 +118,7 @@ export const EMPTY_Q_ROUND_EFFECTS: QRoundEffects = {
   skipNextTurnFor: [],
   peekedSector: null,
   salamanderSwap: false,
-  treatyEcho: false,
+  impulseEcho: false,
 };
 
 export function describeQFlashEffect(

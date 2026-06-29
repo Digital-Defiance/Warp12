@@ -1,4 +1,5 @@
 import {
+  isTrueRedAlert,
   trailsOpenToOthers,
   trailOpenValue,
   neutralZoneOpenValue,
@@ -115,4 +116,52 @@ export function formatRedAlertStatus(
 
   const responsible = names[responsibleId] ?? responsibleId;
   return `${trailOwner} · ${tile} · ${responsible} must cover`;
+}
+
+/** True while the double is newly charted and no one has passed Red Alert yet. */
+export function isRedAlertFresh(round: RoundState): boolean {
+  const redAlert = round.table.redAlert;
+  if (!redAlert?.active || !isTrueRedAlert(round)) {
+    return false;
+  }
+
+  const responsible = redAlert.responsiblePlayerId;
+  for (const [playerId, trail] of Object.entries(round.table.warpTrails)) {
+    if (trail.distressBeacon.active && playerId !== responsible) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export interface SectorRedAlertRow {
+  readonly label: string;
+  readonly summary: string;
+  readonly tone: 'caution' | 'alert';
+}
+
+/** Sector status row for an active Red Alert (Caution on first chart, Red alert after pass). */
+export function formatSectorRedAlertRow(
+  round: RoundState,
+  names: Readonly<Record<string, string>>
+): SectorRedAlertRow | null {
+  const redAlert = round.table.redAlert;
+  if (!redAlert?.active || !isTrueRedAlert(round)) {
+    return null;
+  }
+
+  if (isRedAlertFresh(round)) {
+    const { low, high } = redAlert.anchor.coordinate;
+    return {
+      label: 'Caution',
+      summary: `A double has been played — ${low}:${high}`,
+      tone: 'caution',
+    };
+  }
+
+  return {
+    label: 'Red alert',
+    summary: formatRedAlertStatus(redAlert, names),
+    tone: 'alert',
+  };
 }

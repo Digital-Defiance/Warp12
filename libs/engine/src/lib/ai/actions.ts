@@ -14,7 +14,7 @@ export type WarpAiAction =
   | { readonly kind: 'deploy-beacon' }
   | { readonly kind: 'pass-red-alert' }
   | { readonly kind: 'pass-turn' }
-  | { readonly kind: 'declare-treaty' }
+  | { readonly kind: 'drop-to-impulse' }
   | { readonly kind: 'invoke-q-flash'; readonly effect: QFlashEffectKind }
   | { readonly kind: 'resolve-q-gamble'; readonly keepIndex: 0 | 1 };
 
@@ -39,8 +39,8 @@ export function toGameAction(
       return { type: 'PASS_RED_ALERT', playerId };
     case 'pass-turn':
       return { type: 'PASS_TURN', playerId };
-    case 'declare-treaty':
-      return { type: 'DECLARE_TREATY', playerId };
+    case 'drop-to-impulse':
+      return { type: 'DROP_TO_IMPULSE', playerId };
     case 'invoke-q-flash':
       return { type: 'INVOKE_Q_FLASH', playerId, effect: action.effect };
     case 'resolve-q-gamble':

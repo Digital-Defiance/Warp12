@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import {
+  DEFAULT_CAMPAIGN_ROUNDS,
   GAME_OBJECTIVE_LABELS,
   type GameObjective,
 } from 'warp12-engine';
@@ -29,14 +30,22 @@ import {
   JoinSectorPanel,
   SectorUnavailablePanel,
 } from './join-sector-panel';
-import { ObjectivePicker, ObjectiveSummary } from './objective-picker';
+import { CampaignRoundsField, ObjectivePicker, ObjectiveSummary } from './objective-picker';
+import { HouseRulesOptions } from './house-rules-options';
+import { SubspaceFractureOptions } from './subspace-fracture-options';
 import { isAiCaptain } from '../game/ai-captain.js';
 import styles from './lobby.module.scss';
 
 const DEFAULT_CREATE_OPTIONS: CreateLobbyOptions = {
   objective: 'go-out',
   maxPlayers: 4,
-  modules: { salamanderPenalty: true, qContinuum: false, subspaceFracture: false },
+  campaignRounds: DEFAULT_CAMPAIGN_ROUNDS,
+  modules: {
+    salamanderPenalty: true,
+    qContinuum: false,
+    subspaceFracture: false,
+    subspaceFractureScope: 'own-trail',
+  },
 };
 
 export function OnlineLobbyPage() {
@@ -174,7 +183,9 @@ export function OnlineLobbyPage() {
   const saveSettings = async (patch: {
     objective?: GameObjective;
     maxPlayers?: number;
+    campaignRounds?: number;
     modules?: CreateLobbyOptions['modules'];
+    houseRules?: CreateLobbyOptions['houseRules'];
   }) => {
     if (!uid || !routeGameId || !lobby) {
       return;
@@ -282,6 +293,7 @@ export function OnlineLobbyPage() {
     const isHost = lobby.hostId === uid;
     const maxPlayers = lobby.maxPlayers ?? ONLINE_MAX_PLAYERS;
     const objective = lobby.objective ?? 'go-out';
+    const campaignRounds = lobby.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS;
 
     return (
       <section className={`${styles.waitingRoom} ${styles.lobbyWide}`}>
@@ -336,7 +348,21 @@ export function OnlineLobbyPage() {
             onChange={(value) => void saveSettings({ objective: value })}
           />
         ) : (
-          <ObjectiveSummary objective={objective} />
+          <ObjectiveSummary
+            objective={objective}
+            campaignRounds={campaignRounds}
+          />
+        )}
+
+        {isHost && objective === 'penalty' && (
+          <fieldset className={styles.fieldset}>
+            <legend>Campaign length</legend>
+            <CampaignRoundsField
+              value={campaignRounds}
+              disabled={busy}
+              onChange={(value) => void saveSettings({ campaignRounds: value })}
+            />
+          </fieldset>
         )}
 
         {isHost && (
@@ -396,22 +422,36 @@ export function OnlineLobbyPage() {
               />
               <span>Module Alpha — Q-Continuum</span>
             </label>
-            <label className={styles.checkboxRow}>
-              <input
-                type="checkbox"
-                checked={lobby.modules.subspaceFracture ?? false}
-                disabled={busy}
-                onChange={(e) =>
-                  void saveSettings({
-                    modules: {
-                      ...lobby.modules,
-                      subspaceFracture: e.target.checked,
-                    },
-                  })
-                }
-              />
-              <span>Subspace Fracture (chicken foot on doubles)</span>
-            </label>
+            <SubspaceFractureOptions
+              enabled={lobby.modules.subspaceFracture ?? false}
+              scope={lobby.modules.subspaceFractureScope ?? 'own-trail'}
+              disabled={busy}
+              onEnabledChange={(enabled) =>
+                void saveSettings({
+                  modules: {
+                    ...lobby.modules,
+                    subspaceFracture: enabled,
+                  },
+                })
+              }
+              onScopeChange={(scope) =>
+                void saveSettings({
+                  modules: {
+                    ...lobby.modules,
+                    subspaceFractureScope: scope,
+                  },
+                })
+              }
+            />
+            <HouseRulesOptions
+              value={lobby.houseRules ?? {}}
+              disabled={busy}
+              onChange={(patch) =>
+                void saveSettings({
+                  houseRules: { ...lobby.houseRules, ...patch },
+                })
+              }
+            />
           </fieldset>
         )}
 
@@ -455,20 +495,27 @@ export function OnlineLobbyPage() {
   }
 
   return (
-    <LobbyForm
-      gameCode={gameCode}
-      onGameCodeChange={setGameCode}
-      displayName={displayName}
-      onDisplayNameChange={setDisplayName}
-      createOptions={createOptions}
-      onCreateOptionsChange={setCreateOptions}
-      onCreate={openSector}
-      onJoin={() => void joinSector()}
-      busy={busy}
-      error={error}
-      firebaseReady={auth.ready}
-      firebaseConfigured={auth.configured}
-    />
+    <>
+      {notice && (
+        <p className={styles.notice} role="status">
+          {notice}
+        </p>
+      )}
+      <LobbyForm
+        gameCode={gameCode}
+        onGameCodeChange={setGameCode}
+        displayName={displayName}
+        onDisplayNameChange={setDisplayName}
+        createOptions={createOptions}
+        onCreateOptionsChange={setCreateOptions}
+        onCreate={openSector}
+        onJoin={() => void joinSector()}
+        busy={busy}
+        error={error}
+        firebaseReady={auth.ready}
+        firebaseConfigured={auth.configured}
+      />
+    </>
   );
 }
 

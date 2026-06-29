@@ -37,23 +37,29 @@ export function assertActorMaySubmit(
     return null;
   }
 
-  if (action.type === 'DECLARE_TREATY') {
+  if (action.type === 'DROP_TO_IMPULSE') {
     if (!docData.round || docData.round.phase !== 'playing') {
       return 'ROUND_NOT_PLAYING';
     }
     if (
-      !docData.round.treatyDeclarationRequired ||
-      docData.round.treatyDeclared
+      !docData.round.dropToImpulseRequired ||
+      docData.round.dropToImpulseDeclared
     ) {
-      return 'TREATY_NOT_REQUIRED';
+      return 'DROP_TO_IMPULSE_NOT_REQUIRED';
     }
-    if (action.playerId !== actorId) {
+
+    const declaringPlayerId = action.playerId;
+    const isSelf = declaringPlayerId === actorId;
+    const isHostProxy =
+      !isSelf && canHostProxyAiMove(docData, actorId, declaringPlayerId);
+    if (!isSelf && !isHostProxy) {
       return 'NOT_YOUR_TURN';
     }
+
     const { roundWinnerId, activePlayerId } = docData.round;
     const mayDeclare =
-      roundWinnerId === actorId ||
-      (roundWinnerId == null && activePlayerId === actorId);
+      roundWinnerId === declaringPlayerId ||
+      (roundWinnerId == null && activePlayerId === declaringPlayerId);
     return mayDeclare ? null : 'NOT_YOUR_TURN';
   }
 

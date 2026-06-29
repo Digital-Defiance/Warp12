@@ -1,4 +1,5 @@
 import type { GameObjective, WarpSkillLevel } from 'warp12-engine';
+import type { HouseRulesConfig } from 'warp12-engine';
 
 export interface FirestoreGameDocument {
   id: string;
@@ -10,11 +11,15 @@ export interface FirestoreGameDocument {
     qContinuum: boolean;
     salamanderPenalty: boolean;
     subspaceFracture: boolean;
+    subspaceFractureScope: import('warp12-engine').SubspaceFractureScope;
   };
-  /** Defaults to penalty scoring when omitted (legacy sectors). */
-  objective?: GameObjective;
-  /** Fleet capacity (3–8). Defaults to 8 for legacy sectors. */
-  maxPlayers?: number;
+  houseRules?: HouseRulesConfig;
+  /** Sector scoring objective. */
+  objective: GameObjective;
+  /** Penalty campaign length (1–13). */
+  campaignRounds: number;
+  /** Fleet capacity (3–8). */
+  maxPlayers: number;
   /** Denormalized uid list for security rules. */
   captainIds: string[];
   captains: FirestoreCaptain[];
@@ -43,11 +48,14 @@ export interface FirestoreCaptain {
 export interface OnlineLobbySettings {
   objective: GameObjective;
   maxPlayers: number;
+  campaignRounds: number;
   modules: {
     qContinuum: boolean;
     salamanderPenalty: boolean;
     subspaceFracture: boolean;
+    subspaceFractureScope: import('warp12-engine').SubspaceFractureScope;
   };
+  houseRules?: HouseRulesConfig;
 }
 
 export interface FirestorePublicRound {
@@ -58,8 +66,8 @@ export interface FirestorePublicRound {
   turnOrder: string[];
   handCounts: Record<string, number>;
   unchartedSectors: FirestoreCoordinate[];
-  treatyDeclarationRequired: boolean;
-  treatyDeclared: boolean;
+  dropToImpulseRequired: boolean;
+  dropToImpulseDeclared: boolean;
   roundWinnerId: string | null;
   roundBlocked?: boolean;
   mandatoryPlay?: {
@@ -76,6 +84,9 @@ export interface FirestorePublicRound {
     playerId: string;
     options: [FirestoreCoordinate, FirestoreCoordinate];
   } | null;
+  roundStarterOpening?: {
+    playerId: string;
+  } | null;
   table: FirestoreTableDocument;
 }
 
@@ -91,7 +102,7 @@ export interface FirestoreQRoundEffects {
     visibleTo: string;
   } | null;
   salamanderSwap: boolean;
-  treatyEcho: boolean;
+  impulseEcho: boolean;
 }
 
 export interface FirestorePlayerHandDocument {
@@ -141,6 +152,8 @@ export interface FirestoreSubspaceFractureDocument {
   anchor: FirestorePlacedCoordinate;
   stabilizers: FirestorePlacedCoordinate[];
   requiredValue: number;
+  neutralZone?: boolean;
+  trailCaptainId?: string;
 }
 
 export interface FirestoreRedAlertDocument {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GameState } from 'warp12-engine';
+import { resolveHouseRules, type GameState } from 'warp12-engine';
 
 import { serializePublicGame } from './serialize.js';
 
@@ -9,12 +9,14 @@ describe('serialize round rule fields', () => {
       id: 'test',
       phase: 'active',
       objective: 'penalty',
+      campaignRounds: 13,
       completedRounds: 0,
+      houseRules: resolveHouseRules(),
       captains: [{ id: 'a', displayName: 'A', penaltyScore: 0 }],
       modules: {
         qContinuum: { enabled: false, activeFlash: null },
         salamanderPenalty: { enabled: false },
-        subspaceFracture: { enabled: false },
+        subspaceFracture: { enabled: false, scope: 'own-trail' },
       },
       round: {
         roundNumber: 1,
@@ -24,8 +26,8 @@ describe('serialize round rule fields', () => {
         turnOrder: ['a', 'b'],
         hands: { a: [], b: [] },
         unchartedSectors: [],
-        treatyDeclarationRequired: false,
-        treatyDeclared: false,
+        dropToImpulseRequired: false,
+        dropToImpulseDeclared: false,
         roundWinnerId: null,
         qPendingInvoker: null,
         qEffects: null,
@@ -33,6 +35,7 @@ describe('serialize round rule fields', () => {
         mandatoryPlay: { playerId: 'a', coordinate: { low: 6, high: 12 } },
         pendingRoundWin: { playerId: 'a', routeKind: 'warp-trail' as const },
         roundBlocked: true,
+        roundStarterOpening: null,
         table: {
           spacedock: { value: 12, placedBy: 'a' },
           warpTrails: {

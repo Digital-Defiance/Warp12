@@ -1,10 +1,13 @@
 import {
   applyAction,
+  DEFAULT_CAMPAIGN_ROUNDS,
   generateCoordinateSet,
+  resolveHouseRules,
   shuffleCoordinates,
   startGame,
   type GameAction,
   type GameObjective,
+  type HouseRulesConfig,
   type GameState,
   type WarpSkillLevel,
 } from 'warp12-engine';
@@ -132,7 +135,9 @@ export function generateGameCode(): string {
 export interface CreateLobbyOptions {
   objective?: GameObjective;
   maxPlayers?: number;
+  campaignRounds?: number;
   modules?: OnlineLobbySettings['modules'];
+  houseRules?: HouseRulesConfig;
 }
 
 export async function createLobby(
@@ -157,12 +162,16 @@ export async function createLobby(
     createdAt: now,
     updatedAt: now,
     objective: options.objective ?? 'go-out',
+    campaignRounds: options.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS,
     maxPlayers: clampOnlineMaxPlayers(options.maxPlayers ?? ONLINE_MAX_PLAYERS),
     modules: {
       qContinuum: options.modules?.qContinuum ?? false,
       salamanderPenalty: options.modules?.salamanderPenalty ?? true,
       subspaceFracture: options.modules?.subspaceFracture ?? false,
+      subspaceFractureScope:
+        options.modules?.subspaceFractureScope ?? 'own-trail',
     },
+    houseRules: options.houseRules,
     captainIds: [hostId],
     captains,
     completedRounds: 0,
@@ -425,7 +434,13 @@ export async function updateLobbySettings(
       ...(settings.objective !== undefined
         ? { objective: settings.objective }
         : {}),
+      ...(settings.campaignRounds !== undefined
+        ? { campaignRounds: settings.campaignRounds }
+        : {}),
       ...(settings.modules !== undefined ? { modules: settings.modules } : {}),
+      ...(settings.houseRules !== undefined
+        ? { houseRules: settings.houseRules }
+        : {}),
       maxPlayers,
       updatedAt: new Date().toISOString(),
     });
@@ -467,8 +482,11 @@ export async function launchOnlineGame(
           qContinuum: lobby.modules.qContinuum,
           salamanderPenalty: lobby.modules.salamanderPenalty,
           subspaceFracture: lobby.modules.subspaceFracture,
+          subspaceFractureScope: lobby.modules.subspaceFractureScope,
         },
+        houseRules: lobby.houseRules,
         objective: lobby.objective ?? 'penalty',
+        campaignRounds: lobby.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS,
       },
       { shuffledCoordinates: shuffled, roundStarterId: hostId }
     );
@@ -532,6 +550,7 @@ export async function resetSectorToLobby(
   });
 }
 
+/** Host dissolves the sector for everyone (waiting room or mid-mission). */
 export async function dissolveLobby(
   gameId: string,
   hostId: string
@@ -544,9 +563,6 @@ export async function dissolveLobby(
     const data = snap.data() as FirestoreGameDocument;
     if (data.hostId !== hostId) {
       throw new Error('Only the host can dissolve the sector');
-    }
-    if (data.phase !== 'lobby') {
-      throw new Error('Sector can only be dissolved from the waiting room');
     }
     for (const captain of data.captains) {
       tx.delete(handRef(gameId, captain.id));
@@ -576,12 +592,13 @@ export function subscribeLobby(
 }
 
 export interface OnlineGameSnapshot {
-  state: GameState;
+  state: GameState | null;
   handCounts: Record<string, number>;
   connected: boolean;
   hostId: string;
   sectorCaptains: FirestoreCaptain[];
   aiHands: Record<string, readonly { low: number; high: number }[]>;
+  dissolved: boolean;
 }
 
 /** Captain hand subdocs the host mirrors for live state and debug export. */
@@ -615,6 +632,7 @@ export function subscribeOnlineGame(
   > = {};
   let gameConnected = false;
   let handConnected = false;
+  let serverConfirmedMissing = false;
   let remoteHandUnsubs: Unsubscribe[] = [];
 
   const resubscribeRemoteHands = () => {
@@ -648,6 +666,21 @@ export function subscribeOnlineGame(
 
   const publish = () => {
     if (!latestDoc) {
+      // Hand snapshots can arrive before the public game doc on subscribe; that is
+      // not a host dissolve. Likewise, Firestore can emit a cache-only exists=false
+      // snapshot during launch before the server update lands — wait for confirmation.
+      if (!gameConnected || !serverConfirmedMissing) {
+        return;
+      }
+      onSnapshotState({
+        state: null,
+        handCounts: {},
+        connected: gameConnected && handConnected,
+        hostId: '',
+        sectorCaptains: [],
+        aiHands: {},
+        dissolved: true,
+      });
       return;
     }
 
@@ -678,6 +711,7 @@ export function subscribeOnlineGame(
       hostId: latestDoc.hostId,
       sectorCaptains: latestDoc.captains,
       aiHands,
+      dissolved: false,
     });
   };
 
@@ -685,9 +719,20 @@ export function subscribeOnlineGame(
     gameRef(gameId),
     (snap) => {
       gameConnected = true;
-      const nextDoc = snap.exists()
-        ? (snap.data() as FirestoreGameDocument)
-        : null;
+      if (!snap.exists()) {
+        // Local cache can briefly report "missing" while the public doc updates.
+        // Keep the last live snapshot until the server confirms the new doc.
+        if (snap.metadata.fromCache) {
+          return;
+        }
+        serverConfirmedMissing = true;
+        latestDoc = null;
+        publish();
+        return;
+      }
+
+      serverConfirmedMissing = false;
+      const nextDoc = snap.data() as FirestoreGameDocument;
       const remoteIdsChanged =
         remoteHandCaptainIdsForHost(latestDoc, viewerId).join('|') !==
         remoteHandCaptainIdsForHost(nextDoc, viewerId).join('|');

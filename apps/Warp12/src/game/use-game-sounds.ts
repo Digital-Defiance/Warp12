@@ -1,6 +1,10 @@
 import { useEffect, useRef } from 'react';
 
-import { playGameSound, type GameSound } from './game-sounds.js';
+import {
+  computerBeepUrl,
+  pickRandomComputerBeepId,
+} from './computer-beeps.js';
+import { playGameSound, playTurnBeep, stopGameSound, type GameSound } from './game-sounds.js';
 
 export interface GameSoundSnapshot {
   gamePhase: string;
@@ -8,31 +12,40 @@ export interface GameSoundSnapshot {
   isMyTurn: boolean;
   /** Charted doubles on the table (each play increments this). */
   doublesOnTable: number;
+  /** Tiles on the table (trails, neutral zone, open fracture stabilizers). */
+  chartedTileCount: number;
   /** Cover-required Red Alert (excludes dead doubles). */
   trueRedAlert: boolean;
   redAlertResponsibleId: string | null;
   activeBeaconCount: number;
   qFlashActive: boolean;
-  treatyDeclared: boolean;
-  treatyDeclarationRequired: boolean;
+  dropToImpulseDeclared: boolean;
+  dropToImpulseRequired: boolean;
+  turnBeepsEnabled: boolean;
+}
+
+export interface GameSoundTransition {
+  readonly play: readonly GameSound[];
+  readonly stop: readonly GameSound[];
 }
 
 export function detectGameSoundTransitions(
   previous: GameSoundSnapshot | null,
   next: GameSoundSnapshot
-): GameSound[] {
+): GameSoundTransition {
   if (previous == null || next.gamePhase !== 'active') {
-    return [];
+    return { play: [], stop: [] };
   }
 
-  const sounds: GameSound[] = [];
+  const play: GameSound[] = [];
+  const stop: GameSound[] = [];
 
   if (next.isMyTurn && !previous.isMyTurn && next.roundPhase === 'playing') {
-    sounds.push('hail');
+    play.push('hail');
   }
 
   if (next.doublesOnTable > previous.doublesOnTable) {
-    sounds.push('consoleWarning');
+    play.push('consoleWarning');
   }
 
   if (
@@ -41,22 +54,42 @@ export function detectGameSoundTransitions(
     next.redAlertResponsibleId !== previous.redAlertResponsibleId &&
     next.activeBeaconCount > previous.activeBeaconCount
   ) {
-    sounds.push('redAlert');
+    play.push('redAlert');
+  }
+
+  if (previous.trueRedAlert && !next.trueRedAlert) {
+    stop.push('redAlert');
   }
 
   if (next.qFlashActive && !previous.qFlashActive) {
-    sounds.push('qFlash');
+    play.push('qFlash');
   }
 
   if (
-    !previous.treatyDeclared &&
-    next.treatyDeclared &&
-    next.treatyDeclarationRequired
+    !previous.dropToImpulseDeclared &&
+    next.dropToImpulseDeclared &&
+    next.dropToImpulseRequired
   ) {
-    sounds.push('warpExit');
+    play.push('warpExit');
   }
 
-  return sounds;
+  return { play, stop };
+}
+
+/** Play a turn beep for each new tile charted on the table. */
+export function countTurnBeepsToPlay(
+  previous: GameSoundSnapshot | null,
+  next: GameSoundSnapshot
+): number {
+  if (
+    previous == null ||
+    next.gamePhase !== 'active' ||
+    !next.turnBeepsEnabled
+  ) {
+    return 0;
+  }
+  const delta = next.chartedTileCount - previous.chartedTileCount;
+  return delta > 0 ? delta : 0;
 }
 
 export function useGameSoundEffects(options: {
@@ -65,19 +98,36 @@ export function useGameSoundEffects(options: {
   roundPhase: string | undefined;
   roundNumber: number | undefined;
   isMyTurn: boolean;
+  activePlayerId: string | null;
   doublesOnTable: number;
+  chartedTileCount: number;
   trueRedAlert: boolean;
   redAlertResponsibleId: string | null;
   activeBeaconCount: number;
   qFlashActive: boolean;
-  treatyDeclared: boolean;
-  treatyDeclarationRequired: boolean;
+  dropToImpulseDeclared: boolean;
+  dropToImpulseRequired: boolean;
+  turnBeepsEnabled: boolean;
 }): void {
   const previous = useRef<GameSoundSnapshot | null>(null);
+  const turnBeepForPlayer = useRef<{ playerId: string | null; url: string | null }>(
+    { playerId: null, url: null }
+  );
 
   useEffect(() => {
     if (!options.enabled) {
       return;
+    }
+
+    if (options.turnBeepsEnabled && options.activePlayerId) {
+      if (turnBeepForPlayer.current.playerId !== options.activePlayerId) {
+        turnBeepForPlayer.current = {
+          playerId: options.activePlayerId,
+          url: computerBeepUrl(pickRandomComputerBeepId()),
+        };
+      }
+    } else if (!options.turnBeepsEnabled) {
+      turnBeepForPlayer.current = { playerId: null, url: null };
     }
 
     const snapshot: GameSoundSnapshot = {
@@ -85,16 +135,30 @@ export function useGameSoundEffects(options: {
       roundPhase: options.roundPhase,
       isMyTurn: options.isMyTurn,
       doublesOnTable: options.doublesOnTable,
+      chartedTileCount: options.chartedTileCount,
       trueRedAlert: options.trueRedAlert,
       redAlertResponsibleId: options.redAlertResponsibleId,
       activeBeaconCount: options.activeBeaconCount,
       qFlashActive: options.qFlashActive,
-      treatyDeclared: options.treatyDeclared,
-      treatyDeclarationRequired: options.treatyDeclarationRequired,
+      dropToImpulseDeclared: options.dropToImpulseDeclared,
+      dropToImpulseRequired: options.dropToImpulseRequired,
+      turnBeepsEnabled: options.turnBeepsEnabled,
     };
 
-    for (const sound of detectGameSoundTransitions(previous.current, snapshot)) {
+    const transition = detectGameSoundTransitions(previous.current, snapshot);
+    for (const sound of transition.stop) {
+      stopGameSound(sound);
+    }
+    for (const sound of transition.play) {
       playGameSound(sound);
+    }
+
+    const turnBeeps = countTurnBeepsToPlay(previous.current, snapshot);
+    const turnBeepUrl = turnBeepForPlayer.current.url;
+    if (turnBeepUrl) {
+      for (let i = 0; i < turnBeeps; i += 1) {
+        playTurnBeep(turnBeepUrl);
+      }
     }
 
     previous.current = snapshot;
@@ -102,19 +166,27 @@ export function useGameSoundEffects(options: {
     options.enabled,
     options.gamePhase,
     options.isMyTurn,
+    options.activePlayerId,
     options.doublesOnTable,
+    options.chartedTileCount,
     options.trueRedAlert,
     options.redAlertResponsibleId,
     options.activeBeaconCount,
     options.qFlashActive,
     options.roundPhase,
-    options.treatyDeclared,
-    options.treatyDeclarationRequired,
+    options.dropToImpulseDeclared,
+    options.dropToImpulseRequired,
+    options.turnBeepsEnabled,
   ]);
 
   useEffect(() => {
+    turnBeepForPlayer.current = { playerId: null, url: null };
     if (previous.current) {
-      previous.current = { ...previous.current, isMyTurn: false };
+      previous.current = {
+        ...previous.current,
+        isMyTurn: false,
+        chartedTileCount: 0,
+      };
     }
   }, [options.roundNumber]);
 }

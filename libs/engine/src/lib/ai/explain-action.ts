@@ -115,7 +115,7 @@ function describeHeuristicContribution(
         return 'Covers a Red Alert so the fleet can keep charting.';
       }
       if (action.move.route.kind === 'fracture-stabilizer') {
-        return 'Stabilizes the subspace fracture.';
+        return 'Stabilizes the subspace fracture; the third stabilizer also clears Red Alert on that double.';
       }
       return null;
     }
@@ -189,7 +189,7 @@ function describeActionKind(
   playerId: PlayerId
 ): string[] {
   switch (action.kind) {
-    case 'declare-treaty':
+    case 'drop-to-impulse':
       return ['Neutral Zone win available — drop to impulse.'];
     case 'invoke-q-flash':
       return [`Reality shift: ${action.effect.replaceAll('-', ' ')}.`];

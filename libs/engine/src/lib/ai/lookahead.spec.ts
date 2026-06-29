@@ -9,6 +9,7 @@ import { createInitialTable } from '../table/table-state.js';
 import { normalizeCoordinate } from '../types/coordinate.js';
 import type { GameState, RoundState } from '../types/game-state.js';
 import { DEFAULT_MODULES } from '../types/modules.js';
+import { DEFAULT_HOUSE_RULES } from '../types/house-rules.js';
 import { DEFAULT_GAME_OBJECTIVE } from '../types/objective.js';
 
 import { createWarpAiPlayer } from './create-warp-ai.js';
@@ -43,12 +44,16 @@ function makeRound(over: Partial<RoundState>): RoundState {
     table: createInitialTable([...TURN], 12, 'a'),
     unchartedSectors: [],
     hands: { a: [], b: [] },
-    treatyDeclarationRequired: false,
-    treatyDeclared: false,
+    dropToImpulseRequired: false,
+    dropToImpulseDeclared: false,
     roundWinnerId: null,
     qPendingInvoker: null,
     qEffects: null,
     qGamblePending: null,
+    mandatoryPlay: null,
+    pendingRoundWin: null,
+    roundBlocked: false,
+    roundStarterOpening: null,
   };
   return { ...base, ...over };
 }
@@ -62,7 +67,9 @@ const obsFor = (round: RoundState): WarpAiObservation => ({
   round,
   playerId: 'a',
   modules: DEFAULT_MODULES,
+  houseRules: DEFAULT_HOUSE_RULES,
   objective: DEFAULT_GAME_OBJECTIVE,
+  campaignRounds: 13,
   captains: TEST_CAPTAINS,
 });
 
@@ -158,6 +165,7 @@ describe('createWarpAiPlayer with lookahead', () => {
       playerId: round.activePlayerId,
       modules: state.modules,
       objective: state.objective,
+      campaignRounds: state.campaignRounds,
       captains: state.captains,
     };
 

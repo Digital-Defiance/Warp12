@@ -51,7 +51,9 @@ export function createLocalGame(
       id: `local-${seed}`,
       captains,
       modules: config.modules,
+      houseRules: config.houseRules,
       objective: config.objective,
+      campaignRounds: config.campaignRounds,
     },
     { shuffledCoordinates: shuffled, roundStarterId: config.humanId }
   );

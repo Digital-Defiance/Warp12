@@ -29,11 +29,17 @@ import {
   coachChartMove,
   coordinatesEqual,
   createActionLog,
+  createGameLog,
+  buildGameLogEntry,
+  buildRoundLogExport,
+  buildRoundOutcomeEntry,
+  buildRoundStartedEntry,
+  formatGameLogLine,
   gameStateToTrains,
   buildTrailSpokeStatuses,
   computeTableFocusPoint,
   detectNewChart,
-  formatRedAlertStatus,
+  formatSectorRedAlertRow,
   getCoachSuggestion,
   openTrailCaptainNames,
   playerIdForAction,
@@ -48,6 +54,10 @@ import {
 } from 'warp12-react';
 import { downloadDebugExport } from '../game/debug-export.js';
 import {
+  buildRoundLogFilename,
+  downloadRoundLog,
+} from '../game/save-round-log.js';
+import {
   canUseSystemShare,
   deliverRoundImage,
   formatPenaltyStatLines,
@@ -57,6 +67,7 @@ import {
 } from '../game/share-round.js';
 import type { LocalGameConfig } from '../game/local-game-config';
 import { useGameSoundEffects } from '../game/use-game-sounds.js';
+import { countChartedTilesOnTable } from '../game/charted-tile-count.js';
 import {
   resolveCoachIndicator,
   type CoachIndicator,
@@ -88,8 +99,12 @@ import {
   writeTableOptions,
 } from './table-view-prefs';
 import { ConfirmDialog } from './confirm-dialog';
+import { HostLeaveSectorDialog } from './host-leave-sector-dialog';
 import { RoundImageActions } from './round-image-actions';
 import { SectorStatusHud } from './sector-status-hud';
+import { GameLogTicker } from './game-log-ticker';
+import { GameLogDialog } from './game-log-dialog';
+import { buildCaptainNameColors } from './game-log-display';
 
 const TABLE_WIDTH = 1200;
 const TABLE_HEIGHT = 800;
@@ -144,7 +159,7 @@ function roundEndContinueLabel(
   game: GameState,
   round: RoundState
 ): string {
-  if (game.objective === 'penalty' && round.roundNumber < 13) {
+  if (game.objective === 'penalty' && round.roundNumber < game.campaignRounds) {
     return `Deal round ${round.roundNumber + 1}`;
   }
   return 'Score round';
@@ -201,6 +216,7 @@ export interface BridgeTableProps {
   onAction?: (action: GameAction) => Promise<ActionResult>;
   onLeave?: () => void;
   isOnlineHost?: boolean;
+  onHostAbandonSector?: () => void | Promise<void>;
   onHostResetSector?: () => void;
   onExportDebug?: () => void | Promise<void>;
   debugExportBusy?: boolean;
@@ -224,6 +240,7 @@ export function BridgeTable({
   onAction,
   onLeave,
   isOnlineHost = false,
+  onHostAbandonSector,
   onHostResetSector,
   onExportDebug,
   debugExportBusy = false,
@@ -243,6 +260,11 @@ export function BridgeTable({
   const [roundImageBusy, setRoundImageBusy] = useState<string | null>(null);
   const systemShareAvailable = canUseSystemShare();
   const actionLogRef = useRef(createActionLog());
+  const gameLogRef = useRef(createGameLog());
+  const roundStartedAtRef = useRef(Date.now());
+  const roundOutcomeLoggedRef = useRef<number | null>(null);
+  const [gameLogVersion, setGameLogVersion] = useState(0);
+  const loggedRoundRef = useRef<number | null>(null);
   const tableContentRef = useRef<HTMLDivElement>(null);
   const bridgeSurfaceRef = useRef<HTMLDivElement>(null);
 
@@ -253,6 +275,8 @@ export function BridgeTable({
   }, [externalGame, isOnline]);
 
   const game = isOnline ? (externalGame ?? localGame) : localGame;
+  const gameRef = useRef(game);
+  gameRef.current = game;
 
   const [tablePrefs, setTablePrefs] = useState(readTableOptions);
   const {
@@ -264,6 +288,7 @@ export function BridgeTable({
     autoFollowAction,
     captainTailsHud,
     captainTailsDisplay,
+    turnBeepsEnabled,
   } = tablePrefs;
 
   const patchTablePrefs = useCallback(
@@ -285,7 +310,10 @@ export function BridgeTable({
   );
   const [coachBusy, setCoachBusy] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [gameLogDialogOpen, setGameLogDialogOpen] = useState(false);
+  const [roundLogDownloadBusy, setRoundLogDownloadBusy] = useState(false);
   const [rematchConfirmOpen, setRematchConfirmOpen] = useState(false);
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [setupConfirmOpen, setSetupConfirmOpen] = useState(false);
   const [localCoachSignals, setLocalCoachSignals] = useState<
     Record<string, CoachPresence>
@@ -304,6 +332,19 @@ export function BridgeTable({
   const centerX = TABLE_WIDTH / 2;
   const centerY = TABLE_HEIGHT / 2;
   const names = useMemo(() => captainNameMap(game), [game]);
+  const gameLogEntries = useMemo(() => {
+    void gameLogVersion;
+    return gameLogRef.current.snapshot();
+  }, [gameLogVersion]);
+  const gameLogLines = useMemo(
+    () =>
+      gameLogEntries.map((entry) =>
+        formatGameLogLine(entry, names, {
+          roundStartedAtMs: roundStartedAtRef.current,
+        })
+      ),
+    [gameLogEntries, names]
+  );
   const dominoTheme = useMemo(
     () =>
       createWarpDominoTheme({
@@ -325,6 +366,27 @@ export function BridgeTable({
     () => (round ? gameStateToTrains(round, HUB_SLOTS) : []),
     [round]
   );
+
+  useEffect(() => {
+    if (!round) {
+      loggedRoundRef.current = null;
+      return;
+    }
+    if (
+      loggedRoundRef.current !== null &&
+      loggedRoundRef.current !== round.roundNumber
+    ) {
+      gameLogRef.current.clear();
+      roundOutcomeLoggedRef.current = null;
+      setGameLogVersion((version) => version + 1);
+    }
+    if (loggedRoundRef.current !== round.roundNumber) {
+      roundStartedAtRef.current = Date.now();
+      gameLogRef.current.append(buildRoundStartedEntry(round));
+      setGameLogVersion((version) => version + 1);
+    }
+    loggedRoundRef.current = round.roundNumber;
+  }, [round?.roundNumber, round]);
 
   useEffect(() => {
     prevRoundRef.current = null;
@@ -364,15 +426,15 @@ export function BridgeTable({
     : isOnline
       ? (viewerId ?? '')
       : activePlayerId;
-  const treatyTurnPending =
+  const dropToImpulseTurnPending =
     !!round &&
-    round.treatyDeclarationRequired &&
-    !round.treatyDeclared &&
+    round.dropToImpulseRequired &&
+    !round.dropToImpulseDeclared &&
     (round.roundWinnerId === handOwnerId ||
       (round.roundWinnerId == null && activePlayerId === handOwnerId));
   const isMyTurn = isVsAi
     ? activePlayerId === humanId
-    : treatyTurnPending ||
+    : dropToImpulseTurnPending ||
       !isOnline ||
       viewerId === activePlayerId;
 
@@ -382,14 +444,17 @@ export function BridgeTable({
     roundPhase: round?.phase,
     roundNumber: round?.roundNumber,
     isMyTurn,
+    activePlayerId: round?.activePlayerId ?? null,
     doublesOnTable: round != null ? countDoublesOnTable(round.table) : 0,
+    chartedTileCount: round != null ? countChartedTilesOnTable(round) : 0,
     trueRedAlert: round != null && isTrueRedAlert(round),
     redAlertResponsibleId: round?.table.redAlert?.responsiblePlayerId ?? null,
     activeBeaconCount:
       round != null ? countActiveDistressBeacons(round.table) : 0,
     qFlashActive: game.modules.qContinuum.activeFlash != null,
-    treatyDeclared: round?.treatyDeclared === true,
-    treatyDeclarationRequired: round?.treatyDeclarationRequired === true,
+    dropToImpulseDeclared: round?.dropToImpulseDeclared === true,
+    dropToImpulseRequired: round?.dropToImpulseRequired === true,
+    turnBeepsEnabled,
   });
 
   const visibleHand = round?.hands[handOwnerId] ?? [];
@@ -413,7 +478,7 @@ export function BridgeTable({
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
   const legalMoves =
-    round && isMyTurn ? getLegalMoves(round, handOwnerId) : [];
+    round && isMyTurn ? getLegalMoves(round, handOwnerId, game.houseRules) : [];
 
   const mergedCoachPresence = isOnline ? coachPresence : localCoachSignals;
   const coachByCaptain = useMemo(() => {
@@ -443,7 +508,7 @@ export function BridgeTable({
     round.phase === 'playing' &&
     round.qPendingInvoker !== handOwnerId &&
     round.qGamblePending?.playerId !== handOwnerId &&
-    !(round.treatyDeclarationRequired && !round.treatyDeclared);
+    !(round.dropToImpulseRequired && !round.dropToImpulseDeclared);
 
   useEffect(() => {
     if (!coachAvailable) {
@@ -551,13 +616,13 @@ export function BridgeTable({
   const ownTrail = round ? round.table.warpTrails[handOwnerId] : undefined;
   const shieldsDown = ownTrail?.distressBeacon.active === true;
   const canDeployBeacon =
-    !!round && isMyTurn && canDeployDistressBeacon(round, handOwnerId);
+    !!round && isMyTurn && canDeployDistressBeacon(round, handOwnerId, { houseRules: game.houseRules });
   const canPassAlert =
-    !!round && isMyTurn && canPassRedAlert(round, handOwnerId);
+    !!round && isMyTurn && canPassRedAlert(round, handOwnerId, { houseRules: game.houseRules });
   const canPass =
-    !!round && isMyTurn && canPassTurn(round, handOwnerId);
+    !!round && isMyTurn && canPassTurn(round, handOwnerId, { houseRules: game.houseRules });
   const canRaiseShields =
-    !!round && isMyTurn && canRaiseShieldsByCharting(round, handOwnerId);
+    !!round && isMyTurn && canRaiseShieldsByCharting(round, handOwnerId, game.houseRules);
 
   const spokeByCaptain = useMemo(
     () =>
@@ -598,11 +663,27 @@ export function BridgeTable({
     setLastMessage(null);
   }, [onRematch]);
 
+  const recordGameLog = useCallback(
+    (before: GameState, after: GameState, action: GameAction) => {
+      if (action.type === 'END_ROUND') {
+        return;
+      }
+      const entry = buildGameLogEntry(before, after, action);
+      if (!entry) {
+        return;
+      }
+      gameLogRef.current.append(entry);
+      setGameLogVersion((version) => version + 1);
+    },
+    []
+  );
+
   const dispatch = useCallback(
     async (
       action: GameAction,
       meta?: { source?: ActionLogSource }
     ) => {
+      const before = game;
       if (onAction) {
         const result = await onAction(action);
         if (!result.ok) {
@@ -611,6 +692,7 @@ export function BridgeTable({
           setLastMessage(null);
           setSelectedTile(null);
           setCoachSuggestion(null);
+          recordGameLog(before, result.state ?? before, action);
         }
         return;
       }
@@ -632,10 +714,11 @@ export function BridgeTable({
         setLastMessage(null);
         setSelectedTile(null);
         setCoachSuggestion(null);
+        recordGameLog(current, result.state, action);
         return result.state;
       });
     },
-    [onAction]
+    [game, onAction, recordGameLog]
   );
 
   const exportLocalDebug = async () => {
@@ -677,6 +760,35 @@ export function BridgeTable({
     setSetupConfirmOpen(false);
     onLeaveSetup?.();
   }, [onLeaveSetup]);
+
+  const handleLeaveBridge = useCallback(() => {
+    if (
+      isOnline &&
+      isOnlineHost &&
+      onHostResetSector &&
+      onHostAbandonSector
+    ) {
+      setLeaveConfirmOpen(true);
+      return;
+    }
+    onLeave?.();
+  }, [
+    isOnline,
+    isOnlineHost,
+    onHostResetSector,
+    onHostAbandonSector,
+    onLeave,
+  ]);
+
+  const confirmReturnToWaitingRoom = useCallback(() => {
+    setLeaveConfirmOpen(false);
+    onHostResetSector?.();
+  }, [onHostResetSector]);
+
+  const confirmDissolveSector = useCallback(() => {
+    setLeaveConfirmOpen(false);
+    void onHostAbandonSector?.();
+  }, [onHostAbandonSector]);
 
   useEffect(() => {
     const actions: {
@@ -780,7 +892,46 @@ export function BridgeTable({
     round?.phase === 'ended' &&
     Boolean(round.roundWinnerId || round.roundBlocked);
 
+  useEffect(() => {
+    if (!roundAwaitingScore || !round) {
+      return;
+    }
+    if (roundOutcomeLoggedRef.current === round.roundNumber) {
+      return;
+    }
+    roundOutcomeLoggedRef.current = round.roundNumber;
+    gameLogRef.current.append(buildRoundOutcomeEntry(round));
+    setGameLogVersion((version) => version + 1);
+  }, [round, roundAwaitingScore]);
+
   const canShareRound = Boolean(round && roundAwaitingScore);
+
+  const captainOrder = useMemo(
+    () => round?.turnOrder ?? game.captains.map((captain) => captain.id),
+    [game.captains, round?.turnOrder]
+  );
+  const gameLogNameColors = useMemo(
+    () => buildCaptainNameColors(names, captainOrder),
+    [captainOrder, names]
+  );
+  const gameLogReviewable = Boolean(
+    gameLogLines.length > 0 &&
+      ((roundAwaitingScore && round) || game.phase === 'complete')
+  );
+  const roundLogFilename = useMemo(() => {
+    if (!round) {
+      return 'warp12-round-log.txt';
+    }
+    return buildRoundLogFilename(
+      round.roundNumber,
+      new Date().toISOString(),
+      sectorCode ?? (isOnline ? undefined : 'local')
+    );
+  }, [isOnline, round, sectorCode]);
+
+  const handleOpenRoundLog = useCallback(() => {
+    setGameLogDialogOpen(true);
+  }, []);
 
   const shareRoundMetadata = useMemo((): ShareRoundMetadata | null => {
     if (!canShareRound || !round) {
@@ -827,6 +978,28 @@ export function BridgeTable({
     [shareRoundMetadata]
   );
 
+  const handleDownloadRoundLog = useCallback(() => {
+    if (!round) {
+      return;
+    }
+    setRoundLogDownloadBusy(true);
+    try {
+      downloadRoundLog(
+        buildRoundLogExport(
+          gameLogRef.current.snapshot(),
+          round.roundNumber,
+          names,
+          {
+            sectorCode: sectorCode ?? (isOnline ? undefined : 'local'),
+            roundStartedAtMs: roundStartedAtRef.current,
+          }
+        )
+      );
+    } finally {
+      setRoundLogDownloadBusy(false);
+    }
+  }, [round, names, sectorCode, isOnline]);
+
   useEffect(() => {
     if (!roundAwaitingScore || !round) {
       roundEndReviewKeyRef.current = null;
@@ -861,6 +1034,20 @@ export function BridgeTable({
     });
   }, [dispatch, round, roundAwaitingScore]);
 
+  const aiTurnKey = round
+    ? [
+        round.roundNumber,
+        round.activePlayerId,
+        round.roundStarterOpening?.playerId ?? '',
+        round.mandatoryPlay?.playerId ?? '',
+        round.qPendingInvoker ?? '',
+        round.qGamblePending?.playerId ?? '',
+        round.dropToImpulseRequired,
+        round.dropToImpulseDeclared,
+        round.roundWinnerId ?? '',
+      ].join(':')
+    : '';
+
   useEffect(() => {
     if (!isVsAi || !aiPlayers || !round || game.phase === 'complete') {
       return;
@@ -869,13 +1056,23 @@ export function BridgeTable({
     if (round.phase !== 'playing') return;
     if (round.activePlayerId === humanId) return;
 
-    const ai = aiPlayers.get(round.activePlayerId);
+    const activePlayerId = round.activePlayerId;
+    const ai = aiPlayers.get(activePlayerId);
     if (!ai || aiBusy.current) return;
 
     aiBusy.current = true;
     const timer = window.setTimeout(() => {
-      const action = ai.decideGameAction(game, round.activePlayerId);
+      const current = gameRef.current;
+      const currentRound = current.round;
       aiBusy.current = false;
+      if (
+        !currentRound ||
+        currentRound.phase !== 'playing' ||
+        currentRound.activePlayerId !== activePlayerId
+      ) {
+        return;
+      }
+      const action = ai.decideGameAction(current, activePlayerId);
       if (action) {
         void dispatch(action, { source: 'ai' });
       }
@@ -887,17 +1084,12 @@ export function BridgeTable({
     };
   }, [
     aiPlayers,
+    aiTurnKey,
     dispatch,
-    game,
+    game.phase,
     humanId,
     isVsAi,
-    round?.activePlayerId,
-    round?.phase,
-    round?.roundWinnerId,
-    round?.treatyDeclarationRequired,
-    round?.treatyDeclared,
-    round?.qPendingInvoker,
-    round?.qGamblePending,
+    round,
   ]);
 
   const onTileClick = (coordinate: Coordinate) => {
@@ -934,7 +1126,8 @@ export function BridgeTable({
   };
 
   const fracture = round?.table.subspaceFracture;
-  const redAlert = round?.table.redAlert;
+  const sectorRedAlertRow =
+    round != null ? formatSectorRedAlertRow(round, names) : null;
   const beaconCount = round
     ? Object.values(round.table.warpTrails).filter(
         (trail) => trail.distressBeacon.active
@@ -971,10 +1164,20 @@ export function BridgeTable({
           ['--warp-danger' as string]: warpPalette.danger,
         }}
       >
+        <GameLogTicker
+          lines={gameLogLines}
+          clickable={gameLogReviewable}
+          onOpen={handleOpenRoundLog}
+        />
+
         <div className={styles.controls}>
           <div className={styles.controlsRow}>
             {onLeave && (
-              <button type="button" className={styles.controlBtn} onClick={onLeave}>
+              <button
+                type="button"
+                className={styles.controlBtn}
+                onClick={handleLeaveBridge}
+              >
                 Leave bridge
               </button>
             )}
@@ -1080,6 +1283,10 @@ export function BridgeTable({
           onCaptainTailsDisplayChange={(next) =>
             patchTablePrefs({ captainTailsDisplay: next })
           }
+          turnBeepsEnabled={turnBeepsEnabled}
+          onTurnBeepsEnabledChange={(next) =>
+            patchTablePrefs({ turnBeepsEnabled: next })
+          }
           showDebugExport={showDebugExport}
           debugExportBusy={debugBusy}
           onExportDebug={handleExportDebug}
@@ -1087,6 +1294,8 @@ export function BridgeTable({
           systemShareAvailable={systemShareAvailable}
           roundImageBusy={roundImageBusy}
           onRoundImage={handleRoundImage}
+          onSaveRoundLog={canShareRound ? handleOpenRoundLog : undefined}
+          roundLogBusy={roundLogDownloadBusy}
         />
 
         <ConfirmDialog
@@ -1113,6 +1322,13 @@ export function BridgeTable({
           onClose={() => setSetupConfirmOpen(false)}
         />
 
+        <HostLeaveSectorDialog
+          open={leaveConfirmOpen}
+          onClose={() => setLeaveConfirmOpen(false)}
+          onReturnToWaitingRoom={confirmReturnToWaitingRoom}
+          onDissolveSector={confirmDissolveSector}
+        />
+
         <div className={styles.topRightHud}>
           <QActiveOrb game={game} names={names} />
         </div>
@@ -1128,6 +1344,7 @@ export function BridgeTable({
           isMyTurn={isMyTurn}
           activePlayerIsAi={activePlayerIsAi}
           isOnline={isOnline}
+          isOnlineHost={isOnlineHost}
           syncPending={syncPending}
           roundAwaitingScore={roundAwaitingScore}
           roundEndSummaryOpen={roundEndSummaryOpen}
@@ -1140,10 +1357,10 @@ export function BridgeTable({
           canRaiseShields={canRaiseShields}
           fractureActive={Boolean(fracture?.active)}
           fractureStabilizers={fracture?.stabilizers.length ?? 0}
-          redAlertActive={Boolean(redAlert?.active)}
-          redAlertSummary={
-            redAlert?.active ? formatRedAlertStatus(redAlert, names) : ''
-          }
+          redAlertActive={sectorRedAlertRow != null}
+          redAlertLabel={sectorRedAlertRow?.label ?? ''}
+          redAlertSummary={sectorRedAlertRow?.summary ?? ''}
+          redAlertTone={sectorRedAlertRow?.tone ?? 'alert'}
         />
 
         {coachSuggestion && (
@@ -1249,6 +1466,7 @@ export function BridgeTable({
                 systemShareAvailable={systemShareAvailable}
                 roundImageBusy={roundImageBusy}
                 onRoundImage={handleRoundImage}
+                onSaveRoundLog={handleOpenRoundLog}
               />
               <div className={styles.roundEndActions}>
                 <button
@@ -1281,6 +1499,7 @@ export function BridgeTable({
               systemShareAvailable={systemShareAvailable}
               roundImageBusy={roundImageBusy}
               onRoundImage={handleRoundImage}
+              onSaveRoundLog={handleOpenRoundLog}
             />
             <div className={styles.roundEndActions}>
               <button
@@ -1300,6 +1519,21 @@ export function BridgeTable({
             </div>
           </div>
         )}
+
+        <GameLogDialog
+          open={gameLogDialogOpen}
+          onClose={() => setGameLogDialogOpen(false)}
+          title={
+            round
+              ? `Round ${round.roundNumber} log`
+              : 'Sector log'
+          }
+          lines={gameLogLines}
+          nameColors={gameLogNameColors}
+          downloadFilename={roundLogFilename}
+          onDownload={handleDownloadRoundLog}
+          downloadBusy={roundLogDownloadBusy}
+        />
 
         <QFlashPanel
           game={game}
@@ -1489,15 +1723,15 @@ export function BridgeTable({
           </div>
         ) : null}
 
-        {treatyTurnPending && (!isOnline || !syncPending) && (
+        {dropToImpulseTurnPending && (!isOnline || !syncPending) && (
           <>
             <button
               type="button"
-              className={styles.treatyBtn}
-              data-coach={coachKind === 'declare-treaty'}
+              className={styles.dropToImpulseBtn}
+              data-coach={coachKind === 'drop-to-impulse'}
               onClick={() =>
                 void dispatch({
-                  type: 'DECLARE_TREATY',
+                  type: 'DROP_TO_IMPULSE',
                   playerId: handOwnerId,
                 })
               }
@@ -1509,12 +1743,12 @@ export function BridgeTable({
               className={styles.controlBtn}
               onClick={() =>
                 void dispatch({
-                  type: 'FORFEIT_IMPULSE',
+                  type: 'RETURN_TO_WARP',
                   playerId: handOwnerId,
                 })
               }
             >
-              Miss impulse (draw penalty)
+              Return to warp (draw penalty)
             </button>
           </>
         )}
@@ -1538,20 +1772,6 @@ export function BridgeTable({
           </div>
         )}
 
-        {isOnline &&
-          isOnlineHost &&
-          onHostResetSector &&
-          game.phase === 'active' &&
-          round?.phase === 'playing' && (
-            <button
-              type="button"
-              className={styles.linkBtn}
-              onClick={() => onHostResetSector()}
-            >
-              Abort to waiting room
-            </button>
-          )}
-
         {game.objective === 'penalty' ? (
           <>
             <p className={styles.scoreLegend}>
@@ -1570,9 +1790,11 @@ export function BridgeTable({
                       <span
                         className={spokeStyles.captainCoachTag}
                         data-flash={coachByCaptain[captain.id]?.flash}
+                        title="Tactical advisor engaged this round"
+                        aria-label="Tactical advisor"
                       >
                         {' '}
-                        Advisor
+                        A
                       </span>
                     )}
                   </span>
@@ -1604,9 +1826,11 @@ export function BridgeTable({
                       <span
                         className={spokeStyles.captainCoachTag}
                         data-flash={coachByCaptain[id]?.flash}
+                        title="Tactical advisor engaged this round"
+                        aria-label="Tactical advisor"
                       >
                         {' '}
-                        Advisor
+                        A
                       </span>
                     )}
                   </span>

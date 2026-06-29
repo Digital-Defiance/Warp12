@@ -18,6 +18,11 @@
   font-size: 0.68rem;
   line-height: 1.2;
 
+  &[data-display='domino'] {
+    grid-template-columns: minmax(0, 1fr) 44px 3.1rem;
+    column-gap: 0.4rem;
+  }
+
   &[data-active='true'] {
     border-color: rgba(56, 189, 248, 0.45);
     background: rgba(56, 189, 248, 0.08);
@@ -45,44 +50,62 @@
   white-space: nowrap;
 }
 
-.pip,
 .coordinate {
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 2.5rem;
   height: 1.75rem;
   padding: 0 0.35rem;
   border-radius: 4px;
   font-family: var(--font-federation);
   font-size: 0.78rem;
-  font-weight: 700;
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
   color: var(--warp-accent, #38bdf8);
   background: rgba(15, 23, 42, 0.65);
   border: 1px solid rgba(51, 65, 85, 0.9);
+  justify-self: end;
 }
 
-.tailReadout {
-  display: flex;
+.coordinateInline {
+  display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  justify-self: end;
+  font-family: var(--font-federation);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
 
-  .coordinate {
-    min-width: 0;
-    height: auto;
-    padding: 0;
-    border: none;
-    background: none;
-    font-size: 0.68rem;
-    color: var(--warp-text-muted);
-  }
+.coordinateAnchor {
+  font-weight: 500;
+  color: var(--warp-text-muted, #94a3b8);
+}
+
+.coordinateColon {
+  color: var(--warp-text-muted, #64748b);
+}
+
+.coordinateTail {
+  font-weight: 700;
+  color: var(--warp-accent, #38bdf8);
 }
 
 .dominoWrap {
-  display: block;
+  position: relative;
+  width: 44px;
+  height: 22px;
+  justify-self: center;
+  flex-shrink: 0;
   line-height: 0;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+
+  > * {
+    position: absolute;
+    left: calc(50% - 11px);
+    top: calc(50% - 22px);
+  }
 }
 
 .hint {

@@ -1,8 +1,10 @@
 import type {
   GameAction,
   GameState,
+  QFlashEffectKind,
   RoundState,
 } from 'warp12-engine';
+import { resolveHouseRules } from 'warp12-engine';
 
 import type {
   FirestoreCoordinate,
@@ -11,6 +13,7 @@ import type {
   FirestorePublicRound,
   FirestoreTableDocument,
 } from './schema.js';
+import { ONLINE_MAX_PLAYERS } from './schema.js';
 
 type Coordinate = { low: number; high: number };
 
@@ -58,8 +61,18 @@ export function serializePublicGame(state: GameState): FirestoreGameDocument {
       qContinuum: state.modules.qContinuum.enabled,
       salamanderPenalty: state.modules.salamanderPenalty.enabled,
       subspaceFracture: state.modules.subspaceFracture.enabled,
+      subspaceFractureScope: state.modules.subspaceFracture.scope,
+    },
+    houseRules: {
+      requireOwnTrailFirst: state.houseRules.requireOwnTrailFirst,
+      neutralZoneAfterAllTrails: state.houseRules.neutralZoneAfterAllTrails,
+      beaconClearsOnAnyPlay: state.houseRules.beaconClearsOnAnyPlay,
+      roundStarterPlaysTwo: state.houseRules.roundStarterPlaysTwo,
     },
     objective: state.objective,
+    campaignRounds: state.campaignRounds,
+    maxPlayers: ONLINE_MAX_PLAYERS,
+    captainIds: state.captains.map((c) => c.id),
     captains: state.captains.map((c) => ({
       id: c.id,
       displayName: c.displayName,
@@ -108,8 +121,8 @@ function serializePublicRound(round: RoundState): FirestorePublicRound {
     turnOrder: [...round.turnOrder],
     handCounts,
     unchartedSectors: round.unchartedSectors.map(toFirestoreCoordinate),
-    treatyDeclarationRequired: round.treatyDeclarationRequired,
-    treatyDeclared: round.treatyDeclared,
+    dropToImpulseRequired: round.dropToImpulseRequired,
+    dropToImpulseDeclared: round.dropToImpulseDeclared,
     roundWinnerId: round.roundWinnerId ?? null,
     roundBlocked: round.roundBlocked,
     mandatoryPlay: round.mandatoryPlay
@@ -137,7 +150,7 @@ function serializePublicRound(round: RoundState): FirestorePublicRound {
               }
             : null,
           salamanderSwap: round.qEffects.salamanderSwap,
-          treatyEcho: round.qEffects.treatyEcho,
+          impulseEcho: round.qEffects.impulseEcho,
         }
       : null,
     qGamblePending: round.qGamblePending
@@ -148,6 +161,9 @@ function serializePublicRound(round: RoundState): FirestorePublicRound {
             toFirestoreCoordinate(round.qGamblePending.options[1]),
           ],
         }
+      : null,
+    roundStarterOpening: round.roundStarterOpening
+      ? { playerId: round.roundStarterOpening.playerId }
       : null,
     table: serializeTable(round),
   };
@@ -174,6 +190,10 @@ function serializeTable(round: RoundState): FirestoreTableDocument {
           anchor: toPlaced(table.subspaceFracture.anchor),
           stabilizers: table.subspaceFracture.stabilizers.map(toPlaced),
           requiredValue: table.subspaceFracture.requiredValue,
+          ...(table.subspaceFracture.neutralZone ? { neutralZone: true } : {}),
+          ...(table.subspaceFracture.trailCaptainId
+            ? { trailCaptainId: table.subspaceFracture.trailCaptainId }
+            : {}),
         }
       : null,
     redAlert: table.redAlert
@@ -219,8 +239,8 @@ export function mergeHandsIntoGame(
           ])
         ),
         unchartedSectors: doc.round.unchartedSectors.map(fromFirestoreCoordinate),
-        treatyDeclarationRequired: doc.round.treatyDeclarationRequired,
-        treatyDeclared: doc.round.treatyDeclared,
+        dropToImpulseRequired: doc.round.dropToImpulseRequired,
+        dropToImpulseDeclared: doc.round.dropToImpulseDeclared,
         roundWinnerId: doc.round.roundWinnerId ?? null,
         qPendingInvoker: doc.round.qPendingInvoker ?? null,
         qEffects: doc.round.qEffects
@@ -240,7 +260,7 @@ export function mergeHandsIntoGame(
                   }
                 : null,
               salamanderSwap: doc.round.qEffects.salamanderSwap,
-              treatyEcho: doc.round.qEffects.treatyEcho,
+              impulseEcho: doc.round.qEffects.impulseEcho,
             }
           : null,
         qGamblePending: doc.round.qGamblePending
@@ -267,6 +287,7 @@ export function mergeHandsIntoGame(
             }
           : null,
         roundBlocked: doc.round.roundBlocked ?? false,
+        roundStarterOpening: doc.round.roundStarterOpening ?? null,
         table: tableDoc
           ? {
               spacedock: tableDoc.spacedock,
@@ -281,6 +302,12 @@ export function mergeHandsIntoGame(
                     stabilizers:
                       tableDoc.subspaceFracture.stabilizers.map(fromPlaced),
                     requiredValue: tableDoc.subspaceFracture.requiredValue,
+                    ...(tableDoc.subspaceFracture.neutralZone
+                      ? { neutralZone: true }
+                      : {}),
+                    ...(tableDoc.subspaceFracture.trailCaptainId
+                      ? { trailCaptainId: tableDoc.subspaceFracture.trailCaptainId }
+                      : {}),
                   }
                 : null,
               redAlert: tableDoc.redAlert
@@ -322,7 +349,7 @@ export function mergeHandsIntoGame(
           ? {
               invokedBy: doc.qFlash.invokedBy,
               effect: {
-                kind: doc.qFlash.effect.kind as import('warp12-engine').QFlashEffectKind,
+                kind: doc.qFlash.effect.kind as QFlashEffectKind,
                 ...(doc.qFlash.effect.targetPlayerId
                   ? { targetPlayerId: doc.qFlash.effect.targetPlayerId }
                   : {}),
@@ -344,10 +371,13 @@ export function mergeHandsIntoGame(
         enabled: doc.modules.salamanderPenalty,
       },
       subspaceFracture: {
-        enabled: doc.modules.subspaceFracture ?? false,
+        enabled: doc.modules.subspaceFracture,
+        scope: doc.modules.subspaceFractureScope ?? 'own-trail',
       },
     },
-    objective: doc.objective ?? 'penalty',
+    objective: doc.objective,
+    campaignRounds: doc.campaignRounds,
+    houseRules: resolveHouseRules(doc.houseRules),
   };
 }
 

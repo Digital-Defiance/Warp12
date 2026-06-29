@@ -8,6 +8,7 @@ import {
   type FirestoreGameDocument,
 } from '../firebase';
 import { isAiCaptain, pickNextAiOfficer } from '../game/ai-captain.js';
+import { LOOKAHEAD_TOOLTIP } from '../game/ai-lookahead.js';
 import styles from './lobby.module.scss';
 
 interface OnlineAiOfficersPanelProps {
@@ -121,7 +122,7 @@ export function OnlineAiOfficersPanel({
             <option value="intermediate">Intermediate</option>
             <option value="advanced">Advanced</option>
           </select>
-          <label className={styles.checkboxRow}>
+          <label className={styles.checkboxRow} title={LOOKAHEAD_TOOLTIP}>
             <input
               type="checkbox"
               checked={captain.useLookahead ?? false}

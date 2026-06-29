@@ -2,14 +2,11 @@ import { isDouble, type Coordinate } from '../types/coordinate.js';
 import type { RoundState } from '../types/game-state.js';
 import { DOUBLE_TWELVE_MAX_PIPS } from '../constants/setup.js';
 
-/** Tiles in a double-N set that contain pip `pip` (e.g. thirteen sixes in double-twelve). */
+/** Tiles in a double-twelve set that contain pip `pip` (thirteen for every pip). */
 export function maxTilesWithPipInSet(
   pip: number,
   maxPips = DOUBLE_TWELVE_MAX_PIPS
 ): number {
-  if (pip === maxPips) {
-    return 1;
-  }
   return maxPips + 1;
 }
 

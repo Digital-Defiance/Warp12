@@ -20,6 +20,7 @@ function lobbyDoc(
       qContinuum: false,
       salamanderPenalty: true,
       subspaceFracture: true,
+      subspaceFractureScope: 'own-trail',
     },
     captainIds: ['host-uid', 'ai:riker'],
     captains: [
@@ -39,6 +40,9 @@ function lobbyDoc(
       },
     ],
     completedRounds: 0,
+    objective: 'penalty',
+    campaignRounds: 13,
+    maxPlayers: 4,
     round: {
       roundNumber: 1,
       spacedockValue: 12,
@@ -47,8 +51,8 @@ function lobbyDoc(
       turnOrder: ['host-uid', 'ai:riker'],
       handCounts: { 'host-uid': 15, 'ai:riker': 15 },
       unchartedSectors: [],
-      treatyDeclarationRequired: false,
-      treatyDeclared: false,
+      dropToImpulseRequired: false,
+      dropToImpulseDeclared: false,
       roundWinnerId: null,
       table: {
         spacedock: { value: 12, placedBy: 'host-uid' },
@@ -114,7 +118,7 @@ describe('online AI move proxy', () => {
     ).toBe('NOT_YOUR_TURN');
   });
 
-  it('lets the round winner declare a treaty while the round is still open', () => {
+  it('lets the round winner drop to impulse while the round is still open', () => {
     const doc = lobbyDoc({
       captainIds: ['host-uid', 'guest-uid'],
       captains: [
@@ -130,20 +134,20 @@ describe('online AI move proxy', () => {
         ...lobbyDoc().round!,
         activePlayerId: 'guest-uid',
         roundWinnerId: 'guest-uid',
-        treatyDeclarationRequired: true,
-        treatyDeclared: false,
+        dropToImpulseRequired: true,
+        dropToImpulseDeclared: false,
       },
     });
 
     expect(
       assertActorMaySubmit(doc, 'guest-uid', {
-        type: 'DECLARE_TREATY',
+        type: 'DROP_TO_IMPULSE',
         playerId: 'guest-uid',
       })
     ).toBeNull();
   });
 
-  it('allows treaty declaration when roundWinnerId was not persisted yet', () => {
+  it('allows drop to impulse when roundWinnerId was not persisted yet', () => {
     const doc = lobbyDoc({
       captainIds: ['host-uid', 'guest-uid'],
       captains: [
@@ -159,15 +163,34 @@ describe('online AI move proxy', () => {
         ...lobbyDoc().round!,
         activePlayerId: 'guest-uid',
         roundWinnerId: null,
-        treatyDeclarationRequired: true,
-        treatyDeclared: false,
+        dropToImpulseRequired: true,
+        dropToImpulseDeclared: false,
       },
     });
 
     expect(
       assertActorMaySubmit(doc, 'guest-uid', {
-        type: 'DECLARE_TREATY',
+        type: 'DROP_TO_IMPULSE',
         playerId: 'guest-uid',
+      })
+    ).toBeNull();
+  });
+
+  it('allows the host to proxy DROP_TO_IMPULSE for an AI round winner', () => {
+    const doc = lobbyDoc({
+      round: {
+        ...lobbyDoc().round!,
+        activePlayerId: 'ai:riker',
+        roundWinnerId: 'ai:riker',
+        dropToImpulseRequired: true,
+        dropToImpulseDeclared: false,
+      },
+    });
+
+    expect(
+      assertActorMaySubmit(doc, 'host-uid', {
+        type: 'DROP_TO_IMPULSE',
+        playerId: 'ai:riker',
       })
     ).toBeNull();
   });

@@ -231,54 +231,16 @@
   }
 }
 
-.onlineStatusBar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem 1rem;
-  margin-bottom: 0.75rem;
-}
-
 .onlinePlay {
   width: 100%;
-}
-
-.onlinePlayFocus {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  width: 100%;
-
-  .onlineStatusBar {
-    flex-shrink: 0;
-    margin-bottom: 0.35rem;
-    padding: 0.15rem 0;
-    gap: 0.35rem 0.75rem;
-  }
-
-  .onlineBadge,
-  .connectionBadge {
-    font-size: 0.68rem;
-  }
 
   .error {
     flex-shrink: 0;
     margin: 0 0 0.35rem;
-  }
-}
-
-.connectionBadge {
-  font-family: var(--font-federation);
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #fbbf24;
-  margin: 0;
-
-  &[data-live='true'] {
-    color: #34d399;
   }
 }
 
@@ -374,14 +336,6 @@
   &:hover {
     border-color: #38bdf8;
   }
-}
-
-.onlineBadge {
-  font-family: var(--font-federation);
-  font-size: 0.75rem;
-  color: #94a3b8;
-  text-align: center;
-  margin-bottom: 1rem;
 }
 
 .waitingMessage {
