@@ -66,8 +66,8 @@ export interface FirestorePublicRound {
   turnOrder: string[];
   handCounts: Record<string, number>;
   unchartedSectors: FirestoreCoordinate[];
-  dropToImpulseRequired: boolean;
-  dropToImpulseDeclared: boolean;
+  allStopRequired: boolean;
+  allStopDeclared: boolean;
   roundWinnerId: string | null;
   roundBlocked?: boolean;
   mandatoryPlay?: {
@@ -87,6 +87,8 @@ export interface FirestorePublicRound {
   roundStarterOpening?: {
     playerId: string;
   } | null;
+  dropToImpulseCallPending?: string | null;
+  dropToImpulseCatchable?: string | null;
   table: FirestoreTableDocument;
 }
 
@@ -102,7 +104,7 @@ export interface FirestoreQRoundEffects {
     visibleTo: string;
   } | null;
   salamanderSwap: boolean;
-  impulseEcho: boolean;
+  allStopEcho: boolean;
 }
 
 export interface FirestorePlayerHandDocument {

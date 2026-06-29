@@ -78,10 +78,103 @@ export function useHostAiRunner(options: {
 
   const activePlayerId = options.game?.round?.activePlayerId;
   const roundPhase = options.game?.round?.phase;
+  const dropToImpulseCatchable = options.game?.round?.dropToImpulseCatchable ?? null;
+  const dropToImpulseEnabled = options.game?.houseRules.dropToImpulseCall === true;
 
   useEffect(() => {
     submitRetries.current = 0;
   }, [activePlayerId, roundPhase]);
+
+  useEffect(() => {
+    const {
+      enabled,
+      code,
+      hostUid,
+      hostId,
+      syncPending,
+      onError,
+    } = options;
+
+    if (
+      !enabled ||
+      !hostUid ||
+      hostUid !== hostId ||
+      !rosterRef.current ||
+      syncPending ||
+      !dropToImpulseEnabled ||
+      !dropToImpulseCatchable
+    ) {
+      return;
+    }
+
+    const aiChallenger = sectorCaptainsRef.current.find(
+      (captain) =>
+        isAiCaptain(captain) && captain.id !== dropToImpulseCatchable
+    );
+    if (!aiChallenger || aiBusy.current) {
+      return;
+    }
+
+    const currentRun = ++runId.current;
+    aiBusy.current = true;
+
+    const runAiCatch = async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, AI_TURN_DELAY_MS));
+      if (currentRun !== runId.current) {
+        return;
+      }
+
+      const action = {
+        type: 'CATCH_DROP_TO_IMPULSE' as const,
+        challengerId: aiChallenger.id,
+        targetPlayerId: dropToImpulseCatchable,
+      };
+
+      try {
+        const result = await submitOnlineAction(code, hostUid, action);
+        if (currentRun !== runId.current) {
+          return;
+        }
+        options.onActionLogged?.({
+          playerId: playerIdForAction(action),
+          action,
+          ok: result.ok,
+          violation: result.ok ? undefined : result.violation,
+          source: 'ai',
+        });
+        if (!result.ok) {
+          onError(violationMessage(result.violation));
+        }
+      } catch (err) {
+        if (currentRun !== runId.current) {
+          return;
+        }
+        onError(
+          err instanceof Error ? err.message : 'Could not transmit AI catch'
+        );
+      }
+    };
+
+    void runAiCatch().finally(() => {
+      if (currentRun === runId.current) {
+        aiBusy.current = false;
+      }
+    });
+
+    return () => {
+      runId.current += 1;
+      aiBusy.current = false;
+    };
+  }, [
+    dropToImpulseCatchable,
+    dropToImpulseEnabled,
+    options.hostId,
+    options.enabled,
+    options.hostUid,
+    options.code,
+    options.syncPending,
+    options.onError,
+  ]);
 
   useEffect(() => {
     const {

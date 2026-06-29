@@ -1,10 +1,19 @@
-export type GameSound = 'hail' | 'consoleWarning' | 'redAlert' | 'warpExit' | 'qFlash';
+export type GameSound =
+  | 'hail'
+  | 'consoleWarning'
+  | 'redAlert'
+  | 'allStop'
+  | 'dropToImpulse'
+  | 'returnToWarp'
+  | 'qFlash';
 
 const SOUND_URLS: Record<GameSound, string> = {
   hail: '/hailbeep.mp3',
   consoleWarning: '/consolewarning.mp3',
   redAlert: '/redalert.mp3',
-  warpExit: '/tng_warp_exit.mp3',
+  allStop: '/tng_poweringdown.mp3',
+  dropToImpulse: '/tng_warp_exit.mp3',
+  returnToWarp: '/tng_warp7.mp3',
   qFlash: '/qflash.mp3',
 };
 

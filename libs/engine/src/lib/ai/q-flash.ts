@@ -46,7 +46,7 @@ function scoreEffect(
         : highest.id !== playerId
           ? 6
           : 0;
-    case 'impulse-echo':
+    case 'all-stop-echo':
       return objective === 'penalty' ? 5 : 1;
     case 'q-gamble':
       return round.unchartedSectors.length >= 2 ? 8 : 0;

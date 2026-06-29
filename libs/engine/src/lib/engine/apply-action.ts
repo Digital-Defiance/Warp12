@@ -34,7 +34,6 @@ import {
   withRound,
 } from './helpers.js';
 import {
-  advanceActivePlayer,
   applyQFlashEffect,
   buildQFlashEffect,
   clearTemporalInversionOnDouble,
@@ -42,7 +41,7 @@ import {
   advanceToNextPlayer,
   resolveQGamble,
   trailsOpenToOthers,
-  dropToImpulseRequiredForWin,
+  allStopRequiredForWin,
 } from './q-continuum.js';
 import { getLegalMoves, isLegalMove, placedTile } from './legal-moves.js';
 import {
@@ -57,6 +56,11 @@ import {
 } from './round-resolution.js';
 import { resolveDeadRedAlert } from './dead-red-alert.js';
 import { archiveFractureStabilizers } from '../table/fracture-stabilizers.js';
+import {
+  advanceTurnWithDropToImpulse,
+  applyDropToImpulsePenaltyDraw,
+  maybeMarkDropToImpulsePending,
+} from './drop-to-impulse.js';
 
 function appendToTrail(
   trail: WarpTrail,
@@ -384,6 +388,18 @@ function applyChartToRoute(
     playerId === nextRound.table.spacedock.placedBy &&
     (nextRound.table.warpTrails[playerId]?.tiles.length ?? 0) < 2;
 
+  if (
+    !emptyHandWin &&
+    options.houseRules.dropToImpulseCall &&
+    winnerHand.length === 1
+  ) {
+    nextRound = maybeMarkDropToImpulsePending(
+      nextRound,
+      playerId,
+      options.houseRules
+    );
+  }
+
   if (nextRound.qPendingInvoker || nextRound.qGamblePending) {
     if (emptyHandWin && !blocksRoundWin(nextRound, playerId) && !openingIncomplete) {
       nextRound = {
@@ -395,13 +411,13 @@ function applyChartToRoute(
   }
 
   if (emptyHandWin && !blocksRoundWin(nextRound, playerId) && !openingIncomplete) {
-    const dropToImpulseRequired = dropToImpulseRequiredForWin(nextRound, route.kind);
+    const allStopRequired = allStopRequiredForWin(nextRound, route.kind);
     nextRound = {
       ...nextRound,
-      dropToImpulseRequired,
-      dropToImpulseDeclared: !dropToImpulseRequired,
+      allStopRequired,
+      allStopDeclared: !allStopRequired,
       roundWinnerId: playerId,
-      phase: dropToImpulseRequired ? 'playing' : 'ended',
+      phase: allStopRequired ? 'playing' : 'ended',
       mandatoryPlay: null,
     };
     return maybeEndBlockedRound(nextRound, options.houseRules);
@@ -428,6 +444,13 @@ function applyChartToRoute(
       };
     }
     return nextRound;
+  }
+
+  if (
+    options.houseRules.dropToImpulseCall &&
+    nextRound.dropToImpulseCallPending === playerId
+  ) {
+    return maybeEndBlockedRound(nextRound, options.houseRules);
   }
 
   return resolveRoundStarterOpeningTurn(
@@ -468,7 +491,7 @@ function applyRoundStarterOpeningFailure(
     ...withBeacon,
     roundStarterOpening: null,
   };
-  return maybeEndBlockedRound(advanceTurn(cleared), houseRules);
+  return maybeEndBlockedRound(advanceTurn(cleared, houseRules), houseRules);
 }
 
 function resolveRoundStarterOpeningTurn(
@@ -477,20 +500,20 @@ function resolveRoundStarterOpeningTurn(
   houseRules: HouseRules
 ): RoundState {
   if (!houseRules.roundStarterPlaysTwo) {
-    return maybeEndBlockedRound(advanceTurn(nextRound), houseRules);
+    return maybeEndBlockedRound(advanceTurn(nextRound, houseRules), houseRules);
   }
   if (playerId !== nextRound.table.spacedock.placedBy) {
-    return maybeEndBlockedRound(advanceTurn(nextRound), houseRules);
+    return maybeEndBlockedRound(advanceTurn(nextRound, houseRules), houseRules);
   }
 
   const ownTiles = nextRound.table.warpTrails[playerId]?.tiles.length ?? 0;
   if (ownTiles >= 2) {
     nextRound = { ...nextRound, roundStarterOpening: null };
-    return maybeEndBlockedRound(advanceTurn(nextRound), houseRules);
+    return maybeEndBlockedRound(advanceTurn(nextRound, houseRules), houseRules);
   }
 
   if (ownTiles !== 1) {
-    return maybeEndBlockedRound(advanceTurn(nextRound), houseRules);
+    return maybeEndBlockedRound(advanceTurn(nextRound, houseRules), houseRules);
   }
 
   nextRound = {
@@ -515,8 +538,8 @@ function resolveRoundStarterOpeningTurn(
   return applyRoundStarterOpeningFailure(nextRound, playerId, houseRules);
 }
 
-function advanceTurn(round: RoundState): RoundState {
-  if (round.dropToImpulseRequired && !round.dropToImpulseDeclared) {
+function advanceTurn(round: RoundState, houseRules: HouseRules): RoundState {
+  if (round.allStopRequired && !round.allStopDeclared) {
     return round;
   }
 
@@ -524,10 +547,7 @@ function advanceTurn(round: RoundState): RoundState {
     return round;
   }
 
-  return advanceActivePlayer({
-    ...round,
-    roundStarterOpening: null,
-  });
+  return advanceTurnWithDropToImpulse(round, houseRules);
 }
 
 function handleDraw(
@@ -545,6 +565,13 @@ function handleDraw(
     drawn,
   ]);
   nextRound = { ...nextRound, unchartedSectors: remaining };
+
+  if (
+    nextRound.dropToImpulseCallPending === playerId &&
+    (nextRound.hands[playerId]?.length ?? 0) !== 1
+  ) {
+    nextRound = { ...nextRound, dropToImpulseCallPending: null };
+  }
 
   const legalWithDrawn = getLegalMoves(nextRound, playerId, state.houseRules).filter(
     (move) =>
@@ -576,7 +603,7 @@ function handleDraw(
 
   return {
     ok: true,
-    state: withRound(state, maybeEndBlockedRound(advanceTurn(nextRound), state.houseRules)),
+    state: withRound(state, maybeEndBlockedRound(advanceTurn(nextRound, state.houseRules), state.houseRules)),
   };
 }
 
@@ -629,7 +656,7 @@ function handlePassRedAlert(
     },
   };
 
-  nextRound = advanceTurn(nextRound);
+  nextRound = advanceTurn(nextRound, state.houseRules);
   nextRound = maybeEndBlockedRound(nextRound, state.houseRules);
   return { ok: true, state: withRound(state, nextRound) };
 }
@@ -643,7 +670,7 @@ function handlePassTurn(
   if (!canPassTurn(round, playerId, { ...options, houseRules: state.houseRules })) {
     return fail('PASS_NOT_ALLOWED');
   }
-  let nextRound = maybeEndBlockedRound(advanceTurn(round), state.houseRules);
+  let nextRound = maybeEndBlockedRound(advanceTurn(round, state.houseRules), state.houseRules);
   return { ok: true, state: withRound(state, nextRound) };
 }
 
@@ -652,7 +679,7 @@ function handleReturnToWarp(
   round: RoundState,
   playerId: string
 ): ActionResult {
-  if (!round.dropToImpulseRequired || round.dropToImpulseDeclared) {
+  if (!round.allStopRequired || round.allStopDeclared) {
     return fail('RETURN_TO_WARP_NOT_ALLOWED');
   }
   if (round.roundWinnerId !== playerId) {
@@ -667,8 +694,8 @@ function handleReturnToWarp(
     ...round,
     unchartedSectors: remaining,
     roundWinnerId: null,
-    dropToImpulseRequired: false,
-    dropToImpulseDeclared: false,
+    allStopRequired: false,
+    allStopDeclared: false,
     phase: 'playing',
     pendingRoundWin: null,
     mandatoryPlay: null,
@@ -677,7 +704,7 @@ function handleReturnToWarp(
     ...(nextRound.hands[playerId] ?? []),
     drawn,
   ]);
-  nextRound = advanceTurn(nextRound);
+  nextRound = advanceTurn(nextRound, state.houseRules);
   nextRound = maybeEndBlockedRound(nextRound, state.houseRules);
 
   return { ok: true, state: withRound(state, nextRound) };
@@ -727,8 +754,37 @@ function handleDeployBeacon(
   });
   nextRound = { ...nextRound, qEffects };
 
-  nextRound = advanceTurn(nextRound);
+  nextRound = advanceTurn(nextRound, state.houseRules);
   nextRound = maybeEndBlockedRound(nextRound, state.houseRules);
+  return { ok: true, state: withRound(state, nextRound) };
+}
+
+function handleAllStop(
+  state: GameState,
+  round: RoundState,
+  playerId: string
+): ActionResult {
+  if (!round.allStopRequired || round.allStopDeclared) {
+    return fail('ALL_STOP_NOT_REQUIRED');
+  }
+
+  const winnerId = round.roundWinnerId;
+  if (winnerId != null && winnerId !== playerId) {
+    return fail('ALL_STOP_NOT_REQUIRED');
+  }
+
+  const hand = round.hands[playerId] ?? [];
+  if (winnerId == null && hand.length > 0) {
+    return fail('ALL_STOP_NOT_REQUIRED');
+  }
+
+  const nextRound: RoundState = {
+    ...round,
+    roundWinnerId: winnerId ?? playerId,
+    allStopDeclared: true,
+    phase: 'ended',
+  };
+
   return { ok: true, state: withRound(state, nextRound) };
 }
 
@@ -737,27 +793,48 @@ function handleDropToImpulse(
   round: RoundState,
   playerId: string
 ): ActionResult {
-  if (!round.dropToImpulseRequired || round.dropToImpulseDeclared) {
+  if (!state.houseRules.dropToImpulseCall) {
     return fail('DROP_TO_IMPULSE_NOT_REQUIRED');
   }
-
-  const winnerId = round.roundWinnerId;
-  if (winnerId != null && winnerId !== playerId) {
+  if (round.dropToImpulseCallPending !== playerId) {
     return fail('DROP_TO_IMPULSE_NOT_REQUIRED');
   }
-
-  const hand = round.hands[playerId] ?? [];
-  if (winnerId == null && hand.length > 0) {
+  if ((round.hands[playerId] ?? []).length !== 1) {
     return fail('DROP_TO_IMPULSE_NOT_REQUIRED');
   }
 
   const nextRound: RoundState = {
     ...round,
-    roundWinnerId: winnerId ?? playerId,
-    dropToImpulseDeclared: true,
-    phase: 'ended',
+    dropToImpulseCallPending: null,
   };
+  return { ok: true, state: withRound(state, nextRound) };
+}
 
+function handleCatchDropToImpulse(
+  state: GameState,
+  round: RoundState,
+  challengerId: string,
+  targetPlayerId: string
+): ActionResult {
+  if (!state.houseRules.dropToImpulseCall) {
+    return fail('CATCH_DROP_TO_IMPULSE_NOT_ALLOWED');
+  }
+  if (challengerId === targetPlayerId) {
+    return fail('CATCH_DROP_TO_IMPULSE_NOT_ALLOWED');
+  }
+  if (round.dropToImpulseCatchable !== targetPlayerId) {
+    return fail('CATCH_DROP_TO_IMPULSE_NOT_ALLOWED');
+  }
+  if ((round.hands[targetPlayerId] ?? []).length !== 1) {
+    return fail('CATCH_DROP_TO_IMPULSE_NOT_ALLOWED');
+  }
+
+  const penalized = applyDropToImpulsePenaltyDraw(round, targetPlayerId);
+  if (!penalized) {
+    return fail('EMPTY_UNCHARTED');
+  }
+
+  const nextRound = maybeEndBlockedRound(penalized, state.houseRules);
   return { ok: true, state: withRound(state, nextRound) };
 }
 
@@ -818,7 +895,7 @@ function handleQFlash(
       nextRound.table.redAlert
     )
   ) {
-    nextRound = maybeEndBlockedRound(advanceTurn(nextRound), state.houseRules);
+    nextRound = maybeEndBlockedRound(advanceTurn(nextRound, state.houseRules), state.houseRules);
     nextState = withRound(nextState, nextRound);
   }
 
@@ -852,7 +929,7 @@ function handleQGamble(
       nextRound.table.redAlert
     )
   ) {
-    nextRound = maybeEndBlockedRound(advanceTurn(nextRound), state.houseRules);
+    nextRound = maybeEndBlockedRound(advanceTurn(nextRound, state.houseRules), state.houseRules);
   }
 
   return { ok: true, state: withRound(state, nextRound) };
@@ -996,8 +1073,28 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
       return handleDeployBeacon(state, round, action.playerId);
     }
 
+    case 'ALL_STOP': {
+      return handleAllStop(state, round, action.playerId);
+    }
+
     case 'DROP_TO_IMPULSE': {
+      const turnCheck = requirePlayerTurn(round, action.playerId);
+      if (turnCheck !== true) {
+        return fail(turnCheck);
+      }
       return handleDropToImpulse(state, round, action.playerId);
+    }
+
+    case 'CATCH_DROP_TO_IMPULSE': {
+      if (!state.captains.some((captain) => captain.id === action.challengerId)) {
+        return fail('CATCH_DROP_TO_IMPULSE_NOT_ALLOWED');
+      }
+      return handleCatchDropToImpulse(
+        state,
+        round,
+        action.challengerId,
+        action.targetPlayerId
+      );
     }
 
     case 'RETURN_TO_WARP': {

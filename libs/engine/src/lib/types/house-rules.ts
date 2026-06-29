@@ -8,6 +8,8 @@ export interface HouseRules {
   readonly beaconClearsOnAnyPlay: boolean;
   /** Deluxe-style: round starter must chart two tiles on their own trail before helm passes. */
   readonly roundStarterPlaysTwo: boolean;
+  /** Announce Drop to Impulse when one coordinate remains (uno / knock). */
+  readonly dropToImpulseCall: boolean;
 }
 
 export interface HouseRulesConfig {
@@ -15,6 +17,7 @@ export interface HouseRulesConfig {
   neutralZoneAfterAllTrails?: boolean;
   beaconClearsOnAnyPlay?: boolean;
   roundStarterPlaysTwo?: boolean;
+  dropToImpulseCall?: boolean;
 }
 
 export const DEFAULT_HOUSE_RULES: HouseRules = {
@@ -22,6 +25,7 @@ export const DEFAULT_HOUSE_RULES: HouseRules = {
   neutralZoneAfterAllTrails: false,
   beaconClearsOnAnyPlay: false,
   roundStarterPlaysTwo: false,
+  dropToImpulseCall: false,
 };
 
 export function resolveHouseRules(
@@ -32,5 +36,6 @@ export function resolveHouseRules(
     neutralZoneAfterAllTrails: config.neutralZoneAfterAllTrails ?? false,
     beaconClearsOnAnyPlay: config.beaconClearsOnAnyPlay ?? false,
     roundStarterPlaysTwo: config.roundStarterPlaysTwo ?? false,
+    dropToImpulseCall: config.dropToImpulseCall ?? false,
   };
 }

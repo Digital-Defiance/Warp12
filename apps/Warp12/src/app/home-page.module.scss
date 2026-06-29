@@ -101,6 +101,14 @@
   margin: 0;
 }
 
+.playRequirement {
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.82rem;
+  color: #fbbf24;
+  margin: 0.5rem 0 0.85rem;
+  line-height: 1.45;
+}
+
 .grid {
   display: grid;
   gap: 1rem;

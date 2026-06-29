@@ -22,8 +22,8 @@ export function HomePage() {
         <p className={styles.heroBody}>
           Match pips to chart routes on your trail, the communal Neutral Zone, or
           a rival&apos;s line when their distress beacon is down. Doubles trigger
-          red alert. Optional modules add subspace fractures, impulse-drop drama, and
-          Q-Continuum chaos. Play a quick first-out sprint or a full penalty
+          red alert. Optional house rules add Drop to Impulse; optional modules add
+          subspace fractures, All Stop! drama, and Q-Continuum chaos. Play a quick first-out sprint or a full penalty
           campaign across thirteen spacedock rounds.
         </p>
         <Link to="/rules" className={styles.heroLink}>
@@ -48,11 +48,19 @@ export function HomePage() {
             mismatches, and logic bugs. If something looks wrong, trust your
             living-room adjudication over the app.
           </li>
+          <li>
+            Warp 12 is built for <strong>tablets and desktops</strong>. Phones
+            are fine for reading rules, but the bridge table needs a wider screen
+            and pointer input.
+          </li>
         </ul>
       </section>
       <br />
       <section>
         <h2 className={styles.playHeading}>Choose your mission</h2>
+        <p className={styles.playRequirement}>
+          Tablet or desktop recommended — not optimized for phones.
+        </p>
         <div className={styles.grid}>
           <button
             type="button"

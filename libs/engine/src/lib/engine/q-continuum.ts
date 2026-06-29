@@ -20,7 +20,7 @@ function mergeQEffects(
     skipNextTurnFor: [],
     peekedSector: null,
     salamanderSwap: false,
-    impulseEcho: false,
+    allStopEcho: false,
   };
   return {
     reverseTurnOrder: patch.reverseTurnOrder ?? base.reverseTurnOrder,
@@ -31,7 +31,7 @@ function mergeQEffects(
     peekedSector:
       patch.peekedSector !== undefined ? patch.peekedSector : base.peekedSector,
     salamanderSwap: patch.salamanderSwap ?? base.salamanderSwap,
-    impulseEcho: patch.impulseEcho ?? base.impulseEcho,
+    allStopEcho: patch.allStopEcho ?? base.allStopEcho,
   };
 }
 
@@ -159,7 +159,7 @@ export function buildQFlashEffect(
       return { kind };
     case 'salamander-swap':
       return { kind };
-    case 'impulse-echo':
+    case 'all-stop-echo':
       return { kind };
     case 'q-gamble':
       return { kind };
@@ -232,10 +232,10 @@ export function applyQFlashEffect(
         qEffects: mergeQEffects(nextRound.qEffects, { salamanderSwap: true }),
       };
       break;
-    case 'impulse-echo':
+    case 'all-stop-echo':
       nextRound = {
         ...nextRound,
-        qEffects: mergeQEffects(nextRound.qEffects, { impulseEcho: true }),
+        qEffects: mergeQEffects(nextRound.qEffects, { allStopEcho: true }),
       };
       break;
     case 'q-gamble': {
@@ -310,14 +310,14 @@ export function resolveQGamble(
   };
 }
 
-export function dropToImpulseRequiredForWin(
+export function allStopRequiredForWin(
   round: RoundState,
   routeKind: import('../types/actions.js').ChartRoute['kind']
 ): boolean {
   if (routeKind === 'neutral-zone') {
     return true;
   }
-  return round.qEffects?.impulseEcho === true;
+  return round.qEffects?.allStopEcho === true;
 }
 
 export function trailsOpenToOthers(round: RoundState, trailPlayerId: PlayerId): boolean {

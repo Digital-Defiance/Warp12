@@ -10,7 +10,7 @@ import {
   neutralZoneOpenValue,
   trailOpenValue,
 } from '../table/table-state.js';
-import { dropToImpulseRequiredForWin } from './q-continuum.js';
+import { allStopRequiredForWin } from './q-continuum.js';
 import { getLegalMoves } from './legal-moves.js';
 import { resolveDeadRedAlert } from './dead-red-alert.js';
 
@@ -68,7 +68,7 @@ export function isRoundBlocked(
   if (round.unchartedSectors.length > 0) {
     return false;
   }
-  if (round.dropToImpulseRequired && !round.dropToImpulseDeclared) {
+  if (round.allStopRequired && !round.allStopDeclared) {
     return false;
   }
   if (round.qPendingInvoker || round.qGamblePending) {
@@ -107,8 +107,8 @@ export function endBlockedRound(round: RoundState): RoundState {
     phase: 'ended',
     roundWinnerId: null,
     roundBlocked: true,
-    dropToImpulseRequired: false,
-    dropToImpulseDeclared: true,
+    allStopRequired: false,
+    allStopDeclared: true,
     mandatoryPlay: null,
     pendingRoundWin: null,
   };
@@ -135,14 +135,14 @@ export function applyPendingRoundWin(round: RoundState): RoundState {
     return round;
   }
   const { playerId, routeKind } = round.pendingRoundWin;
-  const dropToImpulseRequired = dropToImpulseRequiredForWin(round, routeKind);
+  const allStopRequired = allStopRequiredForWin(round, routeKind);
   return {
     ...round,
     pendingRoundWin: null,
     roundWinnerId: playerId,
-    dropToImpulseRequired,
-    dropToImpulseDeclared: !dropToImpulseRequired,
-    phase: dropToImpulseRequired ? 'playing' : 'ended',
+    allStopRequired,
+    allStopDeclared: !allStopRequired,
+    phase: allStopRequired ? 'playing' : 'ended',
   };
 }
 

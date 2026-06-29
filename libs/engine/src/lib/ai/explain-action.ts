@@ -186,11 +186,22 @@ function describeHeuristicContribution(
 function describeActionKind(
   action: WarpAiAction,
   state: GameState,
-  playerId: PlayerId
+  playerId: PlayerId,
+  names: Readonly<Record<string, string>> = {}
 ): string[] {
+  const round = state.round;
   switch (action.kind) {
+    case 'all-stop':
+      if (round?.qEffects?.allStopEcho) {
+        return ['Round win pending — call All Stop!'];
+      }
+      return ['Neutral Zone win available — call All Stop!'];
     case 'drop-to-impulse':
-      return ['Neutral Zone win available — drop to impulse.'];
+      return ['One coordinate left — announce Drop to Impulse!'];
+    case 'catch-drop-to-impulse': {
+      const target = names[action.targetPlayerId] ?? action.targetPlayerId;
+      return [`Catch missed Drop to Impulse · ${target} forgot to announce`];
+    }
     case 'invoke-q-flash':
       return [`Reality shift: ${action.effect.replaceAll('-', ' ')}.`];
     case 'resolve-q-gamble':
@@ -209,7 +220,7 @@ export function explainWarpAiAction(
   state: GameState,
   playerId: PlayerId,
   action: WarpAiAction,
-  options?: { maxReasons?: number }
+  options?: { maxReasons?: number; names?: Readonly<Record<string, string>> }
 ): string[] {
   const maxReasons = options?.maxReasons ?? 3;
   const obs = observe(state, playerId);
@@ -217,7 +228,12 @@ export function explainWarpAiAction(
     return [];
   }
 
-  const kindReasons = describeActionKind(action, state, playerId);
+  const kindReasons = describeActionKind(
+    action,
+    state,
+    playerId,
+    options?.names ?? {}
+  );
   if (kindReasons.length > 0) {
     return kindReasons.slice(0, maxReasons);
   }

@@ -59,6 +59,15 @@ export function HouseRulesOptions({
         />
         <span>Round starter plays two tiles (Deluxe-style)</span>
       </label>
+      <label className={styles.checkboxRow}>
+        <input
+          type="checkbox"
+          checked={value.dropToImpulseCall ?? false}
+          disabled={disabled}
+          onChange={(e) => onChange({ dropToImpulseCall: e.target.checked })}
+        />
+        <span>Drop to Impulse (announce at one tile; opponents may catch)</span>
+      </label>
     </>
   );
 }

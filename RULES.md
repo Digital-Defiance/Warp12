@@ -32,6 +32,8 @@ Fleet command chooses one objective before the sector opens:
 | — | **Red Alert** — a double must be satisfied before normal play continues (cover tile, or stabilizers when Subspace Fracture applies) |
 | — | **Subspace Fracture** — optional chicken-foot protocol on doubles (scope: Own Trail, All Captains, or All Doubles) |
 | — | **Q-Flash** — optional Module Alpha anomaly on 0-0 |
+| — | **All Stop!** — ceremony required after some round-winning charts (Neutral Zone, or any go-out when All Stop! echo is active) |
+| — | **Drop to Impulse** — optional house-rule announce when one coordinate remains (uno / knock) |
 
 ---
 
@@ -120,6 +122,15 @@ When a **double** (matching pips on both ends) is charted on any eligible route 
 - **Dead double:** If every tile in the set containing that pip is already charted (all thirteen tiles showing that number in a double-twelve set), the double cannot be satisfied — Red Alert ends and normal play resumes.
 - Covering a double on another captain's open trail **does not** clear their Distress Beacon.
 
+### Caution and Red Alert *(digital status)*
+
+The rules engine treats every uncovered double as **Red Alert** — the same protocol throughout. On the bridge display and in the sector log, you will see two **status labels** for the same alert:
+
+- **Caution** — the double was just charted; the responsible captain has **not** yet passed Red Alert to someone else.
+- **Red Alert** — responsibility has passed at least once (typically after a Distress Beacon deploy and pass). The double still must be satisfied.
+
+This is presentation only. Gameplay, sounds, and scoring follow the Red Alert rules above in both phases.
+
 ### Subspace Fracture interaction *(Section VI — opt-in)*
 
 When Subspace Fracture is **enabled**, scope is chosen at launch:
@@ -149,9 +160,15 @@ When Subspace Fracture is **off**, all doubles use **Red Alert only** (single co
 
 The round ends when one captain charts their **last** coordinate (empty hand) **and** no Red Alert or Subspace Fracture on that chart still requires satisfaction. You **cannot** go out on an open double — cover it (or complete three stabilizers when Subspace Fracture applies) before the sector closes.
 
-**Dropping to Impulse:** If that winning chart was on the **Neutral Zone**, the winner must announce **"Dropping to Impulse"** before the sector closes. If they fail to announce before play would otherwise continue, they draw a penalty tile from Uncharted Sectors and the round **continues** (they do not win yet).
+**All Stop!** If that winning chart was on the **Neutral Zone**, the winner must announce **"All Stop!"** before the sector closes. Helm is **held** until they do — no other captain may take a turn. Calling All Stop! ends the round and scores normally.
 
-**Impulse echo** (Q-Flash Module Alpha): when active, any round win requires dropping to impulse before scoring.
+If the winner does not call All Stop!, they may accept a penalty instead: draw **one** tile from Uncharted Sectors, clear the pending win, and the round **continues** (they do not win yet). On the digital table this is **Return to warp**. If Uncharted Sectors is empty, the penalty cannot be drawn until tiles are available or the sector blocks.
+
+**All Stop! echo** (Q-Flash Module Alpha): when active, **any** round-winning chart (not only the Neutral Zone) requires calling All Stop! before scoring — same hold, penalty, and Return to warp rules as above.
+
+**Drop to Impulse** *(house rule — off by default)*: when a captain charts down to **one** coordinate remaining, their turn **continues** — they may still chart, draw, cover Red Alert, or pass. They **may** announce **"Drop to Impulse!"** at any point that turn; announcing does **not** end the turn. They are **not** required to announce before passing.
+
+If they **pass** without announcing, any other captain may **catch** the miss while the catch window is open. A successful catch forces the forgetful captain to draw **one** penalty tile from Uncharted Sectors (if any remain). The window opens when they pass without announcing and **closes** when the **next** captain passes helm (if no one caught). This is separate from **All Stop!** (Neutral Zone / echo go-out ceremony).
 
 ### Blocked sector
 
@@ -203,6 +220,7 @@ Hosts may enable any combination before launch. Defaults match **standard Mexica
 | **Neutral Zone after all trails started** | The Neutral Zone cannot be started until **every** captain has at least one tile on their own Warp Trail. |
 | **Beacon clears on any play** | Any legal chart removes **your** Distress Beacon — not only a chart on your own trail. |
 | **Round starter plays two** | The round starter must chart **two tiles on their own Warp Trail** on their opening turn (Spacedock + two from hand). If the first tile is a double, the Red Alert cover counts as the second. If you cannot play the second tile, deploy your Distress Beacon — no extra draw. Cannot start the Neutral Zone or opponent trails until both are played. |
+| **Drop to Impulse** | When you chart down to one coordinate, your turn continues. You may announce **Drop to Impulse!** voluntarily; announcing does not end the turn. If you pass without announcing, opponents may **catch** you for one draw from Uncharted Sectors. The catch window closes when the next captain passes helm. |
 
 ### Module Alpha — The Q-Continuum *(off by default)*
 
@@ -217,7 +235,7 @@ When **enabled**, charting **0-0 on your own Warp Trail** triggers a **Q-Flash**
 | **Distress amplification** | All warp trails are open to every captain without a Distress Beacon. |
 | **Fracture immunity** | The next double on an own trail will not open Subspace Fracture (Red Alert still applies). |
 | **Salamander swap** *(requires Module Beta)* | If anyone holds 12-12 at round end, that Salamander penalty applies to the highest-penalty captain instead. |
-| **Impulse echo** | Any captain going out this round must drop to impulse before the sector closes. |
+| **All Stop! echo** | Any captain going out this round must call All Stop! before the sector closes. |
 | **Q's gamble** | Draw two tiles from Uncharted Sectors — keep one, return the other face-down. |
 
 0-0 charted on the Neutral Zone or an opponent's trail does **not** trigger Q-Flash. A winning 0-0 on your own trail still requires Q-Flash resolution before the sector can close.
@@ -281,6 +299,7 @@ The tactical advisor always uses **Advanced** skill with **Lookahead** enabled. 
 | Round starter plays two | Optional Deluxe variant | House rule — opt-in |
 | 0-0 anomaly | — | Q-Continuum — opt-in |
 | 12-12 hand penalty | — | Salamander — opt-in (default on) |
-| NZ win announcement | — | Dropping to Impulse |
+| NZ win announcement | — | All Stop! (helm held until called or Return to warp penalty) |
+| One tile left announce | — | Drop to Impulse — house rule, opt-in |
 | Blocked boneyard | Round ends, all score | Blocked sector — same |
 | AI officers / tactical advisor | — | Section VII — digital only |

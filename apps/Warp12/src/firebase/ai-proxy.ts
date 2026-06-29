@@ -15,6 +15,10 @@ export function canHostProxyAiMove(
   return captain != null && isAiCaptain(captain);
 }
 
+function dropToImpulseEnabled(docData: FirestoreGameDocument): boolean {
+  return docData.houseRules?.dropToImpulseCall === true;
+}
+
 export function assertActorMaySubmit(
   docData: FirestoreGameDocument,
   actorId: string,
@@ -37,15 +41,15 @@ export function assertActorMaySubmit(
     return null;
   }
 
-  if (action.type === 'DROP_TO_IMPULSE') {
+  if (action.type === 'ALL_STOP') {
     if (!docData.round || docData.round.phase !== 'playing') {
       return 'ROUND_NOT_PLAYING';
     }
     if (
-      !docData.round.dropToImpulseRequired ||
-      docData.round.dropToImpulseDeclared
+      !docData.round.allStopRequired ||
+      docData.round.allStopDeclared
     ) {
-      return 'DROP_TO_IMPULSE_NOT_REQUIRED';
+      return 'ALL_STOP_NOT_REQUIRED';
     }
 
     const declaringPlayerId = action.playerId;
@@ -61,6 +65,56 @@ export function assertActorMaySubmit(
       roundWinnerId === declaringPlayerId ||
       (roundWinnerId == null && activePlayerId === declaringPlayerId);
     return mayDeclare ? null : 'NOT_YOUR_TURN';
+  }
+
+  if (action.type === 'DROP_TO_IMPULSE') {
+    if (!docData.round || docData.round.phase !== 'playing') {
+      return 'ROUND_NOT_PLAYING';
+    }
+    if (!dropToImpulseEnabled(docData)) {
+      return 'DROP_TO_IMPULSE_NOT_REQUIRED';
+    }
+
+    const declaringPlayerId = action.playerId;
+    const isSelf = declaringPlayerId === actorId;
+    const isHostProxy =
+      !isSelf && canHostProxyAiMove(docData, actorId, declaringPlayerId);
+    if (!isSelf && !isHostProxy) {
+      return 'NOT_YOUR_TURN';
+    }
+
+    if (docData.round.activePlayerId !== declaringPlayerId) {
+      return 'NOT_YOUR_TURN';
+    }
+    if (docData.round.dropToImpulseCallPending !== declaringPlayerId) {
+      return 'DROP_TO_IMPULSE_NOT_REQUIRED';
+    }
+    return null;
+  }
+
+  if (action.type === 'CATCH_DROP_TO_IMPULSE') {
+    if (!docData.round || docData.round.phase !== 'playing') {
+      return 'ROUND_NOT_PLAYING';
+    }
+    if (!dropToImpulseEnabled(docData)) {
+      return 'CATCH_DROP_TO_IMPULSE_NOT_ALLOWED';
+    }
+
+    const challengerId = action.challengerId;
+    const isSelf = challengerId === actorId;
+    const isHostProxy =
+      !isSelf && canHostProxyAiMove(docData, actorId, challengerId);
+    if (!isSelf && !isHostProxy) {
+      return 'NOT_YOUR_TURN';
+    }
+
+    if (challengerId === action.targetPlayerId) {
+      return 'CATCH_DROP_TO_IMPULSE_NOT_ALLOWED';
+    }
+    if (docData.round.dropToImpulseCatchable !== action.targetPlayerId) {
+      return 'CATCH_DROP_TO_IMPULSE_NOT_ALLOWED';
+    }
+    return null;
   }
 
   const actingPlayerId = action.playerId;

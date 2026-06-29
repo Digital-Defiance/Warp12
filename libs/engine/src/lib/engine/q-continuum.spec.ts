@@ -59,7 +59,7 @@ describe('skip-lowest-penalty', () => {
         skipNextTurnFor: ['b'],
         peekedSector: null,
         salamanderSwap: false,
-        impulseEcho: false,
+        allStopEcho: false,
       },
     });
 
@@ -79,7 +79,7 @@ describe('skip-lowest-penalty', () => {
         skipNextTurnFor: ['a'],
         peekedSector: null,
         salamanderSwap: false,
-        impulseEcho: false,
+        allStopEcho: false,
       },
     });
 

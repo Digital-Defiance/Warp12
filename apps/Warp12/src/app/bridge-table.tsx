@@ -426,15 +426,27 @@ export function BridgeTable({
     : isOnline
       ? (viewerId ?? '')
       : activePlayerId;
-  const dropToImpulseTurnPending =
+  const allStopTurnPending =
     !!round &&
-    round.dropToImpulseRequired &&
-    !round.dropToImpulseDeclared &&
+    round.allStopRequired &&
+    !round.allStopDeclared &&
     (round.roundWinnerId === handOwnerId ||
       (round.roundWinnerId == null && activePlayerId === handOwnerId));
+  const dropToImpulsePending =
+    !!round &&
+    game.houseRules.dropToImpulseCall &&
+    round.dropToImpulseCallPending === handOwnerId &&
+    (round.hands[handOwnerId]?.length ?? 0) === 1;
+  const dropToImpulseCatchTarget = round?.dropToImpulseCatchable ?? null;
+  const canCatchDropToImpulse =
+    !!round &&
+    game.houseRules.dropToImpulseCall &&
+    dropToImpulseCatchTarget != null &&
+    dropToImpulseCatchTarget !== handOwnerId &&
+    (round.hands[dropToImpulseCatchTarget]?.length ?? 0) === 1;
   const isMyTurn = isVsAi
     ? activePlayerId === humanId
-    : dropToImpulseTurnPending ||
+    : allStopTurnPending ||
       !isOnline ||
       viewerId === activePlayerId;
 
@@ -452,8 +464,11 @@ export function BridgeTable({
     activeBeaconCount:
       round != null ? countActiveDistressBeacons(round.table) : 0,
     qFlashActive: game.modules.qContinuum.activeFlash != null,
-    dropToImpulseDeclared: round?.dropToImpulseDeclared === true,
-    dropToImpulseRequired: round?.dropToImpulseRequired === true,
+    allStopDeclared: round?.allStopDeclared === true,
+    allStopRequired: round?.allStopRequired === true,
+    dropToImpulseCallPending: round?.dropToImpulseCallPending ?? null,
+    dropToImpulseCatchable: round?.dropToImpulseCatchable ?? null,
+    unchartedSectorCount: round?.unchartedSectors.length ?? 0,
     turnBeepsEnabled,
   });
 
@@ -508,7 +523,7 @@ export function BridgeTable({
     round.phase === 'playing' &&
     round.qPendingInvoker !== handOwnerId &&
     round.qGamblePending?.playerId !== handOwnerId &&
-    !(round.dropToImpulseRequired && !round.dropToImpulseDeclared);
+    !(round.allStopRequired && !round.allStopDeclared);
 
   useEffect(() => {
     if (!coachAvailable) {
@@ -683,8 +698,8 @@ export function BridgeTable({
       action: GameAction,
       meta?: { source?: ActionLogSource }
     ) => {
-      const before = game;
       if (onAction) {
+        const before = game;
         const result = await onAction(action);
         if (!result.ok) {
           setLastMessage(formatViolation(result.violation));
@@ -698,25 +713,24 @@ export function BridgeTable({
       }
 
       const source = meta?.source ?? 'human';
-      setLocalGame((current) => {
-        const result = applyAction(current, action);
-        actionLogRef.current.append({
-          playerId: playerIdForAction(action),
-          action,
-          ok: result.ok,
-          violation: result.ok ? undefined : result.violation,
-          source,
-        });
-        if (!result.ok) {
-          setLastMessage(formatViolation(result.violation));
-          return current;
-        }
-        setLastMessage(null);
-        setSelectedTile(null);
-        setCoachSuggestion(null);
-        recordGameLog(current, result.state, action);
-        return result.state;
+      const before = gameRef.current;
+      const result = applyAction(before, action);
+      actionLogRef.current.append({
+        playerId: playerIdForAction(action),
+        action,
+        ok: result.ok,
+        violation: result.ok ? undefined : result.violation,
+        source,
       });
+      if (!result.ok) {
+        setLastMessage(formatViolation(result.violation));
+        return;
+      }
+      setLastMessage(null);
+      setSelectedTile(null);
+      setCoachSuggestion(null);
+      recordGameLog(before, result.state, action);
+      setLocalGame(result.state);
     },
     [game, onAction, recordGameLog]
   );
@@ -1042,8 +1056,8 @@ export function BridgeTable({
         round.mandatoryPlay?.playerId ?? '',
         round.qPendingInvoker ?? '',
         round.qGamblePending?.playerId ?? '',
-        round.dropToImpulseRequired,
-        round.dropToImpulseDeclared,
+        round.allStopRequired,
+        round.allStopDeclared,
         round.roundWinnerId ?? '',
       ].join(':')
     : '';
@@ -1088,6 +1102,53 @@ export function BridgeTable({
     dispatch,
     game.phase,
     humanId,
+    isVsAi,
+    round,
+  ]);
+
+  const dropToImpulseCatchable = round?.dropToImpulseCatchable ?? null;
+  useEffect(() => {
+    if (
+      !isVsAi ||
+      !aiPlayers ||
+      !round ||
+      game.phase === 'complete' ||
+      !game.houseRules.dropToImpulseCall ||
+      !dropToImpulseCatchable
+    ) {
+      return;
+    }
+
+    const aiChallengerId = [...aiPlayers.keys()].find(
+      (id) => id !== dropToImpulseCatchable
+    );
+    if (!aiChallengerId || aiBusy.current) {
+      return;
+    }
+
+    aiBusy.current = true;
+    const timer = window.setTimeout(() => {
+      aiBusy.current = false;
+      void dispatch(
+        {
+          type: 'CATCH_DROP_TO_IMPULSE',
+          challengerId: aiChallengerId,
+          targetPlayerId: dropToImpulseCatchable,
+        },
+        { source: 'ai' }
+      );
+    }, 450);
+
+    return () => {
+      clearTimeout(timer);
+      aiBusy.current = false;
+    };
+  }, [
+    aiPlayers,
+    dispatch,
+    dropToImpulseCatchable,
+    game.houseRules.dropToImpulseCall,
+    game.phase,
     isVsAi,
     round,
   ]);
@@ -1369,6 +1430,9 @@ export function BridgeTable({
             suggestion={coachSuggestion.action}
             reasons={coachSuggestion.reasons}
             names={names}
+            suggestionFormat={{
+              allStopEcho: round.qEffects?.allStopEcho === true,
+            }}
             busy={coachBusy}
             pinned={teachingMode}
             onApply={applyCoachHighlight}
@@ -1723,20 +1787,52 @@ export function BridgeTable({
           </div>
         ) : null}
 
-        {dropToImpulseTurnPending && (!isOnline || !syncPending) && (
+        {dropToImpulsePending && isMyTurn && (!isOnline || !syncPending) && (
+          <button
+            type="button"
+            className={styles.allStopBtn}
+            data-coach={coachKind === 'drop-to-impulse'}
+            onClick={() =>
+              void dispatch({
+                type: 'DROP_TO_IMPULSE',
+                playerId: handOwnerId,
+              })
+            }
+          >
+            Drop to Impulse!
+          </button>
+        )}
+
+        {canCatchDropToImpulse && (!isOnline || !syncPending) && (
+          <button
+            type="button"
+            className={styles.controlBtn}
+            onClick={() =>
+              void dispatch({
+                type: 'CATCH_DROP_TO_IMPULSE',
+                challengerId: handOwnerId,
+                targetPlayerId: dropToImpulseCatchTarget!,
+              })
+            }
+          >
+            Catch Drop to Impulse!
+          </button>
+        )}
+
+        {allStopTurnPending && (!isOnline || !syncPending) && (
           <>
             <button
               type="button"
-              className={styles.dropToImpulseBtn}
-              data-coach={coachKind === 'drop-to-impulse'}
+              className={styles.allStopBtn}
+              data-coach={coachKind === 'all-stop'}
               onClick={() =>
                 void dispatch({
-                  type: 'DROP_TO_IMPULSE',
+                  type: 'ALL_STOP',
                   playerId: handOwnerId,
                 })
               }
             >
-              Drop to impulse
+              All Stop!
             </button>
             <button
               type="button"
