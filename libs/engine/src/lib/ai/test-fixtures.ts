@@ -5,7 +5,7 @@ import {
 } from '../types/coordinate.js';
 import type { RoundState, TableState } from '../types/game-state.js';
 import { DEFAULT_MODULES, resolveModules, type GameModules } from '../types/modules.js';
-import { DEFAULT_HOUSE_RULES } from '../types/house-rules.js';
+import { DEFAULT_HOUSE_RULES, resolveHouseRules } from '../types/house-rules.js';
 import { DEFAULT_GAME_OBJECTIVE, type GameObjective } from '../types/objective.js';
 import { DEFAULT_CAMPAIGN_ROUNDS } from '../constants/setup.js';
 import type { WarpAiObservation } from './observation.js';
@@ -32,6 +32,8 @@ export function makeRound(over: Partial<RoundState>): RoundState {
     table: createInitialTable([...turnOrder], spacedockValue, 'a'),
     unchartedSectors: [],
     hands: Object.fromEntries(turnOrder.map((id) => [id, []])),
+    dropToImpulseCallPending: null,
+    dropToImpulseCatchable: null,
     allStopRequired: false,
     allStopDeclared: false,
     roundWinnerId: null,
@@ -95,4 +97,19 @@ export function obsFor(
 
 export function modulesWithQ(): GameModules {
   return resolveModules({ qContinuum: true, salamanderPenalty: true });
+}
+
+export const IMPULSE_HOUSE_RULES = resolveHouseRules({ dropToImpulseCall: true });
+
+export function impulseObsFor(
+  round: RoundState,
+  modules: GameModules = DEFAULT_MODULES,
+  objective: GameObjective = DEFAULT_GAME_OBJECTIVE,
+  playerId = 'a',
+  campaignRounds = DEFAULT_CAMPAIGN_ROUNDS
+): WarpAiObservation {
+  return {
+    ...obsFor(round, modules, objective, playerId, campaignRounds),
+    houseRules: IMPULSE_HOUSE_RULES,
+  };
 }

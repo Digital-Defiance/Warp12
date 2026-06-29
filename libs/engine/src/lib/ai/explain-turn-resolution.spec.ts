@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { makeGame, makeRound } from '../engine/test-helpers.js';
+import { resolveHouseRules } from '../types/house-rules.js';
 import { explainTurnResolution } from './explain-turn-resolution.js';
 
 describe('explainTurnResolution', () => {
@@ -193,6 +194,47 @@ describe('explainTurnResolution', () => {
     const lines = explainTurnResolution(state, 'laforge');
     expect(lines[0]).toContain('no stabilizer in your hand');
     expect(lines.some((line) => line.includes('separate cover tile is not used'))).toBe(
+      true
+    );
+  });
+
+  it('explains Drop to Impulse pending at one tile', () => {
+    const state = makeGame(
+      makeRound(['a', 'b'], {
+        activePlayerId: 'a',
+        hands: { a: [{ low: 5, high: 7 }], b: [] },
+        dropToImpulseCallPending: 'a',
+        table: {
+          spacedock: { value: 12, placedBy: 'a' },
+          warpTrails: {
+            a: {
+              playerId: 'a',
+              tiles: [
+                {
+                  coordinate: { low: 5, high: 12 },
+                  index: 0,
+                  openValue: 5,
+                },
+              ],
+              distressBeacon: { active: false },
+            },
+            b: {
+              playerId: 'b',
+              tiles: [],
+              distressBeacon: { active: false },
+            },
+          },
+          neutralZone: { tiles: [] },
+          subspaceFracture: null,
+          redAlert: null,
+        },
+      }),
+      { houseRules: resolveHouseRules({ dropToImpulseCall: true }) }
+    );
+
+    const lines = explainTurnResolution(state, 'a', { focus: 'drop-to-impulse' });
+    expect(lines[0]).toContain('Drop to Impulse is pending');
+    expect(lines.some((line) => line.includes('optional table manners'))).toBe(
       true
     );
   });

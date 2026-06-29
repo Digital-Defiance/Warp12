@@ -15,6 +15,7 @@ export type WarpAiAction =
   | { readonly kind: 'pass-red-alert' }
   | { readonly kind: 'pass-turn' }
   | { readonly kind: 'all-stop' }
+  | { readonly kind: 'return-to-warp' }
   | { readonly kind: 'drop-to-impulse' }
   | { readonly kind: 'catch-drop-to-impulse'; readonly targetPlayerId: PlayerId }
   | { readonly kind: 'invoke-q-flash'; readonly effect: QFlashEffectKind }
@@ -43,6 +44,8 @@ export function toGameAction(
       return { type: 'PASS_TURN', playerId };
     case 'all-stop':
       return { type: 'ALL_STOP', playerId };
+    case 'return-to-warp':
+      return { type: 'RETURN_TO_WARP', playerId };
     case 'drop-to-impulse':
       return { type: 'DROP_TO_IMPULSE', playerId };
     case 'catch-drop-to-impulse':

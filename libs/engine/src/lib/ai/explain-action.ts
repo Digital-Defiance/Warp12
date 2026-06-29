@@ -178,6 +178,21 @@ function describeHeuristicContribution(
         return 'Triggers a Q-Flash with 0-0.';
       }
       return null;
+    case H.dropToImpulseDeclare:
+      if (action.kind === 'drop-to-impulse') {
+        return 'Announces Drop to Impulse before opponents can catch you.';
+      }
+      return null;
+    case H.dropToImpulseCatch:
+      if (action.kind === 'catch-drop-to-impulse') {
+        return 'Penalizes a missed Drop to Impulse with one draw from Uncharted Sectors.';
+      }
+      return null;
+    case H.dropToImpulseForget:
+      if (action.kind === 'pass-turn') {
+        return 'Passes without declaring — opponents may catch you.';
+      }
+      return null;
     default:
       return null;
   }
@@ -196,6 +211,10 @@ function describeActionKind(
         return ['Round win pending — call All Stop!'];
       }
       return ['Neutral Zone win available — call All Stop!'];
+    case 'return-to-warp':
+      return [
+        'Return to warp — take a penalty draw and keep playing instead of calling All Stop!',
+      ];
     case 'drop-to-impulse':
       return ['One coordinate left — announce Drop to Impulse!'];
     case 'catch-drop-to-impulse': {

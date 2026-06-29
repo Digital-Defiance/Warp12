@@ -114,6 +114,22 @@ export function explainTurnResolution(
     return lines;
   }
 
+  if (
+    houseRules?.dropToImpulseCall &&
+    round.dropToImpulseCallPending === playerId &&
+    (round.hands[playerId]?.length ?? 0) === 1
+  ) {
+    lines.push(
+      'Drop to Impulse is pending — announce before you pass, or opponents can catch you for a one-tile draw.'
+    );
+    if (legalMoves.length > 0) {
+      lines.push(
+        'You may still chart legally; declaring is optional table manners, not required before your last play.'
+      );
+    }
+    return lines;
+  }
+
   if (legalMoves.length > 0) {
     return lines;
   }
@@ -185,6 +201,9 @@ function prioritizeFocus(
     'pass-red-alert': /Pass Red Alert/i,
     'pass-turn': /^Pass is legal/i,
     'deploy-beacon': /Shields down/i,
+    'drop-to-impulse': /Drop to Impulse is pending/i,
+    'catch-drop-to-impulse': /catch/i,
+    'return-to-warp': /Return to warp/i,
   };
   const pattern = keywords[focus];
   if (!pattern) {

@@ -143,13 +143,19 @@ function rankAction(
   switch (action.kind) {
     case 'all-stop':
       return 10_000;
+    case 'catch-drop-to-impulse':
+      return 9_000;
     case 'chart':
       if (objective === 'go-out' && handSize === 1) return 20_000;
       return objective === 'go-out'
         ? 100 + (10 - handSize)
         : 100 + coordinatePipValue(action.move.coordinate);
+    case 'drop-to-impulse':
+      return 500;
     case 'draw':
       return -1;
+    case 'return-to-warp':
+      return -10_000;
     case 'invoke-q-flash':
     case 'resolve-q-gamble':
       return 5_000;

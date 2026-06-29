@@ -1,5 +1,6 @@
 import type { GenericHeuristic } from 'doubletwelve';
 import { salamanderPenaltyApplies } from '../constants/setup.js';
+import { getLegalMoves } from '../engine/legal-moves.js';
 import {
   coordinateKey,
   coordinateMatchesValue,
@@ -28,6 +29,9 @@ export const WARP_HEURISTIC_IDS = {
   salamanderDump: 'salamander-dump',
   qContinuum: 'q-continuum',
   goOutWin: 'go-out-win',
+  dropToImpulseDeclare: 'drop-to-impulse-declare',
+  dropToImpulseCatch: 'catch-drop-to-impulse',
+  dropToImpulseForget: 'drop-to-impulse-forget',
 } as const;
 
 const H = WARP_HEURISTIC_IDS;
@@ -53,8 +57,12 @@ const preferChart: WarpHeuristic = {
     switch (action.kind) {
       case 'all-stop':
         return 200;
+      case 'catch-drop-to-impulse':
+        return 180;
       case 'chart':
         return 100;
+      case 'drop-to-impulse':
+        return 55;
       case 'draw':
         return 0;
       case 'pass-red-alert':
@@ -63,6 +71,8 @@ const preferChart: WarpHeuristic = {
         return -30;
       case 'deploy-beacon':
         return -40;
+      case 'return-to-warp':
+        return -500;
       case 'invoke-q-flash':
       case 'resolve-q-gamble':
         return 150;
@@ -222,6 +232,61 @@ const qContinuum: WarpHeuristic = {
   },
 };
 
+/**
+ * Drop to Impulse: strongly prefer announcing when stuck at one tile with no
+ * chart; a small bonus when a legal chart exists (table manners).
+ */
+const dropToImpulseDeclare: WarpHeuristic = {
+  id: H.dropToImpulseDeclare,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (action.kind !== 'drop-to-impulse') return 0;
+    if (!ctx.obs.houseRules.dropToImpulseCall) return 0;
+    if (ctx.obs.round.dropToImpulseCallPending !== ctx.obs.playerId) return 0;
+    if (ctx.hand.length !== 1) return 0;
+
+    const hasChart = getLegalMoves(
+      ctx.obs.round,
+      ctx.obs.playerId,
+      ctx.obs.houseRules
+    ).length > 0;
+    if (!hasChart) {
+      return 80;
+    }
+    return ctx.obs.objective === 'go-out' ? 8 : 5;
+  },
+};
+
+/** Always catch a missed Drop to Impulse when the draw pile can penalize. */
+const dropToImpulseCatch: WarpHeuristic = {
+  id: H.dropToImpulseCatch,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (action.kind !== 'catch-drop-to-impulse') return 0;
+    if (!ctx.obs.houseRules.dropToImpulseCall) return 0;
+    if (ctx.obs.round.dropToImpulseCatchable !== action.targetPlayerId) return 0;
+    return ctx.obs.round.unchartedSectors.length > 0 ? 120 : 0;
+  },
+};
+
+/**
+ * Beginner-only temptation to pass without declaring — models forgetting the
+ * ceremony at a live table.
+ */
+const dropToImpulseForget: WarpHeuristic = {
+  id: H.dropToImpulseForget,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (action.kind !== 'pass-turn') return 0;
+    if (!ctx.obs.houseRules.dropToImpulseCall) return 0;
+    if (ctx.obs.round.dropToImpulseCallPending !== ctx.obs.playerId) return 0;
+    if (ctx.hand.length !== 1) return 0;
+    if (
+      getLegalMoves(ctx.obs.round, ctx.obs.playerId, ctx.obs.houseRules).length > 0
+    ) {
+      return 0;
+    }
+    return 35;
+  },
+};
+
 /** The stock Warp 12 heuristic set. Append/replace by `id` to add house tactics. */
 export const DEFAULT_WARP_HEURISTICS: WarpHeuristic[] = [
   preferChart,
@@ -235,4 +300,7 @@ export const DEFAULT_WARP_HEURISTICS: WarpHeuristic[] = [
   defensiveShared,
   salamanderDump,
   qContinuum,
+  dropToImpulseDeclare,
+  dropToImpulseCatch,
+  dropToImpulseForget,
 ];
