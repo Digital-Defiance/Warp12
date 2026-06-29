@@ -24,5 +24,6 @@ describe('App', () => {
     expect(screen.getByText(/online fleet/i)).toBeTruthy();
     expect(screen.getByText(/navigational operations manual/i)).toBeTruthy();
     expect(screen.getByText(/before you launch/i)).toBeTruthy();
+    expect(screen.getByText(/tablet or desktop recommended/i)).toBeTruthy();
   });
 });

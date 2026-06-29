@@ -43,7 +43,7 @@ function newOpenEndValue(
 }
 
 /**
- * Keep play moving. Charting beats everything but a mandatory impulse drop; drawing is
+ * Keep play moving. Charting beats everything but a mandatory all stop; drawing is
  * neutral; deploying a beacon / passing a Red Alert are last resorts. Competent
  * profiles thus always chart when they can — mistakes come from the blunder rate.
  */
@@ -51,7 +51,7 @@ const preferChart: WarpHeuristic = {
   id: H.preferChart,
   score(action: WarpAiAction): number {
     switch (action.kind) {
-      case 'drop-to-impulse':
+      case 'all-stop':
         return 200;
       case 'chart':
         return 100;

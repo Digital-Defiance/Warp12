@@ -3,6 +3,7 @@ import {
   canPassRedAlert,
   canPassTurn,
 } from '../engine/beacon.js';
+import { isRedAlertBlocking } from '../types/anomalies.js';
 import { getLegalMoves } from '../engine/legal-moves.js';
 import type { WarpAiAction } from './actions.js';
 import type { WarpAiObservation } from './observation.js';
@@ -14,7 +15,7 @@ import { chooseQFlashEffect, chooseQGambleKeepIndex } from './q-flash.js';
  * the engine's {@link getLegalMoves}. Precedence:
  *
  * 1. Q-Flash / Q's gamble resolution when pending.
- * 2. Impulse-drop obligation (round winner must drop to impulse) overrides everything.
+ * 2. All-stop obligation (round winner must call all stop) overrides everything.
  * 3. Any legal chart move → chart candidates (canonical "play if you can").
  * 4. Otherwise draw (if Uncharted Sectors remain).
  * 5. Otherwise pass the Red Alert (if responsible) or deploy the Distress Beacon.
@@ -49,17 +50,37 @@ export function warpCandidateGenerator(
   }
 
   if (
-    round.dropToImpulseRequired &&
-    !round.dropToImpulseDeclared &&
+    round.allStopRequired &&
+    !round.allStopDeclared &&
     (round.roundWinnerId === playerId ||
       (round.roundWinnerId == null && round.activePlayerId === playerId))
   ) {
-    return [{ kind: 'drop-to-impulse' }];
+    return [{ kind: 'all-stop' }];
+  }
+
+  if (round.dropToImpulseCatchable && round.dropToImpulseCatchable !== playerId) {
+    const targetHand = round.hands[round.dropToImpulseCatchable]?.length ?? 0;
+    if (targetHand === 1) {
+      return [
+        {
+          kind: 'catch-drop-to-impulse',
+          targetPlayerId: round.dropToImpulseCatchable,
+        },
+      ];
+    }
   }
 
   const moves = getLegalMoves(round, playerId, houseRules);
   if (moves.length > 0) {
     return moves.map((move) => ({ kind: 'chart', move }));
+  }
+
+  if (
+    round.dropToImpulseCallPending === playerId &&
+    (round.hands[playerId]?.length ?? 0) === 1 &&
+    !isRedAlertBlocking(round.table.redAlert, playerId)
+  ) {
+    return [{ kind: 'drop-to-impulse' }];
   }
 
   if (round.unchartedSectors.length > 0) {

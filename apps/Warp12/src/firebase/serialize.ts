@@ -68,6 +68,7 @@ export function serializePublicGame(state: GameState): FirestoreGameDocument {
       neutralZoneAfterAllTrails: state.houseRules.neutralZoneAfterAllTrails,
       beaconClearsOnAnyPlay: state.houseRules.beaconClearsOnAnyPlay,
       roundStarterPlaysTwo: state.houseRules.roundStarterPlaysTwo,
+      dropToImpulseCall: state.houseRules.dropToImpulseCall,
     },
     objective: state.objective,
     campaignRounds: state.campaignRounds,
@@ -121,8 +122,8 @@ function serializePublicRound(round: RoundState): FirestorePublicRound {
     turnOrder: [...round.turnOrder],
     handCounts,
     unchartedSectors: round.unchartedSectors.map(toFirestoreCoordinate),
-    dropToImpulseRequired: round.dropToImpulseRequired,
-    dropToImpulseDeclared: round.dropToImpulseDeclared,
+    allStopRequired: round.allStopRequired,
+    allStopDeclared: round.allStopDeclared,
     roundWinnerId: round.roundWinnerId ?? null,
     roundBlocked: round.roundBlocked,
     mandatoryPlay: round.mandatoryPlay
@@ -150,7 +151,7 @@ function serializePublicRound(round: RoundState): FirestorePublicRound {
               }
             : null,
           salamanderSwap: round.qEffects.salamanderSwap,
-          impulseEcho: round.qEffects.impulseEcho,
+          allStopEcho: round.qEffects.allStopEcho,
         }
       : null,
     qGamblePending: round.qGamblePending
@@ -165,6 +166,8 @@ function serializePublicRound(round: RoundState): FirestorePublicRound {
     roundStarterOpening: round.roundStarterOpening
       ? { playerId: round.roundStarterOpening.playerId }
       : null,
+    dropToImpulseCallPending: round.dropToImpulseCallPending ?? null,
+    dropToImpulseCatchable: round.dropToImpulseCatchable ?? null,
     table: serializeTable(round),
   };
 }
@@ -239,8 +242,8 @@ export function mergeHandsIntoGame(
           ])
         ),
         unchartedSectors: doc.round.unchartedSectors.map(fromFirestoreCoordinate),
-        dropToImpulseRequired: doc.round.dropToImpulseRequired,
-        dropToImpulseDeclared: doc.round.dropToImpulseDeclared,
+        allStopRequired: doc.round.allStopRequired,
+        allStopDeclared: doc.round.allStopDeclared,
         roundWinnerId: doc.round.roundWinnerId ?? null,
         qPendingInvoker: doc.round.qPendingInvoker ?? null,
         qEffects: doc.round.qEffects
@@ -260,7 +263,7 @@ export function mergeHandsIntoGame(
                   }
                 : null,
               salamanderSwap: doc.round.qEffects.salamanderSwap,
-              impulseEcho: doc.round.qEffects.impulseEcho,
+              allStopEcho: doc.round.qEffects.allStopEcho,
             }
           : null,
         qGamblePending: doc.round.qGamblePending
@@ -288,6 +291,8 @@ export function mergeHandsIntoGame(
           : null,
         roundBlocked: doc.round.roundBlocked ?? false,
         roundStarterOpening: doc.round.roundStarterOpening ?? null,
+        dropToImpulseCallPending: doc.round.dropToImpulseCallPending ?? null,
+        dropToImpulseCatchable: doc.round.dropToImpulseCatchable ?? null,
         table: tableDoc
           ? {
               spacedock: tableDoc.spacedock,

@@ -17,8 +17,12 @@ describe('detectGameSoundTransitions', () => {
     redAlertResponsibleId: null,
     activeBeaconCount: 0,
     qFlashActive: false,
-    dropToImpulseDeclared: false,
-    dropToImpulseRequired: false,
+    allStopDeclared: false,
+    allStopRequired: false,
+    activePlayerId: null,
+    dropToImpulseCallPending: null,
+    dropToImpulseCatchable: null,
+    unchartedSectorCount: 10,
     turnBeepsEnabled: false,
   };
 
@@ -119,21 +123,91 @@ describe('detectGameSoundTransitions', () => {
     ).toEqual({ play: ['qFlash'], stop: [] });
   });
 
-  it('plays warp exit only for impulse declarations', () => {
+  it('plays powering down for All Stop declarations', () => {
     expect(
       detectGameSoundTransitions(base, {
         ...base,
-        dropToImpulseDeclared: true,
-        dropToImpulseRequired: true,
+        allStopDeclared: true,
+        allStopRequired: true,
       })
-    ).toEqual({ play: ['warpExit'], stop: [] });
+    ).toEqual({ play: ['allStop'], stop: [] });
 
     expect(
       detectGameSoundTransitions(base, {
         ...base,
-        dropToImpulseDeclared: true,
-        dropToImpulseRequired: false,
+        allStopDeclared: true,
+        allStopRequired: false,
       })
+    ).toEqual({ play: [], stop: [] });
+  });
+
+  it('plays warp when returning to warp after a missed All Stop', () => {
+    expect(
+      detectGameSoundTransitions(
+        {
+          ...base,
+          allStopRequired: true,
+          allStopDeclared: false,
+        },
+        {
+          ...base,
+          allStopRequired: false,
+          allStopDeclared: false,
+        }
+      )
+    ).toEqual({ play: ['returnToWarp'], stop: [] });
+  });
+
+  it('plays warp exit when Drop to Impulse is declared on the same turn', () => {
+    expect(
+      detectGameSoundTransitions(
+        {
+          ...base,
+          activePlayerId: 'a',
+          dropToImpulseCallPending: 'a',
+          dropToImpulseCatchable: null,
+        },
+        {
+          ...base,
+          activePlayerId: 'a',
+          dropToImpulseCallPending: null,
+          dropToImpulseCatchable: null,
+        }
+      )
+    ).toEqual({ play: ['dropToImpulse'], stop: [] });
+  });
+
+  it('plays return to warp when Drop to Impulse is caught', () => {
+    expect(
+      detectGameSoundTransitions(
+        {
+          ...base,
+          dropToImpulseCatchable: 'a',
+          unchartedSectorCount: 5,
+        },
+        {
+          ...base,
+          dropToImpulseCatchable: null,
+          unchartedSectorCount: 4,
+        }
+      )
+    ).toEqual({ play: ['returnToWarp'], stop: [] });
+  });
+
+  it('is silent when the Drop to Impulse catch window closes without a catch', () => {
+    expect(
+      detectGameSoundTransitions(
+        {
+          ...base,
+          dropToImpulseCatchable: 'a',
+          unchartedSectorCount: 5,
+        },
+        {
+          ...base,
+          dropToImpulseCatchable: null,
+          unchartedSectorCount: 5,
+        }
+      )
     ).toEqual({ play: [], stop: [] });
   });
 
@@ -155,8 +229,12 @@ describe('countTurnBeepsToPlay', () => {
     redAlertResponsibleId: null,
     activeBeaconCount: 0,
     qFlashActive: false,
-    dropToImpulseDeclared: false,
-    dropToImpulseRequired: false,
+    allStopDeclared: false,
+    allStopRequired: false,
+    activePlayerId: null,
+    dropToImpulseCallPending: null,
+    dropToImpulseCatchable: null,
+    unchartedSectorCount: 10,
     turnBeepsEnabled: true,
   };
 

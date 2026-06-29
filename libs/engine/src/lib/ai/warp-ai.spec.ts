@@ -64,8 +64,8 @@ function makeRound(over: Partial<RoundState>): RoundState {
     table: createInitialTable([...TURN], spacedockValue, 'a'),
     unchartedSectors: [],
     hands: { a: [], b: [] },
-    dropToImpulseRequired: false,
-    dropToImpulseDeclared: false,
+    allStopRequired: false,
+    allStopDeclared: false,
     roundWinnerId: null,
     qPendingInvoker: null,
     qEffects: null,
@@ -223,15 +223,15 @@ describe('warpCandidateGenerator', () => {
     ]);
   });
 
-  it('forces the round winner to drop to impulse when required', () => {
+  it('forces the round winner to call all stop when required', () => {
     const round = makeRound({
       hands: { a: [N(1, 2)], b: [] },
-      dropToImpulseRequired: true,
-      dropToImpulseDeclared: false,
+      allStopRequired: true,
+      allStopDeclared: false,
       roundWinnerId: 'a',
     });
     expect(warpCandidateGenerator(obsFor(round))).toEqual([
-      { kind: 'drop-to-impulse' },
+      { kind: 'all-stop' },
     ]);
   });
 });
@@ -258,8 +258,8 @@ describe('toGameAction', () => {
       type: 'PASS_RED_ALERT',
       playerId: 'a',
     });
-    expect(toGameAction({ kind: 'drop-to-impulse' }, 'a')).toEqual({
-      type: 'DROP_TO_IMPULSE',
+    expect(toGameAction({ kind: 'all-stop' }, 'a')).toEqual({
+      type: 'ALL_STOP',
       playerId: 'a',
     });
   });
@@ -390,17 +390,17 @@ describe('createWarpAiPlayer — RULES.md tactics', () => {
 });
 
 describe('createWarpAiPlayer — control flow & determinism', () => {
-  it('drops to impulse through decideGameAction when obligated', () => {
+  it('calls All Stop through decideGameAction when obligated', () => {
     const round = makeRound({
       hands: { a: [N(1, 2)], b: [] },
-      dropToImpulseRequired: true,
+      allStopRequired: true,
       roundWinnerId: 'a',
     });
     const player = createWarpAiPlayer({
       skill: getWarpSkillProfile('advanced'),
       rng: mulberry32(1),
     });
-    expect(player.decide(obsFor(round)).kind).toBe('drop-to-impulse');
+    expect(player.decide(obsFor(round)).kind).toBe('all-stop');
   });
 
   it('decideGameAction returns null when there is no active round', () => {

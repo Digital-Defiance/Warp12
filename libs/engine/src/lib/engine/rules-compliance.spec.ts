@@ -614,7 +614,7 @@ describe('blocked sector (empty draw pile, no legal charts)', () => {
         skipNextTurnFor: ['c'],
         peekedSector: null,
         salamanderSwap: false,
-        impulseEcho: false,
+        allStopEcho: false,
       },
       table: {
         ...createInitialTable(['a', 'b', 'c'], 12, 'a'),
@@ -678,7 +678,7 @@ describe('blocked sector (empty draw pile, no legal charts)', () => {
           skipNextTurnFor: ['a'],
           peekedSector: null,
           salamanderSwap: false,
-          impulseEcho: false,
+          allStopEcho: false,
         },
         table: {
           ...createInitialTable(['a', 'b', 'c', 'd'], 12, 'a'),
@@ -979,7 +979,7 @@ describe('mandatory play after drawing', () => {
       makeRound(['a', 'b'], {
         activePlayerId: 'a',
         unchartedSectors: [],
-        dropToImpulseRequired: true,
+        allStopRequired: true,
         roundWinnerId: 'a',
       })
     );
@@ -994,8 +994,8 @@ describe('mandatory play after drawing', () => {
   });
 });
 
-describe('dropping to impulse', () => {
-  it('requires DROP_TO_IMPULSE after a Neutral Zone win', () => {
+describe('calling all stop', () => {
+  it('requires ALL_STOP after a Neutral Zone win', () => {
     const state = makeGame(
       makeRound(['a', 'b'], {
         activePlayerId: 'a',
@@ -1019,7 +1019,7 @@ describe('dropping to impulse', () => {
     if (!win.ok) return;
 
     expect(win.state.round?.roundWinnerId).toBe('a');
-    expect(win.state.round?.dropToImpulseRequired).toBe(true);
+    expect(win.state.round?.allStopRequired).toBe(true);
     expect(win.state.round?.phase).toBe('playing');
   });
 
@@ -1029,8 +1029,8 @@ describe('dropping to impulse', () => {
         activePlayerId: 'a',
         hands: { a: [], b: [T(1, 2)] },
         unchartedSectors: [T(3, 4), T(5, 6)],
-        dropToImpulseRequired: true,
-        dropToImpulseDeclared: false,
+        allStopRequired: true,
+        allStopDeclared: false,
         roundWinnerId: 'a',
       })
     );
@@ -1043,35 +1043,35 @@ describe('dropping to impulse', () => {
     if (!returnToWarp.ok) return;
 
     expect(returnToWarp.state.round?.roundWinnerId).toBeNull();
-    expect(returnToWarp.state.round?.dropToImpulseRequired).toBe(false);
+    expect(returnToWarp.state.round?.allStopRequired).toBe(false);
     expect(returnToWarp.state.round?.phase).toBe('playing');
     expect(returnToWarp.state.round?.hands.a).toHaveLength(1);
     expect(returnToWarp.state.round?.unchartedSectors).toHaveLength(1);
     expect(returnToWarp.state.round?.activePlayerId).toBe('b');
   });
 
-  it('DROP_TO_IMPULSE closes the sector after a Neutral Zone win', () => {
+  it('ALL_STOP closes the sector after a Neutral Zone win', () => {
     const state = makeGame(
       makeRound(['a', 'b'], {
         activePlayerId: 'a',
         hands: { a: [], b: [T(1, 2)] },
-        dropToImpulseRequired: true,
-        dropToImpulseDeclared: false,
+        allStopRequired: true,
+        allStopDeclared: false,
         roundWinnerId: 'a',
       })
     );
 
     const dropResult = applyAction(state, {
-      type: 'DROP_TO_IMPULSE',
+      type: 'ALL_STOP',
       playerId: 'a',
     });
     expect(dropResult.ok).toBe(true);
     if (!dropResult.ok) return;
     expect(dropResult.state.round?.phase).toBe('ended');
-    expect(dropResult.state.round?.dropToImpulseDeclared).toBe(true);
+    expect(dropResult.state.round?.allStopDeclared).toBe(true);
   });
 
-  it('requires DROP_TO_IMPULSE after a warp-trail win when Impulse echo is active', () => {
+  it('requires ALL_STOP after a warp-trail win when All stop echo is active', () => {
     const state = makeGame(
       makeRound(['a', 'b'], {
         activePlayerId: 'a',
@@ -1084,7 +1084,7 @@ describe('dropping to impulse', () => {
           skipNextTurnFor: [],
           peekedSector: null,
           salamanderSwap: false,
-          impulseEcho: true,
+          allStopEcho: true,
         },
         table: createInitialTable(['a', 'b'], 12, 'a'),
       })
@@ -1100,7 +1100,7 @@ describe('dropping to impulse', () => {
     if (!win.ok) return;
 
     expect(win.state.round?.roundWinnerId).toBe('a');
-    expect(win.state.round?.dropToImpulseRequired).toBe(true);
+    expect(win.state.round?.allStopRequired).toBe(true);
     expect(win.state.round?.phase).toBe('playing');
   });
 });

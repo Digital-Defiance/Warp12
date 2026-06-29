@@ -141,7 +141,7 @@ function rankAction(
   handSize: number
 ): number {
   switch (action.kind) {
-    case 'drop-to-impulse':
+    case 'all-stop':
       return 10_000;
     case 'chart':
       if (objective === 'go-out' && handSize === 1) return 20_000;

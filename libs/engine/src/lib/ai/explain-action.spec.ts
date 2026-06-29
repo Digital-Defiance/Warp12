@@ -119,4 +119,44 @@ describe('explainWarpAiAction', () => {
     const reasons = explainWarpAiAction(state, 'a', action);
     expect(reasons.some((line) => line.includes('win the round'))).toBe(true);
   });
+
+  it('explains All Stop when All Stop! echo is active', () => {
+    const state = makeGame(
+      makeRound(['a'], {
+        activePlayerId: 'a',
+        allStopRequired: true,
+        roundWinnerId: 'a',
+        qEffects: {
+          reverseTurnOrder: false,
+          temporalInversion: false,
+          openAllTrails: false,
+          suppressNextFracture: false,
+          skipNextTurnFor: [],
+          peekedSector: null,
+          salamanderSwap: false,
+          allStopEcho: true,
+        },
+      })
+    );
+
+    const reasons = explainWarpAiAction(state, 'a', { kind: 'all-stop' });
+    expect(reasons[0]).toContain('Round win pending');
+  });
+
+  it('explains Drop to Impulse and catch actions', () => {
+    const state = makeGame(makeRound(['a', 'b'], { activePlayerId: 'a' }));
+
+    expect(
+      explainWarpAiAction(state, 'a', { kind: 'drop-to-impulse' })[0]
+    ).toContain('Drop to Impulse');
+
+    expect(
+      explainWarpAiAction(
+        state,
+        'b',
+        { kind: 'catch-drop-to-impulse', targetPlayerId: 'a' },
+        { names: { a: 'Alpha' } }
+      )[0]
+    ).toContain('Alpha');
+  });
 });

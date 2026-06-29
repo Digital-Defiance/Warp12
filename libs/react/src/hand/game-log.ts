@@ -69,6 +69,7 @@ export interface GameLogEntry {
   readonly qFlashEffect?: QFlashEffectKind;
   readonly winnerId?: string | null;
   readonly nextCaptainId?: string;
+  readonly targetCaptainId?: string;
   readonly roundNumber?: number;
   readonly spacedockValue?: number;
   readonly effects: readonly GameLogEffect[];
@@ -275,8 +276,16 @@ export function formatGameLogLine(
       return `${prefix} passed turn${effectsPhrase(entry.effects)}`;
     case 'DEPLOY_DISTRESS_BEACON':
       return `${prefix} deployed a Distress Beacon${effectsPhrase(entry.effects)}`;
+    case 'ALL_STOP':
+      return `${prefix} called All Stop!${effectsPhrase(entry.effects)}`;
     case 'DROP_TO_IMPULSE':
-      return `${prefix} dropped to impulse${effectsPhrase(entry.effects)}`;
+      return `${prefix} called Drop to Impulse!${effectsPhrase(entry.effects)}`;
+    case 'CATCH_DROP_TO_IMPULSE': {
+      const target = entry.targetCaptainId
+        ? captainLabel(entry.targetCaptainId, names)
+        : 'a captain';
+      return `${prefix} caught ${target} for a missed Drop to Impulse${effectsPhrase(entry.effects)}`;
+    }
     case 'RETURN_TO_WARP':
       return `${prefix} returned to warp${effectsPhrase(entry.effects)}`;
     case 'INVOKE_Q_FLASH':
@@ -501,12 +510,21 @@ export function buildGameLogEntry(
         captainId: action.playerId,
         effects: [],
       };
+    case 'ALL_STOP':
     case 'DROP_TO_IMPULSE':
     case 'RETURN_TO_WARP':
       return {
         at,
         kind: action.type,
         captainId: action.playerId,
+        effects: [],
+      };
+    case 'CATCH_DROP_TO_IMPULSE':
+      return {
+        at,
+        kind: action.type,
+        captainId: action.challengerId,
+        targetCaptainId: action.targetPlayerId,
         effects: [],
       };
     case 'INVOKE_Q_FLASH':

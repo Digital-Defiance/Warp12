@@ -51,8 +51,8 @@ function lobbyDoc(
       turnOrder: ['host-uid', 'ai:riker'],
       handCounts: { 'host-uid': 15, 'ai:riker': 15 },
       unchartedSectors: [],
-      dropToImpulseRequired: false,
-      dropToImpulseDeclared: false,
+      allStopRequired: false,
+      allStopDeclared: false,
       roundWinnerId: null,
       table: {
         spacedock: { value: 12, placedBy: 'host-uid' },
@@ -118,7 +118,7 @@ describe('online AI move proxy', () => {
     ).toBe('NOT_YOUR_TURN');
   });
 
-  it('lets the round winner drop to impulse while the round is still open', () => {
+  it('lets the round winner call all stop while the round is still open', () => {
     const doc = lobbyDoc({
       captainIds: ['host-uid', 'guest-uid'],
       captains: [
@@ -134,20 +134,20 @@ describe('online AI move proxy', () => {
         ...lobbyDoc().round!,
         activePlayerId: 'guest-uid',
         roundWinnerId: 'guest-uid',
-        dropToImpulseRequired: true,
-        dropToImpulseDeclared: false,
+        allStopRequired: true,
+        allStopDeclared: false,
       },
     });
 
     expect(
       assertActorMaySubmit(doc, 'guest-uid', {
-        type: 'DROP_TO_IMPULSE',
+        type: 'ALL_STOP',
         playerId: 'guest-uid',
       })
     ).toBeNull();
   });
 
-  it('allows drop to impulse when roundWinnerId was not persisted yet', () => {
+  it('allows call all stop when roundWinnerId was not persisted yet', () => {
     const doc = lobbyDoc({
       captainIds: ['host-uid', 'guest-uid'],
       captains: [
@@ -163,34 +163,71 @@ describe('online AI move proxy', () => {
         ...lobbyDoc().round!,
         activePlayerId: 'guest-uid',
         roundWinnerId: null,
-        dropToImpulseRequired: true,
-        dropToImpulseDeclared: false,
+        allStopRequired: true,
+        allStopDeclared: false,
       },
     });
 
     expect(
       assertActorMaySubmit(doc, 'guest-uid', {
-        type: 'DROP_TO_IMPULSE',
+        type: 'ALL_STOP',
         playerId: 'guest-uid',
       })
     ).toBeNull();
   });
 
-  it('allows the host to proxy DROP_TO_IMPULSE for an AI round winner', () => {
+  it('allows the host to proxy ALL_STOP for an AI round winner', () => {
     const doc = lobbyDoc({
       round: {
         ...lobbyDoc().round!,
         activePlayerId: 'ai:riker',
         roundWinnerId: 'ai:riker',
-        dropToImpulseRequired: true,
-        dropToImpulseDeclared: false,
+        allStopRequired: true,
+        allStopDeclared: false,
+      },
+    });
+
+    expect(
+      assertActorMaySubmit(doc, 'host-uid', {
+        type: 'ALL_STOP',
+        playerId: 'ai:riker',
+      })
+    ).toBeNull();
+  });
+
+  it('allows an active captain to declare Drop to Impulse', () => {
+    const doc = lobbyDoc({
+      houseRules: { dropToImpulseCall: true },
+      round: {
+        ...lobbyDoc().round!,
+        activePlayerId: 'host-uid',
+        dropToImpulseCallPending: 'host-uid',
       },
     });
 
     expect(
       assertActorMaySubmit(doc, 'host-uid', {
         type: 'DROP_TO_IMPULSE',
-        playerId: 'ai:riker',
+        playerId: 'host-uid',
+      })
+    ).toBeNull();
+  });
+
+  it('allows off-turn catch of a missed Drop to Impulse', () => {
+    const doc = lobbyDoc({
+      houseRules: { dropToImpulseCall: true },
+      round: {
+        ...lobbyDoc().round!,
+        activePlayerId: 'ai:riker',
+        dropToImpulseCatchable: 'host-uid',
+      },
+    });
+
+    expect(
+      assertActorMaySubmit(doc, 'ai:riker', {
+        type: 'CATCH_DROP_TO_IMPULSE',
+        challengerId: 'ai:riker',
+        targetPlayerId: 'host-uid',
       })
     ).toBeNull();
   });

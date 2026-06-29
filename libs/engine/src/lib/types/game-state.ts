@@ -28,8 +28,8 @@ export interface RoundState {
   readonly table: TableState;
   readonly unchartedSectors: readonly Coordinate[];
   readonly hands: Readonly<Record<PlayerId, readonly Coordinate[]>>;
-  readonly dropToImpulseRequired: boolean;
-  readonly dropToImpulseDeclared: boolean;
+  readonly allStopRequired: boolean;
+  readonly allStopDeclared: boolean;
   readonly roundWinnerId: PlayerId | null;
   /** Captain who must invoke a Q-Flash after charting 0-0. */
   readonly qPendingInvoker: PlayerId | null;
@@ -50,6 +50,10 @@ export interface RoundState {
   readonly roundStarterOpening: {
     readonly playerId: PlayerId;
   } | null;
+  /** Voluntary Drop to Impulse declare pending (one coordinate left this turn). */
+  readonly dropToImpulseCallPending: PlayerId | null;
+  /** Forgot to declare — opponents may catch until the next helm pass. */
+  readonly dropToImpulseCatchable: PlayerId | null;
 }
 
 export interface GameState {

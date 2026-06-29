@@ -44,14 +44,16 @@ export function emptyRoundFields(): Pick<
   | 'qPendingInvoker'
   | 'qEffects'
   | 'qGamblePending'
-  | 'dropToImpulseRequired'
-  | 'dropToImpulseDeclared'
+  | 'allStopRequired'
+  | 'allStopDeclared'
   | 'roundWinnerId'
   | 'roundStarterOpening'
+  | 'dropToImpulseCallPending'
+  | 'dropToImpulseCatchable'
 > {
   return {
-    dropToImpulseRequired: false,
-    dropToImpulseDeclared: false,
+    allStopRequired: false,
+    allStopDeclared: false,
     roundWinnerId: null,
     qPendingInvoker: null,
     qEffects: null,
@@ -60,6 +62,8 @@ export function emptyRoundFields(): Pick<
     pendingRoundWin: null,
     roundBlocked: false,
     roundStarterOpening: null,
+    dropToImpulseCallPending: null,
+    dropToImpulseCatchable: null,
   };
 }
 

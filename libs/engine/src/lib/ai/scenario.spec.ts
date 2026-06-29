@@ -121,12 +121,12 @@ describe('scenario — red alert pass chain', () => {
   });
 });
 
-describe('scenario — drop to impulse gate', () => {
+describe('scenario — call all stop gate', () => {
   it('keeps the round open until the winner declares', () => {
     const round = makeRound({
       hands: { a: [], b: [N(1, 2)] },
-      dropToImpulseRequired: true,
-      dropToImpulseDeclared: false,
+      allStopRequired: true,
+      allStopDeclared: false,
       roundWinnerId: 'a',
       activePlayerId: 'a',
       phase: 'playing',
@@ -135,32 +135,32 @@ describe('scenario — drop to impulse gate', () => {
 
     expect(getLegalMoves(round, 'a')).toHaveLength(0);
     expect(warpCandidateGenerator(obsFor(round))).toEqual([
-      { kind: 'drop-to-impulse' },
+      { kind: 'all-stop' },
     ]);
 
     const draw = applyAction(state, { type: 'DRAW_FROM_UNCHARTED', playerId: 'a' });
     expect(draw.ok).toBe(false);
 
-    const declare = applyAction(state, { type: 'DROP_TO_IMPULSE', playerId: 'a' });
+    const declare = applyAction(state, { type: 'ALL_STOP', playerId: 'a' });
     expect(declare.ok).toBe(true);
     if (declare.ok) {
       expect(declare.state.round?.phase).toBe('ended');
-      expect(declare.state.round?.dropToImpulseDeclared).toBe(true);
+      expect(declare.state.round?.allStopDeclared).toBe(true);
     }
   });
 
   it('repairs a missing roundWinnerId when the winner declares', () => {
     const round = makeRound({
       hands: { a: [], b: [N(1, 2)] },
-      dropToImpulseRequired: true,
-      dropToImpulseDeclared: false,
+      allStopRequired: true,
+      allStopDeclared: false,
       roundWinnerId: null,
       activePlayerId: 'a',
       phase: 'playing',
     });
     const state = stateFromRound(round);
 
-    const declare = applyAction(state, { type: 'DROP_TO_IMPULSE', playerId: 'a' });
+    const declare = applyAction(state, { type: 'ALL_STOP', playerId: 'a' });
     expect(declare.ok).toBe(true);
     if (declare.ok) {
       expect(declare.state.round?.roundWinnerId).toBe('a');

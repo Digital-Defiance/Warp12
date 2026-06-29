@@ -21,6 +21,9 @@ export function playerIdForAction(action: GameAction): string {
   if (action.type === 'END_ROUND') {
     return action.winnerId ?? '';
   }
+  if (action.type === 'CATCH_DROP_TO_IMPULSE') {
+    return action.challengerId;
+  }
   return action.playerId;
 }
 

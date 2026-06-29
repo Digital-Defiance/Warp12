@@ -21,7 +21,13 @@ export type GameAction =
   | { type: 'PASS_RED_ALERT'; playerId: PlayerId }
   | { type: 'PASS_TURN'; playerId: PlayerId }
   | { type: 'DEPLOY_DISTRESS_BEACON'; playerId: PlayerId }
+  | { type: 'ALL_STOP'; playerId: PlayerId }
   | { type: 'DROP_TO_IMPULSE'; playerId: PlayerId }
+  | {
+      type: 'CATCH_DROP_TO_IMPULSE';
+      challengerId: PlayerId;
+      targetPlayerId: PlayerId;
+    }
   | { type: 'RETURN_TO_WARP'; playerId: PlayerId }
   | { type: 'INVOKE_Q_FLASH'; playerId: PlayerId; effect: QFlashEffectKind }
   | { type: 'RESOLVE_Q_GAMBLE'; playerId: PlayerId; keepIndex: 0 | 1 }
@@ -42,7 +48,9 @@ export type ActionViolation =
   | 'RED_ALERT_REQUIRED'
   | 'FRACTURE_REQUIRES_STABILIZER'
   | 'EMPTY_UNCHARTED'
+  | 'ALL_STOP_NOT_REQUIRED'
   | 'DROP_TO_IMPULSE_NOT_REQUIRED'
+  | 'CATCH_DROP_TO_IMPULSE_NOT_ALLOWED'
   | 'RED_ALERT_NOT_ACTIVE'
   | 'Q_FLASH_NOT_PENDING'
   | 'Q_GAMBLE_NOT_PENDING'

@@ -120,8 +120,8 @@ export function createRoundStateFromDeal(deal: RoundDealResult): RoundState {
     ),
     unchartedSectors: [...deal.unchartedSectors],
     hands: { ...deal.hands },
-    dropToImpulseRequired: false,
-    dropToImpulseDeclared: false,
+    allStopRequired: false,
+    allStopDeclared: false,
     roundWinnerId: null,
     qPendingInvoker: null,
     qEffects: null,
@@ -130,6 +130,8 @@ export function createRoundStateFromDeal(deal: RoundDealResult): RoundState {
     pendingRoundWin: null,
     roundBlocked: false,
     roundStarterOpening: null,
+    dropToImpulseCallPending: null,
+    dropToImpulseCatchable: null,
   };
 }
 

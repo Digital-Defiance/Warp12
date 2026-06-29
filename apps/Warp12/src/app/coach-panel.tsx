@@ -1,6 +1,6 @@
 import type { WarpAiAction } from 'warp12-engine';
 
-import { coachActionKind, formatCoachSuggestion } from 'warp12-react';
+import { coachActionKind, formatCoachSuggestion, type CoachSuggestionFormatOptions } from 'warp12-react';
 import styles from './coach-panel.module.scss';
 
 function coachHint(
@@ -20,6 +20,10 @@ function coachHint(
     case 'pass-turn':
     case 'deploy-beacon':
       return 'Bullets above cite the rules for why this resolution is legal now.';
+    case 'all-stop':
+    case 'drop-to-impulse':
+    case 'catch-drop-to-impulse':
+      return 'Bullets above explain the ceremony or house-rule action.';
     case 'chart':
       return 'Looks a few moves ahead; bullets above are the main factors for this chart.';
     default:
@@ -31,6 +35,7 @@ export interface CoachPanelProps {
   suggestion: WarpAiAction;
   reasons?: readonly string[];
   names: Readonly<Record<string, string>>;
+  suggestionFormat?: CoachSuggestionFormatOptions;
   busy?: boolean;
   pinned?: boolean;
   embedded?: boolean;
@@ -42,6 +47,7 @@ export function CoachPanel({
   suggestion,
   reasons = [],
   names,
+  suggestionFormat,
   busy = false,
   pinned = false,
   embedded = false,
@@ -62,7 +68,9 @@ export function CoachPanel({
           <p className={styles.title}>Tactical advisor</p>
         </div>
       )}
-      <p className={styles.suggestion}>{formatCoachSuggestion(suggestion, names)}</p>
+      <p className={styles.suggestion}>
+        {formatCoachSuggestion(suggestion, names, suggestionFormat)}
+      </p>
       {reasons.length > 0 && (
         <ul className={styles.reasons}>
           {reasons.map((reason) => (

@@ -38,7 +38,7 @@ export function getCoachSuggestion(
 
   const action = coach.decide(observation);
   const reasons = mergeCoachReasons(
-    explainWarpAiAction(state, playerId, action),
+    explainWarpAiAction(state, playerId, action, { names }),
     explainTurnResolution(state, playerId, { names, focus: action.kind })
   );
   return {
@@ -67,9 +67,14 @@ function mergeCoachReasons(
   return merged;
 }
 
+export interface CoachSuggestionFormatOptions {
+  readonly allStopEcho?: boolean;
+}
+
 export function formatCoachSuggestion(
   action: WarpAiAction,
-  names: Readonly<Record<string, string>>
+  names: Readonly<Record<string, string>>,
+  options?: CoachSuggestionFormatOptions
 ): string {
   switch (action.kind) {
     case 'chart': {
@@ -84,8 +89,16 @@ export function formatCoachSuggestion(
       return 'Pass Red Alert to the next captain';
     case 'pass-turn':
       return 'Pass turn (voluntary shields down)';
+    case 'all-stop':
+      return options?.allStopEcho
+        ? 'All Stop! · round win pending'
+        : 'All Stop! · Neutral Zone win';
     case 'drop-to-impulse':
-      return 'Drop to impulse · Neutral Zone win';
+      return 'Drop to Impulse! · one coordinate left';
+    case 'catch-drop-to-impulse': {
+      const target = names[action.targetPlayerId] ?? action.targetPlayerId;
+      return `Catch Drop to Impulse · ${target}`;
+    }
     case 'invoke-q-flash':
       return `Invoke Q-Flash · ${action.effect.replaceAll('-', ' ')}`;
     case 'resolve-q-gamble':

@@ -19,8 +19,12 @@ export interface GameSoundSnapshot {
   redAlertResponsibleId: string | null;
   activeBeaconCount: number;
   qFlashActive: boolean;
-  dropToImpulseDeclared: boolean;
-  dropToImpulseRequired: boolean;
+  allStopDeclared: boolean;
+  allStopRequired: boolean;
+  activePlayerId: string | null;
+  dropToImpulseCallPending: string | null;
+  dropToImpulseCatchable: string | null;
+  unchartedSectorCount: number;
   turnBeepsEnabled: boolean;
 }
 
@@ -66,11 +70,37 @@ export function detectGameSoundTransitions(
   }
 
   if (
-    !previous.dropToImpulseDeclared &&
-    next.dropToImpulseDeclared &&
-    next.dropToImpulseRequired
+    !previous.allStopDeclared &&
+    next.allStopDeclared &&
+    next.allStopRequired
   ) {
-    play.push('warpExit');
+    play.push('allStop');
+  }
+
+  if (
+    previous.allStopRequired &&
+    !previous.allStopDeclared &&
+    !next.allStopRequired &&
+    !next.allStopDeclared
+  ) {
+    play.push('returnToWarp');
+  }
+
+  if (
+    previous.dropToImpulseCallPending &&
+    !next.dropToImpulseCallPending &&
+    !next.dropToImpulseCatchable &&
+    previous.dropToImpulseCallPending === next.activePlayerId
+  ) {
+    play.push('dropToImpulse');
+  }
+
+  if (
+    previous.dropToImpulseCatchable &&
+    !next.dropToImpulseCatchable &&
+    next.unchartedSectorCount < previous.unchartedSectorCount
+  ) {
+    play.push('returnToWarp');
   }
 
   return { play, stop };
@@ -105,8 +135,11 @@ export function useGameSoundEffects(options: {
   redAlertResponsibleId: string | null;
   activeBeaconCount: number;
   qFlashActive: boolean;
-  dropToImpulseDeclared: boolean;
-  dropToImpulseRequired: boolean;
+  allStopDeclared: boolean;
+  allStopRequired: boolean;
+  dropToImpulseCallPending: string | null;
+  dropToImpulseCatchable: string | null;
+  unchartedSectorCount: number;
   turnBeepsEnabled: boolean;
 }): void {
   const previous = useRef<GameSoundSnapshot | null>(null);
@@ -140,8 +173,12 @@ export function useGameSoundEffects(options: {
       redAlertResponsibleId: options.redAlertResponsibleId,
       activeBeaconCount: options.activeBeaconCount,
       qFlashActive: options.qFlashActive,
-      dropToImpulseDeclared: options.dropToImpulseDeclared,
-      dropToImpulseRequired: options.dropToImpulseRequired,
+      allStopDeclared: options.allStopDeclared,
+      allStopRequired: options.allStopRequired,
+      activePlayerId: options.activePlayerId,
+      dropToImpulseCallPending: options.dropToImpulseCallPending,
+      dropToImpulseCatchable: options.dropToImpulseCatchable,
+      unchartedSectorCount: options.unchartedSectorCount,
       turnBeepsEnabled: options.turnBeepsEnabled,
     };
 
@@ -174,8 +211,11 @@ export function useGameSoundEffects(options: {
     options.activeBeaconCount,
     options.qFlashActive,
     options.roundPhase,
-    options.dropToImpulseDeclared,
-    options.dropToImpulseRequired,
+    options.allStopDeclared,
+    options.allStopRequired,
+    options.dropToImpulseCallPending,
+    options.dropToImpulseCatchable,
+    options.unchartedSectorCount,
     options.turnBeepsEnabled,
   ]);
 
