@@ -12,7 +12,7 @@ import type { GameObjective } from '../types/objective.js';
 import type { PlayerId } from '../types/player.js';
 import { type WarpAiAction } from './actions.js';
 import { toGameAction } from './actions.js';
-import { warpCandidateGenerator } from './candidate-generator.js';
+import { warpCandidateGenerator, warpOffTurnCandidateGenerator } from './candidate-generator.js';
 import {
   canDeployDistressBeacon,
   canPassRedAlert,
@@ -60,6 +60,11 @@ export interface WarpAiPlayer {
   decide(obs: WarpAiObservation): WarpAiAction;
   /** Choose and lower to an engine action for `applyAction`; null if no round. */
   decideGameAction(state: GameState, playerId: PlayerId): GameAction | null;
+  /**
+   * Off-turn reactions (e.g. catch a missed Drop to Impulse). Null when nothing
+   * to do for this captain.
+   */
+  decideOffTurnGameAction(state: GameState, playerId: PlayerId): GameAction | null;
 }
 
 /**
@@ -137,6 +142,14 @@ export function createWarpAiPlayer(
       const obs = observe(state, playerId);
       if (!obs) return null;
       return toGameAction(decide(obs), playerId);
+    },
+    decideOffTurnGameAction(state, playerId) {
+      const obs = observe(state, playerId);
+      if (!obs) return null;
+      const offTurn = warpOffTurnCandidateGenerator(obs);
+      if (offTurn.length === 0) return null;
+      const action = offTurn.length === 1 ? offTurn[0] : greedy.decide(obs);
+      return toGameAction(action, playerId);
     },
   };
 }

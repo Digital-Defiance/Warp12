@@ -10,10 +10,19 @@ const PENALTY_PRESETS: Record<
 > = {
   beginner: {
     ...SKILL_PRESETS.beginner,
-    enabled: new Set([H.preferChart, H.dumpPips]),
+    enabled: new Set([
+      H.preferChart,
+      H.dumpPips,
+      H.dropToImpulseDeclare,
+      H.dropToImpulseCatch,
+      H.dropToImpulseForget,
+    ]),
     weights: {
       [H.preferChart]: 1,
       [H.dumpPips]: 0.2,
+      [H.dropToImpulseDeclare]: 0.35,
+      [H.dropToImpulseCatch]: 1,
+      [H.dropToImpulseForget]: 0.8,
     },
   },
   intermediate: {
@@ -24,6 +33,8 @@ const PENALTY_PRESETS: Record<
       H.doublesEarly,
       H.ownTrail,
       H.coverRelief,
+      H.dropToImpulseDeclare,
+      H.dropToImpulseCatch,
     ]),
     weights: {
       [H.preferChart]: 1,
@@ -31,6 +42,8 @@ const PENALTY_PRESETS: Record<
       [H.doublesEarly]: 1,
       [H.ownTrail]: 1,
       [H.coverRelief]: 1,
+      [H.dropToImpulseDeclare]: 1.2,
+      [H.dropToImpulseCatch]: 1.5,
     },
   },
   advanced: {
@@ -46,6 +59,8 @@ const PENALTY_PRESETS: Record<
       H.defensiveShared,
       H.salamanderDump,
       H.qContinuum,
+      H.dropToImpulseDeclare,
+      H.dropToImpulseCatch,
     ]),
     weights: {
       [H.preferChart]: 1,
@@ -58,6 +73,8 @@ const PENALTY_PRESETS: Record<
       [H.defensiveShared]: 1.5,
       [H.salamanderDump]: 2,
       [H.qContinuum]: 1.5,
+      [H.dropToImpulseDeclare]: 1.5,
+      [H.dropToImpulseCatch]: 2,
     },
   },
 };
@@ -69,11 +86,21 @@ const GO_OUT_PRESETS: Record<
 > = {
   beginner: {
     ...SKILL_PRESETS.beginner,
-    enabled: new Set([H.preferChart, H.goOutWin, H.handFlexibility]),
+    enabled: new Set([
+      H.preferChart,
+      H.goOutWin,
+      H.handFlexibility,
+      H.dropToImpulseDeclare,
+      H.dropToImpulseCatch,
+      H.dropToImpulseForget,
+    ]),
     weights: {
       [H.preferChart]: 1,
       [H.goOutWin]: 1,
       [H.handFlexibility]: 0.5,
+      [H.dropToImpulseDeclare]: 0.35,
+      [H.dropToImpulseCatch]: 1,
+      [H.dropToImpulseForget]: 0.8,
     },
   },
   intermediate: {
@@ -85,6 +112,8 @@ const GO_OUT_PRESETS: Record<
       H.ownTrail,
       H.coverRelief,
       H.handFlexibility,
+      H.dropToImpulseDeclare,
+      H.dropToImpulseCatch,
     ]),
     weights: {
       [H.preferChart]: 1,
@@ -93,6 +122,8 @@ const GO_OUT_PRESETS: Record<
       [H.ownTrail]: 1.2,
       [H.coverRelief]: 1,
       [H.handFlexibility]: 1.2,
+      [H.dropToImpulseDeclare]: 1.2,
+      [H.dropToImpulseCatch]: 1.5,
     },
   },
   advanced: {
@@ -107,6 +138,8 @@ const GO_OUT_PRESETS: Record<
       H.handFlexibility,
       H.defensiveShared,
       H.qContinuum,
+      H.dropToImpulseDeclare,
+      H.dropToImpulseCatch,
     ]),
     weights: {
       [H.preferChart]: 1,
@@ -118,6 +151,8 @@ const GO_OUT_PRESETS: Record<
       [H.handFlexibility]: 1.5,
       [H.defensiveShared]: 1.5,
       [H.qContinuum]: 1,
+      [H.dropToImpulseDeclare]: 1.5,
+      [H.dropToImpulseCatch]: 2,
     },
   },
 };

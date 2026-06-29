@@ -11,7 +11,7 @@ export {
   connectingValueForRoute,
 } from './context.js';
 
-export { warpCandidateGenerator } from './candidate-generator.js';
+export { warpCandidateGenerator, warpOffTurnCandidateGenerator } from './candidate-generator.js';
 
 export type { WarpHeuristic } from './heuristics.js';
 export { WARP_HEURISTIC_IDS, DEFAULT_WARP_HEURISTICS } from './heuristics.js';

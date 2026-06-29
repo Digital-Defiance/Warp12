@@ -11,6 +11,7 @@ import {
   modulesWithQ,
   N,
   obsFor,
+  tableWithOwnTrail,
   TEST_CAPTAINS,
 } from './test-fixtures.js';
 
@@ -133,6 +134,22 @@ describe('chooseQGambleKeepIndex', () => {
     expect(
       chooseQGambleKeepIndex(obsFor(round, undefined, 'penalty', 'a'), {
         rng: constantRng(0.9),
+      })
+    ).toBe(1);
+  });
+
+  it('in go-out mode keeps the tile with more immediate chart options', () => {
+    const round = makeRound({
+      qGamblePending: {
+        playerId: 'a',
+        options: [N(1, 2), N(5, 12)],
+      },
+      table: tableWithOwnTrail('a', N(5, 12), 5),
+    });
+
+    expect(
+      chooseQGambleKeepIndex(obsFor(round, undefined, 'go-out', 'a'), {
+        rng: constantRng(0),
       })
     ).toBe(1);
   });

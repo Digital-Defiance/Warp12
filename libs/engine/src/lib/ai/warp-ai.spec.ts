@@ -16,11 +16,11 @@ import {
 import type { ChartRoute } from '../types/actions.js';
 import type { GameState, RoundState, TableState } from '../types/game-state.js';
 import { DEFAULT_MODULES, resolveModules } from '../types/modules.js';
-import { DEFAULT_HOUSE_RULES } from '../types/house-rules.js';
+import { DEFAULT_HOUSE_RULES, resolveHouseRules } from '../types/house-rules.js';
 import { DEFAULT_GAME_OBJECTIVE, type GameObjective } from '../types/objective.js';
 
 import { createWarpAiPlayer, type WarpAiPlayer } from './create-warp-ai.js';
-import { warpCandidateGenerator } from './candidate-generator.js';
+import { warpCandidateGenerator, warpOffTurnCandidateGenerator } from './candidate-generator.js';
 import { toGameAction, type WarpAiAction } from './actions.js';
 import {
   DEFAULT_WARP_HEURISTICS,
@@ -74,6 +74,8 @@ function makeRound(over: Partial<RoundState>): RoundState {
     pendingRoundWin: null,
     roundBlocked: false,
     roundStarterOpening: null,
+    dropToImpulseCallPending: null,
+    dropToImpulseCatchable: null,
   };
   return { ...base, ...over };
 }
@@ -106,11 +108,12 @@ function tableWithOwnTrailOpen(value: number): TableState {
 function obsFor(
   round: RoundState,
   modules = DEFAULT_MODULES,
-  objective: GameObjective = 'penalty'
+  objective: GameObjective = 'penalty',
+  playerId = 'a'
 ): WarpAiObservation {
   return {
     round,
-    playerId: 'a',
+    playerId,
     modules,
     houseRules: DEFAULT_HOUSE_RULES,
     objective,
@@ -179,7 +182,10 @@ describe('warpCandidateGenerator', () => {
       round,
       playerId,
       modules: state.modules,
+      houseRules: state.houseRules,
       objective: state.objective,
+      campaignRounds: state.campaignRounds,
+      captains: state.captains,
     });
 
     expect(candidates.length).toBeGreaterThan(0);
@@ -261,6 +267,24 @@ describe('toGameAction', () => {
     expect(toGameAction({ kind: 'all-stop' }, 'a')).toEqual({
       type: 'ALL_STOP',
       playerId: 'a',
+    });
+    expect(toGameAction({ kind: 'return-to-warp' }, 'a')).toEqual({
+      type: 'RETURN_TO_WARP',
+      playerId: 'a',
+    });
+    expect(toGameAction({ kind: 'drop-to-impulse' }, 'a')).toEqual({
+      type: 'DROP_TO_IMPULSE',
+      playerId: 'a',
+    });
+    expect(
+      toGameAction(
+        { kind: 'catch-drop-to-impulse', targetPlayerId: 'b' },
+        'a'
+      )
+    ).toEqual({
+      type: 'CATCH_DROP_TO_IMPULSE',
+      challengerId: 'a',
+      targetPlayerId: 'b',
     });
   });
 });
@@ -515,5 +539,237 @@ describe('createWarpAiPlayer — full self-play integration', () => {
     }
 
     expect(state.completedRounds).toBeGreaterThanOrEqual(1);
+  });
+});
+
+const IMPULSE_RULES = resolveHouseRules({ dropToImpulseCall: true });
+
+function impulseObs(
+  round: RoundState,
+  playerId = 'a',
+  objective: GameObjective = 'penalty'
+): WarpAiObservation {
+  return {
+    ...obsFor(round, DEFAULT_MODULES, objective),
+    playerId,
+    houseRules: IMPULSE_RULES,
+  };
+}
+
+function passableRound(
+  playerId: 'a' | 'b',
+  over: Partial<RoundState> = {}
+): RoundState {
+  const base = makeRound({ hands: { a: [], b: [] }, ...over });
+  return makeRound({
+    unchartedSectors: [],
+    ...over,
+    table: {
+      ...base.table,
+      ...(over.table ?? {}),
+      warpTrails: {
+        ...base.table.warpTrails,
+        [playerId]: {
+          ...base.table.warpTrails[playerId],
+          distressBeacon: { active: true },
+          ...(over.table?.warpTrails?.[playerId] ?? {}),
+        },
+      },
+    },
+  });
+}
+
+describe('warpCandidateGenerator — Drop to Impulse', () => {
+  it('prioritizes catch when an opponent forgot to declare', () => {
+    const round = makeRound({
+      activePlayerId: 'b',
+      hands: { a: [N(3, 4)], b: [] },
+      dropToImpulseCatchable: 'a',
+      unchartedSectors: [N(0, 1)],
+    });
+    expect(warpCandidateGenerator(impulseObs(round, 'b'))).toEqual([
+      { kind: 'catch-drop-to-impulse', targetPlayerId: 'a' },
+    ]);
+  });
+
+  it('does not offer catch when Uncharted Sectors is empty', () => {
+    const round = passableRound('b', {
+      activePlayerId: 'b',
+      hands: { a: [N(3, 4)], b: [] },
+      dropToImpulseCatchable: 'a',
+    });
+    expect(
+      warpCandidateGenerator(impulseObs(round, 'b')).some(
+        (action) => action.kind === 'catch-drop-to-impulse'
+      )
+    ).toBe(false);
+  });
+
+  it('offers declare alongside legal charts when pending at one tile', () => {
+    const round = makeRound({
+      hands: { a: [N(5, 12)], b: [] },
+      dropToImpulseCallPending: 'a',
+    });
+    const candidates = warpCandidateGenerator(impulseObs(round));
+    expect(candidates.some((action) => action.kind === 'chart')).toBe(true);
+    expect(candidates.some((action) => action.kind === 'drop-to-impulse')).toBe(
+      true
+    );
+  });
+
+  it('offers declare and pass when stuck at one tile without a chart', () => {
+    const round = passableRound('a', {
+      hands: { a: [N(3, 4)], b: [] },
+      dropToImpulseCallPending: 'a',
+    });
+    const kinds = warpCandidateGenerator(impulseObs(round)).map((action) => action.kind);
+    expect(kinds).toContain('drop-to-impulse');
+    expect(kinds).toContain('pass-turn');
+  });
+});
+
+describe('warpOffTurnCandidateGenerator', () => {
+  it('returns catch only for eligible challengers', () => {
+    const round = makeRound({
+      hands: { a: [N(3, 4)], b: [] },
+      dropToImpulseCatchable: 'a',
+      unchartedSectors: [N(0, 1)],
+    });
+    expect(warpOffTurnCandidateGenerator(impulseObs(round, 'b'))).toEqual([
+      { kind: 'catch-drop-to-impulse', targetPlayerId: 'a' },
+    ]);
+    expect(warpOffTurnCandidateGenerator(impulseObs(round, 'a'))).toEqual([]);
+  });
+});
+
+describe('createWarpAiPlayer — Drop to Impulse & ceremonies', () => {
+  it('advanced always catches a missed declare', () => {
+    const round = makeRound({
+      activePlayerId: 'b',
+      hands: { a: [N(3, 4)], b: [] },
+      dropToImpulseCatchable: 'a',
+      unchartedSectors: [N(0, 1)],
+    });
+    const player = createWarpAiPlayer({
+      skill: getWarpSkillProfile('advanced'),
+      rng: mulberry32(3),
+    });
+    expect(player.decide(impulseObs(round, 'b')).kind).toBe(
+      'catch-drop-to-impulse'
+    );
+  });
+
+  it('advanced declares when stuck at one tile with no chart', () => {
+    const round = passableRound('a', {
+      hands: { a: [N(3, 4)], b: [] },
+      dropToImpulseCallPending: 'a',
+    });
+    const player = createWarpAiPlayer({
+      skill: getWarpSkillProfile('advanced'),
+      rng: mulberry32(7),
+    });
+    expect(
+      rate(player, impulseObs(round), (action) => action.kind === 'drop-to-impulse')
+    ).toBeGreaterThan(0.95);
+  });
+
+  it('beginner sometimes passes without declaring', () => {
+    const round = passableRound('a', {
+      hands: { a: [N(3, 4)], b: [] },
+      dropToImpulseCallPending: 'a',
+    });
+    const beginner = createWarpAiPlayer({
+      skill: getWarpSkillProfile('beginner'),
+      rng: mulberry32(99),
+    });
+    const forgetRate = rate(
+      beginner,
+      impulseObs(round),
+      (action) => action.kind === 'pass-turn',
+      500
+    );
+    expect(forgetRate).toBeGreaterThan(0.05);
+  });
+
+  it('advanced charts the winning tile instead of only declaring when both exist', () => {
+    const round = makeRound({
+      hands: { a: [N(5, 7)], b: [] },
+      dropToImpulseCallPending: 'a',
+      table: tableWithOwnTrailOpen(5),
+    });
+    const player = createWarpAiPlayer({
+      skill: getWarpSkillProfile('advanced'),
+      rng: mulberry32(1),
+      objective: 'go-out',
+    });
+    expect(
+      rate(
+        player,
+        impulseObs(round, 'a', 'go-out'),
+        (action) => action.kind === 'chart',
+        200
+      )
+    ).toBeGreaterThan(0.95);
+  });
+
+  it('never voluntarily returns to warp when All Stop is required', () => {
+    const round = makeRound({
+      hands: { a: [N(1, 2)], b: [] },
+      allStopRequired: true,
+      roundWinnerId: 'a',
+      unchartedSectors: [N(3, 4)],
+    });
+    const player = createWarpAiPlayer({
+      skill: getWarpSkillProfile('advanced'),
+      rng: mulberry32(1),
+    });
+    expect(
+      rate(
+        player,
+        obsFor(round),
+        (action) => action.kind === 'return-to-warp',
+        300
+      )
+    ).toBe(0);
+    expect(player.decide(obsFor(round)).kind).toBe('all-stop');
+  });
+
+  it('includes return-to-warp in candidates when pile has tiles', () => {
+    const round = makeRound({
+      hands: { a: [N(1, 2)], b: [] },
+      allStopRequired: true,
+      roundWinnerId: 'a',
+      unchartedSectors: [N(3, 4)],
+    });
+    const kinds = warpCandidateGenerator(obsFor(round)).map((action) => action.kind);
+    expect(kinds).toContain('all-stop');
+    expect(kinds).toContain('return-to-warp');
+  });
+
+  it('decideOffTurnGameAction catches via the engine path', () => {
+    const round = makeRound({
+      hands: { a: [N(3, 4)], b: [] },
+      dropToImpulseCatchable: 'a',
+      unchartedSectors: [N(0, 1)],
+    });
+    const state: GameState = {
+      id: 'x',
+      phase: 'active',
+      captains: TEST_CAPTAINS,
+      round,
+      completedRounds: 0,
+      modules: DEFAULT_MODULES,
+      houseRules: IMPULSE_RULES,
+      objective: 'penalty',
+    };
+    const player = createWarpAiPlayer({
+      skill: getWarpSkillProfile('advanced'),
+      rng: mulberry32(1),
+    });
+    expect(player.decideOffTurnGameAction(state, 'b')).toEqual({
+      type: 'CATCH_DROP_TO_IMPULSE',
+      challengerId: 'b',
+      targetPlayerId: 'a',
+    });
   });
 });
