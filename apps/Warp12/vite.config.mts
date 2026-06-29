@@ -3,8 +3,11 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import * as path from 'path';
 
+const tauriBuild = Boolean(process.env.TAURI_ENV_PLATFORM);
+
 export default defineConfig(() => ({
   root: import.meta.dirname,
+  base: tauriBuild ? './' : '/',
   cacheDir: '../../node_modules/.vite/apps/Warp12',
   resolve: {
     dedupe: ['react', 'react-dom'],

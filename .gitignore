@@ -2,6 +2,7 @@
 
 # compiled output
 dist
+apps/Warp12/src-tauri/target
 tmp
 out-tsc
 
