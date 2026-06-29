@@ -93,6 +93,8 @@ export function formatCoachSuggestion(
       return options?.allStopEcho
         ? 'All Stop! · round win pending'
         : 'All Stop! · Neutral Zone win';
+    case 'return-to-warp':
+      return 'Return to warp · penalty draw instead of All Stop!';
     case 'drop-to-impulse':
       return 'Drop to Impulse! · one coordinate left';
     case 'catch-drop-to-impulse': {
