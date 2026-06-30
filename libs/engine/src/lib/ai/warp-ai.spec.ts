@@ -605,16 +605,17 @@ describe('warpCandidateGenerator — Drop to Impulse', () => {
     ).toBe(false);
   });
 
-  it('offers declare alongside legal charts when pending at one tile', () => {
+  it('offers declare and pass but not chart when announce is pending at one tile', () => {
     const round = makeRound({
       hands: { a: [N(5, 12)], b: [] },
       dropToImpulseCallPending: 'a',
     });
     const candidates = warpCandidateGenerator(impulseObs(round));
-    expect(candidates.some((action) => action.kind === 'chart')).toBe(true);
+    expect(candidates.some((action) => action.kind === 'chart')).toBe(false);
     expect(candidates.some((action) => action.kind === 'drop-to-impulse')).toBe(
       true
     );
+    expect(candidates.some((action) => action.kind === 'pass-turn')).toBe(true);
   });
 
   it('offers declare and pass when stuck at one tile without a chart', () => {
@@ -691,7 +692,7 @@ describe('createWarpAiPlayer — Drop to Impulse & ceremonies', () => {
     expect(forgetRate).toBeGreaterThan(0.05);
   });
 
-  it('advanced charts the winning tile instead of only declaring when both exist', () => {
+  it('advanced declares when announce is pending even if the last tile would chart', () => {
     const round = makeRound({
       hands: { a: [N(5, 7)], b: [] },
       dropToImpulseCallPending: 'a',
@@ -706,7 +707,7 @@ describe('createWarpAiPlayer — Drop to Impulse & ceremonies', () => {
       rate(
         player,
         impulseObs(round, 'a', 'go-out'),
-        (action) => action.kind === 'chart',
+        (action) => action.kind === 'drop-to-impulse',
         200
       )
     ).toBeGreaterThan(0.95);

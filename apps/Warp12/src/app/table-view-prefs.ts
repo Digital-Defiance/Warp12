@@ -13,6 +13,8 @@ export interface TableOptionsPrefs {
   captainTailsHud: boolean;
   captainTailsDisplay: CaptainTailsDisplay;
   turnBeepsEnabled: boolean;
+  /** When true, advisor report reviews every captain's charts (not just yours). */
+  advisorIncludeAllCaptains: boolean;
 }
 
 const STORAGE_KEY = 'warp12-table-options';
@@ -29,6 +31,7 @@ export const DEFAULT_TABLE_OPTIONS: TableOptionsPrefs = {
   captainTailsHud: false,
   captainTailsDisplay: 'number',
   turnBeepsEnabled: false,
+  advisorIncludeAllCaptains: false,
 };
 
 const PIP_PRESETS = new Set<WarpPipPreset>([
@@ -96,6 +99,9 @@ function sanitizePartial(raw: unknown): Partial<TableOptionsPrefs> {
   }
   if (typeof value.turnBeepsEnabled === 'boolean') {
     next.turnBeepsEnabled = value.turnBeepsEnabled;
+  }
+  if (typeof value.advisorIncludeAllCaptains === 'boolean') {
+    next.advisorIncludeAllCaptains = value.advisorIncludeAllCaptains;
   }
 
   return next;

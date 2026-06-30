@@ -2,6 +2,7 @@ import {
   createWarpAiPlayer,
   generateCoordinateSet,
   getWarpSkillProfile,
+  resolveWarpLookahead,
   shuffleCoordinates,
   startGame,
   type GameObjective,
@@ -9,7 +10,7 @@ import {
   type WarpAiPlayer,
 } from 'warp12-engine';
 
-import type { LocalGameConfig } from './local-game-config.js';
+import type { AiCaptainConfig, LocalGameConfig } from './local-game-config.js';
 
 function seededRandom(seed: number): () => number {
   let value = seed >>> 0;
@@ -62,18 +63,17 @@ export function createLocalGame(
 export function buildAiRosterFromConfigs(
   aiCaptains: readonly AiCaptainConfig[],
   objective: GameObjective,
-  seed: number
+  seed: number,
+  playerCount = aiCaptains.length + 1
 ): ReadonlyMap<string, WarpAiPlayer> {
   const roster = new Map<string, WarpAiPlayer>();
   for (const [index, ai] of aiCaptains.entries()) {
     roster.set(
       ai.id,
       createWarpAiPlayer({
-        skill: getWarpSkillProfile(ai.skill, objective),
+        skill: getWarpSkillProfile(ai.skill, objective, playerCount),
         objective,
-        lookahead: ai.useLookahead
-          ? { depth: 2, determinizations: 4, maxBranch: 5 }
-          : undefined,
+        lookahead: resolveWarpLookahead(ai.skill, objective, playerCount),
         rng: mulberry32(seed + (index + 1) * 997),
       })
     );
@@ -85,5 +85,10 @@ export function buildAiRoster(
   config: LocalGameConfig,
   seed: number
 ): ReadonlyMap<string, WarpAiPlayer> {
-  return buildAiRosterFromConfigs(config.aiCaptains, config.objective, seed);
+  return buildAiRosterFromConfigs(
+    config.aiCaptains,
+    config.objective,
+    seed,
+    config.playerCount
+  );
 }

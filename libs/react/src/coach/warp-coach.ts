@@ -2,8 +2,9 @@ import {
   createWarpAiPlayer,
   explainTurnResolution,
   explainWarpAiAction,
-  getWarpSkillProfile,
+  getAdvisorSkillProfile,
   observe,
+  resolveAdvisorLookahead,
   toGameAction,
   type ChartRoute,
   type GameAction,
@@ -30,10 +31,11 @@ export function getCoachSuggestion(
     return null;
   }
 
+  const playerCount = observation.captains.length;
   const coach = createWarpAiPlayer({
-    skill: getWarpSkillProfile('advanced', state.objective),
+    skill: getAdvisorSkillProfile(state.objective, playerCount),
     objective: state.objective,
-    lookahead: { depth: 2, determinizations: 6, maxBranch: 6 },
+    lookahead: resolveAdvisorLookahead(),
   });
 
   const action = coach.decide(observation);

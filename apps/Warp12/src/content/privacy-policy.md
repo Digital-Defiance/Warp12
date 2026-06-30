@@ -2,7 +2,7 @@
 
 **Last updated:** June 28, 2026
 
-Warp 12 ("the app," "we," "us") is operated by **Digital Defiance**. This policy describes how information is handled when you use the Warp 12 website and mobile wrappers at [https://warp12.app](https://warp12.app) and related Firebase-hosted URLs.
+Warp 12 ("the app," "we," "us") is operated by **Digital Defiance**. This policy describes how information is handled when you use the Warp 12 website, native apps (Tauri on macOS, iOS, and Android), and related Firebase-hosted URLs at [https://warp12.app](https://warp12.app).
 
 ---
 

@@ -66,12 +66,22 @@ export function useHostAiRunner(options: {
     if (!options.enabled || aiCaptains.length === 0) {
       return null;
     }
+    const tableSize =
+      options.game?.captains.length ?? options.sectorCaptains.length;
     return buildAiRosterFromConfigs(
       aiCaptains,
       objective,
-      onlineAiSeed(options.code)
+      onlineAiSeed(options.code),
+      tableSize
     );
-  }, [aiCaptains, objective, options.code, options.enabled]);
+  }, [
+    aiCaptains,
+    objective,
+    options.code,
+    options.enabled,
+    options.game?.captains.length,
+    options.sectorCaptains.length,
+  ]);
 
   const rosterRef = useRef(roster);
   rosterRef.current = roster;

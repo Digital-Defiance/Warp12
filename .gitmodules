@@ -1,3 +1,6 @@
 [submodule "DoubleTwelve"]
 	path = vendor/DoubleTwelve
 	url = https://github.com/JessicaMulein/DoubleTwelve.git
+[submodule "Warp12-leaderboard"]
+	path = Warp12-leaderboard
+	url = https://github.com/Digital-Defiance/Warp12-leaderboard.git

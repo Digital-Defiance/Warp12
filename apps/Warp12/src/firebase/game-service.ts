@@ -300,7 +300,6 @@ export async function addAiCaptain(
       joinedAt: now,
       isAi: true,
       skill: options.skill ?? 'intermediate',
-      useLookahead: options.useLookahead ?? false,
     };
 
     const captains = [...data.captains, created];

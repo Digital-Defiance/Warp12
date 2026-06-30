@@ -7,6 +7,7 @@ import {
 } from '../domino/coordinates.js';
 import type { GameState } from '../types/game-state.js';
 import type { GameModuleConfig } from '../types/modules.js';
+import type { GameObjective } from '../types/objective.js';
 import type { PlayerId } from '../types/player.js';
 import type { RoundState } from '../types/game-state.js';
 import type { WarpAiPlayer } from './create-warp-ai.js';
@@ -22,6 +23,7 @@ export interface PlaySelfPlayGameOptions {
   seats: readonly SelfPlaySeat[];
   seed?: number;
   modules?: GameModuleConfig;
+  objective?: GameObjective;
   /** Safety cap so a blocked round can't loop forever (default 20000). */
   maxSteps?: number;
 }
@@ -54,21 +56,48 @@ function totalHandTiles(round: RoundState): number {
 }
 
 /** The captain holding the fewest tiles/pips — natural winner of a blocked round. */
-function blockedRoundWinner(round: RoundState, state: GameState): PlayerId {
+export function blockedRoundWinner(round: RoundState, state: GameState): PlayerId {
   let bestId = round.turnOrder[0];
-  let best = Number.POSITIVE_INFINITY;
+  let bestPrimary = Number.POSITIVE_INFINITY;
+  let bestSecondary = Number.POSITIVE_INFINITY;
+
   for (const id of round.turnOrder) {
     const hand = round.hands[id] ?? [];
-    const score =
+    const primary =
       state.objective === 'go-out'
         ? handTileCount(hand)
         : handPips(hand, state.modules, round.roundNumber);
-    if (score < best) {
-      best = score;
+    const secondary = handPips(hand, state.modules, round.roundNumber);
+    const better =
+      primary < bestPrimary ||
+      (primary === bestPrimary &&
+        (secondary < bestSecondary ||
+          (secondary === bestSecondary && id.localeCompare(bestId) < 0)));
+    if (better) {
+      bestPrimary = primary;
+      bestSecondary = secondary;
       bestId = id;
     }
   }
   return bestId;
+}
+
+function roundReadyToScore(
+  state: GameState,
+  round: RoundState
+): RoundState {
+  if (
+    state.objective === 'go-out' &&
+    round.phase === 'ended' &&
+    round.roundBlocked &&
+    !round.roundWinnerId
+  ) {
+    return {
+      ...round,
+      roundWinnerId: blockedRoundWinner(round, state),
+    };
+  }
+  return round;
 }
 
 /**
@@ -92,7 +121,12 @@ export function playSelfPlayGame(
   );
 
   let state = startGame(
-    { id: 'self-play', captains, modules: options.modules },
+    {
+      id: 'self-play',
+      captains,
+      modules: options.modules,
+      objective: options.objective,
+    },
     { shuffledCoordinates: shuffled }
   );
 
@@ -115,7 +149,8 @@ export function playSelfPlayGame(
     if (!round) break;
 
     if (round.phase === 'ended') {
-      const result = scoreRound(state, round, reshuffle);
+      const roundToScore = roundReadyToScore(state, round);
+      const result = scoreRound(state, roundToScore, reshuffle);
       if (!result.ok) break;
       state = result.state;
       stallGuard = 0;
@@ -161,11 +196,18 @@ export function playSelfPlayGame(
 
   let winnerId: PlayerId | null = null;
   if (state.phase === 'complete') {
-    let bestPenalty = Number.POSITIVE_INFINITY;
-    for (const captain of state.captains) {
-      if (captain.penaltyScore < bestPenalty) {
-        bestPenalty = captain.penaltyScore;
-        winnerId = captain.id;
+    if (state.objective === 'go-out') {
+      const round = state.round;
+      winnerId =
+        round?.roundWinnerId ??
+        (round ? blockedRoundWinner(round, state) : null);
+    } else {
+      let bestPenalty = Number.POSITIVE_INFINITY;
+      for (const captain of state.captains) {
+        if (captain.penaltyScore < bestPenalty) {
+          bestPenalty = captain.penaltyScore;
+          winnerId = captain.id;
+        }
       }
     }
   }
@@ -196,7 +238,12 @@ export interface SelfPlayMatchResult {
  */
 export function runSelfPlayMatch(
   makeSeats: (gameIndex: number) => readonly SelfPlaySeat[],
-  options: { games: number; seed?: number; modules?: GameModuleConfig }
+  options: {
+    games: number;
+    seed?: number;
+    modules?: GameModuleConfig;
+    objective?: GameObjective;
+  }
 ): SelfPlayMatchResult {
   const wins: Record<PlayerId, number> = {};
   const penalties: Record<PlayerId, number> = {};
@@ -209,6 +256,7 @@ export function runSelfPlayMatch(
       seats,
       seed: baseSeed + game * 7919,
       modules: options.modules,
+      objective: options.objective,
     });
 
     if (result.completed) {

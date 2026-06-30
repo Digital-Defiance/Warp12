@@ -27,20 +27,37 @@ import {
   type AiCaptainConfig,
   type LocalGameConfig,
 } from '../game/local-game-config.js';
-import { LOOKAHEAD_TOOLTIP } from '../game/ai-lookahead.js';
+import { classifyLocalAiMatchSkill } from '../game/local-match-stats.js';
+import { opponentEloForObjective } from '../firebase/stats-elo.js';
+import type { RatedObjective } from '../firebase/stats-schema.js';
+import { usePlayerStats } from '../firebase/use-player-stats.js';
 
 type SetupPhase = 'configure' | 'playing';
 
 function applyAiOverrides(
   aiCaptains: readonly AiCaptainConfig[],
-  skills: Record<string, WarpSkillLevel>,
-  lookahead: Record<string, boolean>
+  skills: Record<string, WarpSkillLevel>
 ): AiCaptainConfig[] {
   return aiCaptains.map((ai) => ({
     ...ai,
     skill: skills[ai.id] ?? ai.skill,
-    useLookahead: lookahead[ai.id] ?? ai.useLookahead ?? false,
   }));
+}
+
+function ratedObjective(objective: GameObjective): RatedObjective | null {
+  return objective === 'go-out' || objective === 'penalty' ? objective : null;
+}
+
+function skillOptionLabel(
+  skill: WarpSkillLevel,
+  objective: RatedObjective
+): string {
+  const labels: Record<WarpSkillLevel, string> = {
+    beginner: 'Beginner',
+    intermediate: 'Intermediate',
+    advanced: 'Advanced',
+  };
+  return `${labels[skill]} (~${opponentEloForObjective(objective, skill)} ELO)`;
 }
 
 export function LocalGamePage() {
@@ -56,7 +73,9 @@ export function LocalGamePage() {
     useState<SubspaceFractureScope>(DEFAULT_SUBSPACE_FRACTURE_SCOPE);
   const [houseRules, setHouseRules] = useState<HouseRulesConfig>({});
   const [aiSkills, setAiSkills] = useState<Record<string, WarpSkillLevel>>({});
-  const [aiLookahead, setAiLookahead] = useState<Record<string, boolean>>({});
+  const [startingEloInput, setStartingEloInput] = useState('');
+
+  const playerStats = usePlayerStats();
 
   const [launchSeed, setLaunchSeed] = useState(() => Date.now());
   const [activeConfig, setActiveConfig] = useState<LocalGameConfig | null>(
@@ -68,6 +87,23 @@ export function LocalGamePage() {
     [playerCount]
   );
   const aiCount = aiCaptains.length;
+  const configuredAiCaptains = useMemo(
+    () => applyAiOverrides(aiCaptains, aiSkills),
+    [aiCaptains, aiSkills]
+  );
+  const matchSkill = useMemo(
+    () => classifyLocalAiMatchSkill(configuredAiCaptains),
+    [configuredAiCaptains]
+  );
+  const rated = ratedObjective(objective);
+  const playerElo =
+    rated && playerStats.ready
+      ? playerStats.displayElo(matchSkill, rated)
+      : null;
+  const canSetStartingElo =
+    rated &&
+    playerStats.ready &&
+    playerStats.canSetStartingElo(matchSkill, rated);
 
   const aiRoster = useMemo(() => {
     if (!activeConfig) return null;
@@ -94,7 +130,7 @@ export function LocalGamePage() {
         subspaceFractureScope,
       },
       houseRules,
-      aiCaptains: applyAiOverrides(buildAiCaptains(count - 1), aiSkills, aiLookahead),
+      aiCaptains: applyAiOverrides(buildAiCaptains(count - 1), aiSkills),
     };
     const seed = Date.now();
     setLaunchSeed(seed);
@@ -215,6 +251,57 @@ export function LocalGamePage() {
         />
       </fieldset>
 
+      {rated && (
+        <fieldset className={styles.fieldset}>
+          <legend>Solo rating ({rated === 'go-out' ? 'go-out' : 'penalty'})</legend>
+          {playerElo !== null ? (
+            <p className={styles.hint}>
+              Your rating vs {matchSkill} officers: <strong>{playerElo}</strong>
+              {' · '}
+              opponents rated ~{opponentEloForObjective(rated, matchSkill)}
+            </p>
+          ) : (
+            <p className={styles.hint}>
+              Unrated in this mode — defaults to 1000 on your first unassisted win.
+            </p>
+          )}
+          {canSetStartingElo && (
+            <label className={styles.field}>
+              <span>Starting ELO (optional, before first rated game)</span>
+              <div className={styles.inlineRow}>
+                <input
+                  type="number"
+                  min={400}
+                  max={2800}
+                  step={25}
+                  value={startingEloInput}
+                  onChange={(e) => setStartingEloInput(e.target.value)}
+                  placeholder="e.g. 1150"
+                />
+                <button
+                  type="button"
+                  className={styles.secondary}
+                  disabled={!startingEloInput.trim()}
+                  onClick={() => {
+                    const value = Number(startingEloInput);
+                    if (!Number.isFinite(value)) {
+                      return;
+                    }
+                    void playerStats.saveStartingElo(rated, value);
+                  }}
+                >
+                  Save
+                </button>
+              </div>
+            </label>
+          )}
+          <p className={styles.hint}>
+            Tactical advisor use does not update solo rating. Wins and losses without
+            the advisor move your rating toward the opponent tier shown above.
+          </p>
+        </fieldset>
+      )}
+
       <fieldset className={styles.fieldset}>
         <legend>
           AI officers ({aiCaptains.length})
@@ -232,23 +319,26 @@ export function LocalGamePage() {
                 }))
               }
             >
-              <option value="beginner">Beginner</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="advanced">Advanced</option>
+              {rated ? (
+                <>
+                  <option value="beginner">
+                    {skillOptionLabel('beginner', rated)}
+                  </option>
+                  <option value="intermediate">
+                    {skillOptionLabel('intermediate', rated)}
+                  </option>
+                  <option value="advanced">
+                    {skillOptionLabel('advanced', rated)}
+                  </option>
+                </>
+              ) : (
+                <>
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                </>
+              )}
             </select>
-            <label className={styles.checkboxRow} title={LOOKAHEAD_TOOLTIP}>
-              <input
-                type="checkbox"
-                checked={aiLookahead[ai.id] ?? ai.useLookahead ?? false}
-                onChange={(e) =>
-                  setAiLookahead((current) => ({
-                    ...current,
-                    [ai.id]: e.target.checked,
-                  }))
-                }
-              />
-              <span>Lookahead</span>
-            </label>
           </div>
         ))}
       </fieldset>

@@ -1,5 +1,6 @@
 import { GAME_OBJECTIVE_LABELS, formatCampaignRoundProgress, type GameState, type RoundState } from 'warp12-engine';
 import type { RefObject } from 'react';
+import { sectorWinnerName } from '../game/sector-outcome.js';
 import { ActiveQFlashBanner, PeekedSectorBanner } from './q-flash-panel';
 import { FloatingPanelShell } from './floating-panel-shell';
 import styles from './sector-status-hud.module.scss';
@@ -79,7 +80,7 @@ export function formatSectorTurnFooter(props: {
   } = props;
 
   if (game.phase === 'complete') {
-    return `${names[round?.roundWinnerId ?? ''] ?? 'Captain'} wins the sector`;
+    return `${sectorWinnerName(game, names)} wins the sector`;
   }
 
   if (roundAwaitingScore && round) {

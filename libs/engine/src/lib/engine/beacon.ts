@@ -1,5 +1,8 @@
 import { getLegalMoves } from './legal-moves.js';
 import {
+  isDropToImpulseAnnouncePending,
+} from './drop-to-impulse.js';
+import {
   isNavigationHaltedByFracture,
   isRedAlertBlocking,
 } from '../types/anomalies.js';
@@ -99,6 +102,15 @@ export function canPassTurn(
   const houseRules = options?.houseRules ?? DEFAULT_HOUSE_RULES;
   if (resolutionBlockedByQ(round, playerId)) {
     return false;
+  }
+  if (isDropToImpulseAnnouncePending(round, playerId, houseRules)) {
+    if (mustStabilizeFracture(round, playerId, houseRules)) {
+      return false;
+    }
+    if (isRedAlertBlocking(round.table.redAlert, playerId)) {
+      return false;
+    }
+    return true;
   }
   if (mustStabilizeFracture(round, playerId, houseRules)) {
     return false;

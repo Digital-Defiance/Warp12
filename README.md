@@ -126,10 +126,18 @@ The client targets the [warp-12 Firebase project](https://console.firebase.googl
 
 - `games/{gameId}` — public game state, table, hand counts, `captainIds`, lobby settings
 - `games/{gameId}/hands/{playerId}` — private coordinates (readable only by that captain)
+- `playerStats/{uid}` — leaderboard rankings and `localAi` buckets (beginner / intermediate / advanced)
+- `playerProfiles/{uid}` — captain profile and gaming platform IDs
+- `publishedLogs/{logId}` — shared round transcripts
 
 ## 🌐 Firebase Hosting
 
-The bridge app is a static SPA (React + React Router). Firebase Hosting serves `apps/Warp12/dist` after a production build.
+Two static SPAs on the **`warp-12`** project:
+
+| Site | Deploy target | Build output | URL |
+| ---- | ------------- | ------------ | --- |
+| Bridge | `hosting:bridge` | `apps/Warp12/dist` | [warp12.app](https://warp12.app) |
+| Leaderboard | `hosting:leaderboard` | `Warp12-leaderboard/dist` | [leaderboard.warp12.app](https://leaderboard.warp12.app) |
 
 ### One-time setup
 
@@ -142,50 +150,70 @@ The bridge app is a static SPA (React + React Router). Firebase Hosting serves `
    ```bash
    firebase use warp-12
    ```
-3. In [Firebase Console → Hosting](https://console.firebase.google.com/project/warp-12/hosting), click **Get started** if you have not enabled Hosting yet (no extra config required in Console beyond that).
+3. Hosting targets (already configured in `.firebaserc`):
+   - **Bridge** site id: `warp-12` → [warp12.app](https://warp12.app)
+   - **Leaderboard** site id: `warp-12-leaderboard` → [leaderboard.warp12.app](https://leaderboard.warp12.app) (Firebase default URL: `warp-12-leaderboard.web.app`)
+
+   Re-apply targets if needed:
+   ```bash
+   firebase target:apply hosting bridge warp-12 --project warp-12
+   firebase target:apply hosting leaderboard warp-12-leaderboard --project warp-12
+   ```
+4. In [Firebase Console → Hosting](https://console.firebase.google.com/project/warp-12/hosting), attach custom domains:
+   - **Bridge** (`warp-12`): `warp12.app`
+   - **Leaderboard** (`warp-12-leaderboard`): `leaderboard.warp12.app`
+5. Enable Hosting on both sites if prompted.
 
 ### Build + deploy
 
-Firebase config is injected at **build time** via `apps/Warp12/.env`. Make sure that file exists with your web app credentials before building for production.
+Firebase config is injected at **build time** via `.env` files. Bridge uses `apps/Warp12/.env`; leaderboard uses `Warp12-leaderboard/.env` (same `warp-12` web app credentials).
 
 ```bash
-# Rules only
+# Firestore rules + indexes
 yarn deploy:firestore
 
-# Static site only (builds DoubleTwelve + engine + bridge, then deploys)
+# Bridge only
+yarn deploy:hosting:bridge
+
+# Leaderboard only
+yarn deploy:hosting:leaderboard
+
+# Both sites
 yarn deploy:hosting
 
-# Both rules and site
+# Firestore + both sites
 yarn deploy:firebase
 ```
 
-After deploy, the CLI prints your live URL (typically `https://warp-12.web.app` and `https://warp-12.firebaseapp.com`).
+Default Firebase URLs remain available (`warp-12.web.app`, `warp-12-leaderboard.web.app`) until custom domains propagate.
 
 ### Local production preview
 
 ```bash
 yarn build:all
-yarn preview:bridge
-```
+yarn preview:bridge          # bridge → http://localhost:4300
 
-Open `http://localhost:4300` to verify routes (`/`, `/local`, `/online`) before deploying.
+cd Warp12-leaderboard && yarn build && yarn preview   # leaderboard → http://localhost:4310
+```
 
 ### SPA routing
 
-`firebase.json` rewrites all paths to `index.html` so deep links like `/online/ABC123/play` work on refresh. Hashed assets under `/assets/` are cached long-term; `index.html` is not cached so deploys roll out quickly.
+`firebase.json` rewrites all paths to `index.html` on both sites so deep links work on refresh. Hashed assets under `/assets/` are cached long-term; `index.html` is not cached so deploys roll out quickly.
 
-### Custom domain (optional)
+### Custom domains
 
-Firebase Console → Hosting → **Add custom domain**, then follow the DNS steps (usually a few TXT/CNAME records). HTTPS is provisioned automatically.
+Firebase Console → Hosting → select site → **Add custom domain**, then follow the DNS steps. HTTPS is provisioned automatically.
 
-### Authorized domains (online play)
+### Authorized domains (online play + leaderboard)
 
 Firebase Console → Authentication → **Settings** → **Authorized domains** should include:
 
 - `localhost` (dev)
 - `warp12.app`
+- `leaderboard.warp12.app`
 - `warp-12.web.app`
 - `warp-12.firebaseapp.com`
+- `warp-12-leaderboard.web.app` (default Firebase URL for the leaderboard site)
 
 Anonymous Auth will fail on a domain that is not listed there.
 
@@ -193,9 +221,9 @@ Anonymous Auth will fail on a domain that is not listed there.
 
 See [RULES.md](./RULES.md) for the full Navigational Operations Manual — Spacedock, Warp Trails, Neutral Zone, Distress Beacon, Subspace Fracture, All Stop!, Drop to Impulse, and opt-in modules (Q-Continuum, Salamander Penalty).
 
-## Warp AI & tactical coach
+## Warp AI, tactical coach & ELO
 
-Warp 12 ships with offline AI captains and a human-facing **tactical coach**, both built on the same `warp12-engine` decision stack and validated with self-play tests.
+Warp 12 ships with offline AI captains and a human-facing **tactical coach**, both built on the same `warp12-engine` decision stack and validated with self-play calibration.
 
 ### Captain AI (`createWarpAiPlayer`)
 
@@ -203,14 +231,47 @@ Each AI officer runs entirely inside the rules engine — Distress Beacons, Red 
 
 | Setting | What it does |
 |---------|----------------|
-| **Skill** (Beginner / Intermediate / Advanced) | Controls blunder rate and how sharply the bot prefers high-scoring moves. Beginners make more mistakes; Advanced plays tighter heuristics. |
-| **Lookahead** (per-captain checkbox) | Opts into **forward search** instead of greedy one-ply scoring. The bot simulates candidate moves through the real engine, guesses plausible opponent holdings (same hand counts, random tiles from the unseen pool) and draw order several times, and evaluates outcomes ~2 plies ahead. **It does not see your tiles.** Slower, but it can reason about consequences. Full detail: [RULES.md §VII](./RULES.md#vii-ai-officers--tactical-advisor-digital). |
+| **Skill** (Beginner / Intermediate / Advanced) | Controls blunder rate, heuristic weights, and **intrinsic search depth** for that tier. Beginners make more mistakes; Advanced plays tighter heuristics. Lookahead is baked into the tier profile (not a separate toggle) so leaderboard ELO stays consistent. |
 
-Without Lookahead, captains use the fast heuristic policy. With Lookahead enabled, the client uses a bounded search (depth 2, a handful of determinizations and branches per node). Self-play suites in `libs/engine` verify that lookahead captains beat greedy beginners heads-up and that full games stay legal end-to-end.
+**Advanced go-out** uses depth-2 forward search at **2 players only**; at 3+ the race is too chaotic for search to help, so those tables use greedy sprint heuristics instead. **Penalty** captains stay greedy at all table sizes. Search simulates candidate moves through the real engine with sampled hidden hands — it **does not see your tiles**. Detail: [RULES.md §VII](./RULES.md#vii-ai-officers--tactical-advisor-digital).
+
+Self-play suites in `libs/engine` verify skill ordering, symmetric seating fairness, and 4-player focus matchups. Run the calibration report:
+
+```bash
+yarn calibrate:ai-elo          # 200 games per matchup + multi-table focus matrix
+AI_CALIBRATION_GAMES=500 yarn calibrate:ai-elo   # longer run for tighter estimates
+yarn optimize:ai-weights       # coordinate search on go-out heuristic weights
+```
 
 ### Tactical coach (`warp12-react`)
 
 The in-game **tactical advisor** reuses the same AI stack at Advanced skill with lookahead always on. It suggests a move plus plain-language reasons (`explainWarpAiAction`, turn-resolution hints) so humans can see *why* a line is strong — not just what to play.
+
+### Leaderboard ELO (unassisted matches)
+
+Solo games vs AI feed **[leaderboard.warp12.app](https://leaderboard.warp12.app)**. Two independent tracks:
+
+| Track | When it applies |
+|-------|-----------------|
+| **Go-out ELO** | First player to empty their hand wins |
+| **Penalty ELO** | Lowest pip count when the round ends |
+
+Each track also splits by AI tier (`localAi.beginner`, `.intermediate`, `.advanced`).
+
+**Fixed opponent ratings** (unassisted matches only):
+
+| Track | Beginner | Intermediate | Advanced |
+|-------|----------|--------------|----------|
+| Penalty | 1000 | 1200 | 1400 |
+| Go-out | 1000 | 1250 | 1500 |
+
+Go-out uses wider spacing because race outcomes are noisier; the leaderboard also shows **percentile** (Top X%) within each board so rank is meaningful even when raw ELO gaps compress.
+
+Your ELO updates with a standard Elo formula; K-factor starts at **40** for the first 10 rated games, then **32** until 30 games, then **24**.
+
+**Advisor disqualification:** if you used the tactical advisor during the match, the win still counts in general stats, but **ELO does not move** — only unassisted matches are rated. Assisted wins are tracked separately (`advisorMatches` / `advisorWins`).
+
+Calibration self-play (`yarn calibrate:ai-elo`) compares tier-vs-tier win rates to those fixed ratings. Penalty tiers align closely (~76–91% per 200-point step). Go-out ordering is stable but gaps are compressed by race variance; table-size tweaks live in `getWarpSkillProfile(..., playerCount, tableRole)`.
 
 Published packages: `warp12-engine` (AI + rules), `warp12-react` (coach + table adapters).
 

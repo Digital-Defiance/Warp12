@@ -30,7 +30,6 @@ describe('ai captain helpers', () => {
       id: 'ai:data',
       displayName: 'Data',
       skill: 'advanced',
-      useLookahead: true,
       poolId: 'data',
     });
   });

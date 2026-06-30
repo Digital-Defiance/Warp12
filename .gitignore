@@ -57,23 +57,16 @@ test-output
 # Firebase CLI local cache (regenerated on deploy)
 .firebase/
 
-# Android TWA (Bubblewrap) — never commit signing keys or release artifacts
+# Android release artifacts and Gradle cache
+.gradle/
 android.keystore
 *.keystore
 *.jks
 *.apk
 *.aab
 *.idsig
-.gradle/
-manifest-checksum.txt
-store_icon.png
 
-# Bubblewrap Gradle project (regenerate with bubblewrap init/build)
-/app/
-/build/
-/gradle/
-/gradlew
-/gradlew.bat
-/build.gradle
-/settings.gradle
-/gradle.properties
+# Tauri mobile (Android signing — local only)
+**/key.properties
+**/keystore.properties
+**/local.properties
