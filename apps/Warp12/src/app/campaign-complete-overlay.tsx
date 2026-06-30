@@ -1,6 +1,6 @@
 import type { GameState } from 'warp12-engine';
 import {
-  coachingMessageForEloDelta,
+  coachingMessageForTeiDelta,
   type AdvisorPerformanceSummary,
 } from 'warp12-react';
 
@@ -55,8 +55,8 @@ export function CampaignCompleteOverlay({
   const standings = sectorStandings(game, names);
   const headline = sectorCompleteHeadline(game, names, humanId);
   const eloMessage = matchReport
-    ? coachingMessageForEloDelta(
-        matchReport.eloDelta,
+    ? coachingMessageForTeiDelta(
+        matchReport.teiDelta,
         matchReport.rated,
         matchReport.won
       )
@@ -89,17 +89,17 @@ export function CampaignCompleteOverlay({
           ))}
         </ul>
 
-        {matchReport?.rated && matchReport.eloBefore !== null && matchReport.eloAfter !== null && (
+        {matchReport?.rated && matchReport.teiBefore !== null && matchReport.teiAfter !== null && (
           <p className={styles.roundEndBody}>
-            Solo rating ({matchReport.objective === 'go-out' ? 'go-out' : 'penalty'}):{' '}
+            TEI ({matchReport.objective === 'go-out' ? 'go-out' : 'penalty'}):{' '}
             <strong>
-              {matchReport.eloBefore} → {matchReport.eloAfter}
+              {matchReport.teiBefore} → {matchReport.teiAfter}
             </strong>
-            {matchReport.eloDelta !== null && matchReport.eloDelta !== 0 && (
+            {matchReport.teiDelta !== null && matchReport.teiDelta !== 0 && (
               <span>
                 {' '}
-                ({matchReport.eloDelta > 0 ? '+' : ''}
-                {matchReport.eloDelta})
+                ({matchReport.teiDelta > 0 ? '+' : ''}
+                {matchReport.teiDelta})
               </span>
             )}
           </p>
@@ -108,7 +108,7 @@ export function CampaignCompleteOverlay({
         {eloMessage && <p className={styles.roundEndBody}>{eloMessage}</p>}
 
         {matchReportPending && (
-          <p className={styles.roundEndBody}>Saving solo rating…</p>
+          <p className={styles.roundEndBody}>Saving TEI…</p>
         )}
 
         {!matchReportPending && matchReportNotice && (

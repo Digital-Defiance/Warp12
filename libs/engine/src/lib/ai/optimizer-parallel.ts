@@ -35,39 +35,39 @@ export interface SerializedWarpSkillProfile {
 }
 
 export function serializePresets(
-  presets: Record<'beginner' | 'intermediate' | 'advanced', WarpSkillProfile>
-): Record<'beginner' | 'intermediate' | 'advanced', SerializedWarpSkillProfile> {
+  presets: Record<'ensign' | 'lieutenant' | 'commander', WarpSkillProfile>
+): Record<'ensign' | 'lieutenant' | 'commander', SerializedWarpSkillProfile> {
   return {
-    beginner: {
-      enabled: [...presets.beginner.enabled],
-      weights: { ...presets.beginner.weights },
-      temperature: presets.beginner.temperature,
-      blunderRate: presets.beginner.blunderRate,
-      lookaheadDepth: presets.beginner.lookaheadDepth,
-      goOutTuning: presets.beginner.goOutTuning,
+    ensign: {
+      enabled: [...presets.ensign.enabled],
+      weights: { ...presets.ensign.weights },
+      temperature: presets.ensign.temperature,
+      blunderRate: presets.ensign.blunderRate,
+      lookaheadDepth: presets.ensign.lookaheadDepth,
+      goOutTuning: presets.ensign.goOutTuning,
     },
-    intermediate: {
-      enabled: [...presets.intermediate.enabled],
-      weights: { ...presets.intermediate.weights },
-      temperature: presets.intermediate.temperature,
-      blunderRate: presets.intermediate.blunderRate,
-      lookaheadDepth: presets.intermediate.lookaheadDepth,
-      goOutTuning: presets.intermediate.goOutTuning,
+    lieutenant: {
+      enabled: [...presets.lieutenant.enabled],
+      weights: { ...presets.lieutenant.weights },
+      temperature: presets.lieutenant.temperature,
+      blunderRate: presets.lieutenant.blunderRate,
+      lookaheadDepth: presets.lieutenant.lookaheadDepth,
+      goOutTuning: presets.lieutenant.goOutTuning,
     },
-    advanced: {
-      enabled: [...presets.advanced.enabled],
-      weights: { ...presets.advanced.weights },
-      temperature: presets.advanced.temperature,
-      blunderRate: presets.advanced.blunderRate,
-      lookaheadDepth: presets.advanced.lookaheadDepth,
-      goOutTuning: presets.advanced.goOutTuning,
+    commander: {
+      enabled: [...presets.commander.enabled],
+      weights: { ...presets.commander.weights },
+      temperature: presets.commander.temperature,
+      blunderRate: presets.commander.blunderRate,
+      lookaheadDepth: presets.commander.lookaheadDepth,
+      goOutTuning: presets.commander.goOutTuning,
     },
   };
 }
 
 export function deserializePresets(
-  raw: Record<'beginner' | 'intermediate' | 'advanced', SerializedWarpSkillProfile>
-): Record<'beginner' | 'intermediate' | 'advanced', WarpSkillProfile> {
+  raw: Record<'ensign' | 'lieutenant' | 'commander', SerializedWarpSkillProfile>
+): Record<'ensign' | 'lieutenant' | 'commander', WarpSkillProfile> {
   const toProfile = (entry: SerializedWarpSkillProfile): WarpSkillProfile => ({
     enabled: new Set(entry.enabled),
     weights: { ...entry.weights },
@@ -77,9 +77,9 @@ export function deserializePresets(
     goOutTuning: entry.goOutTuning ? { ...entry.goOutTuning } : undefined,
   });
   return {
-    beginner: toProfile(raw.beginner),
-    intermediate: toProfile(raw.intermediate),
-    advanced: toProfile(raw.advanced),
+    ensign: toProfile(raw.ensign),
+    lieutenant: toProfile(raw.lieutenant),
+    commander: toProfile(raw.commander),
   };
 }
 
@@ -109,7 +109,7 @@ export function workerExecArgv(): string[] {
 
 function runMatchupWorker(
   job: ParallelMatchupJob,
-  presets: Record<'beginner' | 'intermediate' | 'advanced', WarpSkillProfile>,
+  presets: Record<'ensign' | 'lieutenant' | 'commander', WarpSkillProfile>,
   options: { games: number; objective: GameObjective; seed: number }
 ): Promise<
   SkillMatchupResult | { kind: 'focus'; focusWinRate: number; job: ParallelMatchupJob }
@@ -135,7 +135,7 @@ function runMatchupWorker(
 
 async function runJobsWithPool<T>(
   jobs: readonly ParallelMatchupJob[],
-  presets: Record<'beginner' | 'intermediate' | 'advanced', WarpSkillProfile>,
+  presets: Record<'ensign' | 'lieutenant' | 'commander', WarpSkillProfile>,
   options: { games: number; objective: GameObjective; seed: number },
   concurrency: number
 ): Promise<T[]> {
@@ -172,7 +172,7 @@ export function shouldParallelizeOptimizer(): boolean {
 
 /** Run calibration matchups on multiple cores when AI_OPTIMIZER_PARALLEL is enabled. */
 export async function runOptimizerMatchupsParallel(
-  presets: Record<'beginner' | 'intermediate' | 'advanced', WarpSkillProfile>,
+  presets: Record<'ensign' | 'lieutenant' | 'commander', WarpSkillProfile>,
   options: { games: number; objective: GameObjective; seed?: number }
 ): Promise<{
   matrix: SkillMatchupResult[];
@@ -191,18 +191,18 @@ export async function runOptimizerMatchupsParallel(
     })),
     {
       kind: 'focus',
-      focus: 'advanced',
-      opponents: 'beginner',
+      focus: 'commander',
+      opponents: 'ensign',
     },
     {
       kind: 'focus',
-      focus: 'intermediate',
-      opponents: 'beginner',
+      focus: 'lieutenant',
+      opponents: 'ensign',
     },
     {
       kind: 'focus',
-      focus: 'advanced',
-      opponents: 'intermediate',
+      focus: 'commander',
+      opponents: 'lieutenant',
     },
   ];
 
@@ -251,16 +251,16 @@ function collectParallelResults(
 
   return {
     matrix,
-    focusAdvancedBeginner: focusRate('advanced', 'beginner'),
-    focusIntermediateBeginner: focusRate('intermediate', 'beginner'),
-    focusAdvancedIntermediate: focusRate('advanced', 'intermediate'),
+    focusAdvancedBeginner: focusRate('commander', 'ensign'),
+    focusIntermediateBeginner: focusRate('lieutenant', 'ensign'),
+    focusAdvancedIntermediate: focusRate('commander', 'lieutenant'),
   };
 }
 
 /** @internal test helper */
 export function __testRunMatchupJobSync(
   job: ParallelMatchupJob,
-  presets: Record<'beginner' | 'intermediate' | 'advanced', WarpSkillProfile>,
+  presets: Record<'ensign' | 'lieutenant' | 'commander', WarpSkillProfile>,
   options: { games: number; objective: GameObjective; seed: number }
 ) {
   setGoOutPresetsOverride(presets);

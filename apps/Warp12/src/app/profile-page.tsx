@@ -1,28 +1,30 @@
 import { Link } from 'react-router-dom';
 
-import type { RatedObjective, WarpSkillLevel } from 'warp12-engine';
+import {
+  aiSkillToTacticalClass,
+  formatTacticalClass,
+  formatTei,
+  teiToPlayerTacticalClass,
+  WARP_SKILL_LEVELS,
+  type WarpSkillLevel,
+} from 'warp12-engine';
 
 import {
   recentDecisionTrend,
-  recentEloTrend,
+  recentTeiTrend,
 } from '../firebase/match-history.js';
-import { opponentEloForObjective } from '../firebase/stats-elo.js';
+import { opponentTeiForObjective } from '../firebase/stats-elo.js';
 import {
-  displayPlayerObjectiveElo,
+  displayPlayerObjectiveTei,
   type PlayerStatsDocument,
 } from '../firebase/stats-service.js';
-import { objectiveEloStats } from '../firebase/stats-schema.js';
+import { objectiveTeiStats, type RatedObjective } from '../firebase/stats-schema.js';
 import { useFirebaseAuth } from '../firebase/use-firebase-auth.js';
 import { isFirebaseConfigured } from '../firebase/config.js';
 import { usePlayerStats } from '../firebase/use-player-stats.js';
+import { AcademyPlacementFieldset } from './academy-placement-fieldset';
 import styles from './lobby.module.scss';
 import profileStyles from './profile-page.module.scss';
-
-const SKILL_LABELS: Record<WarpSkillLevel, string> = {
-  beginner: 'Beginner',
-  intermediate: 'Intermediate',
-  advanced: 'Advanced',
-};
 
 function TrendChart({
   title,
@@ -66,39 +68,49 @@ function TrendChart({
   );
 }
 
-function EloTable({
+function TeiTable({
   stats,
   objective,
 }: {
   stats: PlayerStatsDocument;
   objective: RatedObjective;
 }) {
-  const rows = (['beginner', 'intermediate', 'advanced'] as const).map(
-    (skill) => ({
-      skill,
-      elo: displayPlayerObjectiveElo(stats, skill, objective),
-      opponent: opponentEloForObjective(objective, skill),
-      matches: objectiveEloStats(stats.localAi?.[skill] ?? {}, objective)
-        .unassistedMatches,
-    })
-  );
+  const rows = WARP_SKILL_LEVELS.map((skill) => ({
+    skill,
+    tei: displayPlayerObjectiveTei(stats, skill, objective),
+    opponent: opponentTeiForObjective(objective, skill),
+    matches: objectiveTeiStats(stats.localAi?.[skill] ?? {}, objective)
+      .unassistedMatches,
+  }));
 
   return (
     <table className={profileStyles.table}>
       <thead>
         <tr>
-          <th>Opponent tier</th>
-          <th>Your ELO</th>
-          <th>Opponent rating</th>
+          <th>Opponent profile</th>
+          <th>Your TEI</th>
+          <th>Reference TEI</th>
           <th>Rated games</th>
         </tr>
       </thead>
       <tbody>
         {rows.map((row) => (
           <tr key={row.skill}>
-            <td>{SKILL_LABELS[row.skill]}</td>
-            <td>{row.elo ?? '—'}</td>
-            <td>~{row.opponent}</td>
+            <td>{formatTacticalClass(aiSkillToTacticalClass(row.skill))}</td>
+            <td>
+              {row.tei != null ? (
+                <>
+                  {row.tei}
+                  {' · '}
+                  {formatTacticalClass(teiToPlayerTacticalClass(row.tei), {
+                    short: true,
+                  })}
+                </>
+              ) : (
+                '—'
+              )}
+            </td>
+            <td>{formatTei(row.opponent, true)}</td>
             <td>{row.matches}</td>
           </tr>
         ))}
@@ -115,7 +127,7 @@ export function ProfilePage() {
   if (!configured) {
     return (
       <section className={`${styles.lobby} ${styles.lobbyWide}`}>
-        <p className={styles.hint}>Firebase is not configured — solo ratings are unavailable.</p>
+        <p className={styles.hint}>Firebase is not configured — solo TEI is unavailable.</p>
         <Link to="/">← Back</Link>
       </section>
     );
@@ -132,7 +144,7 @@ export function ProfilePage() {
   if (!auth.user) {
     return (
       <section className={`${styles.lobby} ${styles.lobbyWide}`}>
-        <p className={styles.hint}>Sign in required for solo ratings and match history.</p>
+        <p className={styles.hint}>Sign in required for solo TEI and match history.</p>
         <Link to="/">← Back</Link>
       </section>
     );
@@ -149,19 +161,38 @@ export function ProfilePage() {
       </p>
       <h2 className={styles.title}>{displayName}</h2>
       <p className={styles.subtitle}>
-        Solo ratings, decision-quality trends, and recent local-AI matches.
+        Tactical Efficiency Index, decision-quality trends, and recent local-AI
+        matches.
       </p>
+
+      {playerStats.needsAcademyPlacementForObjective('go-out') && (
+        <AcademyPlacementFieldset
+          objective="go-out"
+          onSave={(skill, tei) =>
+            playerStats.saveAcademyPlacement('go-out', skill, tei)
+          }
+        />
+      )}
+
+      {playerStats.needsAcademyPlacementForObjective('penalty') && (
+        <AcademyPlacementFieldset
+          objective="penalty"
+          onSave={(skill, tei) =>
+            playerStats.saveAcademyPlacement('penalty', skill, tei)
+          }
+        />
+      )}
 
       {stats ? (
         <>
           <fieldset className={styles.fieldset}>
-            <legend>Go-out solo ratings</legend>
-            <EloTable stats={stats} objective="go-out" />
+            <legend>Go-out TEI</legend>
+            <TeiTable stats={stats} objective="go-out" />
           </fieldset>
 
           <fieldset className={styles.fieldset}>
-            <legend>Penalty solo ratings</legend>
-            <EloTable stats={stats} objective="penalty" />
+            <legend>Penalty TEI</legend>
+            <TeiTable stats={stats} objective="penalty" />
           </fieldset>
 
           <div className={profileStyles.trendGrid}>
@@ -171,12 +202,12 @@ export function ProfilePage() {
               suffix="%"
             />
             <TrendChart
-              title="Go-out ELO (unassisted)"
-              points={recentEloTrend(history, 'go-out')}
+              title="Go-out TEI (unassisted)"
+              points={recentTeiTrend(history, 'go-out')}
             />
             <TrendChart
-              title="Penalty ELO (unassisted)"
-              points={recentEloTrend(history, 'penalty')}
+              title="Penalty TEI (unassisted)"
+              points={recentTeiTrend(history, 'penalty')}
             />
           </div>
 
@@ -186,18 +217,16 @@ export function ProfilePage() {
               <p className={styles.hint}>No matches recorded yet.</p>
             ) : (
               <ul className={profileStyles.historyList}>
-                {history.slice(0, 15).map((entry, index) => (
-                  <li key={`${entry.playedAt}-${index}`}>
-                    {new Date(entry.playedAt).toLocaleDateString()} ·{' '}
-                    {entry.objective} vs {entry.opponentSkill}{' '}
-                    {entry.won ? 'win' : 'loss'}
+                {history.map((entry) => (
+                  <li key={entry.playedAt}>
+                    {entry.objective} vs{' '}
+                    {formatTacticalClass(
+                      aiSkillToTacticalClass(entry.opponentSkill)
+                    )}
+                    {' — '}
+                    {entry.won ? 'won' : 'lost'}
                     {entry.advisorUsed ? ' · advisor' : ''}
-                    {entry.decisionGrade
-                      ? ` · ${entry.decisionGrade} (${entry.decisionPct}%)`
-                      : ''}
-                    {entry.eloDelta !== undefined
-                      ? ` · ELO ${entry.eloDelta > 0 ? '+' : ''}${entry.eloDelta}`
-                      : ''}
+                    {entry.teiAfter != null ? ` · TEI ${entry.teiAfter}` : ''}
                   </li>
                 ))}
               </ul>
@@ -205,9 +234,7 @@ export function ProfilePage() {
           </fieldset>
         </>
       ) : (
-        <p className={styles.hint}>
-          No stats yet — finish a local vs-AI match while signed in.
-        </p>
+        <p className={styles.hint}>No stats on file yet.</p>
       )}
     </section>
   );

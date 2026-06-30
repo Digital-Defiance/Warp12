@@ -67,6 +67,19 @@ describe('captain-tails-hud', () => {
     },
   ] as never;
 
+  it('includes AI officer tactical class when provided', () => {
+    const rows = buildTailRows(
+      round,
+      spokes,
+      'b',
+      { a: 'Cls IV', b: 'Cls II' },
+      { a: 'Class IV', b: 'Class II' }
+    );
+    expect(rows[0]?.tacticalClassAbbrev).toBe('Cls IV');
+    expect(rows[0]?.tacticalClassLabel).toBe('Class IV');
+    expect(rows[1]?.tacticalClassAbbrev).toBe('Cls II');
+  });
+
   it('lists captains in turn order with trail tails', () => {
     expect(buildCaptainTailRows(round, spokes, 'b')).toEqual([
       {

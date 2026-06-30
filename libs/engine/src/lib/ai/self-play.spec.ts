@@ -13,14 +13,14 @@ function seatsAdvVsBeginner(game: number): SelfPlaySeat[] {
   const adv: SelfPlaySeat = {
     id: 'adv',
     player: createWarpAiPlayer({
-      skill: getWarpSkillProfile('advanced'),
+      skill: getWarpSkillProfile('commander'),
       rng: mulberrySeed(game, 1),
     }),
   };
   const beg: SelfPlaySeat = {
     id: 'beg',
     player: createWarpAiPlayer({
-      skill: getWarpSkillProfile('beginner'),
+      skill: getWarpSkillProfile('ensign'),
       rng: mulberrySeed(game, 2),
     }),
   };
@@ -31,7 +31,7 @@ function seatsLookaheadVsBeginner(game: number): SelfPlaySeat[] {
   const smart: SelfPlaySeat = {
     id: 'adv',
     player: createWarpAiPlayer({
-      skill: getWarpSkillProfile('advanced'),
+      skill: getWarpSkillProfile('commander'),
       lookahead: { depth: 2, determinizations: 4, maxBranch: 5 },
       rng: mulberrySeed(game, 1),
     }),
@@ -39,7 +39,7 @@ function seatsLookaheadVsBeginner(game: number): SelfPlaySeat[] {
   const beg: SelfPlaySeat = {
     id: 'beg',
     player: createWarpAiPlayer({
-      skill: getWarpSkillProfile('beginner'),
+      skill: getWarpSkillProfile('ensign'),
       rng: mulberrySeed(game, 2),
     }),
   };
@@ -89,7 +89,7 @@ describe('self-play harness', () => {
     const seats: SelfPlaySeat[] = ['a', 'b'].map((id, index) => ({
       id,
       player: createWarpAiPlayer({
-        skill: getWarpSkillProfile('advanced'),
+        skill: getWarpSkillProfile('commander'),
         lookahead: { depth: 2, determinizations: 3, maxBranch: 5 },
         rng: mulberry32(500 + index),
       }),
@@ -107,7 +107,7 @@ describe('self-play harness', () => {
       const seats: SelfPlaySeat[] = captainIds.map((id, index) => ({
         id,
         player: createWarpAiPlayer({
-          skill: getWarpSkillProfile('advanced'),
+          skill: getWarpSkillProfile('commander'),
           rng: mulberry32(game * 100 + index + 1),
         }),
       }));

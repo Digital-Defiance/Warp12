@@ -1,34 +1,29 @@
 import type { AiSkillLevel } from './stats-schema.js';
 import type { RatedObjective } from './stats-schema.js';
 
-export const DEFAULT_UNASSISTED_ELO = 1000;
+export const DEFAULT_UNASSISTED_TEI = 1000;
 
-/** Fixed opponent ratings for penalty mode (200-point steps). */
-export const AI_OPPONENT_ELO_PENALTY: Record<AiSkillLevel, number> = {
-  beginner: 1000,
-  intermediate: 1200,
-  advanced: 1400,
+/** Fixed opponent reference TEI for penalty mode (200-point steps). */
+export const AI_OPPONENT_TEI_PENALTY: Record<AiSkillLevel, number> = {
+  ensign: 1000,
+  lieutenant: 1200,
+  commander: 1400,
 };
 
 /** Wider steps for go-out — races are noisier; percentile handles display. */
-export const AI_OPPONENT_ELO_GO_OUT: Record<AiSkillLevel, number> = {
-  beginner: 1000,
-  intermediate: 1250,
-  advanced: 1500,
+export const AI_OPPONENT_TEI_GO_OUT: Record<AiSkillLevel, number> = {
+  ensign: 1000,
+  lieutenant: 1250,
+  commander: 1500,
 };
 
-/** @deprecated Use {@link opponentEloForObjective} */
-export const AI_OPPONENT_ELO = AI_OPPONENT_ELO_PENALTY;
-
-/** Keep aligned with libs/engine REFERENCE_AI_ELO / GO_OUT_REFERENCE_AI_ELO. */
-
-export function opponentEloForObjective(
+export function opponentTeiForObjective(
   objective: RatedObjective,
   skill: AiSkillLevel
 ): number {
   return objective === 'go-out'
-    ? AI_OPPONENT_ELO_GO_OUT[skill]
-    : AI_OPPONENT_ELO_PENALTY[skill];
+    ? AI_OPPONENT_TEI_GO_OUT[skill]
+    : AI_OPPONENT_TEI_PENALTY[skill];
 }
 
 export function kFactor(unassistedMatchesPlayed: number): number {
@@ -42,42 +37,42 @@ export function kFactor(unassistedMatchesPlayed: number): number {
 }
 
 export function expectedEloScore(
-  playerElo: number,
-  opponentElo: number
+  playerTei: number,
+  opponentTei: number
 ): number {
-  return 1 / (1 + 10 ** ((opponentElo - playerElo) / 400));
+  return 1 / (1 + 10 ** ((opponentTei - playerTei) / 400));
 }
 
-export function updateUnassistedElo(
-  playerElo: number,
-  opponentElo: number,
+export function updateUnassistedTei(
+  playerTei: number,
+  opponentTei: number,
   score: 0 | 1,
   k: number
 ): number {
-  const expected = expectedEloScore(playerElo, opponentElo);
-  return Math.round(playerElo + k * (score - expected));
+  const expected = expectedEloScore(playerTei, opponentTei);
+  return Math.round(playerTei + k * (score - expected));
 }
 
-/** ELO used before/at the first rated game in a bucket. */
-export function resolveEffectivePlayerElo(
-  priorElo: number | undefined,
+/** TEI used before/at the first rated game in a bucket. */
+export function resolveEffectivePlayerTei(
+  priorTei: number | undefined,
   unassistedMatches: number,
-  startingElo?: number
+  startingTei?: number
 ): number {
   if (unassistedMatches > 0) {
-    return priorElo ?? DEFAULT_UNASSISTED_ELO;
+    return priorTei ?? DEFAULT_UNASSISTED_TEI;
   }
-  return priorElo ?? startingElo ?? DEFAULT_UNASSISTED_ELO;
+  return priorTei ?? startingTei ?? DEFAULT_UNASSISTED_TEI;
 }
 
-export function displayUnassistedElo(
-  elo: number | undefined,
+export function displayUnassistedTei(
+  tei: number | undefined,
   unassistedMatches: number
 ): number | null {
   if (unassistedMatches <= 0) {
     return null;
   }
-  return elo ?? DEFAULT_UNASSISTED_ELO;
+  return tei ?? DEFAULT_UNASSISTED_TEI;
 }
 
 /** Top X% among rated captains (rank 1 of 25 → Top 4%). */

@@ -68,6 +68,35 @@ export function HouseRulesOptions({
         />
         <span>Drop to Impulse (announce at one tile; opponents may catch)</span>
       </label>
+      {value.dropToImpulseCall ? (
+        <label className={styles.houseRulesSubOption}>
+          <span>Catch penalty</span>
+          <select
+            value={value.dropToImpulseCatchPenalty ?? 1}
+            disabled={disabled}
+            onChange={(e) =>
+              onChange({
+                dropToImpulseCatchPenalty: Number(e.target.value) === 2 ? 2 : 1,
+              })
+            }
+          >
+            <option value={1}>1 tile</option>
+            <option value={2}>2 tiles</option>
+          </select>
+        </label>
+      ) : null}
+      <label className={styles.checkboxRow}>
+        <input
+          type="checkbox"
+          checked={value.allStopCeremony ?? true}
+          disabled={disabled}
+          onChange={(e) => onChange({ allStopCeremony: e.target.checked })}
+        />
+        <span>
+          All Stop! ceremony (auto log/sound after Neutral Zone wins and All Stop!
+          echo go-outs)
+        </span>
+      </label>
     </>
   );
 }

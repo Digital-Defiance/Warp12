@@ -51,7 +51,7 @@ describe('AI weight optimizer', () => {
       step: 0.12,
     });
     expect(Number.isFinite(score.loss)).toBe(true);
-    expect(presets.intermediate.weights[H.goOutWin]).toBeGreaterThan(0);
+    expect(presets.lieutenant.weights[H.goOutWin]).toBeGreaterThan(0);
     expect(score.loss).toBeLessThanOrEqual(baseline.loss + 0.12);
   }, 300_000);
 

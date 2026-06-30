@@ -28,7 +28,7 @@ export function recentDecisionTrend(
     }));
 }
 
-export function recentEloTrend(
+export function recentTeiTrend(
   history: readonly MatchHistoryEntry[] | undefined,
   objective: RatedObjective,
   limit = 12
@@ -40,13 +40,13 @@ export function recentEloTrend(
     .filter(
       (entry) =>
         entry.objective === objective &&
-        entry.eloAfter !== undefined &&
+        entry.teiAfter !== undefined &&
         !entry.advisorUsed
     )
     .slice(0, limit)
     .reverse()
     .map((entry, index) => ({
       label: `${index + 1}`,
-      value: entry.eloAfter!,
+      value: entry.teiAfter!,
     }));
 }

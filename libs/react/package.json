@@ -1,6 +1,6 @@
 {
   "name": "warp12-react",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "React adapters for Warp 12 — state to trains, coach, hand layout",
   "license": "MIT",
   "author": "Jessica Mulein",

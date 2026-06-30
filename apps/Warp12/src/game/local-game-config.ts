@@ -54,7 +54,7 @@ export function buildAiCaptains(aiCount: number): AiCaptainConfig[] {
   const capped = Math.min(aiCount, AI_OFFICER_POOL.length);
   return AI_OFFICER_POOL.slice(0, capped).map((officer, index) => ({
     ...officer,
-    skill: index === capped - 1 && capped >= 2 ? 'advanced' : 'intermediate',
+    skill: index === capped - 1 && capped >= 2 ? 'commander' : 'lieutenant',
   }));
 }
 

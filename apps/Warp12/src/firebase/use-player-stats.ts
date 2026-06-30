@@ -4,10 +4,12 @@ import type { RatedObjective, PlayerStatsDocument } from './stats-schema.js';
 import type { WarpSkillLevel } from 'warp12-engine';
 
 import {
-  canSetStartingElo as canSetStartingEloForBucket,
-  displayPlayerObjectiveElo,
+  canSetStartingTei as canSetStartingTeiForBucket,
+  displayPlayerObjectiveTei,
   fetchPlayerStats,
-  setPlayerStartingElo,
+  needsAcademyPlacement,
+  needsAcademyPlacementForObjective,
+  setAcademyPlacement,
 } from './stats-service.js';
 import { useFirebaseAuth } from './use-firebase-auth.js';
 import { isFirebaseConfigured } from './config.js';
@@ -16,12 +18,18 @@ export interface PlayerStatsState {
   ready: boolean;
   stats: PlayerStatsDocument | null;
   refresh: () => Promise<void>;
-  saveStartingElo: (objective: RatedObjective, elo: number) => Promise<void>;
-  displayElo: (
+  saveAcademyPlacement: (
+    objective: RatedObjective,
+    skill: WarpSkillLevel,
+    tei: number
+  ) => Promise<void>;
+  displayTei: (
     skill: WarpSkillLevel,
     objective: RatedObjective
   ) => number | null;
-  canSetStartingElo: (
+  needsAcademyPlacement: boolean;
+  needsAcademyPlacementForObjective: (objective: RatedObjective) => boolean;
+  canSetStartingTei: (
     skill: WarpSkillLevel,
     objective: RatedObjective
   ) => boolean;
@@ -50,12 +58,12 @@ export function usePlayerStats(): PlayerStatsState {
     void refresh();
   }, [refresh]);
 
-  const saveStartingElo = useCallback(
-    async (objective: RatedObjective, elo: number) => {
+  const saveAcademyPlacement = useCallback(
+    async (objective: RatedObjective, skill: WarpSkillLevel, tei: number) => {
       if (!auth.user) {
         return;
       }
-      await setPlayerStartingElo(auth.user.uid, objective, elo);
+      await setAcademyPlacement(auth.user.uid, objective, skill, tei);
       await refresh();
     },
     [auth.user, refresh]
@@ -65,10 +73,13 @@ export function usePlayerStats(): PlayerStatsState {
     ready,
     stats,
     refresh,
-    saveStartingElo,
-    displayElo: (skill, objective) =>
-      displayPlayerObjectiveElo(stats, skill, objective),
-    canSetStartingElo: (skill, objective) =>
-      canSetStartingEloForBucket(stats, skill, objective),
+    saveAcademyPlacement,
+    displayTei: (skill, objective) =>
+      displayPlayerObjectiveTei(stats, skill, objective),
+    needsAcademyPlacement: needsAcademyPlacement(stats),
+    needsAcademyPlacementForObjective: (objective) =>
+      needsAcademyPlacementForObjective(stats, objective),
+    canSetStartingTei: (skill, objective) =>
+      canSetStartingTeiForBucket(stats, skill, objective),
   };
 }

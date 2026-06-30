@@ -1,4 +1,4 @@
-import type { WarpSkillLevel } from 'warp12-engine';
+import { formatAiSkillUnratedLabel, type WarpSkillLevel } from 'warp12-engine';
 
 import {
   addAiCaptain,
@@ -107,8 +107,8 @@ export function OnlineAiOfficersPanel({
             }}
           />
           <select
-            aria-label={`${captain.displayName} skill level`}
-            value={captain.skill ?? 'intermediate'}
+            aria-label={`${captain.displayName} tactical class`}
+            value={captain.skill ?? 'lieutenant'}
             disabled={busy}
             onChange={(event) =>
               void patchCaptain(captain, {
@@ -116,9 +116,15 @@ export function OnlineAiOfficersPanel({
               })
             }
           >
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
+            <option value="ensign">
+              {formatAiSkillUnratedLabel('ensign')}
+            </option>
+            <option value="lieutenant">
+              {formatAiSkillUnratedLabel('lieutenant')}
+            </option>
+            <option value="commander">
+              {formatAiSkillUnratedLabel('commander')}
+            </option>
           </select>
         </div>
       ))}

@@ -2,10 +2,10 @@ import type { GameState, WarpSkillLevel } from 'warp12-engine';
 
 import type { AiCaptainConfig } from './local-game-config.js';
 
-const SKILL_RANK: Record<WarpSkillLevel, number> = {
-  beginner: 0,
-  intermediate: 1,
-  advanced: 2,
+const SKILL_TIER_ORDER: Record<WarpSkillLevel, number> = {
+  ensign: 0,
+  lieutenant: 1,
+  commander: 2,
 };
 
 /** Highest AI skill at the table determines the local stats bucket. */
@@ -14,8 +14,8 @@ export function classifyLocalAiMatchSkill(
 ): WarpSkillLevel {
   return aiCaptains.reduce<WarpSkillLevel>(
     (max, captain) =>
-      SKILL_RANK[captain.skill] > SKILL_RANK[max] ? captain.skill : max,
-    'beginner'
+      SKILL_TIER_ORDER[captain.skill] > SKILL_TIER_ORDER[max] ? captain.skill : max,
+    'ensign'
   );
 }
 

@@ -4,12 +4,18 @@ import { Link } from 'react-router-dom';
 import {
   DEFAULT_CAMPAIGN_ROUNDS,
   DEFAULT_SUBSPACE_FRACTURE_SCOPE,
+  aiSkillToTacticalClass,
+  formatAiSkillRatedLabel,
+  formatAiSkillUnratedLabel,
+  formatTacticalClass,
+  formatTei,
   type GameObjective,
   type HouseRulesConfig,
   type SubspaceFractureScope,
   type WarpSkillLevel,
 } from 'warp12-engine';
 
+import { AcademyPlacementFieldset } from './academy-placement-fieldset';
 import { BridgeTable } from './bridge-table';
 import styles from './lobby.module.scss';
 import { CampaignRoundsField, ObjectivePicker } from './objective-picker';
@@ -28,7 +34,7 @@ import {
   type LocalGameConfig,
 } from '../game/local-game-config.js';
 import { classifyLocalAiMatchSkill } from '../game/local-match-stats.js';
-import { opponentEloForObjective } from '../firebase/stats-elo.js';
+import { opponentTeiForObjective } from '../firebase/stats-elo.js';
 import type { RatedObjective } from '../firebase/stats-schema.js';
 import { usePlayerStats } from '../firebase/use-player-stats.js';
 
@@ -52,12 +58,10 @@ function skillOptionLabel(
   skill: WarpSkillLevel,
   objective: RatedObjective
 ): string {
-  const labels: Record<WarpSkillLevel, string> = {
-    beginner: 'Beginner',
-    intermediate: 'Intermediate',
-    advanced: 'Advanced',
-  };
-  return `${labels[skill]} (~${opponentEloForObjective(objective, skill)} ELO)`;
+  return formatAiSkillRatedLabel(
+    skill,
+    opponentTeiForObjective(objective, skill)
+  );
 }
 
 export function LocalGamePage() {
@@ -73,7 +77,7 @@ export function LocalGamePage() {
     useState<SubspaceFractureScope>(DEFAULT_SUBSPACE_FRACTURE_SCOPE);
   const [houseRules, setHouseRules] = useState<HouseRulesConfig>({});
   const [aiSkills, setAiSkills] = useState<Record<string, WarpSkillLevel>>({});
-  const [startingEloInput, setStartingEloInput] = useState('');
+  const [academySaving, setAcademySaving] = useState(false);
 
   const playerStats = usePlayerStats();
 
@@ -96,14 +100,10 @@ export function LocalGamePage() {
     [configuredAiCaptains]
   );
   const rated = ratedObjective(objective);
-  const playerElo =
+  const playerTei =
     rated && playerStats.ready
-      ? playerStats.displayElo(matchSkill, rated)
+      ? playerStats.displayTei(matchSkill, rated)
       : null;
-  const canSetStartingElo =
-    rated &&
-    playerStats.ready &&
-    playerStats.canSetStartingElo(matchSkill, rated);
 
   const aiRoster = useMemo(() => {
     if (!activeConfig) return null;
@@ -251,53 +251,44 @@ export function LocalGamePage() {
         />
       </fieldset>
 
-      {rated && (
+      {rated &&
+        playerStats.ready &&
+        playerStats.needsAcademyPlacementForObjective(rated) && (
+        <AcademyPlacementFieldset
+          objective={rated}
+          saving={academySaving}
+          onSave={async (skill, tei) => {
+            setAcademySaving(true);
+            try {
+              await playerStats.saveAcademyPlacement(rated, skill, tei);
+            } finally {
+              setAcademySaving(false);
+            }
+          }}
+        />
+      )}
+
+      {rated &&
+        playerStats.ready &&
+        !playerStats.needsAcademyPlacementForObjective(rated) && (
         <fieldset className={styles.fieldset}>
-          <legend>Solo rating ({rated === 'go-out' ? 'go-out' : 'penalty'})</legend>
-          {playerElo !== null ? (
+          <legend>Solo TEI ({rated === 'go-out' ? 'go-out' : 'penalty'})</legend>
+          {playerTei !== null ? (
             <p className={styles.hint}>
-              Your rating vs {matchSkill} officers: <strong>{playerElo}</strong>
+              Your TEI vs {formatTacticalClass(aiSkillToTacticalClass(matchSkill))}{' '}
+              officers: <strong>{playerTei}</strong>
               {' · '}
-              opponents rated ~{opponentEloForObjective(rated, matchSkill)}
+              reference {formatTei(opponentTeiForObjective(rated, matchSkill), true)}
             </p>
           ) : (
             <p className={styles.hint}>
-              Unrated in this mode — defaults to 1000 on your first unassisted win.
+              Profile saved — your first unassisted match will establish this
+              bucket on the leaderboard.
             </p>
           )}
-          {canSetStartingElo && (
-            <label className={styles.field}>
-              <span>Starting ELO (optional, before first rated game)</span>
-              <div className={styles.inlineRow}>
-                <input
-                  type="number"
-                  min={400}
-                  max={2800}
-                  step={25}
-                  value={startingEloInput}
-                  onChange={(e) => setStartingEloInput(e.target.value)}
-                  placeholder="e.g. 1150"
-                />
-                <button
-                  type="button"
-                  className={styles.secondary}
-                  disabled={!startingEloInput.trim()}
-                  onClick={() => {
-                    const value = Number(startingEloInput);
-                    if (!Number.isFinite(value)) {
-                      return;
-                    }
-                    void playerStats.saveStartingElo(rated, value);
-                  }}
-                >
-                  Save
-                </button>
-              </div>
-            </label>
-          )}
           <p className={styles.hint}>
-            Tactical advisor use does not update solo rating. Wins and losses without
-            the advisor move your rating toward the opponent tier shown above.
+            Tactical advisor use does not update TEI. Unassisted wins and losses
+            move your index toward the reference profile shown above.
           </p>
         </fieldset>
       )}
@@ -310,7 +301,7 @@ export function LocalGamePage() {
           <div key={ai.id} className={styles.aiRow}>
             <span className={styles.aiName}>{ai.displayName}</span>
             <select
-              aria-label={`${ai.displayName} skill level`}
+              aria-label={`${ai.displayName} tactical class`}
               value={aiSkills[ai.id] ?? ai.skill}
               onChange={(e) =>
                 setAiSkills((current) => ({
@@ -321,21 +312,27 @@ export function LocalGamePage() {
             >
               {rated ? (
                 <>
-                  <option value="beginner">
-                    {skillOptionLabel('beginner', rated)}
+                  <option value="ensign">
+                    {skillOptionLabel('ensign', rated)}
                   </option>
-                  <option value="intermediate">
-                    {skillOptionLabel('intermediate', rated)}
+                  <option value="lieutenant">
+                    {skillOptionLabel('lieutenant', rated)}
                   </option>
-                  <option value="advanced">
-                    {skillOptionLabel('advanced', rated)}
+                  <option value="commander">
+                    {skillOptionLabel('commander', rated)}
                   </option>
                 </>
               ) : (
                 <>
-                  <option value="beginner">Beginner</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="advanced">Advanced</option>
+                  <option value="ensign">
+                    {formatAiSkillUnratedLabel('ensign')}
+                  </option>
+                  <option value="lieutenant">
+                    {formatAiSkillUnratedLabel('lieutenant')}
+                  </option>
+                  <option value="commander">
+                    {formatAiSkillUnratedLabel('commander')}
+                  </option>
                 </>
               )}
             </select>

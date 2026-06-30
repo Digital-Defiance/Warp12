@@ -52,7 +52,7 @@ function coachingNote(
     return `${blunders} likely blunder${blunders === 1 ? '' : 's'} — open the advisor report and compare those turns to the suggested line.`;
   }
   if (scorePct >= 75) {
-    return 'Solid decision-making. Tighten suboptimal turns to climb the solo rating.';
+    return 'Solid decision-making. Tighten suboptimal turns to climb your TEI.';
   }
   return 'Several lines left value on the table — review weak spots in the advisor report.';
 }
@@ -97,33 +97,33 @@ export function summarizeAdvisorPerformance(
   };
 }
 
-export function formatEloDelta(delta: number): string {
+export function formatTeiDelta(delta: number): string {
   if (delta > 0) {
     return `+${delta}`;
   }
   return `${delta}`;
 }
 
-export function coachingMessageForEloDelta(
+export function coachingMessageForTeiDelta(
   delta: number | null,
   rated: boolean,
   won: boolean
 ): string | null {
   if (!rated) {
-    return 'Advisor was used — this match did not affect your solo rating.';
+    return 'Advisor was used — this match did not affect your TEI.';
   }
   if (delta === null) {
     return null;
   }
   if (delta > 0) {
     return won
-      ? `Solo rating up ${formatEloDelta(delta)} — keep winning unassisted to climb.`
-      : `Solo rating up ${formatEloDelta(delta)} despite the loss — tough opponent.`;
+      ? `TEI up ${formatTeiDelta(delta)} — keep winning unassisted to climb.`
+      : `TEI up ${formatTeiDelta(delta)} despite the loss — tough opponent.`;
   }
   if (delta < 0) {
     return won
-      ? `Solo rating down ${formatEloDelta(delta)} — you won, but the result was below expectation.`
-      : `Solo rating down ${formatEloDelta(delta)} — rematch at this tier when ready.`;
+      ? `TEI down ${formatTeiDelta(delta)} — you won, but the result was below expectation.`
+      : `TEI down ${formatTeiDelta(delta)} — rematch at this tier when ready.`;
   }
-  return 'Solo rating unchanged — result matched expectation.';
+  return 'TEI unchanged — result matched expectation.';
 }

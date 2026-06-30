@@ -30,7 +30,7 @@ export function aiCaptainToConfig(
   return {
     id: captain.id,
     displayName: captain.displayName,
-    skill: captain.skill ?? 'intermediate',
+    skill: captain.skill ?? 'lieutenant',
     poolId: poolId || undefined,
   };
 }

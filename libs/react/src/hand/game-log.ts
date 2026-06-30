@@ -38,7 +38,7 @@ function wasRedAlertPassed(round: RoundState): boolean {
   return false;
 }
 
-export type GameLogKind = GameAction['type'] | 'ROUND_STARTED';
+export type GameLogKind = GameAction['type'] | 'ROUND_STARTED' | 'ROUND_RATINGS';
 
 export type GameLogEffect =
   | 'caution-opened'
@@ -59,6 +59,14 @@ export interface GameLogRoute {
   readonly neutralZone?: boolean;
 }
 
+export interface GameLogRosterEntry {
+  readonly captainId: string;
+  readonly tei: number | null;
+  readonly tacticalClass?: string;
+  /** Fixed opponent reference TEI (solo AI officers). */
+  readonly reference?: boolean;
+}
+
 export interface GameLogEntry {
   readonly at: string;
   readonly kind: GameLogKind;
@@ -72,6 +80,7 @@ export interface GameLogEntry {
   readonly targetCaptainId?: string;
   readonly roundNumber?: number;
   readonly spacedockValue?: number;
+  readonly roster?: readonly GameLogRosterEntry[];
   readonly effects: readonly GameLogEffect[];
 }
 
@@ -246,6 +255,28 @@ function effectsPhrase(effects: readonly GameLogEffect[]): string {
   return `, ${parts.join(', ')}`;
 }
 
+function rosterPhrase(
+  roster: readonly GameLogRosterEntry[] | undefined,
+  names: Readonly<Record<string, string>>
+): string {
+  if (!roster?.length) {
+    return '';
+  }
+  return roster
+    .map(({ captainId, tei, tacticalClass, reference }) => {
+      const name = captainLabel(captainId, names);
+      const teiPart =
+        tei == null
+          ? 'TEI unrated'
+          : reference
+            ? `~TEI ${tei}`
+            : `TEI ${tei}`;
+      const classPart = tacticalClass ? ` · ${tacticalClass}` : '';
+      return `${name} ${teiPart}${classPart}`;
+    })
+    .join(' · ');
+}
+
 export function formatGameLogLine(
   entry: GameLogEntry,
   names: Readonly<Record<string, string>>,
@@ -258,6 +289,10 @@ export function formatGameLogLine(
   switch (entry.kind) {
     case 'ROUND_STARTED':
       return `${time} - Round ${entry.roundNumber ?? '?'} begins · Spacedock ${entry.spacedockValue ?? '?'}`;
+    case 'ROUND_RATINGS': {
+      const ratings = rosterPhrase(entry.roster, names);
+      return ratings ? `${time} - Ratings · ${ratings}` : '';
+    }
     case 'CHART_COORDINATE':
       return `${prefix} played ${tilePhrase(entry.coordinate)} on ${trailPhrase(entry.route, entry.captainId, names)}${effectsPhrase(entry.effects)}`;
     case 'DRAW_FROM_UNCHARTED':
@@ -456,6 +491,37 @@ function endRoundEffects(after: RoundState): GameLogEffect[] {
   return [];
 }
 
+export function buildAutoAllStopLogEntry(
+  before: GameState,
+  after: GameState,
+  action: GameAction
+): GameLogEntry | null {
+  const beforeRound = before.round;
+  const afterRound = after.round;
+  if (!beforeRound || !afterRound) {
+    return null;
+  }
+  if (action.type !== 'CHART_COORDINATE') {
+    return null;
+  }
+  if (afterRound.phase !== 'ended' || !afterRound.roundWinnerId) {
+    return null;
+  }
+  if (!afterRound.allStopRequired || !afterRound.allStopDeclared) {
+    return null;
+  }
+  if (beforeRound.allStopDeclared) {
+    return null;
+  }
+
+  return {
+    at: new Date().toISOString(),
+    kind: 'ALL_STOP',
+    captainId: afterRound.roundWinnerId,
+    effects: [],
+  };
+}
+
 export function buildGameLogEntry(
   before: GameState,
   after: GameState,
@@ -563,6 +629,21 @@ export function buildRoundStartedEntry(
     captainId: '',
     roundNumber: round.roundNumber,
     spacedockValue: round.spacedockValue,
+    effects: [],
+  };
+}
+
+export function buildRoundRatingsEntry(
+  roster: readonly GameLogRosterEntry[],
+  roundNumber: number,
+  at?: string
+): GameLogEntry {
+  return {
+    at: at ?? new Date().toISOString(),
+    kind: 'ROUND_RATINGS',
+    captainId: '',
+    roundNumber,
+    roster,
     effects: [],
   };
 }

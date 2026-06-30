@@ -12,10 +12,10 @@ export type WarpSkillProfile = SkillProfile & {
 };
 
 const PENALTY_PRESETS: Record<
-  'beginner' | 'intermediate' | 'advanced',
+  'ensign' | 'lieutenant' | 'commander',
   SkillProfile
 > = {
-  beginner: {
+  ensign: {
     ...SKILL_PRESETS.beginner,
     enabled: new Set([
       H.preferChart,
@@ -32,7 +32,7 @@ const PENALTY_PRESETS: Record<
       [H.dropToImpulseForget]: 0.8,
     },
   },
-  intermediate: {
+  lieutenant: {
     ...SKILL_PRESETS.intermediate,
     enabled: new Set([
       H.preferChart,
@@ -53,7 +53,7 @@ const PENALTY_PRESETS: Record<
       [H.dropToImpulseCatch]: 1.5,
     },
   },
-  advanced: {
+  commander: {
     ...SKILL_PRESETS.advanced,
     enabled: new Set([
       H.preferChart,
@@ -88,10 +88,10 @@ const PENALTY_PRESETS: Record<
 
 /** First-out mode: tempo and connectivity beat pip dumping. */
 const GO_OUT_PRESETS: Record<
-  'beginner' | 'intermediate' | 'advanced',
+  'ensign' | 'lieutenant' | 'commander',
   WarpSkillProfile
 > = {
-  beginner: {
+  ensign: {
     ...SKILL_PRESETS.beginner,
     temperature: 5.4,
     blunderRate: 0.56,
@@ -113,7 +113,7 @@ const GO_OUT_PRESETS: Record<
       drawReluctanceHandSize: 6,
     },
   },
-  intermediate: {
+  lieutenant: {
     ...SKILL_PRESETS.intermediate,
     temperature: 0.7,
     blunderRate: 0.12,
@@ -141,8 +141,8 @@ const GO_OUT_PRESETS: Record<
       [H.goOutTrailPriority]: 0.85,
       [H.goOutNeutralZoneDump]: 1,
       [H.goOutOpponentTrailDump]: 0.93,
-      [H.goOutAvoidMayhem]: 1.23,
-      [H.goOutBlockLeader]: 1.1,
+      [H.goOutAvoidMayhem]: 1.31,
+      [H.goOutBlockLeader]: 1.02,
       [H.goOutDrawReluctance]: 1,
       [H.goOutBeaconDiscipline]: 0.7,
       [H.goOutFeasibility]: 0.53,
@@ -154,7 +154,7 @@ const GO_OUT_PRESETS: Record<
       [H.dropToImpulseCatch]: 1.2,
     },
   },
-  advanced: {
+  commander: {
     ...SKILL_PRESETS.advanced,
     temperature: 0.08,
     blunderRate: 0,
@@ -206,13 +206,13 @@ const GO_OUT_PRESETS: Record<
 
 /** Optional override for weight-optimizer / calibration experiments. */
 let goOutPresetsOverride: Record<
-  'beginner' | 'intermediate' | 'advanced',
+  'ensign' | 'lieutenant' | 'commander',
   WarpSkillProfile
 > | null = null;
 
 export function setGoOutPresetsOverride(
   presets: Record<
-    'beginner' | 'intermediate' | 'advanced',
+    'ensign' | 'lieutenant' | 'commander',
     WarpSkillProfile
   > | null
 ): void {
@@ -220,33 +220,33 @@ export function setGoOutPresetsOverride(
 }
 
 export function cloneGoOutPresets(): Record<
-  'beginner' | 'intermediate' | 'advanced',
+  'ensign' | 'lieutenant' | 'commander',
   WarpSkillProfile
 > {
   const source = goOutPresetsOverride ?? GO_OUT_PRESETS;
   return {
-    beginner: {
-      ...source.beginner,
-      enabled: new Set(source.beginner.enabled),
-      weights: { ...source.beginner.weights },
-      goOutTuning: source.beginner.goOutTuning
-        ? { ...source.beginner.goOutTuning }
+    ensign: {
+      ...source.ensign,
+      enabled: new Set(source.ensign.enabled),
+      weights: { ...source.ensign.weights },
+      goOutTuning: source.ensign.goOutTuning
+        ? { ...source.ensign.goOutTuning }
         : undefined,
     },
-    intermediate: {
-      ...source.intermediate,
-      enabled: new Set(source.intermediate.enabled),
-      weights: { ...source.intermediate.weights },
-      goOutTuning: source.intermediate.goOutTuning
-        ? { ...source.intermediate.goOutTuning }
+    lieutenant: {
+      ...source.lieutenant,
+      enabled: new Set(source.lieutenant.enabled),
+      weights: { ...source.lieutenant.weights },
+      goOutTuning: source.lieutenant.goOutTuning
+        ? { ...source.lieutenant.goOutTuning }
         : undefined,
     },
-    advanced: {
-      ...source.advanced,
-      enabled: new Set(source.advanced.enabled),
-      weights: { ...source.advanced.weights },
-      goOutTuning: source.advanced.goOutTuning
-        ? { ...source.advanced.goOutTuning }
+    commander: {
+      ...source.commander,
+      enabled: new Set(source.commander.enabled),
+      weights: { ...source.commander.weights },
+      goOutTuning: source.commander.goOutTuning
+        ? { ...source.commander.goOutTuning }
         : undefined,
     },
   };
@@ -279,20 +279,20 @@ function applyGoOutTableSize(
   tableRole?: WarpTableRole
 ): WarpSkillProfile {
   if (playerCount <= 2) {
-    if (level === 'beginner') {
+    if (level === 'ensign') {
       return {
         ...profile,
         blunderRate: Math.min(0.68, profile.blunderRate + 0.06),
         temperature: profile.temperature * 1.08,
       };
     }
-    if (level === 'intermediate') {
+    if (level === 'lieutenant') {
       return {
         ...profile,
         blunderRate: Math.min(0.22, profile.blunderRate + 0.08),
       };
     }
-    if (level === 'advanced') {
+    if (level === 'commander') {
       return {
         ...profile,
         weights: scaleWeights(profile.weights, {
@@ -311,7 +311,7 @@ function applyGoOutTableSize(
   const isOpponent = tableRole === 'opponent';
   const isFocus = tableRole === 'focus';
 
-  if (level === 'beginner') {
+  if (level === 'ensign') {
     return {
       ...profile,
       blunderRate: Math.min(
@@ -322,7 +322,7 @@ function applyGoOutTableSize(
     };
   }
 
-  if (level === 'intermediate') {
+  if (level === 'lieutenant') {
     if (isOpponent) {
       return {
         ...profile,
@@ -398,7 +398,7 @@ export function getAdvisorSkillProfile(
   playerCount?: number
 ): WarpSkillProfile {
   const base = getWarpSkillProfile(
-    'advanced',
+    'commander',
     objective,
     playerCount,
     'focus'
@@ -424,7 +424,7 @@ export function resolveProfileGoOutTuning(
 
 /**
  * Lookahead baked into each tier for ELO calibration — not user-configurable.
- * Beginner/intermediate: greedy heuristics only.
+ * Beginner/lieutenant: greedy heuristics only.
  * Advanced go-out: depth 2 at 2p only; greedy at 3+ (multi-opponent race / search noise).
  * Advanced penalty: greedy (search hurt calibration at 2p).
  */
@@ -436,7 +436,7 @@ export function resolveWarpLookahead(
   if (objective !== 'go-out' || playerCount === undefined || playerCount >= 3) {
     return undefined;
   }
-  if (level !== 'advanced') {
+  if (level !== 'commander') {
     return undefined;
   }
   if (playerCount <= 2) {

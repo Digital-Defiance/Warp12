@@ -26,6 +26,10 @@ export function HomePage() {
           subspace fractures, All Stop! drama, and Q-Continuum chaos. Play a quick first-out sprint or a full penalty
           campaign across thirteen spacedock rounds.
         </p>
+        <Link to="/about" className={styles.heroLink}>
+          About Warp 12 — engine, TEI, and what we claim
+        </Link>
+        {' · '}
         <Link to="/rules" className={styles.heroLink}>
           Read the Navigational Operations Manual
         </Link>
@@ -85,6 +89,9 @@ export function HomePage() {
         <div>© 2026 Digital Defiance, Jessica Mulein</div>
         <div>
           &lt; <a className="no-underline" target="_blank" rel="noopener noreferrer" href="https://github.com/Digital-Defiance/Warp12">GitHub</a>&nbsp;|&nbsp;
+          <Link to="/about" className="no-underline">
+            About
+          </Link>&nbsp;|&nbsp;
           <Link to="/privacy" className="no-underline">
             Privacy Policy
           </Link>&nbsp;|&nbsp;<a className="no-underline" target="_blank" rel="noopener noreferrer" href="https://github.com/Digital-Defiance/Warp12/blob/main/LICENSE">MIT License</a> &gt;</div>

@@ -13,6 +13,8 @@ export interface TableOptionsPrefs {
   captainTailsHud: boolean;
   captainTailsDisplay: CaptainTailsDisplay;
   turnBeepsEnabled: boolean;
+  /** Loop TNG bridge ambience under table SFX. */
+  bridgeSoundsEnabled: boolean;
   /** When true, advisor report reviews every captain's charts (not just yours). */
   advisorIncludeAllCaptains: boolean;
 }
@@ -31,6 +33,7 @@ export const DEFAULT_TABLE_OPTIONS: TableOptionsPrefs = {
   captainTailsHud: false,
   captainTailsDisplay: 'number',
   turnBeepsEnabled: false,
+  bridgeSoundsEnabled: true,
   advisorIncludeAllCaptains: false,
 };
 
@@ -99,6 +102,9 @@ function sanitizePartial(raw: unknown): Partial<TableOptionsPrefs> {
   }
   if (typeof value.turnBeepsEnabled === 'boolean') {
     next.turnBeepsEnabled = value.turnBeepsEnabled;
+  }
+  if (typeof value.bridgeSoundsEnabled === 'boolean') {
+    next.bridgeSoundsEnabled = value.bridgeSoundsEnabled;
   }
   if (typeof value.advisorIncludeAllCaptains === 'boolean') {
     next.advisorIncludeAllCaptains = value.advisorIncludeAllCaptains;

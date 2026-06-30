@@ -229,17 +229,6 @@ describe('warpCandidateGenerator', () => {
     ]);
   });
 
-  it('forces the round winner to call all stop when required', () => {
-    const round = makeRound({
-      hands: { a: [N(1, 2)], b: [] },
-      allStopRequired: true,
-      allStopDeclared: false,
-      roundWinnerId: 'a',
-    });
-    expect(warpCandidateGenerator(obsFor(round))).toEqual([
-      { kind: 'all-stop' },
-    ]);
-  });
 });
 
 describe('toGameAction', () => {
@@ -296,11 +285,11 @@ describe('createWarpAiPlayer — skill spectrum', () => {
 
   it('advanced almost always dumps the heavier tile; beginner is erratic', () => {
     const advanced = createWarpAiPlayer({
-      skill: getWarpSkillProfile('advanced'),
+      skill: getWarpSkillProfile('commander'),
       rng: mulberry32(11),
     });
     const beginner = createWarpAiPlayer({
-      skill: getWarpSkillProfile('beginner'),
+      skill: getWarpSkillProfile('ensign'),
       rng: mulberry32(11),
     });
 
@@ -313,7 +302,7 @@ describe('createWarpAiPlayer — skill spectrum', () => {
 
   it('every decision is one of the generated candidates', () => {
     const advanced = createWarpAiPlayer({
-      skill: getWarpSkillProfile('advanced'),
+      skill: getWarpSkillProfile('commander'),
       rng: mulberry32(3),
     });
     const legal = new Set(
@@ -336,11 +325,11 @@ describe('createWarpAiPlayer — RULES.md tactics', () => {
     const danger = N(12, 12);
 
     const advanced = createWarpAiPlayer({
-      skill: getWarpSkillProfile('advanced'),
+      skill: getWarpSkillProfile('commander'),
       rng: mulberry32(21),
     });
     const beginner = createWarpAiPlayer({
-      skill: getWarpSkillProfile('beginner'),
+      skill: getWarpSkillProfile('ensign'),
       rng: mulberry32(21),
     });
 
@@ -389,11 +378,11 @@ describe('createWarpAiPlayer — RULES.md tactics', () => {
     const qFlash = N(0, 0);
 
     const withModule = createWarpAiPlayer({
-      skill: getWarpSkillProfile('advanced'),
+      skill: getWarpSkillProfile('commander'),
       rng: mulberry32(44),
     });
     const without = createWarpAiPlayer({
-      skill: getWarpSkillProfile('advanced'),
+      skill: getWarpSkillProfile('commander'),
       rng: mulberry32(44),
     });
 
@@ -414,22 +403,9 @@ describe('createWarpAiPlayer — RULES.md tactics', () => {
 });
 
 describe('createWarpAiPlayer — control flow & determinism', () => {
-  it('calls All Stop through decideGameAction when obligated', () => {
-    const round = makeRound({
-      hands: { a: [N(1, 2)], b: [] },
-      allStopRequired: true,
-      roundWinnerId: 'a',
-    });
-    const player = createWarpAiPlayer({
-      skill: getWarpSkillProfile('advanced'),
-      rng: mulberry32(1),
-    });
-    expect(player.decide(obsFor(round)).kind).toBe('all-stop');
-  });
-
   it('decideGameAction returns null when there is no active round', () => {
     const player = createWarpAiPlayer({
-      skill: getWarpSkillProfile('beginner'),
+      skill: getWarpSkillProfile('ensign'),
       rng: mulberry32(1),
     });
     const noRound: GameState = {
@@ -448,7 +424,7 @@ describe('createWarpAiPlayer — control flow & determinism', () => {
     const round = makeRound({ hands: { a: [N(5, 12), N(9, 12)], b: [] } });
     const decisions = (): string[] => {
       const player = createWarpAiPlayer({
-        skill: getWarpSkillProfile('intermediate'),
+        skill: getWarpSkillProfile('lieutenant'),
         rng: mulberry32(2024),
       });
       return Array.from({ length: 15 }, () =>
@@ -471,7 +447,7 @@ describe('createWarpAiPlayer — extensibility', () => {
           : 0,
     };
 
-    const base = WARP_SKILL_PRESETS.advanced;
+    const base = WARP_SKILL_PRESETS.commander;
     const player = createWarpAiPlayer({
       skill: {
         ...base,
@@ -492,7 +468,7 @@ describe('createWarpAiPlayer — extensibility', () => {
   it('accepts a custom candidate generator (house rules)', () => {
     const round = makeRound({ hands: { a: [N(5, 12), N(9, 12)], b: [] } });
     const player = createWarpAiPlayer({
-      skill: getWarpSkillProfile('advanced'),
+      skill: getWarpSkillProfile('commander'),
       generateCandidates: () => [{ kind: 'draw' }],
       rng: mulberry32(1),
     });
@@ -506,7 +482,7 @@ describe('createWarpAiPlayer — full self-play integration', () => {
     const players: Record<string, WarpAiPlayer> = {};
     CAPTAINS.forEach((captain, index) => {
       players[captain.id] = createWarpAiPlayer({
-        skill: getWarpSkillProfile('advanced'),
+        skill: getWarpSkillProfile('commander'),
         rng: mulberry32(100 + index),
       });
     });
@@ -652,7 +628,7 @@ describe('createWarpAiPlayer — Drop to Impulse & ceremonies', () => {
       unchartedSectors: [N(0, 1)],
     });
     const player = createWarpAiPlayer({
-      skill: getWarpSkillProfile('advanced'),
+      skill: getWarpSkillProfile('commander'),
       rng: mulberry32(3),
     });
     expect(player.decide(impulseObs(round, 'b')).kind).toBe(
@@ -666,7 +642,7 @@ describe('createWarpAiPlayer — Drop to Impulse & ceremonies', () => {
       dropToImpulseCallPending: 'a',
     });
     const player = createWarpAiPlayer({
-      skill: getWarpSkillProfile('advanced'),
+      skill: getWarpSkillProfile('commander'),
       rng: mulberry32(7),
     });
     expect(
@@ -680,7 +656,7 @@ describe('createWarpAiPlayer — Drop to Impulse & ceremonies', () => {
       dropToImpulseCallPending: 'a',
     });
     const beginner = createWarpAiPlayer({
-      skill: getWarpSkillProfile('beginner'),
+      skill: getWarpSkillProfile('ensign'),
       rng: mulberry32(99),
     });
     const forgetRate = rate(
@@ -699,7 +675,7 @@ describe('createWarpAiPlayer — Drop to Impulse & ceremonies', () => {
       table: tableWithOwnTrailOpen(5),
     });
     const player = createWarpAiPlayer({
-      skill: getWarpSkillProfile('advanced'),
+      skill: getWarpSkillProfile('commander'),
       rng: mulberry32(1),
       objective: 'go-out',
     });
@@ -711,40 +687,6 @@ describe('createWarpAiPlayer — Drop to Impulse & ceremonies', () => {
         200
       )
     ).toBeGreaterThan(0.95);
-  });
-
-  it('never voluntarily returns to warp when All Stop is required', () => {
-    const round = makeRound({
-      hands: { a: [N(1, 2)], b: [] },
-      allStopRequired: true,
-      roundWinnerId: 'a',
-      unchartedSectors: [N(3, 4)],
-    });
-    const player = createWarpAiPlayer({
-      skill: getWarpSkillProfile('advanced'),
-      rng: mulberry32(1),
-    });
-    expect(
-      rate(
-        player,
-        obsFor(round),
-        (action) => action.kind === 'return-to-warp',
-        300
-      )
-    ).toBe(0);
-    expect(player.decide(obsFor(round)).kind).toBe('all-stop');
-  });
-
-  it('includes return-to-warp in candidates when pile has tiles', () => {
-    const round = makeRound({
-      hands: { a: [N(1, 2)], b: [] },
-      allStopRequired: true,
-      roundWinnerId: 'a',
-      unchartedSectors: [N(3, 4)],
-    });
-    const kinds = warpCandidateGenerator(obsFor(round)).map((action) => action.kind);
-    expect(kinds).toContain('all-stop');
-    expect(kinds).toContain('return-to-warp');
   });
 
   it('decideOffTurnGameAction catches via the engine path', () => {
@@ -764,7 +706,7 @@ describe('createWarpAiPlayer — Drop to Impulse & ceremonies', () => {
       objective: 'penalty',
     };
     const player = createWarpAiPlayer({
-      skill: getWarpSkillProfile('advanced'),
+      skill: getWarpSkillProfile('commander'),
       rng: mulberry32(1),
     });
     expect(player.decideOffTurnGameAction(state, 'b')).toEqual({

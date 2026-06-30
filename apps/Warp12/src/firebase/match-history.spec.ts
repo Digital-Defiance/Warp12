@@ -4,14 +4,14 @@ import {
   appendMatchHistory,
   MAX_MATCH_HISTORY,
   recentDecisionTrend,
-  recentEloTrend,
+  recentTeiTrend,
 } from './match-history.js';
 import type { MatchHistoryEntry } from './stats-schema.js';
 
 const baseEntry = (overrides: Partial<MatchHistoryEntry> = {}): MatchHistoryEntry => ({
   playedAt: Date.now(),
   objective: 'go-out',
-  opponentSkill: 'intermediate',
+  opponentSkill: 'lieutenant',
   won: true,
   advisorUsed: false,
   ...overrides,
@@ -40,28 +40,28 @@ describe('match-history', () => {
     ]);
   });
 
-  it('filters ELO trend to unassisted matches for the objective', () => {
+  it('filters TEI trend to unassisted matches for the objective', () => {
     const history = [
       baseEntry({
         objective: 'go-out',
-        eloAfter: 1200,
+        teiAfter: 1200,
         advisorUsed: false,
         playedAt: 2,
       }),
       baseEntry({
         objective: 'go-out',
-        eloAfter: 1180,
+        teiAfter: 1180,
         advisorUsed: true,
         playedAt: 1,
       }),
       baseEntry({
         objective: 'penalty',
-        eloAfter: 900,
+        teiAfter: 900,
         advisorUsed: false,
         playedAt: 0,
       }),
     ];
-    expect(recentEloTrend(history, 'go-out')).toEqual([
+    expect(recentTeiTrend(history, 'go-out')).toEqual([
       { label: '1', value: 1200 },
     ]);
   });

@@ -203,6 +203,39 @@ describe('drop to impulse house rule', () => {
     expect(result.state.round?.unchartedSectors).toHaveLength(0);
   });
 
+  it('draws two tiles when the house rule sets a 2-tile catch penalty', () => {
+    const tiles = [T(0, 1), T(1, 2), T(2, 3)];
+    const round = makeRound(['a', 'b'], {
+      activePlayerId: 'b',
+      hands: { a: [T(3, 4)], b: [] },
+      dropToImpulseCatchable: 'a',
+      unchartedSectors: tiles,
+    });
+    const state = makeGame(round, {
+      houseRules: resolveHouseRules({
+        dropToImpulseCall: true,
+        dropToImpulseCatchPenalty: 2,
+      }),
+    });
+
+    const result = applyAction(state, {
+      type: 'CATCH_DROP_TO_IMPULSE',
+      challengerId: 'b',
+      targetPlayerId: 'a',
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    expect(result.state.round?.hands.a).toEqual([
+      T(3, 4),
+      T(0, 1),
+      T(1, 2),
+    ]);
+    expect(result.state.round?.unchartedSectors).toEqual([T(2, 3)]);
+  });
+
   it('closes the catch window after the next helm pass', () => {
     const round = passableForPlayer('b', {
       activePlayerId: 'b',

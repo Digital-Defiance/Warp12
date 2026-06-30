@@ -1,6 +1,6 @@
 [package]
 name = "warp12"
-version = "0.1.0"
+version = "0.2.0"
 description = "Warp 12 — Star Trek Mexican Train dominoes"
 authors = ["Jessica Mulein"]
 license = "MIT"

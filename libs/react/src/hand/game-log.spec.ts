@@ -5,6 +5,7 @@ import {
   buildGameLogEntry,
   buildRoundLogExport,
   buildRoundOutcomeEntry,
+  buildRoundRatingsEntry,
   buildRoundStartedEntry,
   createGameLog,
   formatGameLogLine,
@@ -186,6 +187,27 @@ describe('game-log', () => {
       formatOptions
     );
     expect(started).toBe('00:00 - Round 2 begins · Spacedock 11');
+
+    const ratings = formatGameLogLine(
+      buildRoundRatingsEntry(
+        [
+          { captainId: 'picard', tei: 1180 },
+          {
+            captainId: 'riker',
+            tei: 1200,
+            tacticalClass: 'Class III',
+            reference: true,
+          },
+        ],
+        2,
+        '2026-06-28T21:00:00.000Z'
+      ),
+      { picard: 'Picard', riker: 'Riker' },
+      formatOptions
+    );
+    expect(ratings).toBe(
+      '00:00 - Ratings · Picard TEI 1180 · Riker ~TEI 1200 · Class III'
+    );
 
     const pass = formatGameLogLine(
       {

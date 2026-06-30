@@ -12,10 +12,12 @@ import {
 } from './bridge-header-status-context';
 import { GameAudioProvider } from './game-audio-context';
 import { preservesGameSession } from './game-route';
+import { AboutPage } from './about-page';
 import { LocalGamePage } from './local-game-page';
 import { HomePage } from './home-page';
 import { OnlineGamePage } from './online-game-page';
 import { OnlineLobbyPage } from './online-lobby-page';
+import { PaperPage } from './paper-page';
 import { ProfilePage } from './profile-page';
 import { PrivacyDialog } from './privacy-dialog';
 import { PrivacyPage } from './privacy-page';
@@ -103,6 +105,12 @@ function AppShell() {
             </>
           ) : (
             <>
+              <Link to="/about" className={styles.navLink}>
+                About
+              </Link>
+              <Link to="/paper" className={styles.navLink}>
+                Research
+              </Link>
               <Link to="/rules" className={styles.navLink}>
                 Rules
               </Link>
@@ -121,6 +129,9 @@ function AppShell() {
         <div className={layoutFocus ? styles.mainStage : undefined}>
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/paper" element={<PaperPage />} />
+            <Route path="/paper/log" element={<PaperPage />} />
             <Route path="/rules" element={<RulesPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/local" element={<LocalGamePage />} />

@@ -12,6 +12,7 @@ interface TrailSpokeIndicatorsProps {
   hubSlots: number;
   spokes: readonly TrailSpokeStatus[];
   coachByCaptain?: Readonly<Record<string, CoachIndicator>>;
+  tacticalClassLabelByCaptain?: Readonly<Record<string, string>>;
 }
 
 export function TrailSpokeIndicators({
@@ -21,6 +22,7 @@ export function TrailSpokeIndicators({
   hubSlots,
   spokes,
   coachByCaptain = {},
+  tacticalClassLabelByCaptain = {},
 }: TrailSpokeIndicatorsProps) {
   const badgeDistance = hubRadius + BADGE_HUB_PADDING;
 
@@ -36,6 +38,10 @@ export function TrailSpokeIndicators({
           spoke.captainId != null
             ? coachByCaptain[spoke.captainId]
             : undefined;
+        const tacticalClass =
+          spoke.captainId != null
+            ? tacticalClassLabelByCaptain[spoke.captainId]
+            : undefined;
 
         return (
           <div
@@ -46,14 +52,14 @@ export function TrailSpokeIndicators({
               left: `${x}px`,
               top: `${y}px`,
             }}
-            aria-label={badgeAriaLabel(spoke, coach)}
+            aria-label={badgeAriaLabel(spoke, coach, tacticalClass)}
           >
             <span className={styles.spokeIcon} aria-hidden>
               {stateIcon(spoke.state)}
             </span>
             <span className={styles.spokeLabel}>{stateLabel(spoke.state)}</span>
             <span className={styles.spokeTooltip} role="tooltip">
-              {spoke.captainId ? spoke.label : 'Neutral Zone'}
+              {tooltipText(spoke, tacticalClass)}
             </span>
             {coach && (
               <span
@@ -110,12 +116,24 @@ function stateTitle(spoke: TrailSpokeStatus): string {
   }
 }
 
+function tooltipText(
+  spoke: TrailSpokeStatus,
+  tacticalClass: string | undefined
+): string {
+  if (!spoke.captainId) {
+    return 'Neutral Zone';
+  }
+  return tacticalClass ? `${spoke.label} · ${tacticalClass}` : spoke.label;
+}
+
 function badgeAriaLabel(
   spoke: TrailSpokeStatus,
-  coach: CoachIndicator | undefined
+  coach: CoachIndicator | undefined,
+  tacticalClass: string | undefined
 ): string {
   const who = spoke.captainId ? spoke.label : 'Neutral Zone';
-  return `${who} · ${stateTitle(spoke)} · connects on ${spoke.connectValue}${
+  const classPart = tacticalClass ? ` · ${tacticalClass}` : '';
+  return `${who}${classPart} · ${stateTitle(spoke)} · connects on ${spoke.connectValue}${
     coach ? ' · tactical advisor engaged' : ''
   }`;
 }

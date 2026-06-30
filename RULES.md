@@ -4,7 +4,7 @@
 
 This document is the authoritative rules reference for Warp 12. **Sections I–V** follow published Mexican Train tournament practice (double-twelve set, engine double set aside before the deal, personal trains, Mexican Train / Neutral Zone, train markers, doubles, boneyard, multi-round scoring). **Section VI** lists optional Warp 12 modules agreed before launch.
 
-> **Digital implementation note:** Warp 12 enforces these rules in software. Live tournament directors may adopt the same text, but should confirm module toggles (Subspace Fracture, Q-Continuum, Salamander Penalty) and objective mode before play. This manual describes behavior when modules are **on** or **off** as stated in each section. **Section VII** describes AI officers and the tactical advisor (digital play only).
+> **Digital implementation note:** Warp 12 enforces these rules in software. Live tournament directors may adopt the same text, but should confirm module toggles (Subspace Fracture, Q-Continuum, Salamander Penalty) and objective mode before play. This manual describes behavior when modules are **on** or **off** as stated in each section. **Section VII** describes AI officers and the tactical advisor; **Section VIII** describes solo TEI and the public leaderboard (digital play only).
 
 ---
 
@@ -160,15 +160,15 @@ When Subspace Fracture is **off**, all doubles use **Red Alert only** (single co
 
 The round ends when one captain charts their **last** coordinate (empty hand) **and** no Red Alert or Subspace Fracture on that chart still requires satisfaction. You **cannot** go out on an open double — cover it (or complete three stabilizers when Subspace Fracture applies) before the sector closes.
 
-**All Stop!** If that winning chart was on the **Neutral Zone**, the winner must announce **"All Stop!"** before the sector closes. Helm is **held** until they do — no other captain may take a turn. Calling All Stop! ends the round and scores normally.
+**All Stop!** When the house rule is **on** (default), a round-winning chart on the **Neutral Zone** — or any go-out while **All Stop! echo** is active — ends the sector immediately and the app **automatically** logs and announces **All Stop!** (sound + round log). No helm hold and no manual button.
 
-If the winner does not call All Stop!, they may accept a penalty instead: draw **one** tile from Uncharted Sectors, clear the pending win, and the round **continues** (they do not win yet). On the digital table this is **Return to warp**. If Uncharted Sectors is empty, the penalty cannot be drawn until tiles are available or the sector blocks.
+Turn **All Stop! ceremony** off in game options for pure standard Mexican Train: Neutral Zone go-outs end the round silently, with no announcement.
 
-**All Stop! echo** (Q-Flash Module Alpha): when active, **any** round-winning chart (not only the Neutral Zone) requires calling All Stop! before scoring — same hold, penalty, and Return to warp rules as above.
+**All Stop! echo** (Q-Flash Module Alpha): when active, **any** round-winning chart triggers the same auto ceremony when the house rule is on.
 
 **Drop to Impulse** *(house rule — off by default)*: when a captain charts down to **one** coordinate remaining, their turn **continues** — they may still chart, draw, cover Red Alert, or pass. They **may** announce **"Drop to Impulse!"** at any point that turn; announcing does **not** end the turn. They are **not** required to announce before passing.
 
-If they **pass** without announcing, any other captain may **catch** the miss while the catch window is open. A successful catch forces the forgetful captain to draw **one** penalty tile from Uncharted Sectors (if any remain). The window opens when they pass without announcing and **closes** when the **next** captain passes helm (if no one caught). This is separate from **All Stop!** (Neutral Zone / echo go-out ceremony).
+If they **pass** without announcing, any other captain may **catch** the miss while the catch window is open. A successful catch forces the forgetful captain to draw **one** penalty tile from Uncharted Sectors (if any remain). The window opens when they pass without announcing and **closes** when the **next** captain passes helm (if no one caught). This is separate from **All Stop!** ceremony.
 
 ### Blocked sector
 
@@ -261,9 +261,17 @@ An AI captain has the same **public** information you do:
 
 An AI officer **cannot** see which specific coordinates are in an opponent's hand. It does not read hidden tiles from the game state when choosing a move.
 
-### Skill (Beginner / Intermediate / Advanced)
+### Tactical Class (IV / III / II)
 
-Controls how often the officer blunders and how sharply it prefers high-scoring lines. All skill levels still obey the same legal-move and rules-engine constraints.
+Everyone at the table is a **Captain** (seat role). **Tactical Class** is proficiency on file — not chain-of-command rank:
+
+| Class | Profile |
+| --- | --- |
+| **Class IV** | Provisional / new profile — more blunders, lighter heuristics |
+| **Class III** | Competent / standard |
+| **Class II** | Veteran / sharp — tighter heuristics and deeper search where enabled |
+
+Controls how often the officer blunders and how sharply it prefers high-scoring lines. All classes still obey the same legal-move and rules-engine constraints.
 
 ### Lookahead (per-officer opt-in)
 
@@ -275,11 +283,88 @@ When **Lookahead** is **on**, the officer **forward-searches** before acting:
 2. Because opponent hands and the draw order are hidden, each simulation **guesses** plausible holdings: opponents receive a random assignment from the pool of tiles not on the table and not in the AI's hand, while preserving each opponent's **actual hand count**. Uncharted Sectors are filled from the same unseen pool.
 3. The search repeats that guess several times (**determinizations**), averages the outcomes, and picks the move that tends to work best across those possible worlds.
 
-Lookahead is **imperfect-information search** — not clairvoyance. It is slower but can reason about consequences (for example, whether a play sets up an opponent to go out). Skill level still applies on top (blunders and noisy tie-breaking).
+Lookahead is **imperfect-information search** — not clairvoyance. It is slower but can reason about consequences (for example, whether a play sets up an opponent to go out). Tactical class still applies on top (blunders and noisy tie-breaking).
 
 ### Tactical advisor
 
-The tactical advisor always uses **Advanced** skill with **Lookahead** enabled. It suggests one move plus plain-language reasons so humans can see *why* a line is strong, not only what to play.
+The tactical advisor always uses the **Class II** simulation profile with **Lookahead** enabled. It suggests one move plus plain-language reasons so humans can see *why* a line is strong, not only what to play.
+
+Invoking the tactical advisor **during live play** marks the match as **assisted** for rating purposes (Section VIII). Post-match advisor reports and campaign downloads do **not** affect whether a match is rated.
+
+---
+
+## VIII. Solo TEI & leaderboard *(digital)*
+
+Local solo sectors against **AI officers** can report results to **[leaderboard.warp12.app](https://leaderboard.warp12.app)** when the client is signed in to Firebase. Team campaigns, unrated lobby modes, and builds without a working stats backend do not update the public boards.
+
+### Lexicon
+
+| Term | Meaning |
+| --- | --- |
+| **Captain** | Seat at the table — every player is a Captain |
+| **TEI** (Tactical Efficiency Index) | Your displayed solo rating number |
+| **Tactical Class I–IV** | Proficiency on file — not military rank. Class IV–II map to AI simulation tiers; **Class I** is elite human prestige earned through high TEI |
+
+### Two independent tracks
+
+Your solo TEI is **not** one number — the app keeps separate ratings for each **objective** and each **AI tactical class** you face:
+
+| Track | When it applies |
+| --- | --- |
+| **Go-out TEI** | First captain to empty their hand wins the sector |
+| **Penalty TEI** | Lowest cumulative penalty when the campaign ends *(or the round, in single-round solo)* |
+
+Each track is further split by opponent profile: **Class IV**, **Class III**, and **Class II**. Beating Class II officers does not move your Class IV bucket.
+
+### Starfleet Academy placement
+
+Before your first rated match in each track, the app asks for a **tactical classification** separately for **go-out** and **penalty**. Choose **Class IV**, **Class III**, or **Class II** on each track (with a short self-description), then fine-tune a **starting TEI** within that class’s band. You might place as Class II for go-out and Class IV for penalty. Each track is saved **once**; after you save placement for a track — or after your first unassisted rated match in that track — its starting TEI field locks. **Class I** is not selectable at onboarding — it is earned.
+
+| Class | Self-description | Penalty TEI band | Go-out TEI band |
+| --- | --- | --- | --- |
+| **Class IV** | New to dominoes | 400–1050 | 400–1125 |
+| **Class III** | Knows Mexican Train | 1050–1300 | 1125–1375 |
+| **Class II** | Seasoned strategist | 1300–1800 | 1375–1800 |
+
+### Fixed opponent reference TEI
+
+Unassisted matches are scored against **fixed** reference ratings — not the other chairs' live TEI:
+
+| Track | Class IV | Class III | Class II |
+| --- | --- | --- | --- |
+| **Penalty** | ~TEI 1000 | ~TEI 1200 | ~TEI 1400 |
+| **Go-out** | ~TEI 1000 | ~TEI 1250 | ~TEI 1500 |
+
+Go-out uses wider steps because race outcomes are noisier than penalty campaigns. The leaderboard also shows **percentile** (top X%) within each board so rank stays meaningful when raw TEI gaps compress.
+
+### How your TEI moves
+
+After each **rated** match, the app applies a standard Elo update: expected score from the rating gap, then adjust by win (1) or loss (0). **K-factor** (how fast TEI moves) depends on how many unassisted matches you have already played in that bucket:
+
+| Unassisted matches in bucket | K-factor |
+| --- | --- |
+| First 10 | 40 |
+| 11–30 | 32 |
+| 31+ | 24 |
+
+Early games swing more; veterans stabilize.
+
+### Starting TEI *(Academy)*
+
+Before your **first rated** match in each track, complete **Starfleet Academy placement** for that track: pick Class IV, Class III, or Class II, then save a starting TEI within that class’s band. Tracks are independent — strong at go-out but new to penalty campaigns is fine. If you skip placement and play unassisted, the first match in that track’s bucket begins from **TEI 1000**.
+
+### What counts as rated
+
+Only **unassisted** solo matches update TEI:
+
+- **Rated:** you played without invoking the in-game **tactical advisor** during live turns.
+- **Assisted:** you requested a coach suggestion during play. The win or loss still appears in your profile and general stats, but **TEI does not move**. Assisted wins are tracked separately (`advisorMatches` / `advisorWins`).
+
+Downloading a post-match advisor report or campaign analysis does **not** disqualify a match.
+
+### After the sector
+
+When a rated match completes, the sector summary shows TEI **before → after** and the delta when applicable. If Firebase is unavailable, local decision-quality feedback may still run, but the TEI is not saved.
 
 ---
 
@@ -299,7 +384,8 @@ The tactical advisor always uses **Advanced** skill with **Lookahead** enabled. 
 | Round starter plays two | Optional Deluxe variant | House rule — opt-in |
 | 0-0 anomaly | — | Q-Continuum — opt-in |
 | 12-12 hand penalty | — | Salamander — opt-in (default on) |
-| NZ win announcement | — | All Stop! (helm held until called or Return to warp penalty) |
+| NZ win announcement | — | All Stop! ceremony (opt-in house rule, default on — auto log/sound) |
 | One tile left announce | — | Drop to Impulse — house rule, opt-in |
 | Blocked boneyard | Round ends, all score | Blocked sector — same |
 | AI officers / tactical advisor | — | Section VII — digital only |
+| Solo TEI vs AI | — | Section VIII — leaderboard.warp12.app; unassisted matches only |
