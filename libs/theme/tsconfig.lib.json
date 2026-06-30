@@ -11,11 +11,6 @@
     "types": ["node", "vite/client"]
   },
   "include": ["src/**/*.ts"],
-  "references": [
-    {
-      "path": "../../vendor/DoubleTwelve"
-    }
-  ],
   "exclude": [
     "vite.config.ts",
     "vite.config.mts"

@@ -7,6 +7,12 @@ import {
   neutralZoneOpenValue,
   trailOpenValue,
 } from '../table/table-state.js';
+import type { GoOutTuning } from './go-out-tuning.js';
+import { DEFAULT_GO_OUT_TUNING } from './go-out-tuning.js';
+import {
+  resolveGoOutRacePhase,
+  type GoOutRacePhase,
+} from './go-out-race.js';
 import type { WarpAiObservation } from './observation.js';
 
 /** Shared, pre-computed turn data handed to every Warp heuristic. */
@@ -16,6 +22,8 @@ export interface WarpEvalContext {
   /** Coordinates neither in this captain's hand nor already on the table. */
   readonly unseen: readonly Coordinate[];
   readonly rng: Rng;
+  readonly goOutTuning: GoOutTuning;
+  readonly goOutRacePhase: GoOutRacePhase;
 }
 
 /** Every coordinate currently visible on the table (spacedock, trails, zone, fracture). */
@@ -72,7 +80,8 @@ export function connectingValueForRoute(
 
 export function buildWarpContext(
   obs: WarpAiObservation,
-  rng: Rng
+  rng: Rng,
+  goOutTuning: GoOutTuning = DEFAULT_GO_OUT_TUNING
 ): WarpEvalContext {
   const hand = obs.round.hands[obs.playerId] ?? [];
 
@@ -87,5 +96,12 @@ export function buildWarpContext(
     (coordinate) => !seen.has(coordinateKey(coordinate))
   );
 
-  return { obs, hand, unseen, rng };
+  return {
+    obs,
+    hand,
+    unseen,
+    rng,
+    goOutTuning,
+    goOutRacePhase: resolveGoOutRacePhase(obs, hand.length, goOutTuning),
+  };
 }

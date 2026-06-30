@@ -40,7 +40,15 @@
       "icons/icon.ico"
     ],
     "android": {
+      "minSdkVersion": 21,
+      "versionCode": 4,
       "debugApplicationIdSuffix": ".debug"
+    },
+    "iOS": {
+      "developmentTeam": "J6887N729S",
+      "minimumSystemVersion": "14.0",
+      "bundleVersion": "3",
+      "infoPlist": "./Info.ios.plist"
     }
   }
 }

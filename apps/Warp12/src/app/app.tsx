@@ -16,6 +16,7 @@ import { LocalGamePage } from './local-game-page';
 import { HomePage } from './home-page';
 import { OnlineGamePage } from './online-game-page';
 import { OnlineLobbyPage } from './online-lobby-page';
+import { ProfilePage } from './profile-page';
 import { PrivacyDialog } from './privacy-dialog';
 import { PrivacyPage } from './privacy-page';
 import { RulesDialog } from './rules-dialog';
@@ -108,6 +109,9 @@ function AppShell() {
               <Link to="/privacy" className={styles.navLink}>
                 Privacy
               </Link>
+              <Link to="/profile" className={styles.navLink}>
+                Profile
+              </Link>
             </>
           )}
         </nav>
@@ -120,6 +124,7 @@ function AppShell() {
             <Route path="/rules" element={<RulesPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/local" element={<LocalGamePage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/online" element={<OnlineLobbyPage />} />
             <Route path="/online/:gameId" element={<OnlineLobbyPage />} />
             <Route path="/online/:gameId/play" element={<OnlineGamePage />} />

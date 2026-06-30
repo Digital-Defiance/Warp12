@@ -16,9 +16,6 @@
   "references": [
     {
       "path": "../engine/tsconfig.lib.json"
-    },
-    {
-      "path": "../../vendor/DoubleTwelve"
     }
   ],
   "exclude": [

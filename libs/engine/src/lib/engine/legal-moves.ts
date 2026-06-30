@@ -20,6 +20,7 @@ import {
 import { coordinateKey } from '../types/coordinate.js';
 import { trailsOpenToOthers } from './q-continuum.js';
 import { resolveDeadRedAlert } from './dead-red-alert.js';
+import { isDropToImpulseAnnouncePending } from './drop-to-impulse.js';
 import {
   canChartOnNeutralZone,
   canChartOnOpponentTrail,
@@ -122,6 +123,10 @@ export function getLegalMoves(
     round.qPendingInvoker === playerId ||
     round.qGamblePending?.playerId === playerId
   ) {
+    return [];
+  }
+
+  if (isDropToImpulseAnnouncePending(round, playerId, houseRules)) {
     return [];
   }
 

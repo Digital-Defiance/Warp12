@@ -31,7 +31,6 @@ export function aiCaptainToConfig(
     id: captain.id,
     displayName: captain.displayName,
     skill: captain.skill ?? 'intermediate',
-    useLookahead: captain.useLookahead ?? false,
     poolId: poolId || undefined,
   };
 }

@@ -1,4 +1,21 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "playerStats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "matchesWon", "order": "DESCENDING" },
+        { "fieldPath": "matchesCompleted", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "publishedLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "visibility", "order": "ASCENDING" },
+        { "fieldPath": "publishedAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

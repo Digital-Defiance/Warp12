@@ -13,7 +13,6 @@ export interface AiCaptainConfig {
   readonly id: string;
   readonly displayName: string;
   readonly skill: WarpSkillLevel;
-  readonly useLookahead?: boolean;
   /** Officer pool slot when the captain was created from {@link AI_OFFICER_POOL}. */
   readonly poolId?: string;
 }
@@ -56,7 +55,6 @@ export function buildAiCaptains(aiCount: number): AiCaptainConfig[] {
   return AI_OFFICER_POOL.slice(0, capped).map((officer, index) => ({
     ...officer,
     skill: index === capped - 1 && capped >= 2 ? 'advanced' : 'intermediate',
-    useLookahead: index === capped - 1 && capped >= 2,
   }));
 }
 

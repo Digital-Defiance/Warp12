@@ -73,7 +73,7 @@ describe('drop to impulse house rule', () => {
     expect(result.state.round?.hands.a).toHaveLength(1);
   });
 
-  it('declares without ending the turn', () => {
+  it('declares and ends the turn', () => {
     const round = passableForPlayer('a', {
       activePlayerId: 'a',
       hands: { a: [T(3, 4)], b: [] },
@@ -92,7 +92,71 @@ describe('drop to impulse house rule', () => {
     }
     expect(result.state.round?.dropToImpulseCallPending).toBeNull();
     expect(result.state.round?.dropToImpulseCatchable).toBeNull();
-    expect(result.state.round?.activePlayerId).toBe('a');
+    expect(result.state.round?.activePlayerId).toBe('b');
+    expect(result.state.round?.hands.a).toHaveLength(1);
+  });
+
+  it('blocks charting the last coordinate while announce is pending', () => {
+    const base = makeRound(['a', 'b'], { activePlayerId: 'a', spacedockValue: 12 });
+    const round = makeRound(['a', 'b'], {
+      activePlayerId: 'a',
+      spacedockValue: 12,
+      dropToImpulseCallPending: 'a',
+      hands: { a: [T(3, 4)], b: [] },
+      table: {
+        ...base.table,
+        spacedock: { value: 12, placedBy: 'a' },
+        warpTrails: {
+          ...base.table.warpTrails,
+          a: {
+            ...base.table.warpTrails.a,
+            tiles: [placed(T(12, 3), 0, 12)],
+          },
+        },
+      },
+    });
+    const state = impulseGame(round);
+
+    const result = applyAction(state, {
+      type: 'CHART_COORDINATE',
+      playerId: 'a',
+      coordinate: T(3, 4),
+      route: { kind: 'warp-trail', playerId: 'a' },
+    });
+
+    expect(result.ok).toBe(false);
+  });
+
+  it('allows passing helm without declaring even when shields are up', () => {
+    const base = makeRound(['a', 'b'], { activePlayerId: 'a', spacedockValue: 12 });
+    const round = makeRound(['a', 'b'], {
+      activePlayerId: 'a',
+      spacedockValue: 12,
+      dropToImpulseCallPending: 'a',
+      hands: { a: [T(3, 4)], b: [] },
+      table: {
+        ...base.table,
+        spacedock: { value: 12, placedBy: 'a' },
+        warpTrails: {
+          ...base.table.warpTrails,
+          a: {
+            ...base.table.warpTrails.a,
+            tiles: [placed(T(12, 3), 0, 12)],
+            distressBeacon: { active: false },
+          },
+        },
+      },
+    });
+    const state = impulseGame(round);
+
+    const result = applyAction(state, { type: 'PASS_TURN', playerId: 'a' });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    expect(result.state.round?.dropToImpulseCatchable).toBe('a');
+    expect(result.state.round?.activePlayerId).toBe('b');
   });
 
   it('opens a catch window when the captain passes without declaring', () => {

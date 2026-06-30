@@ -8,7 +8,6 @@ import {
   type FirestoreGameDocument,
 } from '../firebase';
 import { isAiCaptain, pickNextAiOfficer } from '../game/ai-captain.js';
-import { LOOKAHEAD_TOOLTIP } from '../game/ai-lookahead.js';
 import styles from './lobby.module.scss';
 
 interface OnlineAiOfficersPanelProps {
@@ -53,7 +52,6 @@ export function OnlineAiOfficersPanel({
     patch: {
       displayName?: string;
       skill?: WarpSkillLevel;
-      useLookahead?: boolean;
     }
   ) => {
     if (!uid || uid !== hostId) {
@@ -122,19 +120,6 @@ export function OnlineAiOfficersPanel({
             <option value="intermediate">Intermediate</option>
             <option value="advanced">Advanced</option>
           </select>
-          <label className={styles.checkboxRow} title={LOOKAHEAD_TOOLTIP}>
-            <input
-              type="checkbox"
-              checked={captain.useLookahead ?? false}
-              disabled={busy}
-              onChange={(event) =>
-                void patchCaptain(captain, {
-                  useLookahead: event.target.checked,
-                })
-              }
-            />
-            <span>Lookahead</span>
-          </label>
         </div>
       ))}
     </fieldset>

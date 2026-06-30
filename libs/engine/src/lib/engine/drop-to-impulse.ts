@@ -3,7 +3,18 @@ import type { RoundState } from '../types/game-state.js';
 import type { PlayerId } from '../types/player.js';
 import { advanceActivePlayer } from './q-continuum.js';
 
-/** After charting down to one coordinate, mark declare-or-be-caught pending. */
+/** One tile left after charting — must announce or pass helm (standard knock timing). */
+export function isDropToImpulseAnnouncePending(
+  round: RoundState,
+  playerId: PlayerId,
+  houseRules: HouseRules
+): boolean {
+  return (
+    houseRules.dropToImpulseCall &&
+    round.dropToImpulseCallPending === playerId &&
+    (round.hands[playerId]?.length ?? 0) === 1
+  );
+}
 export function maybeMarkDropToImpulsePending(
   round: RoundState,
   playerId: PlayerId,

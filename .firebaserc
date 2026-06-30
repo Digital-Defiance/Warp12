@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "warp-12"
-  }
+  },
+  "targets": {
+    "warp-12": {
+      "hosting": {
+        "bridge": [
+          "warp-12"
+        ],
+        "leaderboard": [
+          "warp-12-leaderboard"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

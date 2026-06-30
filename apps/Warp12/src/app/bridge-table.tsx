@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   applyAction,
+  buildAdvisorReport,
   canDeployDistressBeacon,
   canPassRedAlert,
   canPassTurn,
@@ -15,6 +16,9 @@ import {
   isTrueRedAlert,
   trailOpenValue,
   type ActionResult,
+  type AdvisorActionLogEntry,
+  type AdvisorMoveReview,
+  type AdvisorReport,
   type ChartRoute,
   type Coordinate,
   type GameAction,
@@ -47,7 +51,10 @@ import {
   coordinateKey,
   displayCoordinateValues,
   useHandLayout,
+  summarizeAdvisorPerformance,
+  campaignAdvisorPlainText,
   type ActionLogSource,
+  type AdvisorPerformanceSummary,
   type CoachSuggestion,
   type TableFocusPoint,
   type TrailAccessState,
@@ -73,6 +80,18 @@ import {
   type CoachIndicator,
   type CoachPresence,
 } from '../firebase/coach-presence';
+import { isFirebaseConfigured } from '../firebase/config.js';
+import { reportLocalAiMatch } from '../firebase/stats-service.js';
+import { useFirebaseAuth } from '../firebase/use-firebase-auth.js';
+import {
+  classifyLocalAiMatchSkill,
+  humanWonLocalMatch,
+} from '../game/local-match-stats.js';
+import {
+  sectorWinnerName,
+} from '../game/sector-outcome.js';
+import type { LocalAiMatchReport } from '../firebase/stats-service.js';
+import { CampaignCompleteOverlay } from './campaign-complete-overlay.js';
 import {
   createWarpDominoTheme,
   WARP_PIP_COLORS,
@@ -104,6 +123,7 @@ import { RoundImageActions } from './round-image-actions';
 import { SectorStatusHud } from './sector-status-hud';
 import { GameLogTicker } from './game-log-ticker';
 import { GameLogDialog } from './game-log-dialog';
+import { AdvisorReportDialog } from './advisor-report-dialog.js';
 import { buildCaptainNameColors } from './game-log-display';
 
 const TABLE_WIDTH = 1200;
@@ -252,6 +272,9 @@ export function BridgeTable({
   const isOnline = mode === 'online';
   const isVsAi = mode === 'local' && !!localConfig && !!aiPlayers;
   const humanId = localConfig?.humanId ?? 'you';
+  const auth = useFirebaseAuth();
+  const reportedLocalMatchRef = useRef<string | null>(null);
+  const advisorUsedThisMatchRef = useRef(false);
 
   const [localGame, setLocalGame] = useState<GameState>(
     () => externalGame ?? createDemoGame()
@@ -262,21 +285,120 @@ export function BridgeTable({
   const actionLogRef = useRef(createActionLog());
   const gameLogRef = useRef(createGameLog());
   const roundStartedAtRef = useRef(Date.now());
+  const roundStartStateRef = useRef<GameState | null>(null);
+  const actionLogRoundStartIndexRef = useRef(0);
   const roundOutcomeLoggedRef = useRef<number | null>(null);
   const [gameLogVersion, setGameLogVersion] = useState(0);
   const loggedRoundRef = useRef<number | null>(null);
+  const [advisorReportDialogOpen, setAdvisorReportDialogOpen] = useState(false);
+  const [advisorReport, setAdvisorReport] = useState<AdvisorReport | null>(null);
+  const [campaignCompleteOpen, setCampaignCompleteOpen] = useState(false);
+  const [matchReport, setMatchReport] = useState<LocalAiMatchReport | null>(null);
+  const [matchReportPending, setMatchReportPending] = useState(false);
+  const [matchReportNotice, setMatchReportNotice] = useState<string | null>(null);
+  const [campaignPerformance, setCampaignPerformance] =
+    useState<AdvisorPerformanceSummary | null>(null);
+  const [campaignRoundCount, setCampaignRoundCount] = useState(0);
+  const campaignAdvisorReviewsRef = useRef<AdvisorMoveReview[]>([]);
+  const campaignRoundSnapshotsRef = useRef<
+    Array<{
+      roundNumber: number;
+      roundStartState: GameState;
+      entries: AdvisorActionLogEntry[];
+    }>
+  >([]);
   const tableContentRef = useRef<HTMLDivElement>(null);
   const bridgeSurfaceRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!isOnline && externalGame) {
-      setLocalGame(externalGame);
-    }
-  }, [externalGame, isOnline]);
 
   const game = isOnline ? (externalGame ?? localGame) : localGame;
   const gameRef = useRef(game);
   gameRef.current = game;
+
+  useEffect(() => {
+    advisorUsedThisMatchRef.current = false;
+    reportedLocalMatchRef.current = null;
+    campaignAdvisorReviewsRef.current = [];
+    campaignRoundSnapshotsRef.current = [];
+    setCampaignPerformance(null);
+    setMatchReport(null);
+    setMatchReportPending(false);
+    setMatchReportNotice(null);
+    setCampaignRoundCount(0);
+    setCampaignCompleteOpen(false);
+  }, [game.id]);
+
+  useEffect(() => {
+    if (!isVsAi || !localConfig || game.phase !== 'complete') {
+      return;
+    }
+
+    if (!isFirebaseConfigured()) {
+      setMatchReportNotice(
+        'Solo rating was not saved — Firebase is not configured in this build. Decision quality above is still computed locally.'
+      );
+      return;
+    }
+
+    if (!auth.ready) {
+      setMatchReportPending(true);
+      return;
+    }
+
+    if (!auth.user) {
+      setMatchReportNotice(
+        auth.error ??
+          'Solo rating was not saved — could not connect to Firebase auth.'
+      );
+      return;
+    }
+
+    if (reportedLocalMatchRef.current === game.id) {
+      return;
+    }
+    reportedLocalMatchRef.current = game.id;
+    setMatchReportPending(true);
+    setMatchReportNotice(null);
+
+    const matchPerformance = summarizeAdvisorPerformance(
+      campaignAdvisorReviewsRef.current
+    );
+
+    void reportLocalAiMatch({
+      uid: auth.user.uid,
+      displayName: localConfig.humanName,
+      skill: classifyLocalAiMatchSkill(localConfig.aiCaptains),
+      objective: localConfig.objective,
+      won: humanWonLocalMatch(game, localConfig.humanId),
+      advisorUsed: advisorUsedThisMatchRef.current,
+      decisionPct: matchPerformance?.scorePct,
+      decisionGrade: matchPerformance?.letterGrade,
+    })
+      .then((report) => {
+        setMatchReportPending(false);
+        if (report) {
+          setMatchReport(report);
+        } else {
+          setMatchReportNotice(
+            'Solo rating was not saved — stats service returned no result.'
+          );
+        }
+      })
+      .catch((error) => {
+        setMatchReportPending(false);
+        reportedLocalMatchRef.current = null;
+        setMatchReportNotice(
+          error instanceof Error
+            ? `Solo rating was not saved — ${error.message}`
+            : 'Solo rating was not saved — network or Firestore error.'
+        );
+      });
+  }, [
+    auth.ready,
+    auth.user,
+    game,
+    isVsAi,
+    localConfig,
+  ]);
 
   const [tablePrefs, setTablePrefs] = useState(readTableOptions);
   const {
@@ -289,6 +411,7 @@ export function BridgeTable({
     captainTailsHud,
     captainTailsDisplay,
     turnBeepsEnabled,
+    advisorIncludeAllCaptains,
   } = tablePrefs;
 
   const patchTablePrefs = useCallback(
@@ -382,6 +505,9 @@ export function BridgeTable({
     }
     if (loggedRoundRef.current !== round.roundNumber) {
       roundStartedAtRef.current = Date.now();
+      roundStartStateRef.current = structuredClone(gameRef.current);
+      actionLogRoundStartIndexRef.current =
+        actionLogRef.current.snapshot().length;
       gameLogRef.current.append(buildRoundStartedEntry(round));
       setGameLogVersion((version) => version + 1);
     }
@@ -546,6 +672,7 @@ export function BridgeTable({
       return;
     }
     coachAnnouncedKeyRef.current = key;
+    advisorUsedThisMatchRef.current = true;
 
     const signal: CoachPresence = {
       coachRequestedAt: new Date().toISOString(),
@@ -698,6 +825,8 @@ export function BridgeTable({
       action: GameAction,
       meta?: { source?: ActionLogSource }
     ) => {
+      const source = meta?.source ?? 'human';
+
       if (onAction) {
         const before = game;
         const result = await onAction(action);
@@ -708,11 +837,16 @@ export function BridgeTable({
           setSelectedTile(null);
           setCoachSuggestion(null);
           recordGameLog(before, result.state ?? before, action);
+          actionLogRef.current.append({
+            playerId: playerIdForAction(action),
+            action,
+            ok: true,
+            source,
+          });
         }
         return;
       }
 
-      const source = meta?.source ?? 'human';
       const before = gameRef.current;
       const result = applyAction(before, action);
       actionLogRef.current.append({
@@ -947,6 +1081,138 @@ export function BridgeTable({
     setGameLogDialogOpen(true);
   }, []);
 
+  const focusPlayerIdsForAdvisor = useMemo(() => {
+    if (isVsAi) {
+      return [humanId];
+    }
+    if (isOnline && viewerId) {
+      return [viewerId];
+    }
+    return game.captains.map((captain) => captain.id);
+  }, [game.captains, humanId, isOnline, isVsAi, viewerId]);
+
+  const canOpenAdvisorReport = useMemo(() => {
+    if (!roundAwaitingScore || !roundStartStateRef.current) {
+      return false;
+    }
+    return (
+      actionLogRef.current.snapshot().length >
+      actionLogRoundStartIndexRef.current
+    );
+  }, [gameLogVersion, roundAwaitingScore]);
+
+  const buildRoundAdvisorReport = useCallback(
+    (includeAllCaptains = advisorIncludeAllCaptains) => {
+      const roundStartState = roundStartStateRef.current;
+      if (!roundStartState) {
+        return null;
+      }
+      const entries = actionLogRef.current
+        .snapshot()
+        .slice(actionLogRoundStartIndexRef.current);
+      return buildAdvisorReport({
+        roundStartState,
+        entries,
+        ...(includeAllCaptains
+          ? { includeAllPlayers: true }
+          : { focusPlayerIds: focusPlayerIdsForAdvisor }),
+        names,
+      });
+    },
+    [advisorIncludeAllCaptains, focusPlayerIdsForAdvisor, names]
+  );
+
+  const buildCampaignAdvisorReports = useCallback(
+    (includeAllCaptains: boolean) =>
+      campaignRoundSnapshotsRef.current.map((snapshot) => ({
+        roundNumber: snapshot.roundNumber,
+        report: buildAdvisorReport({
+          roundStartState: snapshot.roundStartState,
+          entries: snapshot.entries,
+          ...(includeAllCaptains
+            ? { includeAllPlayers: true }
+            : { focusPlayerIds: focusPlayerIdsForAdvisor }),
+          names,
+        }),
+      })),
+    [focusPlayerIdsForAdvisor, names]
+  );
+
+  const downloadCampaignAdvisorReport = useCallback(
+    (includeAllCaptains: boolean) => {
+      const rounds = buildCampaignAdvisorReports(includeAllCaptains);
+      const text = campaignAdvisorPlainText(rounds, names, {
+        includeAllCaptains,
+      });
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `warp12-campaign-advisor-${sectorCode ?? 'local'}.txt`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    },
+    [buildCampaignAdvisorReports, names, sectorCode]
+  );
+
+  const appendRoundAdvisorReviews = useCallback(() => {
+    const roundStartState = roundStartStateRef.current;
+    if (!roundStartState || !round) {
+      return;
+    }
+    const entries = actionLogRef.current
+      .snapshot()
+      .slice(actionLogRoundStartIndexRef.current);
+    campaignRoundSnapshotsRef.current = [
+      ...campaignRoundSnapshotsRef.current,
+      {
+        roundNumber: round.roundNumber,
+        roundStartState: structuredClone(roundStartState),
+        entries: [...entries],
+      },
+    ];
+
+    const report = buildRoundAdvisorReport(false);
+    if (!report || report.reviews.length === 0) {
+      return;
+    }
+    campaignAdvisorReviewsRef.current = [
+      ...campaignAdvisorReviewsRef.current,
+      ...report.reviews,
+    ];
+    setCampaignPerformance(
+      summarizeAdvisorPerformance(campaignAdvisorReviewsRef.current)
+    );
+    setCampaignRoundCount(campaignRoundSnapshotsRef.current.length);
+  }, [buildRoundAdvisorReport, round]);
+
+  const handleAdvisorIncludeAllChange = useCallback(
+    (includeAllCaptains: boolean) => {
+      patchTablePrefs({ advisorIncludeAllCaptains: includeAllCaptains });
+      const report = buildRoundAdvisorReport(includeAllCaptains);
+      if (report) {
+        setAdvisorReport(report);
+      }
+    },
+    [buildRoundAdvisorReport, patchTablePrefs]
+  );
+
+  const handleOpenAdvisorReport = useCallback(() => {
+    const report = buildRoundAdvisorReport(advisorIncludeAllCaptains);
+    if (!report) {
+      return;
+    }
+    setAdvisorReport(report);
+    setAdvisorReportDialogOpen(true);
+  }, [advisorIncludeAllCaptains, buildRoundAdvisorReport]);
+
+  const advisorReportFilename = useMemo(() => {
+    if (!round) {
+      return 'warp12-advisor-report.txt';
+    }
+    return `warp12-advisor-r${round.roundNumber}-${sectorCode ?? 'local'}.txt`;
+  }, [round, sectorCode]);
+
   const shareRoundMetadata = useMemo((): ShareRoundMetadata | null => {
     if (!canShareRound || !round) {
       return null;
@@ -1042,11 +1308,21 @@ export function BridgeTable({
     if (!round || !roundAwaitingScore) {
       return;
     }
+    appendRoundAdvisorReviews();
     void dispatch({
       type: 'END_ROUND',
       winnerId: round.roundBlocked ? null : round.roundWinnerId!,
     });
-  }, [dispatch, round, roundAwaitingScore]);
+  }, [appendRoundAdvisorReviews, dispatch, round, roundAwaitingScore]);
+
+  useEffect(() => {
+    if (game.phase === 'complete') {
+      setCampaignPerformance(
+        summarizeAdvisorPerformance(campaignAdvisorReviewsRef.current)
+      );
+      setCampaignCompleteOpen(true);
+    }
+  }, [game.phase]);
 
   const aiTurnKey = round
     ? [
@@ -1300,7 +1576,7 @@ export function BridgeTable({
                 Pass red alert
               </button>
             )}
-            {canPass && (
+            {canPass && !dropToImpulsePending && (
               <button
                 type="button"
                 className={styles.controlBtn}
@@ -1533,6 +1809,15 @@ export function BridgeTable({
                 onSaveRoundLog={handleOpenRoundLog}
               />
               <div className={styles.roundEndActions}>
+                {canOpenAdvisorReport && (
+                  <button
+                    type="button"
+                    className={styles.roundEndBtnSecondary}
+                    onClick={handleOpenAdvisorReport}
+                  >
+                    Advisor report
+                  </button>
+                )}
                 <button
                   type="button"
                   className={styles.roundEndBtnSecondary}
@@ -1566,6 +1851,15 @@ export function BridgeTable({
               onSaveRoundLog={handleOpenRoundLog}
             />
             <div className={styles.roundEndActions}>
+              {canOpenAdvisorReport && (
+                <button
+                  type="button"
+                  className={styles.roundEndBtnSecondary}
+                  onClick={handleOpenAdvisorReport}
+                >
+                  Advisor report
+                </button>
+              )}
               <button
                 type="button"
                 className={styles.roundEndBtnSecondary}
@@ -1599,6 +1893,34 @@ export function BridgeTable({
           downloadBusy={roundLogDownloadBusy}
         />
 
+        <AdvisorReportDialog
+          open={advisorReportDialogOpen}
+          onClose={() => setAdvisorReportDialogOpen(false)}
+          report={advisorReport}
+          names={names}
+          nameColors={gameLogNameColors}
+          downloadFilename={advisorReportFilename}
+          includeAllCaptains={advisorIncludeAllCaptains}
+          onIncludeAllCaptainsChange={handleAdvisorIncludeAllChange}
+        />
+
+        <CampaignCompleteOverlay
+          open={game.phase === 'complete' && campaignCompleteOpen}
+          game={game}
+          names={names}
+          humanId={isVsAi ? humanId : viewerId}
+          humanName={isVsAi ? names[humanId] : names[viewerId ?? '']}
+          matchReport={matchReport}
+          matchReportPending={matchReportPending}
+          matchReportNotice={matchReportNotice}
+          performance={campaignPerformance}
+          canDownloadAdvisorReport={campaignRoundCount > 0}
+          onDownloadAdvisorReport={downloadCampaignAdvisorReport}
+          onRematch={onRematch}
+          onLeaveSetup={onLeaveSetup}
+          onClose={() => setCampaignCompleteOpen(false)}
+        />
+
         <QFlashPanel
           game={game}
           playerId={handOwnerId}
@@ -1616,7 +1938,7 @@ export function BridgeTable({
         <header className={styles.commandHeader}>
           <h2 className={styles.commandTitle}>
             {game.phase === 'complete'
-              ? `${names[round?.roundWinnerId ?? ''] ?? 'Captain'} wins the sector`
+              ? `${sectorWinnerName(game, names)} wins the sector`
               : roundAwaitingScore && round
                 ? round.roundBlocked
                   ? `Round ${round.roundNumber} blocked`
@@ -1788,19 +2110,35 @@ export function BridgeTable({
         ) : null}
 
         {dropToImpulsePending && isMyTurn && (!isOnline || !syncPending) && (
-          <button
-            type="button"
-            className={styles.allStopBtn}
-            data-coach={coachKind === 'drop-to-impulse'}
-            onClick={() =>
-              void dispatch({
-                type: 'DROP_TO_IMPULSE',
-                playerId: handOwnerId,
-              })
-            }
-          >
-            Drop to Impulse!
-          </button>
+          <>
+            <button
+              type="button"
+              className={styles.allStopBtn}
+              data-coach={coachKind === 'drop-to-impulse'}
+              onClick={() =>
+                void dispatch({
+                  type: 'DROP_TO_IMPULSE',
+                  playerId: handOwnerId,
+                })
+              }
+            >
+              Drop to Impulse!
+            </button>
+            {canPass && (
+              <button
+                type="button"
+                className={styles.controlBtn}
+                onClick={() =>
+                  void dispatch({
+                    type: 'PASS_TURN',
+                    playerId: handOwnerId,
+                  })
+                }
+              >
+                Pass helm (skip announce)
+              </button>
+            )}
+          </>
         )}
 
         {canCatchDropToImpulse && (!isOnline || !syncPending) && (

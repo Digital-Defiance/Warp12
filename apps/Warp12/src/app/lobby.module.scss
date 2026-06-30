@@ -138,6 +138,29 @@
   }
 }
 
+.hint {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-federation);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #94a3b8;
+}
+
+.inlineRow {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+
+  input {
+    flex: 1;
+  }
+
+  .secondary {
+    flex: 0 0 auto;
+    min-width: 5rem;
+  }
+}
+
 .radioRow,
 .checkboxRow {
   display: flex;

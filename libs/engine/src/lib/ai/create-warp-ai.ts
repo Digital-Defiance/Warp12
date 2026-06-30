@@ -4,7 +4,6 @@ import {
   searchActionValues,
   type GenericHeuristic,
   type Rng,
-  type SkillProfile,
 } from 'doubletwelve';
 import type { GameAction } from '../types/actions.js';
 import type { GameState } from '../types/game-state.js';
@@ -20,29 +19,21 @@ import {
 } from '../engine/beacon.js';
 import { buildWarpContext, type WarpEvalContext } from './context.js';
 import { DEFAULT_WARP_HEURISTICS } from './heuristics.js';
+import type { LookaheadOptions } from './lookahead-options.js';
+import {
+  resolveProfileGoOutTuning,
+  type WarpSkillProfile,
+} from './skill.js';
 import { observe, type WarpAiObservation } from './observation.js';
 import {
   createWarpSearchModel,
   observationToState,
 } from './search-model.js';
 
-/**
- * Turns on "gaming it out": instead of scoring the current options with
- * heuristics, the bot simulates each move forward with the engine, samples the
- * hidden hands/draw a few times, and looks `depth` plies ahead. More expensive,
- * but it reasons about consequences (e.g. setting up an opponent to go out).
- */
-export interface LookaheadOptions {
-  /** Plies to search, including the bot's own move (>= 1). */
-  depth: number;
-  /** Hidden-world samples per move for imperfect-information averaging (default 6). */
-  determinizations?: number;
-  /** Cap candidate moves expanded per node, best-first (default 6). */
-  maxBranch?: number;
-}
+export type { LookaheadOptions } from './lookahead-options.js';
 
 export interface CreateWarpAiPlayerOptions {
-  skill: SkillProfile;
+  skill: WarpSkillProfile;
   /** Defaults to {@link DEFAULT_WARP_HEURISTICS}. Append your own for house tactics. */
   heuristics?: ReadonlyArray<GenericHeuristic<WarpAiAction, WarpEvalContext>>;
   /** Defaults to {@link warpCandidateGenerator}. Replace for house access rules. */
@@ -79,6 +70,7 @@ export function createWarpAiPlayer(
   const rng = options.rng ?? Math.random;
   const objective = options.objective ?? 'penalty';
   const skill = options.skill;
+  const goOutTuning = resolveProfileGoOutTuning(skill);
   const heuristics = options.heuristics ?? DEFAULT_WARP_HEURISTICS;
   const generateCandidates = options.generateCandidates ?? warpCandidateGenerator;
 
@@ -86,7 +78,8 @@ export function createWarpAiPlayer(
     skill,
     heuristics,
     generateCandidates,
-    buildContext: (obs: WarpAiObservation) => buildWarpContext(obs, rng),
+    buildContext: (obs: WarpAiObservation) =>
+      buildWarpContext(obs, rng, goOutTuning),
     fallback: (obs: WarpAiObservation) => {
       if (obs.round.unchartedSectors.length > 0) {
         return { kind: 'draw' };
@@ -105,7 +98,11 @@ export function createWarpAiPlayer(
     rng,
   });
 
-  const lookahead = options.lookahead;
+  const lookahead =
+    options.lookahead ??
+    (skill.lookaheadDepth > 0
+      ? { depth: skill.lookaheadDepth, determinizations: 4, maxBranch: 5 }
+      : undefined);
   const searchModel = lookahead ? createWarpSearchModel(objective) : null;
 
   const decide = (obs: WarpAiObservation): WarpAiAction => {

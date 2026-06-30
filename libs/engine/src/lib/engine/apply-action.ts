@@ -803,10 +803,13 @@ function handleDropToImpulse(
     return fail('DROP_TO_IMPULSE_NOT_REQUIRED');
   }
 
-  const nextRound: RoundState = {
-    ...round,
-    dropToImpulseCallPending: null,
-  };
+  const nextRound = maybeEndBlockedRound(
+    advanceTurn(
+      { ...round, dropToImpulseCallPending: null },
+      state.houseRules
+    ),
+    state.houseRules
+  );
   return { ok: true, state: withRound(state, nextRound) };
 }
 

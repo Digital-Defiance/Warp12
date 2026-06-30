@@ -21,7 +21,7 @@ import {
   WARP_HEURISTIC_IDS,
 } from './heuristics.js';
 import { observe } from './observation.js';
-import { getWarpSkillProfile } from './skill.js';
+import { getAdvisorSkillProfile } from './skill.js';
 import { explainTurnResolution } from './explain-turn-resolution.js';
 
 const H = WARP_HEURISTIC_IDS;
@@ -92,6 +92,66 @@ function describeHeuristicContribution(
         return 'Empties your hand — you win the round.';
       }
       return null;
+    case H.goOutTrailPriority: {
+      if (action.kind !== 'chart') return null;
+      const route = action.move.route;
+      if (
+        route.kind === 'warp-trail' &&
+        route.playerId === ctx.obs.playerId
+      ) {
+        return 'Extends your warp trail train before dumping leftovers.';
+      }
+      return null;
+    }
+    case H.goOutNeutralZoneDump:
+      if (action.kind === 'chart' && action.move.route.kind === 'neutral-zone') {
+        return 'Dumps a leftover tile on the Neutral Zone.';
+      }
+      return null;
+    case H.goOutOpponentTrailDump:
+      if (
+        action.kind === 'chart' &&
+        action.move.route.kind === 'warp-trail' &&
+        action.move.route.playerId !== ctx.obs.playerId
+      ) {
+        return 'Dumps a leftover tile on an opponent warp trail.';
+      }
+      return null;
+    case H.goOutAvoidMayhem:
+      if (
+        action.kind === 'chart' &&
+        isDouble(action.move.coordinate)
+      ) {
+        return 'Avoids a double on a shared route that would trigger Red Alert.';
+      }
+      return null;
+    case H.goOutBlockLeader: {
+      if (action.kind !== 'chart') return null;
+      const followUp = followUpCount(action, ctx);
+      if (!followUp) return null;
+      const rivals = unseenMatching(followUp.endValue, ctx.unseen);
+      if (rivals >= 4) return null;
+      return `Rival near empty — leaves a tight ${followUp.endValue} end (${rivals} unseen extenders).`;
+    }
+    case H.goOutDrawReluctance:
+      if (action.kind === 'draw') {
+        return 'Drawing with a small hand wastes tempo in a go-out race.';
+      }
+      return null;
+    case H.goOutBeaconDiscipline:
+      if (action.kind === 'deploy-beacon') {
+        return 'Deploys a Distress Beacon when stuck with no chart.';
+      }
+      return null;
+    case H.goOutFeasibility: {
+      if (action.kind !== 'chart') return null;
+      const followUp = followUpCount(action, ctx);
+      if (!followUp || followUp.matches < 1) return null;
+      if (followUp.matches >= ctx.hand.length - 1) {
+        return 'Sets up emptying your hand on the next turn.';
+      }
+      return `Opens a ${followUp.matches}-tile path toward going out.`;
+    }
     case H.doublesEarly:
       if (action.kind === 'chart' && isDouble(action.move.coordinate)) {
         return 'Clears a double while your hand is still large.';
@@ -257,7 +317,10 @@ export function explainWarpAiAction(
     return kindReasons.slice(0, maxReasons);
   }
 
-  const skill = getWarpSkillProfile('advanced', state.objective);
+  const skill = getAdvisorSkillProfile(
+    state.objective,
+    obs.captains.length
+  );
   const byId = new Map(
     DEFAULT_WARP_HEURISTICS.map((heuristic) => [heuristic.id, heuristic] as const)
   );

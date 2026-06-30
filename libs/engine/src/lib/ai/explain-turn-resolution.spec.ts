@@ -233,9 +233,8 @@ describe('explainTurnResolution', () => {
     );
 
     const lines = explainTurnResolution(state, 'a', { focus: 'drop-to-impulse' });
-    expect(lines[0]).toContain('Drop to Impulse is pending');
-    expect(lines.some((line) => line.includes('optional table manners'))).toBe(
-      true
-    );
+    expect(lines[0]).toContain('Drop to Impulse');
+    expect(lines.some((line) => line.includes('Pass helm'))).toBe(true);
+    expect(lines.some((line) => line.includes('next turn'))).toBe(true);
   });
 });

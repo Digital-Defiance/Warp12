@@ -92,12 +92,19 @@ export function warpLeafEvalGoOut(
   const mine = handTileCount(round.hands[perspective as PlayerId] ?? []);
   let opponentTotal = 0;
   let opponents = 0;
+  let minOpp = Number.POSITIVE_INFINITY;
   for (const id of round.turnOrder) {
     if (id === perspective) continue;
-    opponentTotal += handTileCount(round.hands[id] ?? []);
+    const count = handTileCount(round.hands[id] ?? []);
+    opponentTotal += count;
     opponents++;
+    minOpp = Math.min(minOpp, count);
   }
   const opponentAvg = opponents > 0 ? opponentTotal / opponents : 0;
+
+  if (round.phase !== 'ended' && minOpp <= 1 && mine > 1) {
+    return -50_000 + opponentAvg - mine;
+  }
 
   if (round.phase === 'ended') {
     return round.roundWinnerId === perspective

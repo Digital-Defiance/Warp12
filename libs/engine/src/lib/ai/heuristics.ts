@@ -13,6 +13,11 @@ import {
   connectingValueForRoute,
   type WarpEvalContext,
 } from './context.js';
+import {
+  countChainPlaysFromOpenEnd,
+  defensiveBlockingMultiplier,
+  minOpponentHandSize as minOpponentHandSizeFromObs,
+} from './go-out-race.js';
 
 export type WarpHeuristic = GenericHeuristic<WarpAiAction, WarpEvalContext>;
 
@@ -29,6 +34,22 @@ export const WARP_HEURISTIC_IDS = {
   salamanderDump: 'salamander-dump',
   qContinuum: 'q-continuum',
   goOutWin: 'go-out-win',
+  /** Build on own trail while the hand is still long; dump remnants on shared routes late. */
+  goOutTrailPriority: 'go-out-trail-priority',
+  /** Avoid doubles on Neutral Zone / opponent trails that trigger Red Alert chaos. */
+  goOutAvoidMayhem: 'go-out-avoid-mayhem',
+  /** Dump phase: play leftovers on the Neutral Zone. */
+  goOutNeutralZoneDump: 'go-out-neutral-zone-dump',
+  /** Dump phase: play leftovers on opponent warp trails. */
+  goOutOpponentTrailDump: 'go-out-opponent-trail-dump',
+  /** Slow rivals near empty when they lead the race. */
+  goOutBlockLeader: 'go-out-block-leader',
+  /** Avoid drawing when a small hand can still chart. */
+  goOutDrawReluctance: 'go-out-draw-reluctance',
+  /** Deploy a beacon when stuck with no chart. */
+  goOutBeaconDiscipline: 'go-out-beacon-discipline',
+  /** Path-to-zero setup: chain length unlocked for the following turn. */
+  goOutFeasibility: 'go-out-feasibility',
   dropToImpulseDeclare: 'drop-to-impulse-declare',
   dropToImpulseCatch: 'catch-drop-to-impulse',
   dropToImpulseForget: 'drop-to-impulse-forget',
@@ -90,13 +111,247 @@ const dumpPips: WarpHeuristic = {
   },
 };
 
-/** First-out mode: strongly prefer the move that empties your hand. */
+/** Prefer moves that shrink the hand quickly in go-out mode. */
 const goOutWin: WarpHeuristic = {
   id: H.goOutWin,
   score(action: WarpAiAction, ctx: WarpEvalContext): number {
     if (ctx.obs.objective !== 'go-out') return 0;
     if (action.kind !== 'chart') return 0;
-    return ctx.hand.length === 1 ? 200 : 0;
+    const tilesAfter = ctx.hand.length - 1;
+    if (tilesAfter === 0) return 200;
+    const opponents = Math.max(1, ctx.obs.captains.length - 1);
+    const tuning = ctx.goOutTuning;
+    let score = (14 - tilesAfter) * (1 + 0.08 * (opponents - 1));
+    if (tilesAfter <= tuning.sprintHandSize && opponents >= 2) {
+      score += (tuning.sprintHandSize + 1 - tilesAfter) * 4 * opponents;
+    }
+    return score;
+  },
+};
+
+function isSharedChartRoute(
+  route: Extract<WarpAiAction, { kind: 'chart' }>['move']['route'],
+  playerId: string
+): boolean {
+  return (
+    route.kind === 'neutral-zone' ||
+    (route.kind === 'warp-trail' && route.playerId !== playerId)
+  );
+}
+
+function minOpponentHandSize(ctx: WarpEvalContext): number {
+  return minOpponentHandSizeFromObs(
+    ctx.obs,
+    ctx.obs.playerId,
+    ctx.hand.length
+  );
+}
+
+function goOutDumpPhase(ctx: WarpEvalContext): boolean {
+  const handSize = ctx.hand.length;
+  const playerId = ctx.obs.playerId;
+  const tuning = ctx.goOutTuning;
+  const ownTrailLen =
+    ctx.obs.round.table.warpTrails[playerId]?.tiles.length ?? 0;
+  const minOppHand = minOpponentHandSize(ctx);
+  const tableSize = Math.max(2, ctx.obs.captains.length);
+  const buildTrailTarget =
+    tableSize >= 4 ? tuning.trailBuildTarget4p : tuning.trailBuildTargetSmall;
+  const opponentNearOut = minOppHand <= tuning.blockLeaderHandSize;
+  const handBehind = handSize - minOppHand;
+  return (
+    handSize <= 3 ||
+    ownTrailLen >= buildTrailTarget ||
+    (opponentNearOut && handSize <= tuning.sprintHandSize) ||
+    (tableSize >= 4 && handBehind >= 2) ||
+    (tableSize >= 3 && handBehind >= 3)
+  );
+}
+
+/**
+ * Go-out: chain on your own Warp Trail while the hand is still long, then play
+ * leftovers on the Neutral Zone and other trails once the train is built or
+ * rivals are close to empty.
+ */
+const goOutTrailPriority: WarpHeuristic = {
+  id: H.goOutTrailPriority,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (ctx.obs.objective !== 'go-out' || action.kind !== 'chart') return 0;
+
+    const route = action.move.route;
+    const handSize = ctx.hand.length;
+    const playerId = ctx.obs.playerId;
+    const onOwnTrail =
+      route.kind === 'warp-trail' && route.playerId === playerId;
+    if (!onOwnTrail) return 0;
+
+    const dumpPhase = goOutDumpPhase(ctx);
+    if (ctx.goOutRacePhase === 'defensive' && !dumpPhase) {
+      return -8 - handSize;
+    }
+    if (dumpPhase && handSize > 1) {
+      return 2;
+    }
+
+    const endValue = newOpenEndValue(action, ctx);
+    let chainLinks = 0;
+    if (endValue !== null) {
+      const tileKey = coordinateKey(action.move.coordinate);
+      let skipped = false;
+      for (const coordinate of ctx.hand) {
+        if (!skipped && coordinateKey(coordinate) === tileKey) {
+          skipped = true;
+          continue;
+        }
+        if (coordinateMatchesValue(coordinate, endValue)) {
+          chainLinks++;
+        }
+      }
+    }
+    return 10 + Math.min(handSize, 9) * 2 + chainLinks * 5;
+  },
+};
+
+const goOutNeutralZoneDump: WarpHeuristic = {
+  id: H.goOutNeutralZoneDump,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (ctx.obs.objective !== 'go-out' || action.kind !== 'chart') return 0;
+    if (action.move.route.kind !== 'neutral-zone') return 0;
+    const handSize = ctx.hand.length;
+    if (!goOutDumpPhase(ctx)) {
+      if (handSize <= 4) return -4;
+      return -6 - handSize;
+    }
+    if (ctx.goOutRacePhase === 'defensive') {
+      return 14 + Math.max(0, 4 - handSize) * 3;
+    }
+    return 8 + Math.max(0, 4 - handSize) * 2;
+  },
+};
+
+const goOutOpponentTrailDump: WarpHeuristic = {
+  id: H.goOutOpponentTrailDump,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (ctx.obs.objective !== 'go-out' || action.kind !== 'chart') return 0;
+    const route = action.move.route;
+    if (
+      route.kind !== 'warp-trail' ||
+      route.playerId === ctx.obs.playerId
+    ) {
+      return 0;
+    }
+    const handSize = ctx.hand.length;
+    if (!goOutDumpPhase(ctx)) {
+      if (handSize <= 4) return -2;
+      return -4 - handSize;
+    }
+    return 6 + Math.max(0, 4 - handSize) * 2;
+  },
+};
+
+/** Go-out: skip deliberate Red Alert mayhem on shared routes unless it empties the hand. */
+const goOutAvoidMayhem: WarpHeuristic = {
+  id: H.goOutAvoidMayhem,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (ctx.obs.objective !== 'go-out' || action.kind !== 'chart') return 0;
+    if (ctx.hand.length <= 1) return 0;
+
+    const route = action.move.route;
+    if (!isSharedChartRoute(route, ctx.obs.playerId)) return 0;
+
+    let penalty = -6;
+    if (isDouble(action.move.coordinate)) {
+      penalty -= ctx.goOutTuning.mayhemDoublePenalty;
+    }
+    if (ctx.hand.length >= 6) {
+      penalty -= 8;
+    }
+    return penalty;
+  },
+};
+
+/** When a rival is near empty, leave shared ends that are easy to extend. */
+const goOutBlockLeader: WarpHeuristic = {
+  id: H.goOutBlockLeader,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (ctx.obs.objective !== 'go-out' || action.kind !== 'chart') return 0;
+    if (minOpponentHandSize(ctx) > ctx.goOutTuning.blockLeaderHandSize) {
+      return 0;
+    }
+    const route = action.move.route;
+    if (!isSharedChartRoute(route, ctx.obs.playerId)) return 0;
+
+    const endValue = newOpenEndValue(action, ctx);
+    if (endValue === null) return 0;
+
+    let openCount = 0;
+    for (const coordinate of ctx.unseen) {
+      if (coordinateMatchesValue(coordinate, endValue)) openCount++;
+    }
+    const block =
+      -openCount * 3 - (ctx.hand.length <= 2 ? openCount * 2 : 0);
+    return block * defensiveBlockingMultiplier(ctx.goOutRacePhase);
+  },
+};
+
+/**
+ * Scores how completely this chart sets up emptying the hand on following turns
+ * (greedy chain from the new open end through remaining tiles).
+ */
+const goOutFeasibility: WarpHeuristic = {
+  id: H.goOutFeasibility,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (ctx.obs.objective !== 'go-out' || action.kind !== 'chart') return 0;
+
+    const tilesAfter = ctx.hand.length - 1;
+    if (tilesAfter === 0) return 0;
+
+    const endValue = newOpenEndValue(action, ctx);
+    if (endValue === null) return 0;
+
+    const tileKey = coordinateKey(action.move.coordinate);
+    const chain = countChainPlaysFromOpenEnd(endValue, ctx.hand, tileKey);
+
+    if (chain >= tilesAfter) {
+      return 80 + tilesAfter * 6;
+    }
+    if (chain === tilesAfter - 1) {
+      return 35 + chain * 5;
+    }
+    return chain * 4;
+  },
+};
+
+/** Drawing with a small hand and legal charts wastes tempo in a race. */
+const goOutDrawReluctance: WarpHeuristic = {
+  id: H.goOutDrawReluctance,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (ctx.obs.objective !== 'go-out' || action.kind !== 'draw') return 0;
+    if (ctx.hand.length > ctx.goOutTuning.drawReluctanceHandSize) return 0;
+    const charts = getLegalMoves(
+      ctx.obs.round,
+      ctx.obs.playerId,
+      ctx.obs.houseRules
+    ).length;
+    if (charts <= 0) return 0;
+    return -20 - ctx.hand.length * 4;
+  },
+};
+
+/** Deploy a Distress Beacon when stuck with tiles but no legal chart. */
+const goOutBeaconDiscipline: WarpHeuristic = {
+  id: H.goOutBeaconDiscipline,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (ctx.obs.objective !== 'go-out' || action.kind !== 'deploy-beacon') {
+      return 0;
+    }
+    const charts = getLegalMoves(
+      ctx.obs.round,
+      ctx.obs.playerId,
+      ctx.obs.houseRules
+    ).length;
+    if (charts > 0 || ctx.hand.length === 0) return 0;
+    return 45;
   },
 };
 
@@ -106,6 +361,12 @@ const playDoublesEarly: WarpHeuristic = {
   score(action: WarpAiAction, ctx: WarpEvalContext): number {
     if (action.kind !== 'chart') return 0;
     if (!isDouble(action.move.coordinate)) return 0;
+    if (ctx.obs.objective === 'go-out') {
+      const route = action.move.route;
+      const onOwnTrail =
+        route.kind === 'warp-trail' && route.playerId === ctx.obs.playerId;
+      if (!onOwnTrail) return -10;
+    }
     return Math.min(ctx.hand.length, 12);
   },
 };
@@ -292,6 +553,14 @@ export const DEFAULT_WARP_HEURISTICS: WarpHeuristic[] = [
   preferChart,
   dumpPips,
   goOutWin,
+  goOutTrailPriority,
+  goOutNeutralZoneDump,
+  goOutOpponentTrailDump,
+  goOutAvoidMayhem,
+  goOutBlockLeader,
+  goOutDrawReluctance,
+  goOutBeaconDiscipline,
+  goOutFeasibility,
   playDoublesEarly,
   ownTrail,
   coverRelief,

@@ -122,4 +122,17 @@ describe('self-play harness', () => {
       expect(result.completedRounds).toBeGreaterThanOrEqual(1);
     }
   });
+
+  it('never finishes go-out with a null winner once the match completes', () => {
+    for (let game = 0; game < 20; game++) {
+      const result = playSelfPlayGame({
+        seats: seatsAdvVsBeginner(game),
+        seed: 5000 + game,
+        objective: 'go-out',
+      });
+      if (result.completed) {
+        expect(result.winnerId).not.toBeNull();
+      }
+    }
+  });
 });

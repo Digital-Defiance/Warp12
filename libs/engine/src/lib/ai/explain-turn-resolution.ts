@@ -120,13 +120,11 @@ export function explainTurnResolution(
     (round.hands[playerId]?.length ?? 0) === 1
   ) {
     lines.push(
-      'Drop to Impulse is pending — announce before you pass, or opponents can catch you for a one-tile draw.'
+      'Drop to Impulse — announce with the button, or Pass helm to end your turn without declaring (opponents may catch a missed announce).'
     );
-    if (legalMoves.length > 0) {
-      lines.push(
-        'You may still chart legally; declaring is optional table manners, not required before your last play.'
-      );
-    }
+    lines.push(
+      'Your last coordinate waits for your next turn — you cannot play it on this turn.'
+    );
     return lines;
   }
 
