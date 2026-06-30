@@ -34,12 +34,12 @@ describe('optimizer-parallel', () => {
   it('runs a tiny heads-up job synchronously for smoke coverage', () => {
     const presets = cloneGoOutPresets();
     const result = __testRunMatchupJobSync(
-      { kind: 'h2h', left: 'beginner', right: 'beginner' },
+      { kind: 'h2h', left: 'ensign', right: 'ensign' },
       presets,
       { games: 2, objective: 'go-out', seed: 42 }
     );
-    expect(result.left).toBe('beginner');
-    expect(result.right).toBe('beginner');
+    expect(result.left).toBe('ensign');
+    expect(result.right).toBe('ensign');
     expect(result.completed).toBe(2);
   });
 });

@@ -1,20 +1,21 @@
 import type { GameObjective } from '../types/objective.js';
+import type { HouseRulesConfig } from '../types/house-rules.js';
 import { createWarpAiPlayer } from './create-warp-ai.js';
 import { getWarpSkillProfile, resolveWarpLookahead, type WarpSkillLevel, type WarpTableRole } from './skill.js';
 import { playSelfPlayGame, runSelfPlayMatch, type SelfPlaySeat } from './self-play.js';
 
 /** Mirrors apps/Warp12 stats-elo AI_OPPONENT_ELO — keep in sync when tuning. */
 export const REFERENCE_AI_ELO: Record<WarpSkillLevel, number> = {
-  beginner: 1000,
-  intermediate: 1200,
-  advanced: 1400,
+  ensign: 1000,
+  lieutenant: 1200,
+  commander: 1400,
 };
 
 /** Wider spacing for go-out races (higher variance than penalty). */
 export const GO_OUT_REFERENCE_AI_ELO: Record<WarpSkillLevel, number> = {
-  beginner: 1000,
-  intermediate: 1250,
-  advanced: 1500,
+  ensign: 1000,
+  lieutenant: 1250,
+  commander: 1500,
 };
 
 export function referenceEloForObjective(
@@ -31,20 +32,20 @@ export function referenceEloForObjective(
  */
 
 export const AI_SKILL_LEVELS: readonly WarpSkillLevel[] = [
-  'beginner',
-  'intermediate',
-  'advanced',
+  'ensign',
+  'lieutenant',
+  'commander',
 ];
 
 export type SkillMatchup = readonly [WarpSkillLevel, WarpSkillLevel];
 
 export const SKILL_MATCHUPS: readonly SkillMatchup[] = [
-  ['beginner', 'beginner'],
-  ['intermediate', 'intermediate'],
-  ['advanced', 'advanced'],
-  ['beginner', 'intermediate'],
-  ['beginner', 'advanced'],
-  ['intermediate', 'advanced'],
+  ['ensign', 'ensign'],
+  ['lieutenant', 'lieutenant'],
+  ['commander', 'commander'],
+  ['ensign', 'lieutenant'],
+  ['ensign', 'commander'],
+  ['lieutenant', 'commander'],
 ];
 
 export interface SkillMatchupResult {
@@ -142,10 +143,17 @@ export function makeHeadToHeadSeats(
   );
 }
 
+export interface CalibrationRunOptions {
+  games: number;
+  objective: GameObjective;
+  seed?: number;
+  houseRules?: HouseRulesConfig;
+}
+
 export function runSkillMatchup(
   left: WarpSkillLevel,
   right: WarpSkillLevel,
-  options: { games: number; objective: GameObjective; seed?: number }
+  options: CalibrationRunOptions
 ): SkillMatchupResult {
   const seed = options.seed ?? 4242;
   const match = runSelfPlayMatch(
@@ -154,6 +162,7 @@ export function runSkillMatchup(
       games: options.games,
       seed,
       objective: options.objective,
+      houseRules: options.houseRules,
     }
   );
 
@@ -197,11 +206,9 @@ export function runSkillMatchup(
   };
 }
 
-export function runCalibrationMatrix(options: {
-  games: number;
-  objective: GameObjective;
-  seed?: number;
-}): SkillMatchupResult[] {
+export function runCalibrationMatrix(
+  options: CalibrationRunOptions
+): SkillMatchupResult[] {
   return SKILL_MATCHUPS.map(([left, right]) =>
     runSkillMatchup(left, right, options)
   );
@@ -267,7 +274,7 @@ export function runFocusMatchup(
   playerCount: number,
   focus: WarpSkillLevel,
   opponents: WarpSkillLevel,
-  options: { games: number; objective: GameObjective; seed?: number }
+  options: CalibrationRunOptions
 ): FocusMatchupResult {
   const seed = options.seed ?? 4242;
   const ids = playerIds(playerCount);
@@ -287,6 +294,7 @@ export function runFocusMatchup(
       seats,
       seed: seed + game * 7919,
       objective: options.objective,
+      houseRules: options.houseRules,
       maxSteps: 40000 + playerCount * 5000,
     });
     if (!result.completed || !result.winnerId) {
@@ -314,7 +322,7 @@ export function runFocusMatchup(
 export function runFourPlayerFocusMatchup(
   focus: WarpSkillLevel,
   opponents: WarpSkillLevel,
-  options: { games: number; objective: GameObjective; seed?: number }
+  options: CalibrationRunOptions
 ): FourPlayerFocusResult {
   return runFocusMatchup(4, focus, opponents, options);
 }

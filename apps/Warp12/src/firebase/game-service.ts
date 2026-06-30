@@ -299,7 +299,7 @@ export async function addAiCaptain(
       penaltyScore: 0,
       joinedAt: now,
       isAi: true,
-      skill: options.skill ?? 'intermediate',
+      skill: options.skill ?? 'lieutenant',
     };
 
     const captains = [...data.captains, created];

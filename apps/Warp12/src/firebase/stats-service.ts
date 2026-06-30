@@ -1,14 +1,18 @@
 import { doc, getDoc, runTransaction } from 'firebase/firestore';
 
 import type { GameObjective, WarpSkillLevel } from 'warp12-engine';
+import {
+  clampAcademyTei,
+  WARP_SKILL_LEVELS,
+} from 'warp12-engine';
 
 import { getFirestoreDb, isFirebaseConfigured } from './config.js';
 import {
-  DEFAULT_UNASSISTED_ELO,
+  DEFAULT_UNASSISTED_TEI,
   kFactor,
-  opponentEloForObjective,
-  resolveEffectivePlayerElo,
-  updateUnassistedElo,
+  opponentTeiForObjective,
+  resolveEffectivePlayerTei,
+  updateUnassistedTei,
 } from './stats-elo.js';
 import {
   appendMatchHistory,
@@ -17,14 +21,34 @@ import {
 import {
   emptyLocalAiSkillStats,
   emptyLocalAiStats,
-  objectiveEloKey,
-  objectiveEloStats,
+  objectiveTeiKey,
+  objectiveTeiStats,
   type LocalAiSkillStats,
   type PlayerStatsDocument,
   type RatedObjective,
 } from './stats-schema.js';
 
 const PLAYER_STATS = 'playerStats';
+
+/** Firestore rejects explicit `undefined` in documents. */
+export function stripUndefinedFieldsForFirestore<T extends Record<string, unknown>>(
+  value: T
+): T {
+  const next = { ...value };
+  for (const key of Object.keys(next)) {
+    const field = next[key];
+    if (field === undefined) {
+      delete next[key];
+      continue;
+    }
+    if (key === 'matchHistory' && Array.isArray(field)) {
+      next[key] = field.map((entry) =>
+        stripUndefinedFieldsForFirestore(entry as Record<string, unknown>)
+      );
+    }
+  }
+  return next;
+}
 
 export interface ReportLocalAiMatchInput {
   uid: string;
@@ -43,17 +67,17 @@ export interface LocalAiMatchReport {
   advisorUsed: boolean;
   objective: RatedObjective;
   skill: WarpSkillLevel;
-  eloBefore: number | null;
-  eloAfter: number | null;
-  eloDelta: number | null;
+  teiBefore: number | null;
+  teiAfter: number | null;
+  teiDelta: number | null;
 }
 
-export function startingEloForObjective(
+export function startingTeiForObjective(
   doc: PlayerStatsDocument | null,
   objective: RatedObjective
 ): number | undefined {
-  const key = objectiveEloKey(objective);
-  return doc?.startingElo?.[key];
+  const key = objectiveTeiKey(objective);
+  return doc?.startingTei?.[key];
 }
 
 export function incrementLocalAiSkillStats(
@@ -62,7 +86,7 @@ export function incrementLocalAiSkillStats(
     ReportLocalAiMatchInput,
     'won' | 'advisorUsed' | 'skill' | 'objective'
   >,
-  options?: { startingElo?: number }
+  options?: { startingTei?: number }
 ): LocalAiSkillStats {
   const next: LocalAiSkillStats = {
     ...current,
@@ -74,19 +98,19 @@ export function incrementLocalAiSkillStats(
   };
 
   if (!input.advisorUsed) {
-    const key = objectiveEloKey(input.objective);
-    const prior = objectiveEloStats(current, input.objective);
-    const eloBefore = resolveEffectivePlayerElo(
-      prior.unassistedElo,
+    const key = objectiveTeiKey(input.objective);
+    const prior = objectiveTeiStats(current, input.objective);
+    const teiBefore = resolveEffectivePlayerTei(
+      prior.unassistedTei,
       prior.unassistedMatches,
-      options?.startingElo
+      options?.startingTei
     );
     next[key] = {
       unassistedMatches: prior.unassistedMatches + 1,
       unassistedWins: prior.unassistedWins + (input.won ? 1 : 0),
-      unassistedElo: updateUnassistedElo(
-        eloBefore,
-        opponentEloForObjective(input.objective, input.skill),
+      unassistedTei: updateUnassistedTei(
+        teiBefore,
+        opponentTeiForObjective(input.objective, input.skill),
         input.won ? 1 : 0,
         kFactor(prior.unassistedMatches)
       ),
@@ -99,7 +123,7 @@ export function incrementLocalAiSkillStats(
 export function previewLocalAiMatchReport(
   current: LocalAiSkillStats,
   input: ReportLocalAiMatchInput,
-  startingElo?: number
+  startingTei?: number
 ): LocalAiMatchReport {
   if (input.advisorUsed) {
     return {
@@ -108,21 +132,21 @@ export function previewLocalAiMatchReport(
       advisorUsed: true,
       objective: input.objective,
       skill: input.skill,
-      eloBefore: null,
-      eloAfter: null,
-      eloDelta: null,
+      teiBefore: null,
+      teiAfter: null,
+      teiDelta: null,
     };
   }
 
-  const prior = objectiveEloStats(current, input.objective);
-  const eloBefore = resolveEffectivePlayerElo(
-    prior.unassistedElo,
+  const prior = objectiveTeiStats(current, input.objective);
+  const teiBefore = resolveEffectivePlayerTei(
+    prior.unassistedTei,
     prior.unassistedMatches,
-    startingElo
+    startingTei
   );
-  const eloAfter = updateUnassistedElo(
-    eloBefore,
-    opponentEloForObjective(input.objective, input.skill),
+  const teiAfter = updateUnassistedTei(
+    teiBefore,
+    opponentTeiForObjective(input.objective, input.skill),
     input.won ? 1 : 0,
     kFactor(prior.unassistedMatches)
   );
@@ -133,9 +157,9 @@ export function previewLocalAiMatchReport(
     advisorUsed: false,
     objective: input.objective,
     skill: input.skill,
-    eloBefore,
-    eloAfter,
-    eloDelta: eloAfter - eloBefore,
+    teiBefore,
+    teiAfter,
+    teiDelta: teiAfter - teiBefore,
   };
 }
 
@@ -160,10 +184,11 @@ export async function fetchPlayerStats(
   return snap.data() as PlayerStatsDocument;
 }
 
-export async function setPlayerStartingElo(
+export async function setAcademyPlacement(
   uid: string,
   objective: RatedObjective,
-  elo: number
+  skill: WarpSkillLevel,
+  tei: number
 ): Promise<void> {
   if (!isFirebaseConfigured()) {
     return;
@@ -173,8 +198,8 @@ export async function setPlayerStartingElo(
     return;
   }
 
-  const clamped = Math.max(400, Math.min(2800, Math.round(elo)));
-  const key = objectiveEloKey(objective);
+  const clamped = clampAcademyTei(skill, tei, objective);
+  const key = objectiveTeiKey(objective);
   const now = new Date().toISOString();
 
   await runTransaction(db, async (tx) => {
@@ -183,6 +208,10 @@ export async function setPlayerStartingElo(
     const existing = snap.exists()
       ? (snap.data() as PlayerStatsDocument)
       : null;
+
+    if (!needsAcademyPlacementForObjective(existing, objective)) {
+      return;
+    }
 
     tx.set(
       ref,
@@ -195,8 +224,8 @@ export async function setPlayerStartingElo(
         roundsWon: existing?.roundsWon ?? 0,
         totalPenaltyPoints: existing?.totalPenaltyPoints ?? 0,
         localAi: existing?.localAi ?? emptyLocalAiStats(),
-        startingElo: {
-          ...(existing?.startingElo ?? {}),
+        startingTei: {
+          ...(existing?.startingTei ?? {}),
           [key]: clamped,
         },
         updatedAt: now,
@@ -236,10 +265,10 @@ export async function reportLocalAiMatch(
       ...emptyLocalAiSkillStats(),
       ...localAi[input.skill],
     };
-    const seed = startingEloForObjective(existing, input.objective);
+    const seed = startingTeiForObjective(existing, input.objective);
     report = previewLocalAiMatchReport(currentBucket, input, seed);
     localAi[input.skill] = incrementLocalAiSkillStats(currentBucket, input, {
-      startingElo: seed,
+      startingTei: seed,
     });
 
     const historyEntry: MatchHistoryEntry = {
@@ -250,12 +279,12 @@ export async function reportLocalAiMatch(
       advisorUsed: input.advisorUsed,
       decisionPct: input.decisionPct,
       decisionGrade: input.decisionGrade,
-      eloBefore: report.eloBefore ?? undefined,
-      eloAfter: report.eloAfter ?? undefined,
-      eloDelta: report.eloDelta ?? undefined,
+      teiBefore: report.teiBefore ?? undefined,
+      teiAfter: report.teiAfter ?? undefined,
+      teiDelta: report.teiDelta ?? undefined,
     };
 
-    const next: PlayerStatsDocument = {
+    const next = stripUndefinedFieldsForFirestore({
       uid: input.uid,
       displayName: input.displayName.trim() || existing?.displayName || 'Captain',
       matchesCompleted: (existing?.matchesCompleted ?? 0) + 1,
@@ -263,13 +292,13 @@ export async function reportLocalAiMatch(
       roundsPlayed: existing?.roundsPlayed ?? 0,
       roundsWon: existing?.roundsWon ?? 0,
       totalPenaltyPoints: existing?.totalPenaltyPoints ?? 0,
-      startingElo: existing?.startingElo,
+      startingTei: existing?.startingTei,
       matchHistory: appendMatchHistory(existing?.matchHistory, historyEntry),
       localAi,
       bestRoundTimeMs: existing?.bestRoundTimeMs,
       lastPlayedAt: now,
       updatedAt: now,
-    };
+    }) as PlayerStatsDocument;
 
     tx.set(ref, next);
   });
@@ -277,35 +306,86 @@ export async function reportLocalAiMatch(
   return report;
 }
 
-export function displayPlayerObjectiveElo(
+export function displayPlayerObjectiveTei(
   stats: PlayerStatsDocument | null,
   skill: WarpSkillLevel,
   objective: RatedObjective
 ): number | null {
   const bucket = stats?.localAi?.[skill];
   if (!bucket) {
-    const seed = startingEloForObjective(stats, objective);
+    const seed = startingTeiForObjective(stats, objective);
     return seed ?? null;
   }
-  const objectiveStats = objectiveEloStats(bucket, objective);
-  if (objectiveStats.unassistedMatches > 0) {
-    return objectiveStats.unassistedElo ?? DEFAULT_UNASSISTED_ELO;
+  const trackStats = objectiveTeiStats(bucket, objective);
+  if (trackStats.unassistedMatches > 0) {
+    return trackStats.unassistedTei ?? DEFAULT_UNASSISTED_TEI;
   }
   return (
-    objectiveStats.unassistedElo ??
-    startingEloForObjective(stats, objective) ??
+    trackStats.unassistedTei ??
+    startingTeiForObjective(stats, objective) ??
     null
   );
 }
 
-export function canSetStartingElo(
+export function hasStartingTeiPlacedForObjective(
   stats: PlayerStatsDocument | null,
-  skill: WarpSkillLevel,
   objective: RatedObjective
 ): boolean {
-  const bucket = stats?.localAi?.[skill];
-  if (!bucket) {
-    return true;
+  const key = objectiveTeiKey(objective);
+  return stats?.startingTei?.[key] !== undefined;
+}
+
+export function hasAnyRatedUnassistedMatchForObjective(
+  stats: PlayerStatsDocument | null,
+  objective: RatedObjective
+): boolean {
+  if (!stats?.localAi) {
+    return false;
   }
-  return objectiveEloStats(bucket, objective).unassistedMatches === 0;
+  for (const skill of WARP_SKILL_LEVELS) {
+    const bucket = stats.localAi[skill];
+    if (!bucket) {
+      continue;
+    }
+    if (objectiveTeiStats(bucket, objective).unassistedMatches > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function hasAnyRatedUnassistedMatch(
+  stats: PlayerStatsDocument | null
+): boolean {
+  return (
+    hasAnyRatedUnassistedMatchForObjective(stats, 'go-out') ||
+    hasAnyRatedUnassistedMatchForObjective(stats, 'penalty')
+  );
+}
+
+export function needsAcademyPlacementForObjective(
+  stats: PlayerStatsDocument | null,
+  objective: RatedObjective
+): boolean {
+  if (hasStartingTeiPlacedForObjective(stats, objective)) {
+    return false;
+  }
+  return !hasAnyRatedUnassistedMatchForObjective(stats, objective);
+}
+
+export function needsAcademyPlacement(
+  stats: PlayerStatsDocument | null
+): boolean {
+  return (
+    needsAcademyPlacementForObjective(stats, 'go-out') ||
+    needsAcademyPlacementForObjective(stats, 'penalty')
+  );
+}
+
+export function canSetStartingTei(
+  stats: PlayerStatsDocument | null,
+  _skill: WarpSkillLevel,
+  objective: RatedObjective
+): boolean {
+  return needsAcademyPlacementForObjective(stats, objective);
 }

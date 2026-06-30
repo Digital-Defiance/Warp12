@@ -1,0 +1,24 @@
+.subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.65rem;
+}
+
+.subnavLink,
+.subnavLinkActive {
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #64748b;
+}
+
+.subnavLink:hover {
+  color: #94a3b8;
+}
+
+.subnavLinkActive {
+  color: #38bdf8;
+}

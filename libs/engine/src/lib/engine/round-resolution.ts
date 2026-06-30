@@ -10,7 +10,7 @@ import {
   neutralZoneOpenValue,
   trailOpenValue,
 } from '../table/table-state.js';
-import { allStopRequiredForWin } from './q-continuum.js';
+import { resolveRoundWinAllStop } from './q-continuum.js';
 import { getLegalMoves } from './legal-moves.js';
 import { resolveDeadRedAlert } from './dead-red-alert.js';
 
@@ -66,9 +66,6 @@ export function isRoundBlocked(
   houseRules: HouseRules = DEFAULT_HOUSE_RULES
 ): boolean {
   if (round.unchartedSectors.length > 0) {
-    return false;
-  }
-  if (round.allStopRequired && !round.allStopDeclared) {
     return false;
   }
   if (round.qPendingInvoker || round.qGamblePending) {
@@ -130,19 +127,22 @@ export interface PendingRoundWin {
   readonly routeKind: ChartRoute['kind'];
 }
 
-export function applyPendingRoundWin(round: RoundState): RoundState {
+export function applyPendingRoundWin(
+  round: RoundState,
+  houseRules: HouseRules = DEFAULT_HOUSE_RULES
+): RoundState {
   if (!round.pendingRoundWin) {
     return round;
   }
   const { playerId, routeKind } = round.pendingRoundWin;
-  const allStopRequired = allStopRequiredForWin(round, routeKind);
+  const ceremony = resolveRoundWinAllStop(round, routeKind, houseRules);
   return {
     ...round,
     pendingRoundWin: null,
     roundWinnerId: playerId,
-    allStopRequired,
-    allStopDeclared: !allStopRequired,
-    phase: allStopRequired ? 'playing' : 'ended',
+    allStopRequired: ceremony.allStopRequired,
+    allStopDeclared: ceremony.allStopDeclared,
+    phase: ceremony.phase,
   };
 }
 
@@ -150,7 +150,7 @@ export function finalizeRoundWinAfterQ(
   round: RoundState,
   houseRules: HouseRules = DEFAULT_HOUSE_RULES
 ): RoundState {
-  let next = applyPendingRoundWin(round);
+  let next = applyPendingRoundWin(round, houseRules);
   if (next.phase === 'ended') {
     return maybeEndBlockedRound(next, houseRules);
   }

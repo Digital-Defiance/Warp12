@@ -10,10 +10,10 @@ describe('classifyLocalAiMatchSkill', () => {
   it('uses the highest AI skill at the table', () => {
     expect(
       classifyLocalAiMatchSkill([
-        { id: 'a', displayName: 'A', skill: 'beginner' },
-        { id: 'b', displayName: 'B', skill: 'advanced' },
+        { id: 'a', displayName: 'A', skill: 'ensign' },
+        { id: 'b', displayName: 'B', skill: 'commander' },
       ])
-    ).toBe('advanced');
+    ).toBe('commander');
   });
 });
 

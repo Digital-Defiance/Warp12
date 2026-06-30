@@ -15,7 +15,7 @@ import type { GameObjective } from '../types/objective.js';
 interface WorkerPayload {
   readonly job: ParallelMatchupJob;
   readonly presets: Record<
-    'beginner' | 'intermediate' | 'advanced',
+    'ensign' | 'lieutenant' | 'commander',
     SerializedWarpSkillProfile
   >;
   readonly options: {

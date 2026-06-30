@@ -141,24 +141,7 @@ describe('detectGameSoundTransitions', () => {
     ).toEqual({ play: [], stop: [] });
   });
 
-  it('plays warp when returning to warp after a missed All Stop', () => {
-    expect(
-      detectGameSoundTransitions(
-        {
-          ...base,
-          allStopRequired: true,
-          allStopDeclared: false,
-        },
-        {
-          ...base,
-          allStopRequired: false,
-          allStopDeclared: false,
-        }
-      )
-    ).toEqual({ play: ['returnToWarp'], stop: [] });
-  });
-
-  it('plays warp exit when Drop to Impulse is declared on the same turn', () => {
+  it('plays warp exit when Drop to Impulse is declared (turn advances)', () => {
     expect(
       detectGameSoundTransitions(
         {
@@ -169,12 +152,31 @@ describe('detectGameSoundTransitions', () => {
         },
         {
           ...base,
-          activePlayerId: 'a',
+          activePlayerId: 'b',
           dropToImpulseCallPending: null,
           dropToImpulseCatchable: null,
         }
       )
     ).toEqual({ play: ['dropToImpulse'], stop: [] });
+  });
+
+  it('does not play warp exit when passing without declaring opens the catch window', () => {
+    expect(
+      detectGameSoundTransitions(
+        {
+          ...base,
+          activePlayerId: 'a',
+          dropToImpulseCallPending: 'a',
+          dropToImpulseCatchable: null,
+        },
+        {
+          ...base,
+          activePlayerId: 'b',
+          dropToImpulseCallPending: null,
+          dropToImpulseCatchable: 'a',
+        }
+      )
+    ).toEqual({ play: [], stop: [] });
   });
 
   it('plays return to warp when Drop to Impulse is caught', () => {

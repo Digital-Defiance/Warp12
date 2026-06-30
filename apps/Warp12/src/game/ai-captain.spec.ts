@@ -23,13 +23,13 @@ describe('ai captain helpers', () => {
         penaltyScore: 0,
         joinedAt: '2026-01-01T00:00:00.000Z',
         isAi: true,
-        skill: 'advanced',
+        skill: 'commander',
         useLookahead: true,
       })
     ).toEqual({
       id: 'ai:data',
       displayName: 'Data',
-      skill: 'advanced',
+      skill: 'commander',
       poolId: 'data',
     });
   });

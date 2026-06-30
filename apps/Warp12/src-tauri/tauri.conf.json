@@ -1,7 +1,7 @@
 {
   "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Warp 12",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "identifier": "org.digitaldefiance.app.warp12",
   "build": {
     "frontendDist": "../dist",
@@ -41,13 +41,13 @@
     ],
     "android": {
       "minSdkVersion": 21,
-      "versionCode": 4,
+      "versionCode": 5,
       "debugApplicationIdSuffix": ".debug"
     },
     "iOS": {
       "developmentTeam": "J6887N729S",
       "minimumSystemVersion": "14.0",
-      "bundleVersion": "3",
+      "bundleVersion": "4",
       "infoPlist": "./Info.ios.plist"
     }
   }

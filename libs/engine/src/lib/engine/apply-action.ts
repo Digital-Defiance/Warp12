@@ -41,7 +41,7 @@ import {
   advanceToNextPlayer,
   resolveQGamble,
   trailsOpenToOthers,
-  allStopRequiredForWin,
+  resolveRoundWinAllStop,
 } from './q-continuum.js';
 import { getLegalMoves, isLegalMove, placedTile } from './legal-moves.js';
 import {
@@ -411,13 +411,17 @@ function applyChartToRoute(
   }
 
   if (emptyHandWin && !blocksRoundWin(nextRound, playerId) && !openingIncomplete) {
-    const allStopRequired = allStopRequiredForWin(nextRound, route.kind);
+    const ceremony = resolveRoundWinAllStop(
+      nextRound,
+      route.kind,
+      options.houseRules
+    );
     nextRound = {
       ...nextRound,
-      allStopRequired,
-      allStopDeclared: !allStopRequired,
+      allStopRequired: ceremony.allStopRequired,
+      allStopDeclared: ceremony.allStopDeclared,
       roundWinnerId: playerId,
-      phase: allStopRequired ? 'playing' : 'ended',
+      phase: ceremony.phase,
       mandatoryPlay: null,
     };
     return maybeEndBlockedRound(nextRound, options.houseRules);
@@ -539,10 +543,6 @@ function resolveRoundStarterOpeningTurn(
 }
 
 function advanceTurn(round: RoundState, houseRules: HouseRules): RoundState {
-  if (round.allStopRequired && !round.allStopDeclared) {
-    return round;
-  }
-
   if (round.qPendingInvoker || round.qGamblePending) {
     return round;
   }
@@ -674,42 +674,6 @@ function handlePassTurn(
   return { ok: true, state: withRound(state, nextRound) };
 }
 
-function handleReturnToWarp(
-  state: GameState,
-  round: RoundState,
-  playerId: string
-): ActionResult {
-  if (!round.allStopRequired || round.allStopDeclared) {
-    return fail('RETURN_TO_WARP_NOT_ALLOWED');
-  }
-  if (round.roundWinnerId !== playerId) {
-    return fail('RETURN_TO_WARP_NOT_ALLOWED');
-  }
-  if (round.unchartedSectors.length === 0) {
-    return fail('EMPTY_UNCHARTED');
-  }
-
-  const [drawn, ...remaining] = round.unchartedSectors;
-  let nextRound: RoundState = {
-    ...round,
-    unchartedSectors: remaining,
-    roundWinnerId: null,
-    allStopRequired: false,
-    allStopDeclared: false,
-    phase: 'playing',
-    pendingRoundWin: null,
-    mandatoryPlay: null,
-  };
-  nextRound = updateHands(nextRound, playerId, [
-    ...(nextRound.hands[playerId] ?? []),
-    drawn,
-  ]);
-  nextRound = advanceTurn(nextRound, state.houseRules);
-  nextRound = maybeEndBlockedRound(nextRound, state.houseRules);
-
-  return { ok: true, state: withRound(state, nextRound) };
-}
-
 function handleDeployBeacon(
   state: GameState,
   round: RoundState,
@@ -832,7 +796,11 @@ function handleCatchDropToImpulse(
     return fail('CATCH_DROP_TO_IMPULSE_NOT_ALLOWED');
   }
 
-  const penalized = applyDropToImpulsePenaltyDraw(round, targetPlayerId);
+  const penalized = applyDropToImpulsePenaltyDraw(
+    round,
+    targetPlayerId,
+    state.houseRules.dropToImpulseCatchPenalty
+  );
   if (!penalized) {
     return fail('EMPTY_UNCHARTED');
   }
@@ -1101,11 +1069,7 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
     }
 
     case 'RETURN_TO_WARP': {
-      const turnCheck = requirePlayerTurn(round, action.playerId);
-      if (turnCheck !== true) {
-        return fail(turnCheck);
-      }
-      return handleReturnToWarp(state, round, action.playerId);
+      return fail('RETURN_TO_WARP_NOT_ALLOWED');
     }
 
     case 'INVOKE_Q_FLASH': {

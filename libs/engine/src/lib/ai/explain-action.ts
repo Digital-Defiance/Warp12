@@ -245,7 +245,8 @@ function describeHeuristicContribution(
       return null;
     case H.dropToImpulseCatch:
       if (action.kind === 'catch-drop-to-impulse') {
-        return 'Penalizes a missed Drop to Impulse with one draw from Uncharted Sectors.';
+        const tiles = ctx.obs.houseRules.dropToImpulseCatchPenalty;
+        return `Penalizes a missed Drop to Impulse with ${tiles} draw${tiles === 1 ? '' : 's'} from Uncharted Sectors.`;
       }
       return null;
     case H.dropToImpulseForget:

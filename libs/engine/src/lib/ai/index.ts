@@ -18,6 +18,27 @@ export { WARP_HEURISTIC_IDS, DEFAULT_WARP_HEURISTICS } from './heuristics.js';
 
 export type { WarpSkillLevel, WarpSkillProfile } from './skill.js';
 export {
+  WARP_SKILL_LEVELS,
+  AI_SKILL_TACTICAL_CLASS,
+  TACTICAL_CLASS_TAGLINES,
+  CLASS_I_TAGLINE,
+  ACADEMY_TEI_BANDS,
+  aiSkillToTacticalClass,
+  formatTacticalClass,
+  formatTei,
+  formatAiSkillUnratedLabel,
+  formatAiSkillRatedLabel,
+  teiToPlayerTacticalClass,
+  playerTacticalClassTagline,
+  academyTeiBand,
+  clampAcademyTei,
+  defaultAcademyTei,
+  type AiTacticalClass,
+  type TacticalClass,
+  type AcademyTeiBand,
+  type RatedObjective as SkillRatedObjective,
+} from './tactical-class.js';
+export {
   WARP_SKILL_PRESETS,
   cloneGoOutPresets,
   getAdvisorSkillProfile,
@@ -82,6 +103,7 @@ export type {
   FocusMatchupResult,
   FourPlayerFocusResult,
   CalibrationPlayerCount,
+  CalibrationRunOptions,
 } from './ai-elo-calibration.js';
 export {
   AI_SKILL_LEVELS,

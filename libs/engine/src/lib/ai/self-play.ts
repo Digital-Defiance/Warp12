@@ -8,6 +8,7 @@ import {
 import type { GameState } from '../types/game-state.js';
 import type { GameModuleConfig } from '../types/modules.js';
 import type { GameObjective } from '../types/objective.js';
+import type { HouseRulesConfig } from '../types/house-rules.js';
 import type { PlayerId } from '../types/player.js';
 import type { RoundState } from '../types/game-state.js';
 import type { WarpAiPlayer } from './create-warp-ai.js';
@@ -23,6 +24,7 @@ export interface PlaySelfPlayGameOptions {
   seats: readonly SelfPlaySeat[];
   seed?: number;
   modules?: GameModuleConfig;
+  houseRules?: HouseRulesConfig;
   objective?: GameObjective;
   /** Safety cap so a blocked round can't loop forever (default 20000). */
   maxSteps?: number;
@@ -125,6 +127,7 @@ export function playSelfPlayGame(
       id: 'self-play',
       captains,
       modules: options.modules,
+      houseRules: options.houseRules,
       objective: options.objective,
     },
     { shuffledCoordinates: shuffled }
@@ -242,6 +245,7 @@ export function runSelfPlayMatch(
     games: number;
     seed?: number;
     modules?: GameModuleConfig;
+    houseRules?: HouseRulesConfig;
     objective?: GameObjective;
   }
 ): SelfPlayMatchResult {
@@ -256,6 +260,7 @@ export function runSelfPlayMatch(
       seats,
       seed: baseSeed + game * 7919,
       modules: options.modules,
+      houseRules: options.houseRules,
       objective: options.objective,
     });
 

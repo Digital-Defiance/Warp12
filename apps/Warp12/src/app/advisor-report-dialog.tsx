@@ -110,7 +110,7 @@ export function AdvisorReportDialog({
         <footer className={styles.footer}>
           <p className={styles.hint}>
             Move strength is scored against other legal lines at that moment. Your
-            solo rating uses only your moves; turn on all captains to learn from
+            TEI uses only your moves; turn on all captains to learn from
             everyone at the table.
           </p>
           <button

@@ -17,8 +17,13 @@ const SOUND_URLS: Record<GameSound, string> = {
   qFlash: '/qflash.mp3',
 };
 
+const BRIDGE_AMBIENCE_URL = '/tng_bridge_1.mp3';
+const BRIDGE_AMBIENCE_VOLUME = 0.35;
+
 const audioCache = new Map<GameSound, HTMLAudioElement>();
 const turnBeepCache = new Map<string, HTMLAudioElement>();
+let bridgeAmbienceClip: HTMLAudioElement | null = null;
+let bridgeAmbienceEnabled = false;
 let audioUnlocked = false;
 
 export function readStoredGameSoundsMuted(): boolean {
@@ -43,6 +48,8 @@ export function setGameSoundsMuted(muted: boolean): void {
   soundsMuted = muted;
   if (muted) {
     stopGameSounds();
+  } else if (bridgeAmbienceEnabled && audioUnlocked) {
+    playBridgeAmbience();
   }
 }
 
@@ -59,6 +66,46 @@ function stopGameSounds(): void {
     clip.pause();
     clip.currentTime = 0;
   }
+  pauseBridgeAmbience();
+}
+
+function bridgeAmbienceElement(): HTMLAudioElement {
+  if (!bridgeAmbienceClip) {
+    bridgeAmbienceClip = new Audio(BRIDGE_AMBIENCE_URL);
+    bridgeAmbienceClip.loop = true;
+    bridgeAmbienceClip.preload = 'auto';
+    bridgeAmbienceClip.volume = BRIDGE_AMBIENCE_VOLUME;
+  }
+  return bridgeAmbienceClip;
+}
+
+function playBridgeAmbience(): void {
+  const clip = bridgeAmbienceElement();
+  if (clip.paused) {
+    void clip.play().catch(() => undefined);
+  }
+}
+
+function pauseBridgeAmbience(): void {
+  if (!bridgeAmbienceClip) {
+    return;
+  }
+  bridgeAmbienceClip.pause();
+  bridgeAmbienceClip.currentTime = 0;
+}
+
+/** Loop bridge ambience under one-shot table SFX (separate audio element). */
+export function setBridgeAmbienceEnabled(enabled: boolean): void {
+  bridgeAmbienceEnabled = enabled;
+  if (enabled && audioUnlocked && !soundsMuted) {
+    playBridgeAmbience();
+  } else {
+    pauseBridgeAmbience();
+  }
+}
+
+export function isBridgeAmbienceEnabled(): boolean {
+  return bridgeAmbienceEnabled;
 }
 
 function audioFor(sound: GameSound): HTMLAudioElement {
@@ -80,6 +127,10 @@ export function unlockGameAudio(): void {
   for (const sound of Object.keys(SOUND_URLS) as GameSound[]) {
     const clip = audioFor(sound);
     clip.load();
+  }
+  bridgeAmbienceElement().load();
+  if (bridgeAmbienceEnabled && !soundsMuted) {
+    playBridgeAmbience();
   }
 }
 

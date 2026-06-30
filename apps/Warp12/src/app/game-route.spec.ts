@@ -12,6 +12,9 @@ describe('preservesGameSession', () => {
 
   it('returns false for marketing and doc routes', () => {
     expect(preservesGameSession('/')).toBe(false);
+    expect(preservesGameSession('/about')).toBe(false);
+    expect(preservesGameSession('/paper')).toBe(false);
+    expect(preservesGameSession('/paper/log')).toBe(false);
     expect(preservesGameSession('/rules')).toBe(false);
     expect(preservesGameSession('/privacy')).toBe(false);
   });

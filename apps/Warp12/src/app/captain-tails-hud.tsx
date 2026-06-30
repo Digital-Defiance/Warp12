@@ -14,6 +14,8 @@ const STORAGE_KEY = 'warp12-captain-tails-hud-pos';
 export interface TailRow {
   readonly rowId: string;
   readonly label: string;
+  readonly tacticalClassAbbrev?: string;
+  readonly tacticalClassLabel?: string;
   readonly connectValue: number;
   readonly lastTile: PlacedCoordinate | null;
   readonly state: TrailAccessState;
@@ -27,12 +29,16 @@ export interface CaptainTailsHudProps {
   activePlayerId: string;
   display: CaptainTailsDisplay;
   tileBg: WarpTileBg;
+  tacticalClassAbbrevByCaptain?: Readonly<Record<string, string>>;
+  tacticalClassLabelByCaptain?: Readonly<Record<string, string>>;
 }
 
 export function buildTailRows(
   round: RoundState,
   trailSpokes: readonly TrailSpokeStatus[],
-  activePlayerId: string
+  activePlayerId: string,
+  tacticalClassAbbrevByCaptain: Readonly<Record<string, string>> = {},
+  tacticalClassLabelByCaptain: Readonly<Record<string, string>> = {}
 ): TailRow[] {
   const spokeByCaptain = new Map(
     trailSpokes
@@ -53,6 +59,12 @@ export function buildTailRows(
     return {
       rowId: captainId,
       label: spoke?.label ?? captainId,
+      ...(tacticalClassAbbrevByCaptain[captainId]
+        ? {
+            tacticalClassAbbrev: tacticalClassAbbrevByCaptain[captainId],
+            tacticalClassLabel: tacticalClassLabelByCaptain[captainId],
+          }
+        : {}),
       connectValue: spoke?.connectValue ?? round.spacedockValue,
       lastTile,
       state: spoke?.state ?? 'shields',
@@ -80,15 +92,20 @@ export function buildTailRows(
   ];
 }
 
-/** @deprecated Use {@link buildTailRows}. */
 export function buildCaptainTailRows(
   round: RoundState,
   trailSpokes: readonly TrailSpokeStatus[],
-  activePlayerId: string
+  activePlayerId: string,
+  tacticalClassAbbrevByCaptain?: Readonly<Record<string, string>>,
+  tacticalClassLabelByCaptain?: Readonly<Record<string, string>>
 ): TailRow[] {
-  return buildTailRows(round, trailSpokes, activePlayerId).filter(
-    (row) => row.rowId !== 'neutral-zone'
-  );
+  return buildTailRows(
+    round,
+    trailSpokes,
+    activePlayerId,
+    tacticalClassAbbrevByCaptain,
+    tacticalClassLabelByCaptain
+  ).filter((row) => row.rowId !== 'neutral-zone');
 }
 
 export function resolveTailEnds(
@@ -178,10 +195,25 @@ export function CaptainTailsHud({
   activePlayerId,
   display,
   tileBg,
+  tacticalClassAbbrevByCaptain = {},
+  tacticalClassLabelByCaptain = {},
 }: CaptainTailsHudProps) {
   const rows = useMemo(
-    () => buildTailRows(round, trailSpokes, activePlayerId),
-    [activePlayerId, round, trailSpokes]
+    () =>
+      buildTailRows(
+        round,
+        trailSpokes,
+        activePlayerId,
+        tacticalClassAbbrevByCaptain,
+        tacticalClassLabelByCaptain
+      ),
+    [
+      activePlayerId,
+      tacticalClassAbbrevByCaptain,
+      tacticalClassLabelByCaptain,
+      round,
+      trailSpokes,
+    ]
   );
 
   return (
@@ -203,6 +235,10 @@ export function CaptainTailsHud({
             ? `Tail ${anchor}:${tail} · open ${row.connectValue}`
             : `Spacedock ${anchor}:${tail} · open ${row.connectValue}`;
 
+          const nameTitle = row.tacticalClassLabel
+            ? `${row.label} · ${row.tacticalClassLabel}`
+            : row.label;
+
           return (
             <li
               key={row.rowId}
@@ -211,7 +247,14 @@ export function CaptainTailsHud({
               data-active={row.isActive ? 'true' : undefined}
               data-state={row.state}
             >
-              <span className={styles.name}>{row.label}</span>
+              <span className={styles.nameCell} title={nameTitle}>
+                <span className={styles.name}>{row.label}</span>
+                {row.tacticalClassAbbrev && (
+                  <span className={styles.tacticalClass}>
+                    {row.tacticalClassAbbrev}
+                  </span>
+                )}
+              </span>
               {display === 'domino' && (
                 <TailDomino anchor={anchor} tail={tail} tileBg={tileBg} />
               )}

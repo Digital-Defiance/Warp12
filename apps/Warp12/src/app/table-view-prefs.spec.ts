@@ -23,6 +23,7 @@ describe('table-view-prefs', () => {
       captainTailsHud: true,
       captainTailsDisplay: 'domino',
       pipPreset: 'lcars',
+      bridgeSoundsEnabled: false,
     });
 
     expect(readTableOptions()).toMatchObject({
@@ -32,6 +33,7 @@ describe('table-view-prefs', () => {
       captainTailsDisplay: 'domino',
       pipPreset: 'lcars',
       tileBg: 'dark',
+      bridgeSoundsEnabled: false,
     });
   });
 

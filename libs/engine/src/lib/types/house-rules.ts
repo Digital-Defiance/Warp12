@@ -1,3 +1,6 @@
+/** Tiles drawn when an opponent catches a missed Drop to Impulse announce. */
+export type DropToImpulseCatchPenalty = 1 | 2;
+
 /** Optional house-rule toggles for tournament hosts (default = standard Mexican Train). */
 export interface HouseRules {
   /** Deluxe-style: must chart on your warp trail before an opponent's open trail. */
@@ -10,6 +13,10 @@ export interface HouseRules {
   readonly roundStarterPlaysTwo: boolean;
   /** Announce Drop to Impulse when one coordinate remains (uno / knock). */
   readonly dropToImpulseCall: boolean;
+  /** Draw penalty when caught forgetting to announce (1 = standard; 2 = house rule). */
+  readonly dropToImpulseCatchPenalty: DropToImpulseCatchPenalty;
+  /** Auto All Stop! log/sound after Neutral Zone wins and All Stop! echo go-outs. */
+  readonly allStopCeremony: boolean;
 }
 
 export interface HouseRulesConfig {
@@ -18,6 +25,8 @@ export interface HouseRulesConfig {
   beaconClearsOnAnyPlay?: boolean;
   roundStarterPlaysTwo?: boolean;
   dropToImpulseCall?: boolean;
+  dropToImpulseCatchPenalty?: DropToImpulseCatchPenalty;
+  allStopCeremony?: boolean;
 }
 
 export const DEFAULT_HOUSE_RULES: HouseRules = {
@@ -26,6 +35,8 @@ export const DEFAULT_HOUSE_RULES: HouseRules = {
   beaconClearsOnAnyPlay: false,
   roundStarterPlaysTwo: false,
   dropToImpulseCall: false,
+  dropToImpulseCatchPenalty: 1,
+  allStopCeremony: true,
 };
 
 export function resolveHouseRules(
@@ -37,5 +48,8 @@ export function resolveHouseRules(
     beaconClearsOnAnyPlay: config.beaconClearsOnAnyPlay ?? false,
     roundStarterPlaysTwo: config.roundStarterPlaysTwo ?? false,
     dropToImpulseCall: config.dropToImpulseCall ?? false,
+    dropToImpulseCatchPenalty:
+      config.dropToImpulseCatchPenalty === 2 ? 2 : 1,
+    allStopCeremony: config.allStopCeremony ?? true,
   };
 }

@@ -62,12 +62,15 @@ export function advanceTurnWithDropToImpulse(
 
 export function applyDropToImpulsePenaltyDraw(
   round: RoundState,
-  playerId: PlayerId
+  playerId: PlayerId,
+  drawCount: 1 | 2 = 1
 ): RoundState | null {
   if (round.unchartedSectors.length === 0) {
     return null;
   }
-  const [drawn, ...remaining] = round.unchartedSectors;
+  const tilesToDraw = Math.min(drawCount, round.unchartedSectors.length);
+  const drawn = round.unchartedSectors.slice(0, tilesToDraw);
+  const remaining = round.unchartedSectors.slice(tilesToDraw);
   return {
     ...round,
     unchartedSectors: remaining,
@@ -75,7 +78,7 @@ export function applyDropToImpulsePenaltyDraw(
     dropToImpulseCallPending: null,
     hands: {
       ...round.hands,
-      [playerId]: [...(round.hands[playerId] ?? []), drawn],
+      [playerId]: [...(round.hands[playerId] ?? []), ...drawn],
     },
   };
 }

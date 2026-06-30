@@ -126,7 +126,7 @@ The client targets the [warp-12 Firebase project](https://console.firebase.googl
 
 - `games/{gameId}` — public game state, table, hand counts, `captainIds`, lobby settings
 - `games/{gameId}/hands/{playerId}` — private coordinates (readable only by that captain)
-- `playerStats/{uid}` — leaderboard rankings and `localAi` buckets (beginner / intermediate / advanced)
+- `playerStats/{uid}` — leaderboard rankings and `localAi` buckets (ensign / lieutenant / commander)
 - `playerProfiles/{uid}` — captain profile and gaming platform IDs
 - `publishedLogs/{logId}` — shared round transcripts
 
@@ -221,7 +221,7 @@ Anonymous Auth will fail on a domain that is not listed there.
 
 See [RULES.md](./RULES.md) for the full Navigational Operations Manual — Spacedock, Warp Trails, Neutral Zone, Distress Beacon, Subspace Fracture, All Stop!, Drop to Impulse, and opt-in modules (Q-Continuum, Salamander Penalty).
 
-## Warp AI, tactical coach & ELO
+## Warp AI, tactical coach & TEI
 
 Warp 12 ships with offline AI captains and a human-facing **tactical coach**, both built on the same `warp12-engine` decision stack and validated with self-play calibration.
 
@@ -231,47 +231,52 @@ Each AI officer runs entirely inside the rules engine — Distress Beacons, Red 
 
 | Setting | What it does |
 |---------|----------------|
-| **Skill** (Beginner / Intermediate / Advanced) | Controls blunder rate, heuristic weights, and **intrinsic search depth** for that tier. Beginners make more mistakes; Advanced plays tighter heuristics. Lookahead is baked into the tier profile (not a separate toggle) so leaderboard ELO stays consistent. |
+| **Tactical Class** (IV / III / II) | Controls blunder rate, heuristic weights, and **intrinsic search depth** for that simulation tier. Class IV officers make more mistakes; Class II play tighter heuristics. Lookahead is baked into the tier profile (not a separate toggle) so leaderboard TEI stays consistent. |
 
-**Advanced go-out** uses depth-2 forward search at **2 players only**; at 3+ the race is too chaotic for search to help, so those tables use greedy sprint heuristics instead. **Penalty** captains stay greedy at all table sizes. Search simulates candidate moves through the real engine with sampled hidden hands — it **does not see your tiles**. Detail: [RULES.md §VII](./RULES.md#vii-ai-officers--tactical-advisor-digital).
+**Class II go-out** uses depth-2 forward search at **2 players only**; at 3+ the race is too chaotic for search to help, so those tables use greedy sprint heuristics instead. **Penalty** captains stay greedy at all table sizes. Search simulates candidate moves through the real engine with sampled hidden hands — it **does not see your tiles**. Detail: [RULES.md §VII](./RULES.md#vii-ai-officers--tactical-advisor-digital).
 
 Self-play suites in `libs/engine` verify skill ordering, symmetric seating fairness, and 4-player focus matchups. Run the calibration report:
 
 ```bash
-yarn calibrate:ai-elo          # 200 games per matchup + multi-table focus matrix
-AI_CALIBRATION_GAMES=500 yarn calibrate:ai-elo   # longer run for tighter estimates
+yarn calibrate:ai-tei          # 200 games per matchup + multi-table focus matrix
+AI_CALIBRATION_GAMES=500 yarn calibrate:ai-tei   # longer run for tighter estimates
+yarn calibrate:ai-tei-dti      # same report plus Drop to Impulse penalty sanity pass
 yarn optimize:ai-weights       # coordinate search on go-out heuristic weights
 ```
 
 ### Tactical coach (`warp12-react`)
 
-The in-game **tactical advisor** reuses the same AI stack at Advanced skill with lookahead always on. It suggests a move plus plain-language reasons (`explainWarpAiAction`, turn-resolution hints) so humans can see *why* a line is strong — not just what to play.
+The in-game **tactical advisor** reuses the same AI stack at Class II with lookahead always on. It suggests a move plus plain-language reasons (`explainWarpAiAction`, turn-resolution hints) so humans can see *why* a line is strong — not just what to play.
 
-### Leaderboard ELO (unassisted matches)
+### Leaderboard TEI (unassisted matches)
 
 Solo games vs AI feed **[leaderboard.warp12.app](https://leaderboard.warp12.app)**. Two independent tracks:
 
 | Track | When it applies |
 |-------|-----------------|
-| **Go-out ELO** | First player to empty their hand wins |
-| **Penalty ELO** | Lowest pip count when the round ends |
+| **Go-out TEI** | First player to empty their hand wins |
+| **Penalty TEI** | Lowest pip count when the round ends |
 
-Each track also splits by AI tier (`localAi.beginner`, `.intermediate`, `.advanced`).
+Each track also splits by AI tactical class (`localAi` Class IV / III / II profiles).
 
-**Fixed opponent ratings** (unassisted matches only):
+**Starfleet Academy:** before the first rated match in each track, captains pick Class IV / III / II and a starting TEI within that class’s band (saved once per track — go-out and penalty are independent).
 
-| Track | Beginner | Intermediate | Advanced |
-|-------|----------|--------------|----------|
-| Penalty | 1000 | 1200 | 1400 |
-| Go-out | 1000 | 1250 | 1500 |
+**Fixed reference TEI** (unassisted matches only):
 
-Go-out uses wider spacing because race outcomes are noisier; the leaderboard also shows **percentile** (Top X%) within each board so rank is meaningful even when raw ELO gaps compress.
+| Track | Class IV | Class III | Class II |
+|-------|----------|-----------|----------|
+| Penalty | ~TEI 1000 | ~TEI 1200 | ~TEI 1400 |
+| Go-out | ~TEI 1000 | ~TEI 1250 | ~TEI 1500 |
 
-Your ELO updates with a standard Elo formula; K-factor starts at **40** for the first 10 rated games, then **32** until 30 games, then **24**.
+Go-out uses wider spacing because race outcomes are noisier; the leaderboard also shows **percentile** (Top X%) within each board so rank is meaningful even when raw TEI gaps compress.
 
-**Advisor disqualification:** if you used the tactical advisor during the match, the win still counts in general stats, but **ELO does not move** — only unassisted matches are rated. Assisted wins are tracked separately (`advisorMatches` / `advisorWins`).
+Your TEI updates with a standard Elo formula; K-factor starts at **40** for the first 10 rated games, then **32** until 30 games, then **24**.
 
-Calibration self-play (`yarn calibrate:ai-elo`) compares tier-vs-tier win rates to those fixed ratings. Penalty tiers align closely (~76–91% per 200-point step). Go-out ordering is stable but gaps are compressed by race variance; table-size tweaks live in `getWarpSkillProfile(..., playerCount, tableRole)`.
+**Advisor disqualification:** if you used the tactical advisor during the match, the win still counts in general stats, but **TEI does not move** — only unassisted matches are rated. Assisted wins are tracked separately (`advisorMatches` / `advisorWins`).
+
+Calibration self-play (`yarn calibrate:ai-tei`) compares tier-vs-tier win rates to those fixed TEI reference bands. Penalty tiers align closely (~76–91% per 200-point step). Go-out ordering is stable but gaps are compressed by race variance; table-size tweaks live in `getWarpSkillProfile(..., playerCount, tableRole)`.
+
+Paper outline (TEI, calibration, go-out vs penalty): [docs/tei-paper-outline.md](./docs/tei-paper-outline.md) · in-app: `/paper`. Self-improvement log: [docs/calibration-log.md](./docs/calibration-log.md) · `/paper/log`. Engine survey: [docs/mexican-train-engine-comparison.md](./docs/mexican-train-engine-comparison.md). Marketing: `/about`.
 
 Published packages: `warp12-engine` (AI + rules), `warp12-react` (coach + table adapters).
 

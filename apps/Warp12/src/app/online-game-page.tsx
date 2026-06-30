@@ -377,6 +377,7 @@ export function OnlineGamePage() {
         viewerId={uid ?? ''}
         handCounts={handCounts}
         onlineAiCaptainIds={onlineAiCaptainIds}
+        onlineCaptains={sectorCaptains}
         onAction={dispatch}
         onLeave={() => navigate('/')}
         isOnlineHost={isHost}

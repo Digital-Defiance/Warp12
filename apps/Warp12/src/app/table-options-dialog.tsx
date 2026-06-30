@@ -36,6 +36,8 @@ export interface TableOptionsDialogProps {
   onCaptainTailsHudChange: (next: boolean) => void;
   captainTailsDisplay: CaptainTailsDisplay;
   onCaptainTailsDisplayChange: (next: CaptainTailsDisplay) => void;
+  bridgeSoundsEnabled: boolean;
+  onBridgeSoundsEnabledChange: (next: boolean) => void;
   turnBeepsEnabled: boolean;
   onTurnBeepsEnabledChange: (next: boolean) => void;
   showDebugExport?: boolean;
@@ -70,6 +72,8 @@ export function TableOptionsDialog({
   onCaptainTailsHudChange,
   captainTailsDisplay,
   onCaptainTailsDisplayChange,
+  bridgeSoundsEnabled,
+  onBridgeSoundsEnabledChange,
   turnBeepsEnabled,
   onTurnBeepsEnabledChange,
   showDebugExport = false,
@@ -240,6 +244,21 @@ export function TableOptionsDialog({
 
           <section className={optionStyles.section}>
             <h3 className={optionStyles.sectionTitle}>Sound</h3>
+            <label className={optionStyles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={bridgeSoundsEnabled}
+                onChange={(event) =>
+                  onBridgeSoundsEnabledChange(event.target.checked)
+                }
+              />
+              <span>Bridge sounds</span>
+            </label>
+            <p className={optionStyles.hint}>
+              {bridgeSoundsEnabled
+                ? 'Loops ambient bridge noise in the background while you play — table alerts and turn beeps play on top.'
+                : 'Turn on for a looping bridge ambience track under table sound effects.'}
+            </p>
             <label className={optionStyles.checkboxRow}>
               <input
                 type="checkbox"

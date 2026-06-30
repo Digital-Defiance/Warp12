@@ -34,9 +34,11 @@ import {
   coordinatesEqual,
   createActionLog,
   createGameLog,
+  buildAutoAllStopLogEntry,
   buildGameLogEntry,
   buildRoundLogExport,
   buildRoundOutcomeEntry,
+  buildRoundRatingsEntry,
   buildRoundStartedEntry,
   formatGameLogLine,
   gameStateToTrains,
@@ -73,7 +75,9 @@ import {
   type ShareRoundMetadata,
 } from '../game/share-round.js';
 import type { LocalGameConfig } from '../game/local-game-config';
+import type { FirestoreCaptain } from '../firebase/schema.js';
 import { useGameSoundEffects } from '../game/use-game-sounds.js';
+import { useBridgeAmbience } from '../game/use-bridge-ambience.js';
 import { countChartedTilesOnTable } from '../game/charted-tile-count.js';
 import {
   resolveCoachIndicator,
@@ -81,12 +85,18 @@ import {
   type CoachPresence,
 } from '../firebase/coach-presence';
 import { isFirebaseConfigured } from '../firebase/config.js';
-import { reportLocalAiMatch } from '../firebase/stats-service.js';
+import { reportLocalAiMatch, ratedObjective } from '../firebase/stats-service.js';
 import { useFirebaseAuth } from '../firebase/use-firebase-auth.js';
+import { usePlayerStats } from '../firebase/use-player-stats.js';
 import {
   classifyLocalAiMatchSkill,
   humanWonLocalMatch,
 } from '../game/local-match-stats.js';
+import { buildLocalRosterTei } from '../game/roster-elo.js';
+import {
+  buildCaptainTacticalClassAbbrevById,
+  buildCaptainTacticalClassLabelById,
+} from '../game/captain-tactical-class.js';
 import {
   sectorWinnerName,
 } from '../game/sector-outcome.js';
@@ -233,6 +243,8 @@ export interface BridgeTableProps {
   handCounts?: Record<string, number>;
   /** Online sectors with host-run AI officers (by captain id). */
   onlineAiCaptainIds?: ReadonlySet<string>;
+  /** Online lobby captains — used for AI officer rank on tails and tooltips. */
+  onlineCaptains?: readonly FirestoreCaptain[];
   onAction?: (action: GameAction) => Promise<ActionResult>;
   onLeave?: () => void;
   isOnlineHost?: boolean;
@@ -257,6 +269,7 @@ export function BridgeTable({
   viewerId,
   handCounts = {},
   onlineAiCaptainIds,
+  onlineCaptains,
   onAction,
   onLeave,
   isOnlineHost = false,
@@ -273,6 +286,7 @@ export function BridgeTable({
   const isVsAi = mode === 'local' && !!localConfig && !!aiPlayers;
   const humanId = localConfig?.humanId ?? 'you';
   const auth = useFirebaseAuth();
+  const playerStats = usePlayerStats();
   const reportedLocalMatchRef = useRef<string | null>(null);
   const advisorUsedThisMatchRef = useRef(false);
 
@@ -334,7 +348,7 @@ export function BridgeTable({
 
     if (!isFirebaseConfigured()) {
       setMatchReportNotice(
-        'Solo rating was not saved — Firebase is not configured in this build. Decision quality above is still computed locally.'
+        'TEI was not saved — Firebase is not configured in this build. Decision quality above is still computed locally.'
       );
       return;
     }
@@ -347,7 +361,7 @@ export function BridgeTable({
     if (!auth.user) {
       setMatchReportNotice(
         auth.error ??
-          'Solo rating was not saved — could not connect to Firebase auth.'
+          'TEI was not saved — could not connect to Firebase auth.'
       );
       return;
     }
@@ -379,7 +393,7 @@ export function BridgeTable({
           setMatchReport(report);
         } else {
           setMatchReportNotice(
-            'Solo rating was not saved — stats service returned no result.'
+            'TEI was not saved — stats service returned no result.'
           );
         }
       })
@@ -388,8 +402,8 @@ export function BridgeTable({
         reportedLocalMatchRef.current = null;
         setMatchReportNotice(
           error instanceof Error
-            ? `Solo rating was not saved — ${error.message}`
-            : 'Solo rating was not saved — network or Firestore error.'
+            ? `TEI was not saved — ${error.message}`
+            : 'TEI was not saved — network or Firestore error.'
         );
       });
   }, [
@@ -411,6 +425,7 @@ export function BridgeTable({
     captainTailsHud,
     captainTailsDisplay,
     turnBeepsEnabled,
+    bridgeSoundsEnabled,
     advisorIncludeAllCaptains,
   } = tablePrefs;
 
@@ -461,11 +476,13 @@ export function BridgeTable({
   }, [gameLogVersion]);
   const gameLogLines = useMemo(
     () =>
-      gameLogEntries.map((entry) =>
-        formatGameLogLine(entry, names, {
-          roundStartedAtMs: roundStartedAtRef.current,
-        })
-      ),
+      gameLogEntries
+        .map((entry) =>
+          formatGameLogLine(entry, names, {
+            roundStartedAtMs: roundStartedAtRef.current,
+          })
+        )
+        .filter((line) => line.length > 0),
     [gameLogEntries, names]
   );
   const dominoTheme = useMemo(
@@ -504,15 +521,32 @@ export function BridgeTable({
       setGameLogVersion((version) => version + 1);
     }
     if (loggedRoundRef.current !== round.roundNumber) {
+      const startedAt = new Date().toISOString();
       roundStartedAtRef.current = Date.now();
       roundStartStateRef.current = structuredClone(gameRef.current);
       actionLogRoundStartIndexRef.current =
         actionLogRef.current.snapshot().length;
-      gameLogRef.current.append(buildRoundStartedEntry(round));
+      gameLogRef.current.append(buildRoundStartedEntry(round, startedAt));
+      if (isVsAi && localConfig) {
+        const rated = ratedObjective(localConfig.objective);
+        if (rated) {
+          const matchSkill = classifyLocalAiMatchSkill(localConfig.aiCaptains);
+          const humanTei = playerStats.ready
+            ? playerStats.displayTei(matchSkill, rated)
+            : null;
+          gameLogRef.current.append(
+            buildRoundRatingsEntry(
+              buildLocalRosterTei(localConfig, humanTei, rated),
+              round.roundNumber,
+              startedAt
+            )
+          );
+        }
+      }
       setGameLogVersion((version) => version + 1);
     }
     loggedRoundRef.current = round.roundNumber;
-  }, [round?.roundNumber, round]);
+  }, [isVsAi, localConfig, playerStats.ready, round?.roundNumber, round]);
 
   useEffect(() => {
     prevRoundRef.current = null;
@@ -552,12 +586,9 @@ export function BridgeTable({
     : isOnline
       ? (viewerId ?? '')
       : activePlayerId;
-  const allStopTurnPending =
-    !!round &&
-    round.allStopRequired &&
-    !round.allStopDeclared &&
-    (round.roundWinnerId === handOwnerId ||
-      (round.roundWinnerId == null && activePlayerId === handOwnerId));
+  const isMyTurn = isVsAi
+    ? activePlayerId === humanId
+    : !isOnline || viewerId === activePlayerId;
   const dropToImpulsePending =
     !!round &&
     game.houseRules.dropToImpulseCall &&
@@ -570,11 +601,12 @@ export function BridgeTable({
     dropToImpulseCatchTarget != null &&
     dropToImpulseCatchTarget !== handOwnerId &&
     (round.hands[dropToImpulseCatchTarget]?.length ?? 0) === 1;
-  const isMyTurn = isVsAi
-    ? activePlayerId === humanId
-    : allStopTurnPending ||
-      !isOnline ||
-      viewerId === activePlayerId;
+
+  useBridgeAmbience({
+    active: game.phase === 'active' && !!round,
+    bridgeSoundsEnabled,
+    soundsMuted,
+  });
 
   useGameSoundEffects({
     enabled: game.phase === 'active' && !!round,
@@ -648,8 +680,7 @@ export function BridgeTable({
     game.phase === 'active' &&
     round.phase === 'playing' &&
     round.qPendingInvoker !== handOwnerId &&
-    round.qGamblePending?.playerId !== handOwnerId &&
-    !(round.allStopRequired && !round.allStopDeclared);
+    round.qGamblePending?.playerId !== handOwnerId;
 
   useEffect(() => {
     if (!coachAvailable) {
@@ -750,6 +781,24 @@ export function BridgeTable({
     [names, round]
   );
 
+  const captainTacticalClassAbbrevById = useMemo(
+    () =>
+      buildCaptainTacticalClassAbbrevById({
+        localConfig,
+        onlineCaptains,
+      }),
+    [localConfig, onlineCaptains]
+  );
+
+  const captainTacticalClassLabelById = useMemo(
+    () =>
+      buildCaptainTacticalClassLabelById({
+        localConfig,
+        onlineCaptains,
+      }),
+    [localConfig, onlineCaptains]
+  );
+
   const openTrailNames = useMemo(
     () => openTrailCaptainNames(trailSpokes),
     [trailSpokes]
@@ -811,11 +860,16 @@ export function BridgeTable({
         return;
       }
       const entry = buildGameLogEntry(before, after, action);
-      if (!entry) {
-        return;
+      if (entry) {
+        gameLogRef.current.append(entry);
       }
-      gameLogRef.current.append(entry);
-      setGameLogVersion((version) => version + 1);
+      const autoAllStop = buildAutoAllStopLogEntry(before, after, action);
+      if (autoAllStop) {
+        gameLogRef.current.append(autoAllStop);
+      }
+      if (entry || autoAllStop) {
+        setGameLogVersion((version) => version + 1);
+      }
     },
     []
   );
@@ -1620,6 +1674,10 @@ export function BridgeTable({
           onCaptainTailsDisplayChange={(next) =>
             patchTablePrefs({ captainTailsDisplay: next })
           }
+          bridgeSoundsEnabled={bridgeSoundsEnabled}
+          onBridgeSoundsEnabledChange={(next) =>
+            patchTablePrefs({ bridgeSoundsEnabled: next })
+          }
           turnBeepsEnabled={turnBeepsEnabled}
           onTurnBeepsEnabledChange={(next) =>
             patchTablePrefs({ turnBeepsEnabled: next })
@@ -1724,6 +1782,8 @@ export function BridgeTable({
             activePlayerId={activePlayerId}
             display={captainTailsDisplay}
             tileBg={tileBg}
+            tacticalClassAbbrevByCaptain={captainTacticalClassAbbrevById}
+            tacticalClassLabelByCaptain={captainTacticalClassLabelById}
           />
         )}
 
@@ -1757,6 +1817,7 @@ export function BridgeTable({
                 hubSlots={HUB_SLOTS}
                 spokes={trailSpokes}
                 coachByCaptain={coachByCaptain}
+                tacticalClassLabelByCaptain={captainTacticalClassLabelById}
               />
               <DominoHub
               playerCount={HUB_SLOTS}
@@ -2155,36 +2216,6 @@ export function BridgeTable({
           >
             Catch Drop to Impulse!
           </button>
-        )}
-
-        {allStopTurnPending && (!isOnline || !syncPending) && (
-          <>
-            <button
-              type="button"
-              className={styles.allStopBtn}
-              data-coach={coachKind === 'all-stop'}
-              onClick={() =>
-                void dispatch({
-                  type: 'ALL_STOP',
-                  playerId: handOwnerId,
-                })
-              }
-            >
-              All Stop!
-            </button>
-            <button
-              type="button"
-              className={styles.controlBtn}
-              onClick={() =>
-                void dispatch({
-                  type: 'RETURN_TO_WARP',
-                  playerId: handOwnerId,
-                })
-              }
-            >
-              Return to warp (draw penalty)
-            </button>
-          </>
         )}
 
         {game.phase === 'complete' && (

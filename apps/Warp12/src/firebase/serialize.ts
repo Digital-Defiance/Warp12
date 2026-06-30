@@ -69,6 +69,8 @@ export function serializePublicGame(state: GameState): FirestoreGameDocument {
       beaconClearsOnAnyPlay: state.houseRules.beaconClearsOnAnyPlay,
       roundStarterPlaysTwo: state.houseRules.roundStarterPlaysTwo,
       dropToImpulseCall: state.houseRules.dropToImpulseCall,
+      dropToImpulseCatchPenalty: state.houseRules.dropToImpulseCatchPenalty,
+      allStopCeremony: state.houseRules.allStopCeremony,
     },
     objective: state.objective,
     campaignRounds: state.campaignRounds,

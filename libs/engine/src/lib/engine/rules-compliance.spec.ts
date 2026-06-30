@@ -23,6 +23,7 @@ import {
 } from '../domino/coordinates.js';
 import { coordinateKey } from '../types/coordinate.js';
 import { resolveModules, DEFAULT_MODULES } from '../types/modules.js';
+import { resolveHouseRules } from '../types/house-rules.js';
 import {
   allTilesWithPip,
   makeGame,
@@ -973,29 +974,10 @@ describe('mandatory play after drawing', () => {
     expect(draw.state.round?.mandatoryPlay?.coordinate).toEqual(T(5, 5));
     expect(getLegalMoves(draw.state.round!, 'a')).toHaveLength(1);
   });
-
-  it('rejects RETURN_TO_WARP when Uncharted Sectors are empty', () => {
-    const state = makeGame(
-      makeRound(['a', 'b'], {
-        activePlayerId: 'a',
-        unchartedSectors: [],
-        allStopRequired: true,
-        roundWinnerId: 'a',
-      })
-    );
-
-    const result = applyAction(state, {
-      type: 'RETURN_TO_WARP',
-      playerId: 'a',
-    });
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.violation).toBe('EMPTY_UNCHARTED');
-  });
 });
 
 describe('calling all stop', () => {
-  it('requires ALL_STOP after a Neutral Zone win', () => {
+  it('auto-declares All Stop and ends the sector after a Neutral Zone win', () => {
     const state = makeGame(
       makeRound(['a', 'b'], {
         activePlayerId: 'a',
@@ -1020,58 +1002,58 @@ describe('calling all stop', () => {
 
     expect(win.state.round?.roundWinnerId).toBe('a');
     expect(win.state.round?.allStopRequired).toBe(true);
-    expect(win.state.round?.phase).toBe('playing');
+    expect(win.state.round?.allStopDeclared).toBe(true);
+    expect(win.state.round?.phase).toBe('ended');
   });
 
-  it('RETURN_TO_WARP draws a penalty tile and resumes play without ending the sector', () => {
-    let state = makeGame(
-      makeRound(['a', 'b'], {
-        activePlayerId: 'a',
-        hands: { a: [], b: [T(1, 2)] },
-        unchartedSectors: [T(3, 4), T(5, 6)],
-        allStopRequired: true,
-        allStopDeclared: false,
-        roundWinnerId: 'a',
-      })
-    );
-
-    const returnToWarp = applyAction(state, {
-      type: 'RETURN_TO_WARP',
-      playerId: 'a',
-    });
-    expect(returnToWarp.ok).toBe(true);
-    if (!returnToWarp.ok) return;
-
-    expect(returnToWarp.state.round?.roundWinnerId).toBeNull();
-    expect(returnToWarp.state.round?.allStopRequired).toBe(false);
-    expect(returnToWarp.state.round?.phase).toBe('playing');
-    expect(returnToWarp.state.round?.hands.a).toHaveLength(1);
-    expect(returnToWarp.state.round?.unchartedSectors).toHaveLength(1);
-    expect(returnToWarp.state.round?.activePlayerId).toBe('b');
-  });
-
-  it('ALL_STOP closes the sector after a Neutral Zone win', () => {
+  it('ends silently when All Stop ceremony is disabled', () => {
     const state = makeGame(
       makeRound(['a', 'b'], {
         activePlayerId: 'a',
-        hands: { a: [], b: [T(1, 2)] },
-        allStopRequired: true,
-        allStopDeclared: false,
-        roundWinnerId: 'a',
+        hands: { a: [T(4, 12)], b: [T(1, 2)] },
+        table: {
+          ...createInitialTable(['a', 'b'], 12, 'a'),
+          neutralZone: {
+            tiles: [placed(T(5, 12), 0, 12)],
+          },
+        },
+      }),
+      { houseRules: resolveHouseRules({ allStopCeremony: false }) }
+    );
+
+    const win = applyAction(state, {
+      type: 'CHART_COORDINATE',
+      playerId: 'a',
+      coordinate: T(4, 12),
+      route: { kind: 'neutral-zone' },
+    });
+    expect(win.ok).toBe(true);
+    if (!win.ok) return;
+
+    expect(win.state.round?.roundWinnerId).toBe('a');
+    expect(win.state.round?.allStopRequired).toBe(false);
+    expect(win.state.round?.allStopDeclared).toBe(false);
+    expect(win.state.round?.phase).toBe('ended');
+  });
+
+  it('rejects RETURN_TO_WARP', () => {
+    const state = makeGame(
+      makeRound(['a', 'b'], {
+        activePlayerId: 'a',
+        unchartedSectors: [T(3, 4)],
       })
     );
 
-    const dropResult = applyAction(state, {
-      type: 'ALL_STOP',
+    const result = applyAction(state, {
+      type: 'RETURN_TO_WARP',
       playerId: 'a',
     });
-    expect(dropResult.ok).toBe(true);
-    if (!dropResult.ok) return;
-    expect(dropResult.state.round?.phase).toBe('ended');
-    expect(dropResult.state.round?.allStopDeclared).toBe(true);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.violation).toBe('RETURN_TO_WARP_NOT_ALLOWED');
   });
 
-  it('requires ALL_STOP after a warp-trail win when All stop echo is active', () => {
+  it('auto-declares All Stop after a warp-trail win when All stop echo is active', () => {
     const state = makeGame(
       makeRound(['a', 'b'], {
         activePlayerId: 'a',
@@ -1101,7 +1083,8 @@ describe('calling all stop', () => {
 
     expect(win.state.round?.roundWinnerId).toBe('a');
     expect(win.state.round?.allStopRequired).toBe(true);
-    expect(win.state.round?.phase).toBe('playing');
+    expect(win.state.round?.allStopDeclared).toBe(true);
+    expect(win.state.round?.phase).toBe('ended');
   });
 });
 

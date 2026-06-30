@@ -30,9 +30,9 @@ const PENALTY_THRESHOLDS = {
   symmetricWinRateBand: { min: 0.35, max: 0.65 },
   eloAlignmentBand: { min: 0.5, max: 0.92 },
   requiredOrderingMatchups: [
-    ['beginner', 'intermediate'],
-    ['beginner', 'advanced'],
-    ['intermediate', 'advanced'],
+    ['ensign', 'lieutenant'],
+    ['ensign', 'commander'],
+    ['lieutenant', 'commander'],
   ] as const,
 };
 
@@ -43,9 +43,9 @@ const GO_OUT_THRESHOLDS = {
   fourPlayerFocusMinWinRate: 0.26,
   fourPlayerAdvancedBeatsIntermediateGap: 0.02,
   requiredOrderingMatchups: [
-    ['beginner', 'intermediate'],
-    ['beginner', 'advanced'],
-    ['intermediate', 'advanced'],
+    ['ensign', 'lieutenant'],
+    ['ensign', 'commander'],
+    ['lieutenant', 'commander'],
   ] as const,
 };
 
@@ -53,9 +53,9 @@ const FOUR_PLAYER_FOCUS_MATCHUPS: readonly (readonly [
   SkillMatchupResult['left'],
   SkillMatchupResult['right'],
 ])[] = [
-  ['advanced', 'beginner'],
-  ['intermediate', 'beginner'],
-  ['advanced', 'intermediate'],
+  ['commander', 'ensign'],
+  ['lieutenant', 'ensign'],
+  ['commander', 'lieutenant'],
 ];
 
 const MULTI_PLAYER_FOCUS_MATCHUPS = FOUR_PLAYER_FOCUS_MATCHUPS;
@@ -72,17 +72,17 @@ function matchupKey(left: string, right: string): string {
 
 describe('AI ELO calibration (self-play)', () => {
   it('reference ratings are spaced 200 points apart (penalty) and 250 (go-out)', () => {
-    expect(REFERENCE_AI_ELO.intermediate - REFERENCE_AI_ELO.beginner).toBe(
+    expect(REFERENCE_AI_ELO.lieutenant - REFERENCE_AI_ELO.ensign).toBe(
       200
     );
-    expect(REFERENCE_AI_ELO.advanced - REFERENCE_AI_ELO.intermediate).toBe(
+    expect(REFERENCE_AI_ELO.commander - REFERENCE_AI_ELO.lieutenant).toBe(
       200
     );
     expect(
-      GO_OUT_REFERENCE_AI_ELO.intermediate - GO_OUT_REFERENCE_AI_ELO.beginner
+      GO_OUT_REFERENCE_AI_ELO.lieutenant - GO_OUT_REFERENCE_AI_ELO.ensign
     ).toBe(250);
     expect(
-      GO_OUT_REFERENCE_AI_ELO.advanced - GO_OUT_REFERENCE_AI_ELO.intermediate
+      GO_OUT_REFERENCE_AI_ELO.commander - GO_OUT_REFERENCE_AI_ELO.lieutenant
     ).toBe(250);
     expect(referenceEloForObjective('penalty')).toBe(REFERENCE_AI_ELO);
     expect(referenceEloForObjective('go-out')).toBe(GO_OUT_REFERENCE_AI_ELO);
@@ -206,7 +206,7 @@ describe('AI ELO calibration (self-play)', () => {
         }
         expect(result.higherSkillWinRate).not.toBeNull();
           expect(result.higherSkillWinRate!).toBeGreaterThanOrEqual(
-            result.left === 'intermediate' && result.right === 'advanced'
+            result.left === 'lieutenant' && result.right === 'commander'
               ? GO_OUT_THRESHOLDS.orderingMinWinRateIntermediateAdvanced
               : GO_OUT_THRESHOLDS.orderingMinWinRate
           );
@@ -253,12 +253,12 @@ describe('AI ELO calibration (self-play)', () => {
     );
 
     it('advanced focus beats intermediate focus at 4 players', () => {
-      const advanced = runFourPlayerFocusMatchup('advanced', 'beginner', {
+      const advanced = runFourPlayerFocusMatchup('commander', 'ensign', {
         games: CALIBRATION_GAMES,
         objective: 'go-out',
         seed: CALIBRATION_SEED,
       });
-      const intermediate = runFourPlayerFocusMatchup('intermediate', 'beginner', {
+      const intermediate = runFourPlayerFocusMatchup('lieutenant', 'ensign', {
         games: CALIBRATION_GAMES,
         objective: 'go-out',
         seed: CALIBRATION_SEED,
@@ -267,6 +267,16 @@ describe('AI ELO calibration (self-play)', () => {
         intermediate.focusWinRate - 1e-9
       );
     });
+  });
+
+  it('completes games with Drop to Impulse house rule enabled', () => {
+    const result = runSkillMatchup('lieutenant', 'ensign', {
+      games: 8,
+      objective: 'penalty',
+      seed: 4242,
+      houseRules: { dropToImpulseCall: true },
+    });
+    expect(result.completed).toBeGreaterThanOrEqual(Math.floor(8 * MIN_COMPLETION_RATE));
   });
 
   it('prints a calibration report when AI_CALIBRATION_REPORT=1', () => {
@@ -306,6 +316,20 @@ describe('AI ELO calibration (self-play)', () => {
             );
           }
         }
+      }
+    }
+
+    if (process.env.AI_CALIBRATION_DROP_TO_IMPULSE === '1') {
+      // eslint-disable-next-line no-console
+      console.log('\n=== Drop to Impulse (penalty sanity check) ===');
+      for (const result of runCalibrationMatrix({
+        games: CALIBRATION_GAMES,
+        objective: 'penalty',
+        seed: CALIBRATION_SEED,
+        houseRules: { dropToImpulseCall: true },
+      })) {
+        // eslint-disable-next-line no-console
+        console.log(formatMatchupResult(result));
       }
     }
   }, 120_000);

@@ -320,6 +320,25 @@ export function allStopRequiredForWin(
   return round.qEffects?.allStopEcho === true;
 }
 
+/** Round ends immediately; ceremony only affects log/sound flags. */
+export function resolveRoundWinAllStop(
+  round: RoundState,
+  routeKind: import('../types/actions.js').ChartRoute['kind'],
+  houseRules: import('../types/house-rules.js').HouseRules
+): {
+  readonly allStopRequired: boolean;
+  readonly allStopDeclared: boolean;
+  readonly phase: 'ended';
+} {
+  const announce =
+    allStopRequiredForWin(round, routeKind) && houseRules.allStopCeremony;
+  return {
+    allStopRequired: announce,
+    allStopDeclared: announce,
+    phase: 'ended',
+  };
+}
+
 export function trailsOpenToOthers(round: RoundState, trailPlayerId: PlayerId): boolean {
   if (round.qEffects?.openAllTrails) {
     return true;

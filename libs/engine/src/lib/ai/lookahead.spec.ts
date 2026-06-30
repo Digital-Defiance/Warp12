@@ -149,7 +149,7 @@ describe('createWarpAiPlayer with lookahead', () => {
       hands: { a: [N(5, 12)], b: [N(1, 1)] },
     });
     const player = createWarpAiPlayer({
-      skill: getWarpSkillProfile('advanced'),
+      skill: getWarpSkillProfile('commander'),
       lookahead: { depth: 2, determinizations: 4 },
       rng: mulberry32(2),
     });
@@ -171,7 +171,7 @@ describe('createWarpAiPlayer with lookahead', () => {
 
     const make = () =>
       createWarpAiPlayer({
-        skill: getWarpSkillProfile('advanced'),
+        skill: getWarpSkillProfile('commander'),
         lookahead: { depth: 2, determinizations: 4, maxBranch: 5 },
         rng: mulberry32(123),
       });

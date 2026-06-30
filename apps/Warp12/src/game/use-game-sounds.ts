@@ -78,19 +78,9 @@ export function detectGameSoundTransitions(
   }
 
   if (
-    previous.allStopRequired &&
-    !previous.allStopDeclared &&
-    !next.allStopRequired &&
-    !next.allStopDeclared
-  ) {
-    play.push('returnToWarp');
-  }
-
-  if (
     previous.dropToImpulseCallPending &&
     !next.dropToImpulseCallPending &&
-    !next.dropToImpulseCatchable &&
-    previous.dropToImpulseCallPending === next.activePlayerId
+    !next.dropToImpulseCatchable
   ) {
     play.push('dropToImpulse');
   }

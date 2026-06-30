@@ -168,7 +168,7 @@ describe('game objective', () => {
   });
 
   it('go-out skill profile enables go-out-win heuristic', () => {
-    const profile = getWarpSkillProfile('advanced', 'go-out');
+    const profile = getWarpSkillProfile('commander', 'go-out');
     expect(profile.enabled.has('go-out-win')).toBe(true);
     expect(profile.enabled.has('dump-pips')).toBe(false);
   });
@@ -183,7 +183,7 @@ describe('game objective', () => {
     expect(state.objective).toBe('go-out');
 
     const player = createWarpAiPlayer({
-      skill: getWarpSkillProfile('advanced', 'go-out'),
+      skill: getWarpSkillProfile('commander', 'go-out'),
       objective: 'go-out',
       rng: () => 0,
     });

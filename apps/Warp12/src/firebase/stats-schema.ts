@@ -12,9 +12,9 @@ export interface MatchHistoryEntry {
   readonly advisorUsed: boolean;
   readonly decisionPct?: number;
   readonly decisionGrade?: string;
-  readonly eloBefore?: number;
-  readonly eloAfter?: number;
-  readonly eloDelta?: number;
+  readonly teiBefore?: number;
+  readonly teiAfter?: number;
+  readonly teiDelta?: number;
 }
 
 export interface MatchOutcomeStats {
@@ -23,18 +23,18 @@ export interface MatchOutcomeStats {
 }
 
 /** Solo (unassisted) rated record for one objective mode. */
-export interface ObjectiveEloStats {
+export interface ObjectiveTeiStats {
   unassistedMatches: number;
   unassistedWins: number;
-  unassistedElo?: number;
+  unassistedTei?: number;
 }
 
 /** Per-skill local stats, split by tactical advisor use. */
 export interface LocalAiSkillStats extends MatchOutcomeStats {
   advisorMatches: number;
   advisorWins: number;
-  goOut?: ObjectiveEloStats;
-  penalty?: ObjectiveEloStats;
+  goOut?: ObjectiveTeiStats;
+  penalty?: ObjectiveTeiStats;
 }
 
 export type LocalAiStats = Record<AiSkillLevel, LocalAiSkillStats>;
@@ -48,7 +48,7 @@ export interface PlayerStatsDocument {
   roundsWon: number;
   totalPenaltyPoints: number;
   /** Optional self-reported seed before the first rated game per objective. */
-  startingElo?: Partial<Record<'goOut' | 'penalty', number>>;
+  startingTei?: Partial<Record<'goOut' | 'penalty', number>>;
   /** Recent local-AI matches for profile trends (newest first). */
   matchHistory?: MatchHistoryEntry[];
   localAi?: LocalAiStats;
@@ -61,7 +61,7 @@ export function emptyMatchOutcomeStats(): MatchOutcomeStats {
   return { matchesCompleted: 0, matchesWon: 0 };
 }
 
-export function emptyObjectiveEloStats(): ObjectiveEloStats {
+export function emptyObjectiveTeiStats(): ObjectiveTeiStats {
   return { unassistedMatches: 0, unassistedWins: 0 };
 }
 
@@ -76,22 +76,22 @@ export function emptyLocalAiSkillStats(): LocalAiSkillStats {
 
 export function emptyLocalAiStats(): LocalAiStats {
   return {
-    beginner: emptyLocalAiSkillStats(),
-    intermediate: emptyLocalAiSkillStats(),
-    advanced: emptyLocalAiSkillStats(),
+    ensign: emptyLocalAiSkillStats(),
+    lieutenant: emptyLocalAiSkillStats(),
+    commander: emptyLocalAiSkillStats(),
   };
 }
 
-export function objectiveEloKey(objective: RatedObjective): 'goOut' | 'penalty' {
+export function objectiveTeiKey(objective: RatedObjective): 'goOut' | 'penalty' {
   return objective === 'go-out' ? 'goOut' : 'penalty';
 }
 
-export function objectiveEloStats(
+export function objectiveTeiStats(
   stats: LocalAiSkillStats,
   objective: RatedObjective
-): ObjectiveEloStats {
-  const key = objectiveEloKey(objective);
-  return { ...emptyObjectiveEloStats(), ...stats[key] };
+): ObjectiveTeiStats {
+  const key = objectiveTeiKey(objective);
+  return { ...emptyObjectiveTeiStats(), ...stats[key] };
 }
 
 export function unassistedMatchStats(
@@ -119,31 +119,31 @@ export function matchWinRate(stats: MatchOutcomeStats): number {
   return stats.matchesWon / stats.matchesCompleted;
 }
 
-export const DEFAULT_UNASSISTED_ELO = 1000;
+export const DEFAULT_UNASSISTED_TEI = 1000;
 
-export function displayUnassistedElo(
-  elo: number | undefined,
+export function displayUnassistedTei(
+  tei: number | undefined,
   unassistedMatches: number
 ): number | null {
   if (unassistedMatches <= 0) {
     return null;
   }
-  return elo ?? DEFAULT_UNASSISTED_ELO;
+  return tei ?? DEFAULT_UNASSISTED_TEI;
 }
 
-export function displayObjectiveElo(
+export function displayObjectiveTei(
   stats: LocalAiSkillStats,
   objective: RatedObjective
 ): number | null {
-  const bucket = objectiveEloStats(stats, objective);
-  return displayUnassistedElo(bucket.unassistedElo, bucket.unassistedMatches);
+  const bucket = objectiveTeiStats(stats, objective);
+  return displayUnassistedTei(bucket.unassistedTei, bucket.unassistedMatches);
 }
 
 export function objectiveWinRate(
   stats: LocalAiSkillStats,
   objective: RatedObjective
 ): number | null {
-  const bucket = objectiveEloStats(stats, objective);
+  const bucket = objectiveTeiStats(stats, objective);
   if (bucket.unassistedMatches <= 0) {
     return null;
   }

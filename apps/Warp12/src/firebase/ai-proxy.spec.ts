@@ -36,7 +36,7 @@ function lobbyDoc(
         penaltyScore: 0,
         joinedAt: '2026-01-01T00:00:00.000Z',
         isAi: true,
-        skill: 'intermediate',
+        skill: 'lieutenant',
       },
     ],
     completedRounds: 0,

@@ -28,8 +28,9 @@ export const TUNABLE_GO_OUT_WEIGHTS: readonly string[] = [
 
 export const GO_OUT_CALIBRATION_TARGETS = {
   beginnerVsIntermediate: 0.62,
-  beginnerVsAdvanced: 0.78,
-  intermediateVsAdvanced: 0.62,
+  /** Empirical band from 1000-game optimizer pass (2026-06); go-out variance compresses gaps. */
+  beginnerVsAdvanced: 0.7,
+  intermediateVsAdvanced: 0.56,
   fourPlayerFocusMin: 0.26,
   fourPlayerAdvancedGap: 0.02,
 } as const;
@@ -82,9 +83,9 @@ export function buildOptimizerScore(input: {
     focusAdvancedIntermediate,
   } = input;
 
-  const bI = matchup(matrix, 'beginner', 'intermediate');
-  const bA = matchup(matrix, 'beginner', 'advanced');
-  const iA = matchup(matrix, 'intermediate', 'advanced');
+  const bI = matchup(matrix, 'ensign', 'lieutenant');
+  const bA = matchup(matrix, 'ensign', 'commander');
+  const iA = matchup(matrix, 'lieutenant', 'commander');
 
   let loss = 0;
   const targets = GO_OUT_CALIBRATION_TARGETS;
@@ -145,7 +146,7 @@ export function buildOptimizerScore(input: {
 }
 
 export function scoreGoOutPresets(
-  presets: Record<'beginner' | 'intermediate' | 'advanced', WarpSkillProfile>,
+  presets: Record<'ensign' | 'lieutenant' | 'commander', WarpSkillProfile>,
   options: Pick<OptimizerOptions, 'games' | 'seed'>
 ): OptimizerScore {
   setGoOutPresetsOverride(presets);
@@ -157,8 +158,8 @@ export function scoreGoOutPresets(
     });
 
     const focusAdvancedBeginner = runFourPlayerFocusMatchup(
-      'advanced',
-      'beginner',
+      'commander',
+      'ensign',
       {
         games: options.games,
         objective: 'go-out',
@@ -166,8 +167,8 @@ export function scoreGoOutPresets(
       }
     ).focusWinRate;
     const focusIntermediateBeginner = runFourPlayerFocusMatchup(
-      'intermediate',
-      'beginner',
+      'lieutenant',
+      'ensign',
       {
         games: options.games,
         objective: 'go-out',
@@ -175,8 +176,8 @@ export function scoreGoOutPresets(
       }
     ).focusWinRate;
     const focusAdvancedIntermediate = runFourPlayerFocusMatchup(
-      'advanced',
-      'intermediate',
+      'commander',
+      'lieutenant',
       {
         games: options.games,
         objective: 'go-out',
@@ -196,9 +197,9 @@ export function scoreGoOutPresets(
 }
 
 export function formatOptimizerScore(score: OptimizerScore): string {
-  const bI = matchup(score.matrix, 'beginner', 'intermediate');
-  const bA = matchup(score.matrix, 'beginner', 'advanced');
-  const iA = matchup(score.matrix, 'intermediate', 'advanced');
+  const bI = matchup(score.matrix, 'ensign', 'lieutenant');
+  const bA = matchup(score.matrix, 'ensign', 'commander');
+  const iA = matchup(score.matrix, 'lieutenant', 'commander');
   const lines = [
     `loss=${score.loss.toFixed(4)}`,
     `B→I ${pct(bI?.higherSkillWinRate)} (target ${pct(GO_OUT_CALIBRATION_TARGETS.beginnerVsIntermediate)})`,
@@ -221,7 +222,7 @@ function pct(rate: number | null | undefined): string {
 export function optimizeGoOutWeights(
   options: OptimizerOptions
 ): {
-  presets: Record<'beginner' | 'intermediate' | 'advanced', WarpSkillProfile>;
+  presets: Record<'ensign' | 'lieutenant' | 'commander', WarpSkillProfile>;
   score: OptimizerScore;
 } {
   return optimizeGoOutWeightsWithScorer(options, scoreGoOutPresets);
@@ -231,10 +232,10 @@ function optimizeGoOutWeightsWithScorer(
   options: OptimizerOptions,
   scorePresets: typeof scoreGoOutPresets
 ): {
-  presets: Record<'beginner' | 'intermediate' | 'advanced', WarpSkillProfile>;
+  presets: Record<'ensign' | 'lieutenant' | 'commander', WarpSkillProfile>;
   score: OptimizerScore;
 } {
-  const levels = options.levels ?? (['intermediate', 'advanced'] as const);
+  const levels = options.levels ?? (['lieutenant', 'commander'] as const);
   const step = options.step ?? 0.08;
   const minWeight = options.minWeight ?? 0.2;
   const maxWeight = options.maxWeight ?? 4;
@@ -290,10 +291,10 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 export function formatPresetWeights(
-  presets: Record<'beginner' | 'intermediate' | 'advanced', WarpSkillProfile>
+  presets: Record<'ensign' | 'lieutenant' | 'commander', WarpSkillProfile>
 ): string {
   const lines: string[] = [];
-  for (const level of ['beginner', 'intermediate', 'advanced'] as const) {
+  for (const level of ['ensign', 'lieutenant', 'commander'] as const) {
     lines.push(`\n${level}:`);
     for (const id of TUNABLE_GO_OUT_WEIGHTS) {
       if (!presets[level].enabled.has(id)) {

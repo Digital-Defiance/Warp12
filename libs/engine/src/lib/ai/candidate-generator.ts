@@ -9,18 +9,6 @@ import type { WarpAiAction } from './actions.js';
 import type { WarpAiObservation } from './observation.js';
 import { chooseQFlashEffect, chooseQGambleKeepIndex } from './q-flash.js';
 
-function isAllStopObligated(
-  round: WarpAiObservation['round'],
-  playerId: string
-): boolean {
-  return (
-    round.allStopRequired &&
-    !round.allStopDeclared &&
-    (round.roundWinnerId === playerId ||
-      (round.roundWinnerId == null && round.activePlayerId === playerId))
-  );
-}
-
 function catchDropToImpulseCandidate(
   round: WarpAiObservation['round'],
   playerId: string
@@ -108,12 +96,11 @@ export function warpOffTurnCandidateGenerator(
  * the engine's {@link getLegalMoves}. Precedence:
  *
  * 1. Q-Flash / Q's gamble resolution when pending.
- * 2. All-stop obligation (round winner must call all stop) overrides everything.
- * 3. Catch a missed Drop to Impulse when the window is open.
- * 4. Any legal chart move → chart candidates (canonical "play if you can"), plus
+ * 2. Catch a missed Drop to Impulse when the window is open.
+ * 3. Any legal chart move → chart candidates (canonical "play if you can"), plus
  *    optional Drop to Impulse declare when pending at one tile.
- * 5. Otherwise draw (if Uncharted Sectors remain).
- * 6. Otherwise pass the Red Alert (if responsible) or deploy the Distress Beacon.
+ * 4. Otherwise draw (if Uncharted Sectors remain).
+ * 5. Otherwise pass the Red Alert (if responsible) or deploy the Distress Beacon.
  *
  * House-rule variants can replace this generator wholesale.
  */
@@ -142,14 +129,6 @@ export function warpCandidateGenerator(
         keepIndex: chooseQGambleKeepIndex(obs, { rng: options?.rng }),
       },
     ];
-  }
-
-  if (isAllStopObligated(round, playerId)) {
-    const ceremony: WarpAiAction[] = [{ kind: 'all-stop' }];
-    if (round.unchartedSectors.length > 0) {
-      ceremony.push({ kind: 'return-to-warp' });
-    }
-    return ceremony;
   }
 
   if (houseRules?.dropToImpulseCall) {

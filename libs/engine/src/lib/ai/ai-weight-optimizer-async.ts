@@ -32,7 +32,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 export async function scoreGoOutPresetsAsync(
-  presets: Record<'beginner' | 'intermediate' | 'advanced', WarpSkillProfile>,
+  presets: Record<'ensign' | 'lieutenant' | 'commander', WarpSkillProfile>,
   options: Pick<OptimizerOptions, 'games' | 'seed'>
 ): Promise<OptimizerScore> {
   if (!shouldParallelizeOptimizer()) {
@@ -50,10 +50,10 @@ export async function scoreGoOutPresetsAsync(
 export async function optimizeGoOutWeightsAsync(
   options: OptimizerOptions
 ): Promise<{
-  presets: Record<'beginner' | 'intermediate' | 'advanced', WarpSkillProfile>;
+  presets: Record<'ensign' | 'lieutenant' | 'commander', WarpSkillProfile>;
   score: OptimizerScore;
 }> {
-  const levels = options.levels ?? (['intermediate', 'advanced'] as const);
+  const levels = options.levels ?? (['lieutenant', 'commander'] as const);
   const step = options.step ?? 0.08;
   const minWeight = options.minWeight ?? 0.2;
   const maxWeight = options.maxWeight ?? 4;

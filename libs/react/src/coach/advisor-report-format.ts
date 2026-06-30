@@ -67,8 +67,8 @@ export function formatAdvisorReport(
 
   const header =
     report.objective === 'go-out'
-      ? 'Advisor report — go-out race (Advanced tactical profile)'
-      : 'Advisor report — penalty scoring (Advanced tactical profile)';
+      ? 'Advisor report — go-out race (Class II tactical profile)'
+      : 'Advisor report — penalty scoring (Class II tactical profile)';
 
   return [
     header,
