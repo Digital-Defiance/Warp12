@@ -48,13 +48,25 @@ export function useHandLayout(
     return mergeFlippedKeys(stored?.flipped ?? {}, hand);
   });
 
+  const layoutScopeRef = useRef('');
   const dragKeyRef = useRef<string | null>(null);
   const didDragRef = useRef(false);
 
   useEffect(() => {
+    const scope = `${gameId}:${playerId}`;
+    const scopeChanged = layoutScopeRef.current !== scope;
+    layoutScopeRef.current = scope;
+
+    if (scopeChanged) {
+      const stored = readStoredHandLayout(gameId, playerId);
+      setOrder(mergeHandOrder(stored?.order ?? hand.map(coordinateKey), hand));
+      setFlipped(mergeFlippedKeys(stored?.flipped ?? {}, hand));
+      return;
+    }
+
     setOrder((previous) => mergeHandOrder(previous, hand));
     setFlipped((previous) => mergeFlippedKeys(previous, hand));
-  }, [gameId, playerId, handSignature]);
+  }, [gameId, playerId, handSignature, hand]);
 
   useEffect(() => {
     writeStoredHandLayout(gameId, playerId, { order, flipped });

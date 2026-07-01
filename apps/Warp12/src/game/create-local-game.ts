@@ -40,7 +40,10 @@ export function createLocalGame(
     seededRandom(seed)
   );
   const captains = [
-    { id: config.humanId, displayName: config.humanName },
+    ...config.humanCaptains.map((human) => ({
+      id: human.id,
+      displayName: human.displayName,
+    })),
     ...config.aiCaptains.map((ai) => ({
       id: ai.id,
       displayName: ai.displayName,
@@ -56,7 +59,10 @@ export function createLocalGame(
       objective: config.objective,
       campaignRounds: config.campaignRounds,
     },
-    { shuffledCoordinates: shuffled, roundStarterId: config.humanId }
+    {
+      shuffledCoordinates: shuffled,
+      roundStarterId: config.humanCaptains[0]?.id ?? config.humanId,
+    }
   );
 }
 

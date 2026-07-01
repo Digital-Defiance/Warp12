@@ -9,6 +9,7 @@ describe('tableOpponentLabelForAdvisor', () => {
   const base: LocalGameConfig = {
     humanId: 'you',
     humanName: 'Picard',
+    humanCaptains: [{ id: 'you', displayName: 'Picard' }],
     playerCount: 4,
     objective: 'points',
     campaignRounds: 3,

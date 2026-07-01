@@ -8,6 +8,7 @@ describe('buildLocalRosterTei', () => {
       {
         humanId: 'you',
         humanName: 'Picard',
+        humanCaptains: [{ id: 'you', displayName: 'Picard' }],
         playerCount: 2,
         objective: 'points',
         campaignRounds: 13,

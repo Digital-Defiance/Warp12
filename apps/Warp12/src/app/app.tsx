@@ -17,6 +17,7 @@ import { GameAudioProvider } from './game-audio-context';
 import { preservesGameSession } from './game-route';
 import { AboutPage } from './about-page';
 import { LocalGamePage } from './local-game-page';
+import { PassAndPlayPage } from './pass-and-play-page';
 import { HomePage } from './home-page';
 import { OnlineGamePage } from './online-game-page';
 import { OnlineLobbyPage } from './online-lobby-page';
@@ -113,7 +114,7 @@ function AppShell() {
               <Link to="/about" className={styles.navLink}>
                 About
               </Link>
-              <Link to="/paper" className={styles.navLink}>
+              <Link to="https://docs.warp12.app/tei-paper-outline.html" className={styles.navLink}>
                 Research
               </Link>
               <Link to="/rules" className={styles.navLink}>
@@ -140,6 +141,7 @@ function AppShell() {
             <Route path="/rules" element={<RulesPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/local" element={<LocalGamePage />} />
+            <Route path="/local/pass-and-play" element={<PassAndPlayPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/online" element={<OnlineLobbyPage />} />
             <Route path="/online/:gameId" element={<OnlineLobbyPage />} />

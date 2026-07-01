@@ -77,6 +77,14 @@ export function HomePage() {
           <button
             type="button"
             className={styles.card}
+            onClick={() => navigate('/local/pass-and-play')}
+          >
+            <h2>Pass and play</h2>
+            <p>2–8 humans on one device — share the bridge, unrated local table.</p>
+          </button>
+          <button
+            type="button"
+            className={styles.card}
             onClick={() => navigate('/online')}
           >
             <h2>Online fleet</h2>
