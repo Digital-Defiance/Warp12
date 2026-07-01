@@ -1,12 +1,34 @@
 import { doc, getDoc, runTransaction } from 'firebase/firestore';
 
-import type { GameObjective, WarpSkillLevel } from 'warp12-engine';
 import {
-  clampAcademyTei,
+  type GameObjective,
+  type GameState,
   WARP_SKILL_LEVELS,
+  type WarpSkillLevel,
 } from 'warp12-engine';
 
-import { getFirestoreDb, isFirebaseConfigured } from './config.js';
+import { getFirebaseAuth, getFirestoreDb, isFirebaseConfigured } from './config.js';
+import { callFunction } from './functions-client.js';
+import {
+  dequeuePendingLocalAiMatch,
+  enqueuePendingLocalAiMatch,
+  isNetworkAvailable,
+  listPendingLocalAiMatches,
+  pendingLocalAiMatchCount as countPendingLocalAiMatches,
+  pruneNonReplayablePendingLocalAiMatches,
+} from '../game/offline-match-queue.js';
+import {
+  filterHumanActionsForReplay,
+  getLocalAiMatchRejectReason,
+  isReplayableLocalAiMatch,
+  localAiMatchRejectNotice,
+} from '../game/local-ai-match-validation.js';
+export type { LocalAiMatchRejectReason } from '../game/local-ai-match-validation.js';
+export {
+  getLocalAiMatchRejectReason,
+  isReplayableLocalAiMatch,
+  localAiMatchRejectNotice,
+} from '../game/local-ai-match-validation.js';
 import {
   DEFAULT_UNASSISTED_TEI,
   kFactor,
@@ -18,11 +40,15 @@ import {
   appendMatchHistory,
   type MatchHistoryEntry,
 } from './match-history.js';
+import { humanObjectiveTeiStats } from './human-tei.js';
+
+import type { CaptainGender } from '../game/captain-profile.js';
+import type { FirestoreCaptain } from './schema.js';
 import {
   emptyLocalAiSkillStats,
-  emptyLocalAiStats,
   objectiveTeiKey,
   objectiveTeiStats,
+  startingTeiForObjective,
   type LocalAiSkillStats,
   type PlayerStatsDocument,
   type RatedObjective,
@@ -54,11 +80,14 @@ export interface ReportLocalAiMatchInput {
   uid: string;
   displayName: string;
   skill: WarpSkillLevel;
+  opponentClass1Star?: boolean;
   objective: RatedObjective;
-  won: boolean;
   advisorUsed: boolean;
   decisionPct?: number;
   decisionGrade?: string;
+  seed: number;
+  config: import('../game/local-game-config.js').LocalGameConfig;
+  humanActions: import('warp12-engine').GameAction[];
 }
 
 export interface LocalAiMatchReport {
@@ -72,20 +101,42 @@ export interface LocalAiMatchReport {
   teiDelta: number | null;
 }
 
-export function startingTeiForObjective(
-  doc: PlayerStatsDocument | null,
-  objective: RatedObjective
-): number | undefined {
-  const key = objectiveTeiKey(objective);
-  return doc?.startingTei?.[key];
+export type LocalAiMatchOutcome = Pick<
+  ReportLocalAiMatchInput,
+  'advisorUsed' | 'skill' | 'objective'
+> & { won: boolean };
+
+export type LocalAiMatchSubmitResult =
+  | { status: 'uploaded'; report: LocalAiMatchReport }
+  | { status: 'queued' }
+  | { status: 'skipped'; reason: 'not_configured' | 'not_replayable'; notice?: string };
+
+export interface OnlineHumanSelfReport {
+  rated: boolean;
+  won: boolean;
+  advisorUsed: boolean;
+  objective: RatedObjective;
+  humanPool: true;
+  rank: number;
+  teiBefore: number | null;
+  teiAfter: number | null;
+  teiDelta: number | null;
 }
+
+export interface ReportOnlineHumanSelfInput {
+  uid: string;
+  displayName: string;
+  gameId: string;
+  game: GameState;
+  onlineCaptains: readonly FirestoreCaptain[];
+  advisorUsed: boolean;
+}
+
+export { startingTeiForObjective } from './stats-schema.js';
 
 export function incrementLocalAiSkillStats(
   current: LocalAiSkillStats,
-  input: Pick<
-    ReportLocalAiMatchInput,
-    'won' | 'advisorUsed' | 'skill' | 'objective'
-  >,
+  input: LocalAiMatchOutcome,
   options?: { startingTei?: number }
 ): LocalAiSkillStats {
   const next: LocalAiSkillStats = {
@@ -123,12 +174,13 @@ export function incrementLocalAiSkillStats(
 export function previewLocalAiMatchReport(
   current: LocalAiSkillStats,
   input: ReportLocalAiMatchInput,
+  won: boolean,
   startingTei?: number
 ): LocalAiMatchReport {
   if (input.advisorUsed) {
     return {
       rated: false,
-      won: input.won,
+      won,
       advisorUsed: true,
       objective: input.objective,
       skill: input.skill,
@@ -147,13 +199,13 @@ export function previewLocalAiMatchReport(
   const teiAfter = updateUnassistedTei(
     teiBefore,
     opponentTeiForObjective(input.objective, input.skill),
-    input.won ? 1 : 0,
+    won ? 1 : 0,
     kFactor(prior.unassistedMatches)
   );
 
   return {
     rated: true,
-    won: input.won,
+    won,
     advisorUsed: false,
     objective: input.objective,
     skill: input.skill,
@@ -164,7 +216,7 @@ export function previewLocalAiMatchReport(
 }
 
 export function ratedObjective(objective: GameObjective): RatedObjective | null {
-  return objective === 'go-out' || objective === 'penalty' ? objective : null;
+  return objective === 'go-out' || objective === 'points' ? objective : null;
 }
 
 export async function fetchPlayerStats(
@@ -184,11 +236,9 @@ export async function fetchPlayerStats(
   return snap.data() as PlayerStatsDocument;
 }
 
-export async function setAcademyPlacement(
+export async function saveCaptainGender(
   uid: string,
-  objective: RatedObjective,
-  skill: WarpSkillLevel,
-  tei: number
+  captainGender: CaptainGender
 ): Promise<void> {
   if (!isFirebaseConfigured()) {
     return;
@@ -198,10 +248,7 @@ export async function setAcademyPlacement(
     return;
   }
 
-  const clamped = clampAcademyTei(skill, tei, objective);
-  const key = objectiveTeiKey(objective);
   const now = new Date().toISOString();
-
   await runTransaction(db, async (tx) => {
     const ref = doc(db, PLAYER_STATS, uid);
     const snap = await tx.get(ref);
@@ -209,25 +256,12 @@ export async function setAcademyPlacement(
       ? (snap.data() as PlayerStatsDocument)
       : null;
 
-    if (!needsAcademyPlacementForObjective(existing, objective)) {
-      return;
-    }
-
     tx.set(
       ref,
       {
         uid,
-        displayName: existing?.displayName ?? 'Captain',
-        matchesCompleted: existing?.matchesCompleted ?? 0,
-        matchesWon: existing?.matchesWon ?? 0,
-        roundsPlayed: existing?.roundsPlayed ?? 0,
-        roundsWon: existing?.roundsWon ?? 0,
-        totalPenaltyPoints: existing?.totalPenaltyPoints ?? 0,
-        localAi: existing?.localAi ?? emptyLocalAiStats(),
-        startingTei: {
-          ...(existing?.startingTei ?? {}),
-          [key]: clamped,
-        },
+        ...(existing?.displayName ? {} : { displayName: 'Captain' }),
+        captainGender,
         updatedAt: now,
       },
       { merge: true }
@@ -235,75 +269,159 @@ export async function setAcademyPlacement(
   });
 }
 
-export async function reportLocalAiMatch(
-  input: ReportLocalAiMatchInput
-): Promise<LocalAiMatchReport | null> {
+export async function setAcademyPlacement(
+  uid: string,
+  objective: RatedObjective,
+  skill: WarpSkillLevel
+): Promise<void> {
   if (!isFirebaseConfigured()) {
-    return null;
+    return;
   }
 
-  const db = getFirestoreDb();
-  if (!db) {
-    return null;
+  const auth = getFirebaseAuth();
+  if (!auth?.currentUser || auth.currentUser.uid !== uid) {
+    throw new Error('Sign in required to save academy placement.');
   }
+  await auth.currentUser.getIdToken(true);
 
-  const now = new Date().toISOString();
-  let report: LocalAiMatchReport | null = null;
+  await callFunction<
+    { objective: RatedObjective; skill: WarpSkillLevel },
+    { ok: boolean; tei: number }
+  >('setAcademyPlacement', { objective, skill });
+}
 
-  await runTransaction(db, async (tx) => {
-    const ref = doc(db, PLAYER_STATS, input.uid);
-    const snap = await tx.get(ref);
-    const existing = snap.exists()
-      ? (snap.data() as PlayerStatsDocument)
+function isRetriableNetworkError(error: unknown): boolean {
+  if (!isNetworkAvailable()) {
+    return true;
+  }
+  const code =
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof (error as { code: unknown }).code === 'string'
+      ? (error as { code: string }).code
       : null;
+  return (
+    code === 'unavailable' ||
+    code === 'deadline-exceeded' ||
+    code === 'internal' ||
+    (error instanceof TypeError && /fetch|network/i.test(error.message))
+  );
+}
 
-    const localAi = {
-      ...emptyLocalAiStats(),
-      ...(existing?.localAi ?? {}),
-    };
-    const currentBucket = {
-      ...emptyLocalAiSkillStats(),
-      ...localAi[input.skill],
-    };
-    const seed = startingTeiForObjective(existing, input.objective);
-    report = previewLocalAiMatchReport(currentBucket, input, seed);
-    localAi[input.skill] = incrementLocalAiSkillStats(currentBucket, input, {
-      startingTei: seed,
-    });
-
-    const historyEntry: MatchHistoryEntry = {
-      playedAt: now,
-      objective: input.objective,
-      opponentSkill: input.skill,
-      won: input.won,
-      advisorUsed: input.advisorUsed,
-      decisionPct: input.decisionPct,
-      decisionGrade: input.decisionGrade,
-      teiBefore: report.teiBefore ?? undefined,
-      teiAfter: report.teiAfter ?? undefined,
-      teiDelta: report.teiDelta ?? undefined,
-    };
-
-    const next = stripUndefinedFieldsForFirestore({
-      uid: input.uid,
-      displayName: input.displayName.trim() || existing?.displayName || 'Captain',
-      matchesCompleted: (existing?.matchesCompleted ?? 0) + 1,
-      matchesWon: (existing?.matchesWon ?? 0) + (input.won ? 1 : 0),
-      roundsPlayed: existing?.roundsPlayed ?? 0,
-      roundsWon: existing?.roundsWon ?? 0,
-      totalPenaltyPoints: existing?.totalPenaltyPoints ?? 0,
-      startingTei: existing?.startingTei,
-      matchHistory: appendMatchHistory(existing?.matchHistory, historyEntry),
-      localAi,
-      bestRoundTimeMs: existing?.bestRoundTimeMs,
-      lastPlayedAt: now,
-      updatedAt: now,
-    }) as PlayerStatsDocument;
-
-    tx.set(ref, next);
+async function uploadLocalAiMatch(
+  input: ReportLocalAiMatchInput
+): Promise<LocalAiMatchReport> {
+  const humanActions = filterHumanActionsForReplay(input.humanActions);
+  const result = await callFunction<
+    Omit<ReportLocalAiMatchInput, 'uid'>,
+    {
+      rated: boolean;
+      won: boolean;
+      teiBefore: number | null;
+      teiAfter: number | null;
+      teiDelta: number | null;
+    }
+  >('reportPracticeAiMatch', {
+    displayName: input.displayName,
+    skill: input.skill,
+    opponentClass1Star: input.opponentClass1Star,
+    objective: input.objective,
+    advisorUsed: input.advisorUsed,
+    decisionPct: input.decisionPct,
+    decisionGrade: input.decisionGrade,
+    seed: input.seed,
+    config: input.config,
+    humanActions,
   });
 
-  return report;
+  return {
+    rated: result.rated,
+    won: result.won,
+    advisorUsed: input.advisorUsed,
+    objective: input.objective,
+    skill: input.skill,
+    teiBefore: result.teiBefore,
+    teiAfter: result.teiAfter,
+    teiDelta: result.teiDelta,
+  };
+}
+
+export function pendingLocalAiMatchCount(uid?: string): number {
+  return countPendingLocalAiMatches(uid);
+}
+
+/** Upload queued offline vs-AI reports when connectivity returns. */
+export async function flushPendingLocalAiMatches(uid: string): Promise<number> {
+  if (!isFirebaseConfigured() || !isNetworkAvailable()) {
+    return 0;
+  }
+
+  pruneNonReplayablePendingLocalAiMatches(uid);
+
+  let synced = 0;
+  for (const entry of listPendingLocalAiMatches(uid)) {
+    if (!isNetworkAvailable()) {
+      break;
+    }
+    if (!isReplayableLocalAiMatch(entry)) {
+      dequeuePendingLocalAiMatch(entry.matchKey);
+      continue;
+    }
+    try {
+      await uploadLocalAiMatch(entry);
+      dequeuePendingLocalAiMatch(entry.matchKey);
+      synced += 1;
+    } catch (error) {
+      if (isRetriableNetworkError(error)) {
+        break;
+      }
+      dequeuePendingLocalAiMatch(entry.matchKey);
+    }
+  }
+  return synced;
+}
+
+export async function reportLocalAiMatch(
+  input: ReportLocalAiMatchInput,
+  matchKey: string
+): Promise<LocalAiMatchSubmitResult> {
+  if (!isFirebaseConfigured()) {
+    return { status: 'skipped', reason: 'not_configured' };
+  }
+
+  const rejectReason = getLocalAiMatchRejectReason(input);
+  if (rejectReason) {
+    return {
+      status: 'skipped',
+      reason: 'not_replayable',
+      notice: localAiMatchRejectNotice(rejectReason),
+    };
+  }
+
+  if (!isNetworkAvailable()) {
+    enqueuePendingLocalAiMatch(input, matchKey);
+    return { status: 'queued' };
+  }
+
+  try {
+    const report = await uploadLocalAiMatch(input);
+    return { status: 'uploaded', report };
+  } catch (error) {
+    if (isRetriableNetworkError(error)) {
+      enqueuePendingLocalAiMatch(input, matchKey);
+      return { status: 'queued' };
+    }
+    throw error;
+  }
+}
+
+/** @deprecated Human-pool TEI uses officiated rated matches on the leaderboard. */
+export async function reportOnlineHumanSelfTei(
+  input: ReportOnlineHumanSelfInput
+): Promise<OnlineHumanSelfReport | null> {
+  void input;
+  return null;
 }
 
 export function displayPlayerObjectiveTei(
@@ -359,7 +477,7 @@ export function hasAnyRatedUnassistedMatch(
 ): boolean {
   return (
     hasAnyRatedUnassistedMatchForObjective(stats, 'go-out') ||
-    hasAnyRatedUnassistedMatchForObjective(stats, 'penalty')
+    hasAnyRatedUnassistedMatchForObjective(stats, 'points')
   );
 }
 
@@ -370,7 +488,11 @@ export function needsAcademyPlacementForObjective(
   if (hasStartingTeiPlacedForObjective(stats, objective)) {
     return false;
   }
-  return !hasAnyRatedUnassistedMatchForObjective(stats, objective);
+  if (hasAnyRatedUnassistedMatchForObjective(stats, objective)) {
+    return false;
+  }
+  const humanTrack = humanObjectiveTeiStats(stats, objective);
+  return humanTrack.unassistedMatches === 0;
 }
 
 export function needsAcademyPlacement(
@@ -378,7 +500,7 @@ export function needsAcademyPlacement(
 ): boolean {
   return (
     needsAcademyPlacementForObjective(stats, 'go-out') ||
-    needsAcademyPlacementForObjective(stats, 'penalty')
+    needsAcademyPlacementForObjective(stats, 'points')
   );
 }
 

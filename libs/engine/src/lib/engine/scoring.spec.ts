@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { handPenaltyPoints, scoreRound } from './scoring.js';
+import { handPoints, scoreRound } from './scoring.js';
 import { endBlockedRound } from './round-resolution.js';
 import { makeGame, makeRound, T } from './test-helpers.js';
 import {
@@ -12,10 +12,10 @@ import {
   shuffleCoordinates,
 } from '../domino/coordinates.js';
 
-describe('handPenaltyPoints', () => {
+describe('handPoints', () => {
   it('sums pip values for tiles in hand', () => {
     expect(
-      handPenaltyPoints(
+      handPoints(
         [
           { low: 6, high: 6 },
           { low: 3, high: 4 },
@@ -28,7 +28,7 @@ describe('handPenaltyPoints', () => {
 
   it('doubles 12-12 when salamander applies', () => {
     expect(
-      handPenaltyPoints([{ low: 12, high: 12 }], true, 2)
+      handPoints([{ low: 12, high: 12 }], true, 2)
     ).toBe(24);
   });
 });
@@ -48,8 +48,8 @@ describe('scoreRound', () => {
     if (!result.ok) return;
 
     expect(result.state.phase).toBe('complete');
-    expect(result.state.captains.find((c) => c.id === 'a')?.penaltyScore).toBe(5);
-    expect(result.state.captains.find((c) => c.id === 'b')?.penaltyScore).toBe(9);
+    expect(result.state.captains.find((c) => c.id === 'a')?.pointsScore).toBe(5);
+    expect(result.state.captains.find((c) => c.id === 'b')?.pointsScore).toBe(9);
   });
 
   it('rejects scoring a round that is still in play', () => {
@@ -91,8 +91,8 @@ describe('scoreRound', () => {
     const deal = dealRoundFromShuffled({
       roundNumber: 1,
       captains: [
-        { id: 'a', displayName: 'A', penaltyScore: 0 },
-        { id: 'b', displayName: 'B', penaltyScore: 0 },
+        { id: 'a', displayName: 'A', pointsScore: 0 },
+        { id: 'b', displayName: 'B', pointsScore: 0 },
       ],
       turnOrder: ['a', 'b'],
       shuffledCoordinates: generateCoordinateSet(12),
@@ -112,7 +112,7 @@ describe('scoreRound', () => {
     expect(result.state.round?.roundNumber).toBe(2);
     expect(result.state.round?.spacedockValue).toBe(11);
     expect(result.state.completedRounds).toBe(1);
-    expect(result.state.captains.find((c) => c.id === 'b')?.penaltyScore).toBeGreaterThan(
+    expect(result.state.captains.find((c) => c.id === 'b')?.pointsScore).toBeGreaterThan(
       0
     );
   });
@@ -122,7 +122,7 @@ describe('scoreRound', () => {
     const captains = captainIds.map((id) => ({
       id,
       displayName: id,
-      penaltyScore: 0,
+      pointsScore: 0,
     }));
     const deal = dealRoundFromShuffled({
       roundNumber: 3,

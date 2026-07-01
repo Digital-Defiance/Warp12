@@ -17,10 +17,10 @@ function scoreEffect(
   const { round, playerId, objective } = obs;
   const me = captains.find((captain) => captain.id === playerId);
   const lowest = captains.reduce((best, captain) =>
-    captain.penaltyScore < best.penaltyScore ? captain : best
+    captain.pointsScore < best.pointsScore ? captain : best
   );
   const highest = captains.reduce((best, captain) =>
-    captain.penaltyScore > best.penaltyScore ? captain : best
+    captain.pointsScore > best.pointsScore ? captain : best
   );
   const myHand = round.hands[playerId] ?? [];
   const handPips = myHand.reduce(
@@ -35,10 +35,10 @@ function scoreEffect(
         ? myHand.length >= 4
           ? 6
           : 3
-        : me && me.penaltyScore > highest.penaltyScore * 0.5
+        : me && me.pointsScore > highest.pointsScore * 0.5
           ? 8
           : 4;
-    case 'skip-lowest-penalty':
+    case 'skip-lowest-points':
       return goOut ? 2 : lowest.id !== playerId ? 12 : -5;
     case 'peek-uncharted':
       return round.unchartedSectors.length > 0 ? 6 : 0;

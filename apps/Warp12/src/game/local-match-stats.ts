@@ -19,6 +19,19 @@ export function classifyLocalAiMatchSkill(
   );
 }
 
+/** Skill bucket plus Class I* flag for Firestore match history (`opponentClass1Star`). */
+export function classifyLocalAiMatchOpponent(
+  aiCaptains: readonly AiCaptainConfig[]
+): { skill: WarpSkillLevel; opponentClass1Star: boolean } {
+  const skill = classifyLocalAiMatchSkill(aiCaptains);
+  const topTier = aiCaptains.filter((captain) => captain.skill === skill);
+  return {
+    skill,
+    opponentClass1Star:
+      topTier.length > 0 && topTier.every((captain) => captain.class1Star === true),
+  };
+}
+
 export function humanWonLocalMatch(game: GameState, humanId: string): boolean {
   if (game.phase !== 'complete') {
     return false;
@@ -30,7 +43,7 @@ export function humanWonLocalMatch(game: GameState, humanId: string): boolean {
 
   let winner = game.captains[0];
   for (const captain of game.captains) {
-    if (captain.penaltyScore < winner.penaltyScore) {
+    if (captain.pointsScore < winner.pointsScore) {
       winner = captain;
     }
   }

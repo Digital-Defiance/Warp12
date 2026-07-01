@@ -1,7 +1,6 @@
 import {
-  aiSkillToTacticalClass,
+  formatAiOfficerTacticalClass,
   formatTei,
-  formatTacticalClass,
 } from 'warp12-engine';
 import type { GameLogRosterEntry } from 'warp12-react';
 
@@ -23,11 +22,13 @@ export function buildLocalRosterTei(
   const aiEntries = config.aiCaptains.map((ai) => ({
     captainId: ai.id,
     tei: opponentTeiForObjective(objective, ai.skill),
-    tacticalClass: formatTacticalClass(aiSkillToTacticalClass(ai.skill)),
+    tacticalClass: formatAiOfficerTacticalClass(ai.skill, {
+      class1Star: ai.class1Star,
+    }),
     reference: true as const,
   }));
 
   return [humanEntry, ...aiEntries];
 }
 
-export { formatTei, formatTacticalClass };
+export { formatTei, formatAiOfficerTacticalClass as formatTacticalClass };

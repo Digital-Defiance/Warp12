@@ -20,8 +20,7 @@ export interface PlayerStatsState {
   refresh: () => Promise<void>;
   saveAcademyPlacement: (
     objective: RatedObjective,
-    skill: WarpSkillLevel,
-    tei: number
+    skill: WarpSkillLevel
   ) => Promise<void>;
   displayTei: (
     skill: WarpSkillLevel,
@@ -59,11 +58,11 @@ export function usePlayerStats(): PlayerStatsState {
   }, [refresh]);
 
   const saveAcademyPlacement = useCallback(
-    async (objective: RatedObjective, skill: WarpSkillLevel, tei: number) => {
+    async (objective: RatedObjective, skill: WarpSkillLevel) => {
       if (!auth.user) {
         return;
       }
-      await setAcademyPlacement(auth.user.uid, objective, skill, tei);
+      await setAcademyPlacement(auth.user.uid, objective, skill);
       await refresh();
     },
     [auth.user, refresh]

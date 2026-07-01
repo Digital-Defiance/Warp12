@@ -19,10 +19,13 @@ export default defineConfig(() => ({
       transformMixedEsModules: true,
     },
     lib: {
-      entry: 'src/index.ts',
+      entry: {
+        index: 'src/index.ts',
+        node: 'src/node.ts',
+      },
       name: 'warp12-engine',
-      fileName: 'index',
       formats: ['es' as const],
+      fileName: (format, entryName) => `${entryName}.js`,
     },
     rolldownOptions: {
       external: ['doubletwelve'],

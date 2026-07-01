@@ -1,15 +1,21 @@
 import type { GameState } from 'warp12-engine';
+import { TEI_OBJECTIVE_LABEL } from 'warp12-engine';
 import {
   coachingMessageForTeiDelta,
   type AdvisorPerformanceSummary,
 } from 'warp12-react';
 
-import type { LocalAiMatchReport } from '../firebase/stats-service.js';
+import type { LocalAiMatchReport, OnlineHumanSelfReport } from '../firebase/stats-service.js';
 import {
   sectorCompleteHeadline,
   sectorStandings,
   sectorWinnerId,
 } from '../game/sector-outcome.js';
+import {
+  captainPilotIcon,
+  DEFAULT_CAPTAIN_GENDER,
+} from '../game/captain-profile.js';
+import { AdvisorReportDownloadButtons } from './advisor-report-download-buttons';
 import dialogStyles from './rules-view.module.scss';
 import styles from './bridge-table.module.scss';
 
@@ -19,12 +25,14 @@ export interface CampaignCompleteOverlayProps {
   names: Readonly<Record<string, string>>;
   humanId?: string;
   humanName?: string;
-  matchReport: LocalAiMatchReport | null;
+  matchReport: LocalAiMatchReport | OnlineHumanSelfReport | null;
   matchReportPending?: boolean;
   matchReportNotice?: string | null;
+  ratedMatchCheckInUrl?: string;
   performance: AdvisorPerformanceSummary | null;
   canDownloadAdvisorReport?: boolean;
   onDownloadAdvisorReport?: (includeAllCaptains: boolean) => void;
+  pilotIconSrc?: string;
   onRematch?: () => void;
   onLeaveSetup?: () => void;
   onClose: () => void;
@@ -39,9 +47,11 @@ export function CampaignCompleteOverlay({
   matchReport,
   matchReportPending = false,
   matchReportNotice = null,
+  ratedMatchCheckInUrl,
   performance,
   canDownloadAdvisorReport = false,
   onDownloadAdvisorReport,
+  pilotIconSrc = captainPilotIcon(DEFAULT_CAPTAIN_GENDER),
   onRematch,
   onLeaveSetup,
   onClose,
@@ -78,7 +88,7 @@ export function CampaignCompleteOverlay({
         </h3>
         <p className={styles.roundEndBody}>{headline}</p>
 
-        <ul className={styles.roundEndPenalties}>
+        <ul className={styles.roundEndPoints}>
           {standings.map((entry, index) => (
             <li
               key={entry.id}
@@ -91,7 +101,7 @@ export function CampaignCompleteOverlay({
 
         {matchReport?.rated && matchReport.teiBefore !== null && matchReport.teiAfter !== null && (
           <p className={styles.roundEndBody}>
-            TEI ({matchReport.objective === 'go-out' ? 'go-out' : 'penalty'}):{' '}
+            TEI ({TEI_OBJECTIVE_LABEL[matchReport.objective]}):{' '}
             <strong>
               {matchReport.teiBefore} → {matchReport.teiAfter}
             </strong>
@@ -115,6 +125,16 @@ export function CampaignCompleteOverlay({
           <p className={styles.roundEndBody}>{matchReportNotice}</p>
         )}
 
+        {ratedMatchCheckInUrl && (
+          <p className={styles.roundEndBody}>
+            Playing an officiated offline event?{' '}
+            <a href={ratedMatchCheckInUrl} target="_blank" rel="noreferrer">
+              Check in on the leaderboard
+            </a>
+            {' '}with your match official&apos;s code.
+          </p>
+        )}
+
         {performance && (
           <div className={styles.roundEndBody}>
             <p>
@@ -130,22 +150,11 @@ export function CampaignCompleteOverlay({
         )}
 
         {canDownloadAdvisorReport && onDownloadAdvisorReport && (
-          <div className={styles.roundEndActions}>
-            <button
-              type="button"
-              className={styles.roundEndBtnSecondary}
-              onClick={() => onDownloadAdvisorReport(false)}
-            >
-              Download your advisor report
-            </button>
-            <button
-              type="button"
-              className={styles.roundEndBtnSecondary}
-              onClick={() => onDownloadAdvisorReport(true)}
-            >
-              Download all captains
-            </button>
-          </div>
+          <AdvisorReportDownloadButtons
+            pilotIconSrc={pilotIconSrc}
+            onDownloadYourMoves={() => onDownloadAdvisorReport(false)}
+            onDownloadAllCaptains={() => onDownloadAdvisorReport(true)}
+          />
         )}
 
         <div className={styles.roundEndActions}>

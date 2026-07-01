@@ -25,7 +25,7 @@ function coachHint(
     case 'catch-drop-to-impulse':
       return 'Bullets above explain the ceremony or house-rule action.';
     case 'chart':
-      return 'Looks a few moves ahead; bullets above are the main factors for this chart.';
+      return 'Runs ISMCTS deep search; bullets above are the main factors for this chart.';
     default:
       return 'Bullets above explain the recommended action.';
   }

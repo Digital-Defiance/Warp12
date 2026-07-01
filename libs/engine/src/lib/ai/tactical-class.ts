@@ -1,4 +1,5 @@
 import type { GameObjective } from '../types/objective.js';
+import { CLASS1_STAR_DISPLAY_NAME } from './class1-star-constants.js';
 import type { WarpSkillLevel } from './skill.js';
 
 /** Engine AI profile keys — map to Tactical Class IV / III / II in all player-facing UI. */
@@ -41,6 +42,19 @@ export function formatTacticalClass(
     return `Cls ${tacticalClass}`;
   }
   return `Class ${tacticalClass}`;
+}
+
+/** Player-facing label for an AI officer (Class IV–II or experimental Class I*). */
+export function formatAiOfficerTacticalClass(
+  skill: WarpSkillLevel,
+  options?: { short?: boolean; class1Star?: boolean }
+): string {
+  if (options?.class1Star) {
+    return options.short ? 'Cls I*' : CLASS1_STAR_DISPLAY_NAME;
+  }
+  return formatTacticalClass(aiSkillToTacticalClass(skill), {
+    short: options?.short,
+  });
 }
 
 export function formatTei(tei: number, reference = false): string {
@@ -88,7 +102,7 @@ export function playerTacticalClassTagline(
   return TACTICAL_CLASS_TAGLINES[tacticalClass];
 }
 
-export type RatedObjective = Extract<GameObjective, 'go-out' | 'penalty'>;
+export type RatedObjective = Extract<GameObjective, 'go-out' | 'points'>;
 
 export interface AcademyTeiBand {
   readonly min: number;
@@ -101,7 +115,7 @@ export const ACADEMY_TEI_BANDS: Record<
   RatedObjective,
   Record<WarpSkillLevel, AcademyTeiBand>
 > = {
-  penalty: {
+  points: {
     ensign: { min: 400, max: 1050, default: 1000 },
     lieutenant: { min: 1050, max: 1300, default: 1200 },
     commander: { min: 1300, max: 1800, default: 1400 },

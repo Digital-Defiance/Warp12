@@ -79,7 +79,7 @@ export function serializePublicGame(state: GameState): FirestoreGameDocument {
     captains: state.captains.map((c) => ({
       id: c.id,
       displayName: c.displayName,
-      penaltyScore: c.penaltyScore,
+      pointsScore: c.pointsScore,
       joinedAt: new Date().toISOString(),
     })),
     completedRounds: state.completedRounds,
@@ -345,7 +345,7 @@ export function mergeHandsIntoGame(
     captains: doc.captains.map((c) => ({
       id: c.id,
       displayName: c.displayName,
-      penaltyScore: c.penaltyScore,
+      pointsScore: c.pointsScore,
     })),
     round,
     completedRounds: doc.completedRounds,

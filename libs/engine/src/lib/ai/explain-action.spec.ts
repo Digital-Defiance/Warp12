@@ -42,7 +42,7 @@ describe('explainWarpAiAction', () => {
         redAlert: null,
       },
     });
-    const state = makeGame(round, { objective: 'penalty' });
+    const state = makeGame(round, { objective: 'points' });
     const action: WarpAiAction = {
       kind: 'chart',
       move: {

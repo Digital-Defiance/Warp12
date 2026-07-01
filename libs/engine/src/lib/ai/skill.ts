@@ -1,6 +1,7 @@
 import { SKILL_PRESETS, type SkillProfile } from 'doubletwelve';
 import type { GameObjective } from '../types/objective.js';
 import type { LookaheadOptions } from './lookahead-options.js';
+import { resolveDeepThinkAdvisorLookahead } from './fleet-admiral.js';
 import { resolveGoOutTuning, type GoOutTuning } from './go-out-tuning.js';
 import { WARP_HEURISTIC_IDS } from './heuristics.js';
 
@@ -11,7 +12,7 @@ export type WarpSkillProfile = SkillProfile & {
   goOutTuning?: Partial<GoOutTuning>;
 };
 
-const PENALTY_PRESETS: Record<
+const POINTS_PRESETS: Record<
   'ensign' | 'lieutenant' | 'commander',
   SkillProfile
 > = {
@@ -252,9 +253,9 @@ export function cloneGoOutPresets(): Record<
   };
 }
 
-export const WARP_SKILL_PRESETS = PENALTY_PRESETS;
+export const WARP_SKILL_PRESETS = POINTS_PRESETS;
 
-export type WarpSkillLevel = keyof typeof PENALTY_PRESETS;
+export type WarpSkillLevel = keyof typeof POINTS_PRESETS;
 
 function scaleWeights(
   weights: SkillProfile['weights'],
@@ -373,14 +374,14 @@ function applyGoOutTableSize(
 
 export function getWarpSkillProfile(
   level: WarpSkillLevel,
-  objective: GameObjective = 'penalty',
+  objective: GameObjective = 'points',
   playerCount?: number,
   tableRole?: WarpTableRole
 ): WarpSkillProfile {
   const presets =
     objective === 'go-out'
       ? (goOutPresetsOverride ?? GO_OUT_PRESETS)
-      : PENALTY_PRESETS;
+      : POINTS_PRESETS;
   const base = presets[level] as WarpSkillProfile;
   if (objective !== 'go-out' || playerCount === undefined) {
     return base;
@@ -394,7 +395,7 @@ export function getWarpSkillProfile(
  * after search (`temperature: 0`).
  */
 export function getAdvisorSkillProfile(
-  objective: GameObjective = 'penalty',
+  objective: GameObjective = 'points',
   playerCount?: number
 ): WarpSkillProfile {
   const base = getWarpSkillProfile(
@@ -410,9 +411,15 @@ export function getAdvisorSkillProfile(
   };
 }
 
-/** Forward search settings for coach / advisor pick (not used for offline AI tiers). */
+/** Forward search settings for coach / advisor — always ISMCTS in product builds. */
 export function resolveAdvisorLookahead(): LookaheadOptions {
-  return { depth: 2, determinizations: 6, maxBranch: 6 };
+  if (
+    typeof process !== 'undefined' &&
+    process.env?.ADVISOR_SHALLOW === '1'
+  ) {
+    return { depth: 2, determinizations: 6, maxBranch: 6 };
+  }
+  return resolveDeepThinkAdvisorLookahead();
 }
 
 /** Resolved go-out phase tuning for a skill profile. */
@@ -426,11 +433,11 @@ export function resolveProfileGoOutTuning(
  * Lookahead baked into each tier for ELO calibration — not user-configurable.
  * Beginner/lieutenant: greedy heuristics only.
  * Advanced go-out: depth 2 at 2p only; greedy at 3+ (multi-opponent race / search noise).
- * Advanced penalty: greedy (search hurt calibration at 2p).
+ * Advanced points: greedy (search hurt calibration at 2p).
  */
 export function resolveWarpLookahead(
   level: WarpSkillLevel,
-  objective: GameObjective = 'penalty',
+  objective: GameObjective = 'points',
   playerCount?: number
 ): LookaheadOptions | undefined {
   if (objective !== 'go-out' || playerCount === undefined || playerCount >= 3) {

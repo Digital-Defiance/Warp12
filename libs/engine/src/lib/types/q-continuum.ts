@@ -6,7 +6,7 @@ import type { RoundState } from './game-state.js';
 /** Catalog of reality-bending Q-Flash effects (Module Alpha). */
 export type QFlashEffectKind =
   | 'reverse-turn-order'
-  | 'skip-lowest-penalty'
+  | 'skip-lowest-points'
   | 'peek-uncharted'
   | 'temporal-inversion'
   | 'distress-amplification'
@@ -36,7 +36,7 @@ export interface QRoundEffects {
     coordinate: Coordinate;
     visibleTo: PlayerId;
   }> | null;
-  /** At round scoring, 12-12 penalty transfers to the highest-penalty captain. */
+  /** At round scoring, 12-12 penalty transfers to the highest-points captain. */
   readonly salamanderSwap: boolean;
   /** Any round win requires calling All Stop! before scoring. */
   readonly allStopEcho: boolean;
@@ -61,10 +61,10 @@ export const Q_FLASH_CATALOG: readonly QFlashCatalogEntry[] = [
     description: 'Helm passes counter-clockwise for the rest of the round.',
   },
   {
-    kind: 'skip-lowest-penalty',
-    label: 'Skip lowest penalty',
+    kind: 'skip-lowest-points',
+    label: 'Skip lowest points',
     description:
-      'The captain with the lowest campaign penalty score skips their next turn.',
+      'The captain with the lowest campaign points score skips their next turn.',
   },
   {
     kind: 'peek-uncharted',
@@ -93,7 +93,7 @@ export const Q_FLASH_CATALOG: readonly QFlashCatalogEntry[] = [
     kind: 'salamander-swap',
     label: 'Salamander swap',
     description:
-      'If anyone holds 12-12 at round end, that penalty applies to the highest-penalty captain instead.',
+      'If anyone holds 12-12 at round end, that penalty applies to the highest-points captain instead.',
     requiresSalamander: true,
   },
   {
@@ -127,7 +127,7 @@ export function describeQFlashEffect(
 ): string {
   const entry = Q_FLASH_CATALOG.find((item) => item.kind === effect.kind);
   const base = entry?.label ?? effect.kind;
-  if (effect.kind === 'skip-lowest-penalty' && effect.targetPlayerId) {
+  if (effect.kind === 'skip-lowest-points' && effect.targetPlayerId) {
     return `${base}: ${names[effect.targetPlayerId] ?? effect.targetPlayerId}`;
   }
   if (effect.kind === 'peek-uncharted' && effect.peek) {
@@ -151,7 +151,7 @@ export function getAvailableQFlashEffects(
         return round.unchartedSectors.length > 0;
       case 'q-gamble':
         return round.unchartedSectors.length >= 2;
-      case 'skip-lowest-penalty':
+      case 'skip-lowest-points':
         return captains.length > 1;
       default:
         return true;

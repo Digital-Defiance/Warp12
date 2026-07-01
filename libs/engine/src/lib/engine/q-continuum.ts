@@ -55,7 +55,7 @@ export function consumeSkipForPlayer(
   });
 }
 
-/** Advance helm to the next captain, consuming any skip-lowest-penalty effects passed over. */
+/** Advance helm to the next captain, consuming any skip-lowest-points effects passed over. */
 export function advanceToNextPlayer(
   round: RoundState,
   currentPlayerId: PlayerId
@@ -101,18 +101,18 @@ export function advanceActivePlayer(round: RoundState): RoundState {
   };
 }
 
-export function lowestPenaltyCaptainId(
+export function lowestPointsCaptainId(
   captains: readonly Captain[]
 ): PlayerId | null {
   if (captains.length === 0) {
     return null;
   }
   return captains.reduce((lowest, captain) =>
-    captain.penaltyScore < lowest.penaltyScore ? captain : lowest
+    captain.pointsScore < lowest.pointsScore ? captain : lowest
   ).id;
 }
 
-export function highestPenaltyCaptainId(
+export function highestPointsCaptainId(
   captains: readonly Captain[],
   excludeId?: PlayerId
 ): PlayerId | null {
@@ -123,7 +123,7 @@ export function highestPenaltyCaptainId(
     return null;
   }
   return eligible.reduce((highest, captain) =>
-    captain.penaltyScore > highest.penaltyScore ? captain : highest
+    captain.pointsScore > highest.pointsScore ? captain : highest
   ).id;
 }
 
@@ -140,8 +140,8 @@ export function buildQFlashEffect(
   switch (kind) {
     case 'reverse-turn-order':
       return { kind };
-    case 'skip-lowest-penalty': {
-      const targetPlayerId = lowestPenaltyCaptainId(state.captains);
+    case 'skip-lowest-points': {
+      const targetPlayerId = lowestPointsCaptainId(state.captains);
       return targetPlayerId ? { kind, targetPlayerId } : null;
     }
     case 'peek-uncharted': {
@@ -181,7 +181,7 @@ export function applyQFlashEffect(
         qEffects: mergeQEffects(nextRound.qEffects, { reverseTurnOrder: true }),
       };
       break;
-    case 'skip-lowest-penalty':
+    case 'skip-lowest-points':
       if (effect.targetPlayerId) {
         const existing = nextRound.qEffects?.skipNextTurnFor ?? [];
         nextRound = {

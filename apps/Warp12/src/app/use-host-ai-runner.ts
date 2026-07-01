@@ -61,7 +61,7 @@ export function useHostAiRunner(options: {
     [options.sectorCaptains]
   );
 
-  const objective = options.game?.objective ?? 'penalty';
+  const objective = options.game?.objective ?? 'points';
   const roster = useMemo(() => {
     if (!options.enabled || aiCaptains.length === 0) {
       return null;
@@ -256,7 +256,7 @@ export function useHostAiRunner(options: {
       const decisionState = mergeAiHandsIntoGame(game, {
         [activePlayerId]: hand ?? [],
       });
-      const action = ai.decideGameAction(decisionState, activePlayerId);
+      const action = await ai.decideGameActionAsync(decisionState, activePlayerId);
       if (!action) {
         onError(`${activeCaptain.displayName} could not choose a move`);
         return;

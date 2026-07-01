@@ -5,8 +5,8 @@ import {
   cloneGoOutPresets,
   optimizerParallelism,
   shouldParallelizeOptimizer,
-  workerExecArgv,
 } from './optimizer-parallel.js';
+import { workerExecArgv } from './worker-bootstrap.js';
 
 describe('optimizer-parallel', () => {
   it('defaults parallelism to at least one worker slot', () => {

@@ -4,7 +4,7 @@ import type {
   HouseRulesConfig,
   WarpSkillLevel,
 } from 'warp12-engine';
-import { DEFAULT_CAMPAIGN_ROUNDS } from 'warp12-engine';
+import { DEFAULT_CAMPAIGN_ROUNDS, DEFAULT_GAME_OBJECTIVE } from 'warp12-engine';
 
 export const LOCAL_MIN_PLAYERS = 3;
 export const LOCAL_MAX_PLAYERS = 8;
@@ -13,6 +13,8 @@ export interface AiCaptainConfig {
   readonly id: string;
   readonly displayName: string;
   readonly skill: WarpSkillLevel;
+  /** Experimental Class I* — ISMCTS search opponent (not TEI reference). */
+  readonly class1Star?: boolean;
   /** Officer pool slot when the captain was created from {@link AI_OFFICER_POOL}. */
   readonly poolId?: string;
 }
@@ -24,7 +26,7 @@ export interface LocalGameConfig {
   /** Total captains at the table (you + AI officers). */
   readonly playerCount: number;
   readonly objective: GameObjective;
-  /** Penalty campaigns only — ignored when objective is go-out. */
+  /** Points campaigns only — ignored when objective is go-out. */
   readonly campaignRounds: number;
   readonly modules: GameModuleConfig;
   readonly houseRules?: HouseRulesConfig;
@@ -67,7 +69,7 @@ export function defaultLocalGameConfig(
     humanId: 'you',
     humanName: humanName.trim() || 'You',
     playerCount: count,
-    objective: 'go-out',
+    objective: DEFAULT_GAME_OBJECTIVE,
     campaignRounds: DEFAULT_CAMPAIGN_ROUNDS,
     modules: { salamanderPenalty: true, qContinuum: false, subspaceFracture: false, subspaceFractureScope: 'own-trail' },
     aiCaptains: buildAiCaptains(count - 1),

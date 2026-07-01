@@ -9,8 +9,9 @@ import {
   captainNameMap,
   createDemoGame,
   formatViolation,
+  formatRoundPointsDelta,
   getLegalMoves,
-  handPenaltyPoints,
+  handPoints,
   countActiveDistressBeacons,
   countDoublesOnTable,
   isTrueRedAlert,
@@ -69,7 +70,7 @@ import {
 import {
   canUseSystemShare,
   deliverRoundImage,
-  formatPenaltyStatLines,
+  formatPointsStatLines,
   type ShareRoundDelivery,
   type ShareRoundImageMode,
   type ShareRoundMetadata,
@@ -85,13 +86,17 @@ import {
   type CoachPresence,
 } from '../firebase/coach-presence';
 import { isFirebaseConfigured } from '../firebase/config.js';
-import { reportLocalAiMatch, ratedObjective } from '../firebase/stats-service.js';
+import { extractHumanActions } from '../game/verify-local-ai-replay.js';
+import { ratedMatchCheckInUrl } from '../firebase/auth-actions.js';
 import { useFirebaseAuth } from '../firebase/use-firebase-auth.js';
 import { usePlayerStats } from '../firebase/use-player-stats.js';
 import {
+  classifyLocalAiMatchOpponent,
   classifyLocalAiMatchSkill,
   humanWonLocalMatch,
 } from '../game/local-match-stats.js';
+import { tableOpponentLabelForAdvisor } from '../game/advisor-report-meta.js';
+import { useCaptainProfile } from '../game/use-captain-profile.js';
 import { buildLocalRosterTei } from '../game/roster-elo.js';
 import {
   buildCaptainTacticalClassAbbrevById,
@@ -100,7 +105,13 @@ import {
 import {
   sectorWinnerName,
 } from '../game/sector-outcome.js';
-import type { LocalAiMatchReport } from '../firebase/stats-service.js';
+import {
+  ratedObjective,
+  reportLocalAiMatch,
+  type LocalAiMatchReport,
+  type OnlineHumanSelfReport,
+} from '../firebase/stats-service.js';
+import { isNetworkAvailable } from '../game/offline-match-queue.js';
 import { CampaignCompleteOverlay } from './campaign-complete-overlay.js';
 import {
   createWarpDominoTheme,
@@ -147,7 +158,7 @@ function canShowInHandPenalty(
   return captainId === handOwnerId;
 }
 
-function formatPenaltyScoreLine(
+function formatPointsScoreLine(
   captainId: string,
   campaignScore: number,
   round: RoundState | null | undefined,
@@ -166,7 +177,7 @@ function formatPenaltyScoreLine(
     return campaign;
   }
 
-  const inHand = handPenaltyPoints(
+  const inHand = handPoints(
     hand,
     options.salamanderEnabled,
     round.roundNumber
@@ -189,7 +200,7 @@ function roundEndContinueLabel(
   game: GameState,
   round: RoundState
 ): string {
-  if (game.objective === 'penalty' && round.roundNumber < game.campaignRounds) {
+  if (game.objective === 'points' && round.roundNumber < game.campaignRounds) {
     return `Deal round ${round.roundNumber + 1}`;
   }
   return 'Score round';
@@ -216,7 +227,7 @@ function roundPenaltyAdds(
         return null;
       }
       const hand = round.hands[captain.id] ?? [];
-      const points = handPenaltyPoints(hand, salamander, round.roundNumber);
+      const points = handPoints(hand, salamander, round.roundNumber);
       if (points === 0) {
         return null;
       }
@@ -236,6 +247,8 @@ export interface BridgeTableProps {
   game?: GameState;
   /** Local simulation: human vs AI seating and victory rules. */
   localConfig?: LocalGameConfig;
+  /** Deal + AI RNG seed (crypto-drawn at launch). */
+  matchSeed?: number;
   aiPlayers?: ReadonlyMap<string, WarpAiPlayer>;
   onRematch?: () => void;
   onLeaveSetup?: () => void;
@@ -263,6 +276,7 @@ export function BridgeTable({
   mode = 'local',
   game: externalGame,
   localConfig,
+  matchSeed,
   aiPlayers,
   onRematch,
   onLeaveSetup,
@@ -307,7 +321,9 @@ export function BridgeTable({
   const [advisorReportDialogOpen, setAdvisorReportDialogOpen] = useState(false);
   const [advisorReport, setAdvisorReport] = useState<AdvisorReport | null>(null);
   const [campaignCompleteOpen, setCampaignCompleteOpen] = useState(false);
-  const [matchReport, setMatchReport] = useState<LocalAiMatchReport | null>(null);
+  const [matchReport, setMatchReport] = useState<
+    LocalAiMatchReport | OnlineHumanSelfReport | null
+  >(null);
   const [matchReportPending, setMatchReportPending] = useState(false);
   const [matchReportNotice, setMatchReportNotice] = useState<string | null>(null);
   const [campaignPerformance, setCampaignPerformance] =
@@ -321,6 +337,7 @@ export function BridgeTable({
       entries: AdvisorActionLogEntry[];
     }>
   >([]);
+  const lastScoredRoundRef = useRef<number | null>(null);
   const tableContentRef = useRef<HTMLDivElement>(null);
   const bridgeSurfaceRef = useRef<HTMLDivElement>(null);
 
@@ -333,6 +350,7 @@ export function BridgeTable({
     reportedLocalMatchRef.current = null;
     campaignAdvisorReviewsRef.current = [];
     campaignRoundSnapshotsRef.current = [];
+    lastScoredRoundRef.current = null;
     setCampaignPerformance(null);
     setMatchReport(null);
     setMatchReportPending(false);
@@ -359,9 +377,19 @@ export function BridgeTable({
     }
 
     if (!auth.user) {
+      const localWon = humanWonLocalMatch(game, localConfig.humanId);
+      if (!isNetworkAvailable()) {
+        setMatchReportPending(false);
+        setMatchReportNotice(
+          advisorUsedThisMatchRef.current
+            ? 'Unrated offline match — Advisor was enabled, so TEI was not tracked.'
+            : `Offline match complete (${localWon ? 'Victory' : 'Defeat'}). Sign in when online to sync TEI to the leaderboard.`
+        );
+        return;
+      }
       setMatchReportNotice(
         auth.error ??
-          'TEI was not saved — could not connect to Firebase auth.'
+          'TEI was not saved — sign in to sync your rating to the leaderboard.'
       );
       return;
     }
@@ -377,25 +405,50 @@ export function BridgeTable({
       campaignAdvisorReviewsRef.current
     );
 
-    void reportLocalAiMatch({
-      uid: auth.user.uid,
-      displayName: localConfig.humanName,
-      skill: classifyLocalAiMatchSkill(localConfig.aiCaptains),
-      objective: localConfig.objective,
-      won: humanWonLocalMatch(game, localConfig.humanId),
-      advisorUsed: advisorUsedThisMatchRef.current,
-      decisionPct: matchPerformance?.scorePct,
-      decisionGrade: matchPerformance?.letterGrade,
-    })
-      .then((report) => {
+    void reportLocalAiMatch(
+      {
+        uid: auth.user.uid,
+        displayName: localConfig.humanName,
+        ...classifyLocalAiMatchOpponent(localConfig.aiCaptains),
+        objective: localConfig.objective,
+        advisorUsed: advisorUsedThisMatchRef.current,
+        decisionPct: matchPerformance?.scorePct,
+        decisionGrade: matchPerformance?.letterGrade,
+        seed: matchSeed ?? Date.now(),
+        config: localConfig,
+        humanActions: extractHumanActions(
+          localConfig,
+          actionLogRef.current.snapshot()
+        ),
+      },
+      game.id
+    )
+      .then((result) => {
         setMatchReportPending(false);
-        if (report) {
-          setMatchReport(report);
-        } else {
-          setMatchReportNotice(
-            'TEI was not saved — stats service returned no result.'
-          );
+        const localWon = humanWonLocalMatch(game, localConfig.humanId);
+        if (result.status === 'uploaded') {
+          setMatchReport(result.report);
+          void playerStats.refresh();
+          return;
         }
+        if (result.status === 'queued') {
+          setMatchReportNotice(
+            advisorUsedThisMatchRef.current
+              ? 'Unrated offline match saved locally — TEI will not be tracked.'
+              : `Match saved offline (${localWon ? 'Victory' : 'Defeat'}). TEI will sync when you're back online.`
+          );
+          return;
+        }
+        if (result.status === 'skipped' && result.reason === 'not_replayable') {
+          setMatchReportNotice(
+            result.notice ??
+              'TEI was not saved — this match cannot be verified for rating.'
+          );
+          return;
+        }
+        setMatchReportNotice(
+          'TEI was not saved — Firebase is not configured in this build.'
+        );
       })
       .catch((error) => {
         setMatchReportPending(false);
@@ -403,7 +456,7 @@ export function BridgeTable({
         setMatchReportNotice(
           error instanceof Error
             ? `TEI was not saved — ${error.message}`
-            : 'TEI was not saved — network or Firestore error.'
+            : 'TEI was not saved — network or server error.'
         );
       });
   }, [
@@ -412,6 +465,8 @@ export function BridgeTable({
     game,
     isVsAi,
     localConfig,
+    matchSeed,
+    playerStats,
   ]);
 
   const [tablePrefs, setTablePrefs] = useState(readTableOptions);
@@ -551,6 +606,7 @@ export function BridgeTable({
   useEffect(() => {
     prevRoundRef.current = null;
     setActionFocus(null);
+    setSelectedTile(null);
   }, [round?.roundNumber]);
 
   useEffect(() => {
@@ -744,6 +800,17 @@ export function BridgeTable({
     [announceCoachUse]
   );
 
+  const prevActivePlayerIdRef = useRef(activePlayerId);
+
+  /** Clear stale hand selection when the active seat changes; advisor re-applies below. */
+  useEffect(() => {
+    if (prevActivePlayerIdRef.current === activePlayerId) {
+      return;
+    }
+    prevActivePlayerIdRef.current = activePlayerId;
+    setSelectedTile(null);
+  }, [activePlayerId]);
+
   useEffect(() => {
     if (!teachingMode || !coachAvailable) {
       return;
@@ -781,13 +848,42 @@ export function BridgeTable({
     [names, round]
   );
 
+  const humanCaptainId = isVsAi ? humanId : viewerId ?? undefined;
+
+  const humanCaptainTei = useMemo(() => {
+    if (!humanCaptainId || !playerStats.ready) {
+      return null;
+    }
+    const rated = ratedObjective(
+      isVsAi && localConfig ? localConfig.objective : game.objective
+    );
+    if (!rated) {
+      return null;
+    }
+    if (isVsAi && localConfig) {
+      return playerStats.displayTei(
+        classifyLocalAiMatchSkill(localConfig.aiCaptains),
+        rated
+      );
+    }
+    return playerStats.displayTei('commander', rated);
+  }, [
+    game.objective,
+    humanCaptainId,
+    isVsAi,
+    localConfig,
+    playerStats,
+  ]);
+
   const captainTacticalClassAbbrevById = useMemo(
     () =>
       buildCaptainTacticalClassAbbrevById({
         localConfig,
         onlineCaptains,
+        humanId: humanCaptainId,
+        humanTei: humanCaptainTei,
       }),
-    [localConfig, onlineCaptains]
+    [humanCaptainId, humanCaptainTei, localConfig, onlineCaptains]
   );
 
   const captainTacticalClassLabelById = useMemo(
@@ -795,8 +891,10 @@ export function BridgeTable({
       buildCaptainTacticalClassLabelById({
         localConfig,
         onlineCaptains,
+        humanId: humanCaptainId,
+        humanTei: humanCaptainTei,
       }),
-    [localConfig, onlineCaptains]
+    [humanCaptainId, humanCaptainTei, localConfig, onlineCaptains]
   );
 
   const openTrailNames = useMemo(
@@ -1155,6 +1253,12 @@ export function BridgeTable({
     );
   }, [gameLogVersion, roundAwaitingScore]);
 
+  const advisorOpponentLabel = useMemo(
+    () => tableOpponentLabelForAdvisor(localConfig),
+    [localConfig]
+  );
+  const { pilotIconSrc } = useCaptainProfile();
+
   const buildRoundAdvisorReport = useCallback(
     (includeAllCaptains = advisorIncludeAllCaptains) => {
       const roundStartState = roundStartStateRef.current;
@@ -1197,6 +1301,7 @@ export function BridgeTable({
       const rounds = buildCampaignAdvisorReports(includeAllCaptains);
       const text = campaignAdvisorPlainText(rounds, names, {
         includeAllCaptains,
+        opponentLabel: advisorOpponentLabel,
       });
       const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -1206,8 +1311,24 @@ export function BridgeTable({
       anchor.click();
       URL.revokeObjectURL(url);
     },
-    [buildCampaignAdvisorReports, names, sectorCode]
+    [buildCampaignAdvisorReports, names, sectorCode, advisorOpponentLabel]
   );
+
+  const rebuildCampaignAdvisorReviews = useCallback(() => {
+    const reviews: AdvisorMoveReview[] = [];
+    for (const snapshot of campaignRoundSnapshotsRef.current) {
+      const report = buildAdvisorReport({
+        roundStartState: snapshot.roundStartState,
+        entries: snapshot.entries,
+        focusPlayerIds: focusPlayerIdsForAdvisor,
+        names,
+      });
+      reviews.push(...report.reviews);
+    }
+    campaignAdvisorReviewsRef.current = reviews;
+    setCampaignPerformance(summarizeAdvisorPerformance(reviews));
+    setCampaignRoundCount(campaignRoundSnapshotsRef.current.length);
+  }, [focusPlayerIdsForAdvisor, names]);
 
   const appendRoundAdvisorReviews = useCallback(() => {
     const roundStartState = roundStartStateRef.current;
@@ -1217,28 +1338,29 @@ export function BridgeTable({
     const entries = actionLogRef.current
       .snapshot()
       .slice(actionLogRoundStartIndexRef.current);
-    campaignRoundSnapshotsRef.current = [
-      ...campaignRoundSnapshotsRef.current,
-      {
-        roundNumber: round.roundNumber,
-        roundStartState: structuredClone(roundStartState),
-        entries: [...entries],
-      },
-    ];
-
-    const report = buildRoundAdvisorReport(false);
-    if (!report || report.reviews.length === 0) {
-      return;
-    }
-    campaignAdvisorReviewsRef.current = [
-      ...campaignAdvisorReviewsRef.current,
-      ...report.reviews,
-    ];
-    setCampaignPerformance(
-      summarizeAdvisorPerformance(campaignAdvisorReviewsRef.current)
+    const snapshot = {
+      roundNumber: round.roundNumber,
+      roundStartState: structuredClone(roundStartState),
+      entries: [...entries],
+    };
+    const existingIndex = campaignRoundSnapshotsRef.current.findIndex(
+      (item) => item.roundNumber === round.roundNumber
     );
-    setCampaignRoundCount(campaignRoundSnapshotsRef.current.length);
-  }, [buildRoundAdvisorReport, round]);
+    if (existingIndex >= 0) {
+      campaignRoundSnapshotsRef.current = [
+        ...campaignRoundSnapshotsRef.current.slice(0, existingIndex),
+        snapshot,
+        ...campaignRoundSnapshotsRef.current.slice(existingIndex + 1),
+      ];
+    } else {
+      campaignRoundSnapshotsRef.current = [
+        ...campaignRoundSnapshotsRef.current,
+        snapshot,
+      ];
+    }
+
+    rebuildCampaignAdvisorReviews();
+  }, [rebuildCampaignAdvisorReviews, round]);
 
   const handleAdvisorIncludeAllChange = useCallback(
     (includeAllCaptains: boolean) => {
@@ -1273,8 +1395,8 @@ export function BridgeTable({
     }
 
     const statsLines =
-      game.objective === 'penalty'
-        ? formatPenaltyStatLines(roundPenaltyAdds(game, round))
+      game.objective === 'points'
+        ? formatPointsStatLines(roundPenaltyAdds(game, round))
         : game.captains.map(
             (captain) =>
               `${names[captain.id] ?? captain.displayName}: ${
@@ -1352,7 +1474,7 @@ export function BridgeTable({
   ]);
 
   const roundPenaltySummary = useMemo(() => {
-    if (!round || !roundAwaitingScore || game.objective !== 'penalty') {
+    if (!round || !roundAwaitingScore || game.objective !== 'points') {
       return [];
     }
     return roundPenaltyAdds(game, round);
@@ -1362,11 +1484,18 @@ export function BridgeTable({
     if (!round || !roundAwaitingScore) {
       return;
     }
+    if (lastScoredRoundRef.current === round.roundNumber) {
+      return;
+    }
+    lastScoredRoundRef.current = round.roundNumber;
     appendRoundAdvisorReviews();
-    void dispatch({
-      type: 'END_ROUND',
-      winnerId: round.roundBlocked ? null : round.roundWinnerId!,
-    });
+    void dispatch(
+      {
+        type: 'END_ROUND',
+        winnerId: round.roundBlocked ? null : round.roundWinnerId!,
+      },
+      { source: 'auto' }
+    );
   }, [appendRoundAdvisorReviews, dispatch, round, roundAwaitingScore]);
 
   useEffect(() => {
@@ -1850,15 +1979,15 @@ export function BridgeTable({
               <p className={styles.roundEndBody}>
                 {roundEndHeadline(round, names)}
               </p>
-              {game.objective === 'penalty' && (
-                <ul className={styles.roundEndPenalties}>
+              {game.objective === 'points' && (
+                <ul className={styles.roundEndPoints}>
                   {roundPenaltySummary.map((entry) => (
                     <li key={entry.id}>
-                      {entry.name}: +{entry.points} penalty
+                      {entry.name}: {formatRoundPointsDelta(entry.points)}
                     </li>
                   ))}
                   {roundPenaltySummary.length === 0 && (
-                    <li>No penalty tiles held.</li>
+                    <li>No points held this round.</li>
                   )}
                 </ul>
               )}
@@ -1963,6 +2092,7 @@ export function BridgeTable({
           downloadFilename={advisorReportFilename}
           includeAllCaptains={advisorIncludeAllCaptains}
           onIncludeAllCaptainsChange={handleAdvisorIncludeAllChange}
+          opponentLabel={advisorOpponentLabel}
         />
 
         <CampaignCompleteOverlay
@@ -1974,9 +2104,11 @@ export function BridgeTable({
           matchReport={matchReport}
           matchReportPending={matchReportPending}
           matchReportNotice={matchReportNotice}
+          ratedMatchCheckInUrl={ratedMatchCheckInUrl()}
           performance={campaignPerformance}
           canDownloadAdvisorReport={campaignRoundCount > 0}
           onDownloadAdvisorReport={downloadCampaignAdvisorReport}
+          pilotIconSrc={pilotIconSrc}
           onRematch={onRematch}
           onLeaveSetup={onLeaveSetup}
           onClose={() => setCampaignCompleteOpen(false)}
@@ -2223,7 +2355,7 @@ export function BridgeTable({
             <p>
               {game.objective === 'go-out'
                 ? 'Sector complete — first captain out takes the victory.'
-                : 'Campaign complete — lowest penalty score wins.'}
+                : 'Campaign complete — lowest points total wins.'}
             </p>
             {isOnline && isOnlineHost && onHostResetSector && (
               <button
@@ -2237,7 +2369,7 @@ export function BridgeTable({
           </div>
         )}
 
-        {game.objective === 'penalty' ? (
+        {game.objective === 'points' ? (
           <>
             <p className={styles.scoreLegend}>
               Campaign totals are public. In-hand pip count is shown only for
@@ -2245,7 +2377,7 @@ export function BridgeTable({
             </p>
             <ul
               className={styles.captainScores}
-              aria-label="Penalty scores"
+              aria-label="Campaign points"
             >
               {game.captains.map((captain) => (
                 <li key={captain.id}>
@@ -2264,9 +2396,9 @@ export function BridgeTable({
                     )}
                   </span>
                   <span>
-                    {formatPenaltyScoreLine(
+                    {formatPointsScoreLine(
                       captain.id,
-                      captain.penaltyScore,
+                      captain.pointsScore,
                       round,
                       round?.hands[captain.id],
                       {

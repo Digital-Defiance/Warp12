@@ -12,7 +12,7 @@ import {
   createRoundStateFromDeal,
   dealRoundFromShuffled,
 } from '../setup/create-game.js';
-import { highestPenaltyCaptainId } from './q-continuum.js';
+import { highestPointsCaptainId } from './q-continuum.js';
 import { withRoundAndCaptains } from './helpers.js';
 
 function penaltyForHand(
@@ -40,7 +40,7 @@ function penaltyForHand(
 }
 
 /** Pip penalty for tiles still in hand (same rules as end-of-round scoring). */
-export function handPenaltyPoints(
+export function handPoints(
   hand: readonly { low: number; high: number }[],
   salamanderEnabled: boolean,
   roundNumber: number
@@ -61,7 +61,7 @@ function clearActiveQFlash(state: GameState): GameState {
   };
 }
 
-function tallyRoundPenalties(state: GameState, round: RoundState) {
+function tallyRoundPoints(state: GameState, round: RoundState) {
   const salamander = state.modules.salamanderPenalty.enabled;
   const salamanderSwap =
     salamander && round.qEffects?.salamanderSwap === true;
@@ -81,7 +81,7 @@ function tallyRoundPenalties(state: GameState, round: RoundState) {
       }
     }
     if (swapHolder) {
-      swapTarget = highestPenaltyCaptainId(
+      swapTarget = highestPointsCaptainId(
         state.captains,
         round.roundWinnerId ?? undefined
       );
@@ -106,7 +106,7 @@ function tallyRoundPenalties(state: GameState, round: RoundState) {
     }
     return {
       ...captain,
-      penaltyScore: captain.penaltyScore + penalty,
+      pointsScore: captain.pointsScore + penalty,
     };
   });
 }
@@ -123,9 +123,9 @@ export function scoreRound(
     return { ok: false, violation: 'ROUND_NOT_PLAYING' };
   }
 
-  const tallyPenalties = state.objective !== 'go-out';
-  const captains = tallyPenalties
-    ? tallyRoundPenalties(state, round)
+  const tallyPoints = state.objective !== 'go-out';
+  const captains = tallyPoints
+    ? tallyRoundPoints(state, round)
     : state.captains;
 
   if (state.objective === 'go-out') {

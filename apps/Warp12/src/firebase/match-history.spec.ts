@@ -55,7 +55,7 @@ describe('match-history', () => {
         playedAt: 1,
       }),
       baseEntry({
-        objective: 'penalty',
+        objective: 'points',
         teiAfter: 900,
         advisorUsed: false,
         playedAt: 0,

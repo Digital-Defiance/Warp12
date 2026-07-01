@@ -68,6 +68,72 @@ service cloud.firestore {
         && request.resource.data.captains[request.resource.data.captains.size() - 1].isAi == true;
     }
 
+    function tokenRoles() {
+      return request.auth.token.get('roles', []);
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && tokenRoles() is list
+        && 'admin' in tokenRoles();
+    }
+
+    function isMatchOfficial() {
+      return isSignedIn()
+        && tokenRoles() is list
+        && ('match_official' in tokenRoles() || 'admin' in tokenRoles());
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn()
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    function ratedStatsFieldsUnchanged() {
+      return request.resource.data.get('humanTei', null) == resource.data.get('humanTei', null)
+        && request.resource.data.get('humanRatedGameIds', null) == resource.data.get('humanRatedGameIds', null)
+        && request.resource.data.get('localAi', null) == resource.data.get('localAi', null)
+        && request.resource.data.get('startingTei', null) == resource.data.get('startingTei', null)
+        && request.resource.data.get('matchHistory', null) == resource.data.get('matchHistory', null)
+        && request.resource.data.get('matchesCompleted', null) == resource.data.get('matchesCompleted', null)
+        && request.resource.data.get('matchesWon', null) == resource.data.get('matchesWon', null)
+        && request.resource.data.get('roundsPlayed', null) == resource.data.get('roundsPlayed', null)
+        && request.resource.data.get('roundsWon', null) == resource.data.get('roundsWon', null)
+        && request.resource.data.get('totalPoints', null) == resource.data.get('totalPoints', null)
+        && request.resource.data.get('lastPlayedAt', null) == resource.data.get('lastPlayedAt', null);
+    }
+
+    function clientProfileFieldsOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['displayName', 'captainGender', 'updatedAt']);
+    }
+
+    function clientStatsCreate() {
+      return request.resource.data.uid == uid
+        && !request.resource.data.keys().hasAny([
+          'humanTei',
+          'humanRatedGameIds',
+          'localAi',
+          'matchHistory',
+          'startingTei',
+          'lastPlayedAt'
+        ])
+        && request.resource.data.get('matchesCompleted', 0) == 0
+        && request.resource.data.get('matchesWon', 0) == 0
+        && request.resource.data.get('roundsPlayed', 0) == 0
+        && request.resource.data.get('roundsWon', 0) == 0
+        && request.resource.data.get('totalPoints', 0) == 0;
+    }
+
+    function safeStatsCreate() {
+      return clientStatsCreate();
+    }
+
+    match /ratedMatches/{matchCode} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if false;
+    }
+
     match /games/{gameId} {
       // Any authenticated captain (or lobby guest who knows the code) can read.
       allow read: if isSignedIn();
@@ -176,7 +242,7 @@ service cloud.firestore {
               && !roundAwaitingScore(parentGame()))
             ||
             // Round scoring / redeal: all hands visible briefly so END_ROUND can tally
-            // penalties and write the next deal (before the public doc advances).
+            // points and write the next deal (before the public doc advances).
             (isMember(parentGame()) && roundAwaitingScore(parentGame()))
           );
 
@@ -198,8 +264,12 @@ service cloud.firestore {
     match /playerStats/{uid} {
       allow read: if true;
 
-      allow create, update: if isOwner(uid)
-        && request.resource.data.uid == uid;
+      allow create: if isOwner(uid) && clientStatsCreate();
+
+      allow update: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && ratedStatsFieldsUnchanged()
+        && clientProfileFieldsOnly();
 
       allow delete: if isOwner(uid);
     }

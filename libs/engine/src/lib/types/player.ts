@@ -6,8 +6,8 @@ export interface DistressBeacon {
 export interface Captain {
   readonly id: string;
   readonly displayName: string;
-  /** Cumulative penalty score across completed rounds. */
-  readonly penaltyScore: number;
+  /** Cumulative points score across completed rounds. */
+  readonly pointsScore: number;
 }
 
 export type PlayerId = Captain['id'];

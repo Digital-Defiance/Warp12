@@ -1,0 +1,98 @@
+import type { GameAction } from 'warp12-engine';
+
+import type { LocalGameConfig } from './local-game-config.js';
+import type { RatedObjective } from '../firebase/stats-schema.js';
+import type { WarpSkillLevel } from 'warp12-engine';
+
+export interface LocalAiMatchValidationInput {
+  skill: WarpSkillLevel;
+  objective: RatedObjective;
+  advisorUsed?: boolean;
+  opponentClass1Star?: boolean;
+  seed?: number;
+  config?: LocalGameConfig;
+  humanActions?: readonly GameAction[];
+}
+
+function humanActionsForReplay(
+  actions: readonly GameAction[]
+): GameAction[] {
+  return actions.filter((action) => action.type !== 'END_ROUND');
+}
+
+export type LocalAiMatchRejectReason =
+  | 'invalid_skill'
+  | 'invalid_objective'
+  | 'missing_advisor_used'
+  | 'class1_star_opponent'
+  | 'missing_seed'
+  | 'missing_config'
+  | 'missing_human_actions'
+  | 'no_replayable_human_actions';
+
+/** Why a local vs-AI row cannot be verified server-side (null = uploadable). */
+export function getLocalAiMatchRejectReason(
+  input: LocalAiMatchValidationInput
+): LocalAiMatchRejectReason | null {
+  if (
+    input.skill !== 'ensign' &&
+    input.skill !== 'lieutenant' &&
+    input.skill !== 'commander'
+  ) {
+    return 'invalid_skill';
+  }
+  if (input.objective !== 'go-out' && input.objective !== 'points') {
+    return 'invalid_objective';
+  }
+  if (typeof input.advisorUsed !== 'boolean') {
+    return 'missing_advisor_used';
+  }
+  if (
+    input.opponentClass1Star === true ||
+    input.config?.aiCaptains?.some((ai) => ai.class1Star)
+  ) {
+    return 'class1_star_opponent';
+  }
+  if (typeof input.seed !== 'number' || !Number.isFinite(input.seed)) {
+    return 'missing_seed';
+  }
+  if (!input.config || typeof input.config !== 'object') {
+    return 'missing_config';
+  }
+  if (!Array.isArray(input.humanActions)) {
+    return 'missing_human_actions';
+  }
+  if (humanActionsForReplay(input.humanActions).length === 0) {
+    return 'no_replayable_human_actions';
+  }
+  return null;
+}
+
+export function isReplayableLocalAiMatch(
+  input: LocalAiMatchValidationInput
+): boolean {
+  return getLocalAiMatchRejectReason(input) === null;
+}
+
+export function localAiMatchRejectNotice(
+  reason: LocalAiMatchRejectReason
+): string {
+  switch (reason) {
+    case 'class1_star_opponent':
+      return 'Class I* is experimental — TEI is not tracked for those matches yet.';
+    case 'missing_advisor_used':
+    case 'missing_seed':
+    case 'missing_config':
+    case 'missing_human_actions':
+    case 'no_replayable_human_actions':
+    case 'invalid_skill':
+    case 'invalid_objective':
+      return 'This match cannot be synced — start a new unassisted vs-AI game to update TEI.';
+  }
+}
+
+export function filterHumanActionsForReplay(
+  actions: readonly GameAction[]
+): GameAction[] {
+  return humanActionsForReplay(actions);
+}

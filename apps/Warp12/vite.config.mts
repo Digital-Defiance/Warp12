@@ -9,6 +9,9 @@ export default defineConfig(() => ({
   root: import.meta.dirname,
   base: tauriBuild ? './' : '/',
   cacheDir: '../../node_modules/.vite/apps/Warp12',
+  optimizeDeps: {
+    exclude: ['warp12-engine'],
+  },
   resolve: {
     dedupe: ['react', 'react-dom'],
     alias: {

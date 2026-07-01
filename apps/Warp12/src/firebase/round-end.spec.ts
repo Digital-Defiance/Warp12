@@ -8,16 +8,16 @@ function tile(low: number, high: number) {
 }
 
 describe('online round end scoring', () => {
-  it('END_ROUND tallies pip penalties from every hand, not just the winner', () => {
+  it('END_ROUND tallies pip points from every hand, not just the winner', () => {
     const state: GameState = {
       id: 'test',
       phase: 'active',
-      objective: 'penalty',
+      objective: 'points',
       campaignRounds: 13,
       completedRounds: 12,
       captains: [
-        { id: 'a', displayName: 'Alpha', penaltyScore: 0 },
-        { id: 'b', displayName: 'Beta', penaltyScore: 0 },
+        { id: 'a', displayName: 'Alpha', pointsScore: 0 },
+        { id: 'b', displayName: 'Beta', pointsScore: 0 },
       ],
       modules: {
         qContinuum: { enabled: false, activeFlash: null },
@@ -80,8 +80,8 @@ describe('online round end scoring', () => {
       return;
     }
 
-    expect(wrong.state.captains.find((c) => c.id === 'b')?.penaltyScore).toBe(0);
-    expect(right.state.captains.find((c) => c.id === 'b')?.penaltyScore).toBe(
+    expect(wrong.state.captains.find((c) => c.id === 'b')?.pointsScore).toBe(0);
+    expect(right.state.captains.find((c) => c.id === 'b')?.pointsScore).toBe(
       6 + 6 + 3 + 4
     );
     expect(shouldRedealHandsAfterScore(right.state.phase)).toBe(false);
@@ -95,7 +95,7 @@ describe('online round end scoring', () => {
       objective: 'go-out',
       campaignRounds: 13,
       completedRounds: 0,
-      captains: [{ id: 'a', displayName: 'Alpha', penaltyScore: 0 }],
+      captains: [{ id: 'a', displayName: 'Alpha', pointsScore: 0 }],
       modules: {
         qContinuum: { enabled: false, activeFlash: null },
         salamanderPenalty: { enabled: true },

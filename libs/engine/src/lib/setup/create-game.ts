@@ -15,7 +15,7 @@ export function createCaptain(
   id: string,
   displayName: string
 ): Captain {
-  return { id, displayName, penaltyScore: 0 };
+  return { id, displayName, pointsScore: 0 };
 }
 
 export function createLobbyState(input: CreateGameInput): GameState {

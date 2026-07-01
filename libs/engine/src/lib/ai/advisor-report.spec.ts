@@ -11,7 +11,7 @@ describe('advisor report', () => {
   it('uses a skill profile that never random-blunders', () => {
     expect(getAdvisorSkillProfile('go-out', 4).blunderRate).toBe(0);
     expect(getAdvisorSkillProfile('go-out', 4).temperature).toBe(0);
-    expect(getAdvisorSkillProfile('penalty', 2).blunderRate).toBe(0);
+    expect(getAdvisorSkillProfile('points', 2).blunderRate).toBe(0);
   });
 
   it('converts chart actions into warp AI actions', () => {

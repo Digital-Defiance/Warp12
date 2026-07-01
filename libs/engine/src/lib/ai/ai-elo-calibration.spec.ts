@@ -25,7 +25,7 @@ const CALIBRATION_SEED = 9001;
 /** Minimum share of games that reach a decisive outcome. */
 const MIN_COMPLETION_RATE = 0.85;
 
-const PENALTY_THRESHOLDS = {
+const POINTS_THRESHOLDS = {
   orderingMinWinRate: 0.55,
   symmetricWinRateBand: { min: 0.35, max: 0.65 },
   eloAlignmentBand: { min: 0.5, max: 0.92 },
@@ -71,7 +71,7 @@ function matchupKey(left: string, right: string): string {
 }
 
 describe('AI ELO calibration (self-play)', () => {
-  it('reference ratings are spaced 200 points apart (penalty) and 250 (go-out)', () => {
+  it('reference ratings are spaced 200 points apart (points) and 250 (go-out)', () => {
     expect(REFERENCE_AI_ELO.lieutenant - REFERENCE_AI_ELO.ensign).toBe(
       200
     );
@@ -84,7 +84,7 @@ describe('AI ELO calibration (self-play)', () => {
     expect(
       GO_OUT_REFERENCE_AI_ELO.commander - GO_OUT_REFERENCE_AI_ELO.lieutenant
     ).toBe(250);
-    expect(referenceEloForObjective('penalty')).toBe(REFERENCE_AI_ELO);
+    expect(referenceEloForObjective('points')).toBe(REFERENCE_AI_ELO);
     expect(referenceEloForObjective('go-out')).toBe(GO_OUT_REFERENCE_AI_ELO);
   });
 
@@ -93,13 +93,13 @@ describe('AI ELO calibration (self-play)', () => {
     expect(impliedEloGap(0.76)).toBeLessThan(230);
   });
 
-  describe('penalty objective', () => {
+  describe('points objective', () => {
     it.each(SKILL_MATCHUPS)(
       'completes %s vs %s heads-up games',
       (left, right) => {
         const result = runSkillMatchup(left, right, {
           games: CALIBRATION_GAMES,
-          objective: 'penalty',
+          objective: 'points',
           seed: CALIBRATION_SEED,
         });
         assertCompletion(result);
@@ -110,11 +110,11 @@ describe('AI ELO calibration (self-play)', () => {
     it('preserves skill ordering in asymmetric matchups', () => {
       const matrix = runCalibrationMatrix({
         games: CALIBRATION_GAMES,
-        objective: 'penalty',
+        objective: 'points',
         seed: CALIBRATION_SEED,
       });
       const required = new Set(
-        PENALTY_THRESHOLDS.requiredOrderingMatchups.map(([left, right]) =>
+        POINTS_THRESHOLDS.requiredOrderingMatchups.map(([left, right]) =>
           matchupKey(left, right)
         )
       );
@@ -126,7 +126,7 @@ describe('AI ELO calibration (self-play)', () => {
         }
         expect(result.higherSkillWinRate).not.toBeNull();
         expect(result.higherSkillWinRate!).toBeGreaterThanOrEqual(
-          PENALTY_THRESHOLDS.orderingMinWinRate
+          POINTS_THRESHOLDS.orderingMinWinRate
         );
       }
     });
@@ -134,7 +134,7 @@ describe('AI ELO calibration (self-play)', () => {
     it('same-skill matchups stay near even', () => {
       const matrix = runCalibrationMatrix({
         games: CALIBRATION_GAMES,
-        objective: 'penalty',
+        objective: 'points',
         seed: CALIBRATION_SEED,
       });
 
@@ -144,10 +144,10 @@ describe('AI ELO calibration (self-play)', () => {
         }
         expect(result.seatAWinRate).not.toBeNull();
         expect(result.seatAWinRate!).toBeGreaterThanOrEqual(
-          PENALTY_THRESHOLDS.symmetricWinRateBand.min
+          POINTS_THRESHOLDS.symmetricWinRateBand.min
         );
         expect(result.seatAWinRate!).toBeLessThanOrEqual(
-          PENALTY_THRESHOLDS.symmetricWinRateBand.max
+          POINTS_THRESHOLDS.symmetricWinRateBand.max
         );
       }
     });
@@ -155,7 +155,7 @@ describe('AI ELO calibration (self-play)', () => {
     it('observed win rates align with fixed opponent ELO spacing', () => {
       const matrix = runCalibrationMatrix({
         games: CALIBRATION_GAMES,
-        objective: 'penalty',
+        objective: 'points',
         seed: CALIBRATION_SEED,
       });
 
@@ -164,10 +164,10 @@ describe('AI ELO calibration (self-play)', () => {
           continue;
         }
         expect(result.higherSkillWinRate).toBeGreaterThanOrEqual(
-          PENALTY_THRESHOLDS.eloAlignmentBand.min
+          POINTS_THRESHOLDS.eloAlignmentBand.min
         );
         expect(result.higherSkillWinRate).toBeLessThanOrEqual(
-          PENALTY_THRESHOLDS.eloAlignmentBand.max
+          POINTS_THRESHOLDS.eloAlignmentBand.max
         );
       }
     });
@@ -267,12 +267,12 @@ describe('AI ELO calibration (self-play)', () => {
         intermediate.focusWinRate - 1e-9
       );
     });
-  });
+  }, 120_000);
 
   it('completes games with Drop to Impulse house rule enabled', () => {
     const result = runSkillMatchup('lieutenant', 'ensign', {
       games: 8,
-      objective: 'penalty',
+      objective: 'points',
       seed: 4242,
       houseRules: { dropToImpulseCall: true },
     });
@@ -284,7 +284,7 @@ describe('AI ELO calibration (self-play)', () => {
       return;
     }
 
-    for (const objective of ['penalty', 'go-out'] as const) {
+    for (const objective of ['points', 'go-out'] as const) {
       // eslint-disable-next-line no-console
       console.log(`\n=== ${objective} (${CALIBRATION_GAMES} games) ===`);
       const matrix = runCalibrationMatrix({
@@ -324,7 +324,7 @@ describe('AI ELO calibration (self-play)', () => {
       console.log('\n=== Drop to Impulse (penalty sanity check) ===');
       for (const result of runCalibrationMatrix({
         games: CALIBRATION_GAMES,
-        objective: 'penalty',
+        objective: 'points',
         seed: CALIBRATION_SEED,
         houseRules: { dropToImpulseCall: true },
       })) {

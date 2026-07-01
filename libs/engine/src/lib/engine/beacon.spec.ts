@@ -42,7 +42,7 @@ function roundWithHands(
       seededRandom(9)
     ),
     roundNumber: 1,
-    captains: captains.map((captain) => ({ ...captain, penaltyScore: 0 })),
+    captains: captains.map((captain) => ({ ...captain, pointsScore: 0 })),
     turnOrder: captains.map((captain) => captain.id),
   });
 

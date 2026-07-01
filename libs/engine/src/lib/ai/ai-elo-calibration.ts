@@ -11,7 +11,7 @@ export const REFERENCE_AI_ELO: Record<WarpSkillLevel, number> = {
   commander: 1400,
 };
 
-/** Wider spacing for go-out races (higher variance than penalty). */
+/** Wider spacing for go-out races (higher variance than points). */
 export const GO_OUT_REFERENCE_AI_ELO: Record<WarpSkillLevel, number> = {
   ensign: 1000,
   lieutenant: 1250,

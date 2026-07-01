@@ -49,8 +49,8 @@ const N = normalizeCoordinate;
 const TURN = ['a', 'b'] as const;
 
 const TEST_CAPTAINS = [
-  { id: 'a', displayName: 'Alpha', penaltyScore: 0 },
-  { id: 'b', displayName: 'Beta', penaltyScore: 0 },
+  { id: 'a', displayName: 'Alpha', pointsScore: 0 },
+  { id: 'b', displayName: 'Beta', pointsScore: 0 },
 ];
 
 function makeRound(over: Partial<RoundState>): RoundState {
@@ -108,7 +108,7 @@ function tableWithOwnTrailOpen(value: number): TableState {
 function obsFor(
   round: RoundState,
   modules = DEFAULT_MODULES,
-  objective: GameObjective = 'penalty',
+  objective: GameObjective = 'points',
   playerId = 'a'
 ): WarpAiObservation {
   return {
@@ -415,7 +415,7 @@ describe('createWarpAiPlayer — control flow & determinism', () => {
       round: null,
       completedRounds: 0,
       modules: DEFAULT_MODULES,
-      objective: 'penalty',
+      objective: 'points',
     };
     expect(player.decideGameAction(noRound, 'a')).toBeNull();
   });
@@ -523,7 +523,7 @@ const IMPULSE_RULES = resolveHouseRules({ dropToImpulseCall: true });
 function impulseObs(
   round: RoundState,
   playerId = 'a',
-  objective: GameObjective = 'penalty'
+  objective: GameObjective = 'points'
 ): WarpAiObservation {
   return {
     ...obsFor(round, DEFAULT_MODULES, objective),
@@ -703,7 +703,7 @@ describe('createWarpAiPlayer — Drop to Impulse & ceremonies', () => {
       completedRounds: 0,
       modules: DEFAULT_MODULES,
       houseRules: IMPULSE_RULES,
-      objective: 'penalty',
+      objective: 'points',
     };
     const player = createWarpAiPlayer({
       skill: getWarpSkillProfile('commander'),

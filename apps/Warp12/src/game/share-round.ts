@@ -2,6 +2,8 @@ import { toPng } from 'html-to-image';
 
 import { sanitizeFilenamePart } from './debug-export.js';
 
+import { formatRoundPointsDelta } from 'warp12-engine';
+
 export const TABLE_CAPTURE_WIDTH = 1200;
 export const TABLE_CAPTURE_HEIGHT = 800;
 export const TABLE_CAPTURE_PIXEL_RATIO = 2;
@@ -26,13 +28,15 @@ export interface ContentBounds {
   height: number;
 }
 
-export function formatPenaltyStatLines(
+export function formatPointsStatLines(
   entries: readonly { name: string; points: number }[]
 ): string[] {
   if (entries.length === 0) {
-    return ['No penalty tiles held.'];
+    return ['No points held this round.'];
   }
-  return entries.map((entry) => `${entry.name}: +${entry.points} penalty`);
+  return entries.map(
+    (entry) => `${entry.name}: ${formatRoundPointsDelta(entry.points)}`
+  );
 }
 
 export function formatShareRoundMessage(meta: ShareRoundMetadata): string {

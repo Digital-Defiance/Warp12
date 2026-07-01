@@ -1,10 +1,11 @@
-import { scoreWithHeuristics } from 'doubletwelve';
+import { scoreWithHeuristics, type Rng } from 'doubletwelve';
 
 import { applyAction } from '../engine/apply-action.js';
 import type { GameAction } from '../types/actions.js';
 import type { GameState } from '../types/game-state.js';
 import type { PlayerId } from '../types/player.js';
 import type { WarpAiAction } from './actions.js';
+import { advisorReplaySeed, hashStringSeed, mulberry32 } from './advisor-replay-rng.js';
 import { buildWarpContext } from './context.js';
 import { warpCandidateGenerator } from './candidate-generator.js';
 import { createWarpAiPlayer } from './create-warp-ai.js';
@@ -51,6 +52,11 @@ export interface BuildAdvisorReportOptions {
   includeAllPlayers?: boolean;
   names?: Readonly<Record<string, string>>;
   maxReasons?: number;
+  /**
+   * Base seed for replaying the action log — advisor search uses deterministic
+   * RNG per turn so rebuilding a report from the same log is stable.
+   */
+  replayBaseSeed?: number;
 }
 
 export interface AdvisorReport {
@@ -58,8 +64,18 @@ export interface AdvisorReport {
   readonly reviews: readonly AdvisorMoveReview[];
 }
 
+export interface ReviewAdvisorMoveOptions {
+  readonly names?: Readonly<Record<string, string>>;
+  readonly maxReasons?: number;
+  readonly replaySeed?: number;
+}
+
 function cloneState(state: GameState): GameState {
   return structuredClone(state);
+}
+
+function defaultReplayBaseSeed(state: GameState): number {
+  return hashStringSeed(state.id);
 }
 
 function scoreCandidates(
@@ -139,7 +155,8 @@ function classifyMoveStrength(
 
 function advisorPickAtState(
   state: GameState,
-  playerId: PlayerId
+  playerId: PlayerId,
+  rng: Rng
 ): WarpAiAction | null {
   const obs = observe(state, playerId);
   if (!obs) {
@@ -151,6 +168,7 @@ function advisorPickAtState(
     skill: getAdvisorSkillProfile(state.objective, playerCount),
     objective: state.objective,
     lookahead: resolveAdvisorLookahead(),
+    rng,
   });
 
   return coach.decide(obs);
@@ -176,7 +194,7 @@ export function reviewAdvisorMove(
   state: GameState,
   playerId: PlayerId,
   played: WarpAiAction,
-  options?: { names?: Readonly<Record<string, string>>; maxReasons?: number }
+  options?: ReviewAdvisorMoveOptions
 ): AdvisorMoveReview | null {
   const scored = scoreCandidates(state, playerId);
   if (scored.length === 0) {
@@ -202,10 +220,14 @@ export function reviewAdvisorMove(
   );
   const maxReasons = options?.maxReasons ?? 3;
   const names = options?.names ?? {};
+  const replayRng =
+    options?.replaySeed !== undefined
+      ? mulberry32(options.replaySeed)
+      : Math.random;
 
   const advisorPick =
     strength === 'blunder' || strength === 'weak'
-      ? advisorPickAtState(state, playerId)
+      ? advisorPickAtState(state, playerId, replayRng)
       : warpAiActionKey(best.action) === playedKey
         ? null
         : best.action;
@@ -247,6 +269,8 @@ export function buildAdvisorReport(
   let state = cloneState(options.roundStartState);
   const reviews: AdvisorMoveReview[] = [];
   let turnIndex = 0;
+  const replayBaseSeed =
+    options.replayBaseSeed ?? defaultReplayBaseSeed(options.roundStartState);
 
   for (const entry of options.entries) {
     if (!shouldReviewEntry(entry, options)) {
@@ -269,6 +293,7 @@ export function buildAdvisorReport(
     const review = reviewAdvisorMove(state, entry.playerId, played, {
       names: options.names,
       maxReasons: options.maxReasons,
+      replaySeed: advisorReplaySeed(replayBaseSeed, turnIndex, entry.playerId),
     });
     if (review) {
       reviews.push({ ...review, turnIndex: turnIndex++ });

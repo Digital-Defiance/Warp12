@@ -82,7 +82,7 @@ describe('Warp12-lib setup', () => {
       roundNumber: 1,
       captains: captains.map((captain) => ({
         ...captain,
-        penaltyScore: 0,
+        pointsScore: 0,
       })),
       turnOrder: captains.map((captain) => captain.id),
     });

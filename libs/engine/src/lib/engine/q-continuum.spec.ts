@@ -47,7 +47,7 @@ function gameWithQContinuum(seed = 42) {
 
 import { makeRound } from './test-helpers.js';
 
-describe('skip-lowest-penalty', () => {
+describe('skip-lowest-points', () => {
   it('consumes the skip when helm passes over the sidelined captain', () => {
     const round = makeRound(['a', 'b', 'c'], {
       activePlayerId: 'a',
@@ -138,7 +138,7 @@ describe('Q-Continuum', () => {
         seededRandom(1)
       ),
       roundNumber: 1,
-      captains: captains.map((captain) => ({ ...captain, penaltyScore: 0 })),
+      captains: captains.map((captain) => ({ ...captain, pointsScore: 0 })),
       turnOrder: captains.map((captain) => captain.id),
     });
 

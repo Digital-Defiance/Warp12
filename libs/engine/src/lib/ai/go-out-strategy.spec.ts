@@ -52,8 +52,8 @@ describe('go-out trail strategy heuristics', () => {
     objective: 'go-out',
     campaignRounds: 13,
     captains: [
-      { id: 'a', displayName: 'A', penaltyScore: 0 },
-      { id: 'b', displayName: 'B', penaltyScore: 0 },
+      { id: 'a', displayName: 'A', pointsScore: 0 },
+      { id: 'b', displayName: 'B', pointsScore: 0 },
     ],
   };
 

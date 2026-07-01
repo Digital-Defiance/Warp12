@@ -65,9 +65,9 @@ export interface GameState {
   readonly modules: import('./modules.js').GameModules;
   /** Optional house-rule toggles (default standard Mexican Train). */
   readonly houseRules: HouseRules;
-  /** Fleet victory condition — penalty campaign vs first captain out. */
+  /** Fleet victory condition — points campaign vs first captain out. */
   readonly objective: GameObjective;
-  /** Penalty campaigns end after this many rounds (1–13). Ignored for go-out. */
+  /** Points campaigns end after this many rounds (1–13). Ignored for go-out. */
   readonly campaignRounds: number;
 }
 

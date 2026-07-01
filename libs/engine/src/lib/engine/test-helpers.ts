@@ -12,9 +12,9 @@ import { resolveModules } from '../types/modules.js';
 export const T = normalizeCoordinate;
 
 export const DEFAULT_CAPTAINS = [
-  { id: 'a', displayName: 'Alpha', penaltyScore: 0 },
-  { id: 'b', displayName: 'Beta', penaltyScore: 0 },
-  { id: 'c', displayName: 'Charlie', penaltyScore: 0 },
+  { id: 'a', displayName: 'Alpha', pointsScore: 0 },
+  { id: 'b', displayName: 'Beta', pointsScore: 0 },
+  { id: 'c', displayName: 'Charlie', pointsScore: 0 },
 ] as const;
 
 export function placed(
@@ -94,7 +94,7 @@ export function makeGame(
   return {
     id: 'test',
     phase: 'active',
-    objective: 'penalty',
+    objective: 'points',
     campaignRounds: 13,
     completedRounds: 0,
     captains: DEFAULT_CAPTAINS.map((c) => ({ ...c })),

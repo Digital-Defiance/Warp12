@@ -20,7 +20,7 @@ describe('ai captain helpers', () => {
       aiCaptainToConfig({
         id: 'ai:data',
         displayName: 'Data',
-        penaltyScore: 0,
+        pointsScore: 0,
         joinedAt: '2026-01-01T00:00:00.000Z',
         isAi: true,
         skill: 'commander',

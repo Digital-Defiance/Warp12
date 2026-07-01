@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Link, Route, Routes, useLocation } from 'react-router-dom';
 
+import { useOfflineMatchSync } from '../firebase/use-offline-match-sync.js';
+import { useFirebaseAuth } from '../firebase/use-firebase-auth.js';
+
 import { BridgeFocusProvider, useBridgeFocus } from './bridge-focus-context';
 import {
   BridgeHeaderActionsProvider,
@@ -27,6 +30,8 @@ import styles from './app.module.scss';
 import { Warp12Logo } from './Warp12Logo';
 
 function AppShell() {
+  const auth = useFirebaseAuth();
+  useOfflineMatchSync(auth.user?.uid);
   const { focus, tableSessionActive } = useBridgeFocus();
   const layoutFocus = focus && tableSessionActive;
   const { actions: headerActions, invokeAction } = useBridgeHeaderActions();
