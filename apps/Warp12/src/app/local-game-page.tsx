@@ -34,6 +34,7 @@ import {
   clampLocalPlayerCount,
   LOCAL_MAX_PLAYERS,
   LOCAL_MIN_PLAYERS,
+  soloHumanCaptain,
   type AiCaptainConfig,
   type LocalGameConfig,
 } from '../game/local-game-config.js';
@@ -138,9 +139,11 @@ export function LocalGamePage() {
 
   const launch = () => {
     const count = clampLocalPlayerCount(playerCount);
+    const human = soloHumanCaptain(humanName);
     const next: LocalGameConfig = {
-      humanId: 'you',
-      humanName: humanName.trim() || 'You',
+      humanId: human.id,
+      humanName: human.displayName,
+      humanCaptains: [human],
       playerCount: count,
       objective,
       campaignRounds,

@@ -10,6 +10,7 @@ describe('captain-tactical-class', () => {
     const localConfig = {
       humanId: 'you',
       humanName: 'Picard',
+      humanCaptains: [{ id: 'you', displayName: 'Picard' }],
       playerCount: 4,
       objective: 'go-out' as const,
       campaignRounds: 13,
@@ -36,6 +37,7 @@ describe('captain-tactical-class', () => {
     const localConfig = {
       humanId: 'picard',
       humanName: 'Picard',
+      humanCaptains: [{ id: 'picard', displayName: 'Picard' }],
       playerCount: 4,
       objective: 'points' as const,
       campaignRounds: 13,

@@ -214,6 +214,7 @@ describe('isReplayableLocalAiMatch', () => {
     config: {
       humanId: 'you',
       humanName: 'You',
+      humanCaptains: [{ id: 'you', displayName: 'You' }],
       playerCount: 4,
       objective: 'go-out' as const,
       campaignRounds: 13,
@@ -227,6 +228,21 @@ describe('isReplayableLocalAiMatch', () => {
 
   it('accepts replay payloads with human moves', () => {
     expect(isReplayableLocalAiMatch(base)).toBe(true);
+  });
+
+  it('rejects pass-and-play configs', () => {
+    expect(
+      isReplayableLocalAiMatch({
+        ...base,
+        config: {
+          ...base.config,
+          humanCaptains: [
+            { id: 'human:0', displayName: 'Picard' },
+            { id: 'human:1', displayName: 'Riker' },
+          ],
+        },
+      })
+    ).toBe(false);
   });
 
   it('rejects legacy rows missing seed, advisorUsed, or humanActions', () => {

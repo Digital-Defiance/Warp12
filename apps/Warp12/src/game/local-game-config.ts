@@ -8,6 +8,12 @@ import { DEFAULT_CAMPAIGN_ROUNDS, DEFAULT_GAME_OBJECTIVE } from 'warp12-engine';
 
 export const LOCAL_MIN_PLAYERS = 3;
 export const LOCAL_MAX_PLAYERS = 8;
+export const PASS_AND_PLAY_MIN_PLAYERS = 2;
+
+export interface HumanCaptainConfig {
+  readonly id: string;
+  readonly displayName: string;
+}
 
 export interface AiCaptainConfig {
   readonly id: string;
@@ -19,11 +25,25 @@ export interface AiCaptainConfig {
   readonly poolId?: string;
 }
 
+/** Default call signs for human seats (pass-and-play setup). */
+export const DEFAULT_HUMAN_CAPTAIN_NAMES: readonly string[] = [
+  'Picard',
+  'Riker',
+  'Troi',
+  'Worf',
+  'Data',
+  'Crusher',
+  'La Forge',
+  'Uhura',
+];
+
 /** Options chosen at the local bridge before a simulation launches. */
 export interface LocalGameConfig {
   readonly humanId: string;
   readonly humanName: string;
-  /** Total captains at the table (you + AI officers). */
+  /** Human seats at the table — one for solo vs AI, two or more for pass-and-play. */
+  readonly humanCaptains: readonly HumanCaptainConfig[];
+  /** Total captains at the table (humans + AI officers). */
   readonly playerCount: number;
   readonly objective: GameObjective;
   /** Points campaigns only — ignored when objective is go-out. */
@@ -51,6 +71,36 @@ export function clampLocalPlayerCount(count: number): number {
   return Math.min(LOCAL_MAX_PLAYERS, Math.max(LOCAL_MIN_PLAYERS, count));
 }
 
+export function clampPassAndPlayPlayerCount(count: number): number {
+  return Math.min(LOCAL_MAX_PLAYERS, Math.max(PASS_AND_PLAY_MIN_PLAYERS, count));
+}
+
+/** Two or more human seats — shared-device pass-and-play (always unrated). */
+export function isPassAndPlay(config: LocalGameConfig): boolean {
+  return config.humanCaptains.length >= 2;
+}
+
+/** Solo vs-AI local matches may report TEI when signed in and unassisted. */
+export function isRatedLocalGame(config: LocalGameConfig): boolean {
+  return !isPassAndPlay(config);
+}
+
+export function buildHumanCaptains(
+  count: number,
+  names: readonly string[] = DEFAULT_HUMAN_CAPTAIN_NAMES
+): HumanCaptainConfig[] {
+  const capped = clampPassAndPlayPlayerCount(count);
+  return Array.from({ length: capped }, (_, index) => ({
+    id: `human:${index}`,
+    displayName: names[index]?.trim() || `Captain ${index + 1}`,
+  }));
+}
+
+export function soloHumanCaptain(displayName: string): HumanCaptainConfig {
+  const trimmed = displayName.trim() || 'You';
+  return { id: 'you', displayName: trimmed };
+}
+
 /** Build `aiCount` AI captain slots with sensible defaults. */
 export function buildAiCaptains(aiCount: number): AiCaptainConfig[] {
   const capped = Math.min(aiCount, AI_OFFICER_POOL.length);
@@ -65,9 +115,11 @@ export function defaultLocalGameConfig(
   playerCount = 4
 ): LocalGameConfig {
   const count = clampLocalPlayerCount(playerCount);
+  const human = soloHumanCaptain(humanName);
   return {
-    humanId: 'you',
-    humanName: humanName.trim() || 'You',
+    humanId: human.id,
+    humanName: human.displayName,
+    humanCaptains: [human],
     playerCount: count,
     objective: DEFAULT_GAME_OBJECTIVE,
     campaignRounds: DEFAULT_CAMPAIGN_ROUNDS,

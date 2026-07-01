@@ -76,6 +76,7 @@ import {
   type ShareRoundMetadata,
 } from '../game/share-round.js';
 import type { LocalGameConfig } from '../game/local-game-config';
+import { isPassAndPlay } from '../game/local-game-config';
 import type { FirestoreCaptain } from '../firebase/schema.js';
 import { useGameSoundEffects } from '../game/use-game-sounds.js';
 import { useBridgeAmbience } from '../game/use-bridge-ambience.js';
@@ -297,8 +298,16 @@ export function BridgeTable({
   onCoachSignal,
 }: BridgeTableProps) {
   const isOnline = mode === 'online';
-  const isVsAi = mode === 'local' && !!localConfig && !!aiPlayers;
+  const isLocalPassAndPlay =
+    mode === 'local' && !!localConfig && isPassAndPlay(localConfig);
+  const hasLocalAiOfficers =
+    mode === 'local' && !!aiPlayers && aiPlayers.size > 0;
+  const isVsAi = hasLocalAiOfficers && !isLocalPassAndPlay;
   const humanId = localConfig?.humanId ?? 'you';
+  const humanSeatIds = useMemo(
+    () => new Set(localConfig?.humanCaptains.map((human) => human.id) ?? []),
+    [localConfig?.humanCaptains]
+  );
   const auth = useFirebaseAuth();
   const playerStats = usePlayerStats();
   const reportedLocalMatchRef = useRef<string | null>(null);
@@ -357,10 +366,18 @@ export function BridgeTable({
     setMatchReportNotice(null);
     setCampaignRoundCount(0);
     setCampaignCompleteOpen(false);
+    setHandoffPlayerId(null);
+    handoffReadyRef.current = null;
+    prevHandoffActiveRef.current = null;
   }, [game.id]);
 
   useEffect(() => {
     if (!isVsAi || !localConfig || game.phase !== 'complete') {
+      if (isLocalPassAndPlay && game.phase === 'complete') {
+        setMatchReportNotice(
+          'Pass-and-play match complete — local standings only. TEI is not tracked.'
+        );
+      }
       return;
     }
 
@@ -463,6 +480,7 @@ export function BridgeTable({
     auth.ready,
     auth.user,
     game,
+    isLocalPassAndPlay,
     isVsAi,
     localConfig,
     matchSeed,
@@ -513,10 +531,22 @@ export function BridgeTable({
   >({});
   const [roundEndSummaryOpen, setRoundEndSummaryOpen] = useState(true);
   const roundEndReviewKeyRef = useRef<string | null>(null);
+  const [handoffPlayerId, setHandoffPlayerId] = useState<string | null>(null);
+  const handoffReadyRef = useRef<string | null>(null);
+  const prevHandoffActiveRef = useRef<string | null>(null);
 
   const round = game.round;
+  const roundAwaitingScore =
+    game.phase === 'active' &&
+    round?.phase === 'ended' &&
+    Boolean(round.roundWinnerId || round.roundBlocked);
   const activePlayerIsAi =
     isVsAi ||
+    Boolean(
+      isLocalPassAndPlay &&
+        round?.activePlayerId &&
+        aiPlayers?.has(round.activePlayerId)
+    ) ||
     Boolean(
       isOnline &&
         round?.activePlayerId &&
@@ -637,6 +667,14 @@ export function BridgeTable({
   }, [autoFollowAction, centerX, centerY, layoutStyle, round]);
 
   const activePlayerId = round?.activePlayerId ?? '';
+  const activeIsHumanSeat = humanSeatIds.has(activePlayerId);
+  const handoffPending =
+    isLocalPassAndPlay &&
+    !!round &&
+    game.phase === 'active' &&
+    !roundAwaitingScore &&
+    activeIsHumanSeat &&
+    handoffPlayerId === activePlayerId;
   const handOwnerId = isVsAi
     ? humanId
     : isOnline
@@ -644,7 +682,57 @@ export function BridgeTable({
       : activePlayerId;
   const isMyTurn = isVsAi
     ? activePlayerId === humanId
-    : !isOnline || viewerId === activePlayerId;
+    : isOnline
+      ? viewerId === activePlayerId
+      : isLocalPassAndPlay
+        ? activeIsHumanSeat && !handoffPending
+        : true;
+
+  useEffect(() => {
+    if (!isLocalPassAndPlay) {
+      return;
+    }
+    prevHandoffActiveRef.current = null;
+    handoffReadyRef.current = null;
+    setHandoffPlayerId(null);
+  }, [game.id, isLocalPassAndPlay, round?.roundNumber]);
+
+  useEffect(() => {
+    if (!isLocalPassAndPlay || !round || game.phase !== 'active' || roundAwaitingScore) {
+      return;
+    }
+    if (!activeIsHumanSeat) {
+      setHandoffPlayerId(null);
+      return;
+    }
+    if (prevHandoffActiveRef.current === null) {
+      prevHandoffActiveRef.current = activePlayerId;
+      handoffReadyRef.current = activePlayerId;
+      setHandoffPlayerId(null);
+      return;
+    }
+    if (prevHandoffActiveRef.current === activePlayerId) {
+      return;
+    }
+    prevHandoffActiveRef.current = activePlayerId;
+    if (handoffReadyRef.current === activePlayerId) {
+      setHandoffPlayerId(null);
+      return;
+    }
+    setHandoffPlayerId(activePlayerId);
+  }, [
+    activeIsHumanSeat,
+    activePlayerId,
+    game.phase,
+    isLocalPassAndPlay,
+    round,
+    roundAwaitingScore,
+  ]);
+
+  const confirmHandoff = useCallback(() => {
+    handoffReadyRef.current = activePlayerId;
+    setHandoffPlayerId(null);
+  }, [activePlayerId]);
   const dropToImpulsePending =
     !!round &&
     game.houseRules.dropToImpulseCall &&
@@ -870,6 +958,7 @@ export function BridgeTable({
   }, [
     game.objective,
     humanCaptainId,
+    isLocalPassAndPlay,
     isVsAi,
     localConfig,
     playerStats,
@@ -1100,7 +1189,7 @@ export function BridgeTable({
     if (mode === 'local') {
       actions.push({
         id: 'rematch',
-        label: isVsAi ? 'Rematch' : 'New sector',
+        label: isVsAi ? 'Rematch' : isLocalPassAndPlay ? 'Rematch' : 'New sector',
         onClick: handleRematch,
       });
     }
@@ -1120,6 +1209,7 @@ export function BridgeTable({
     registerActions(actions);
   }, [
     mode,
+    isLocalPassAndPlay,
     isVsAi,
     onLeaveSetup,
     handleRematch,
@@ -1186,11 +1276,6 @@ export function BridgeTable({
   ]);
 
   const aiBusy = useRef(false);
-
-  const roundAwaitingScore =
-    game.phase === 'active' &&
-    round?.phase === 'ended' &&
-    Boolean(round.roundWinnerId || round.roundBlocked);
 
   useEffect(() => {
     if (!roundAwaitingScore || !round) {
@@ -1522,12 +1607,13 @@ export function BridgeTable({
     : '';
 
   useEffect(() => {
-    if (!isVsAi || !aiPlayers || !round || game.phase === 'complete') {
+    if (!hasLocalAiOfficers || !aiPlayers || !round || game.phase === 'complete') {
       return;
     }
 
     if (round.phase !== 'playing') return;
-    if (round.activePlayerId === humanId) return;
+    if (isVsAi && round.activePlayerId === humanId) return;
+    if (isLocalPassAndPlay && humanSeatIds.has(round.activePlayerId)) return;
 
     const activePlayerId = round.activePlayerId;
     const ai = aiPlayers.get(activePlayerId);
@@ -1560,7 +1646,10 @@ export function BridgeTable({
     aiTurnKey,
     dispatch,
     game.phase,
+    hasLocalAiOfficers,
     humanId,
+    humanSeatIds,
+    isLocalPassAndPlay,
     isVsAi,
     round,
   ]);
@@ -1568,7 +1657,7 @@ export function BridgeTable({
   const dropToImpulseCatchable = round?.dropToImpulseCatchable ?? null;
   useEffect(() => {
     if (
-      !isVsAi ||
+      !hasLocalAiOfficers ||
       !aiPlayers ||
       !round ||
       game.phase === 'complete' ||
@@ -1608,7 +1697,7 @@ export function BridgeTable({
     dropToImpulseCatchable,
     game.houseRules.dropToImpulseCall,
     game.phase,
-    isVsAi,
+    hasLocalAiOfficers,
     round,
   ]);
 
@@ -2094,6 +2183,35 @@ export function BridgeTable({
           onIncludeAllCaptainsChange={handleAdvisorIncludeAllChange}
           opponentLabel={advisorOpponentLabel}
         />
+
+        {handoffPending && (
+          <div
+            className={styles.roundEndOverlay}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="warp12-handoff-title"
+          >
+            <div className={styles.roundEndCard}>
+              <p className={styles.roundEndEyebrow}>Pass the bridge</p>
+              <h3 id="warp12-handoff-title" className={styles.roundEndTitle}>
+                {names[activePlayerId] ?? 'Captain'} at helm
+              </h3>
+              <p className={styles.roundEndBody}>
+                Hand the device to {names[activePlayerId] ?? 'the active captain'}.
+                Their coordinates stay hidden until they confirm ready.
+              </p>
+              <div className={styles.roundEndActions}>
+                <button
+                  type="button"
+                  className={styles.roundEndBtn}
+                  onClick={confirmHandoff}
+                >
+                  Ready at helm
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <CampaignCompleteOverlay
           open={game.phase === 'complete' && campaignCompleteOpen}

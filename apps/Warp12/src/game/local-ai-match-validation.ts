@@ -1,6 +1,7 @@
 import type { GameAction } from 'warp12-engine';
 
 import type { LocalGameConfig } from './local-game-config.js';
+import { isPassAndPlay } from './local-game-config.js';
 import type { RatedObjective } from '../firebase/stats-schema.js';
 import type { WarpSkillLevel } from 'warp12-engine';
 
@@ -25,6 +26,7 @@ export type LocalAiMatchRejectReason =
   | 'invalid_objective'
   | 'missing_advisor_used'
   | 'class1_star_opponent'
+  | 'pass_and_play'
   | 'missing_seed'
   | 'missing_config'
   | 'missing_human_actions'
@@ -59,6 +61,9 @@ export function getLocalAiMatchRejectReason(
   if (!input.config || typeof input.config !== 'object') {
     return 'missing_config';
   }
+  if (isPassAndPlay(input.config as LocalGameConfig)) {
+    return 'pass_and_play';
+  }
   if (!Array.isArray(input.humanActions)) {
     return 'missing_human_actions';
   }
@@ -80,6 +85,8 @@ export function localAiMatchRejectNotice(
   switch (reason) {
     case 'class1_star_opponent':
       return 'Class I* is experimental — TEI is not tracked for those matches yet.';
+    case 'pass_and_play':
+      return 'Pass-and-play matches are unrated — TEI is not tracked.';
     case 'missing_advisor_used':
     case 'missing_seed':
     case 'missing_config':
