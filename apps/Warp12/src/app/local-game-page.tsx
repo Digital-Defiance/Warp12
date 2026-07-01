@@ -2,16 +2,20 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import {
+  CLASS1_STAR_DISPLAY_NAME,
   DEFAULT_CAMPAIGN_ROUNDS,
+  DEFAULT_GAME_OBJECTIVE,
   DEFAULT_SUBSPACE_FRACTURE_SCOPE,
   aiSkillToTacticalClass,
   formatAiSkillRatedLabel,
   formatAiSkillUnratedLabel,
   formatTacticalClass,
   formatTei,
+  TEI_OBJECTIVE_LABEL,
   type GameObjective,
   type HouseRulesConfig,
   type SubspaceFractureScope,
+  type WarpAiPlayer,
   type WarpSkillLevel,
 } from 'warp12-engine';
 
@@ -33,6 +37,7 @@ import {
   type AiCaptainConfig,
   type LocalGameConfig,
 } from '../game/local-game-config.js';
+import { drawMatchSeed } from '../game/match-seed.js';
 import { classifyLocalAiMatchSkill } from '../game/local-match-stats.js';
 import { opponentTeiForObjective } from '../firebase/stats-elo.js';
 import type { RatedObjective } from '../firebase/stats-schema.js';
@@ -40,18 +45,29 @@ import { usePlayerStats } from '../firebase/use-player-stats.js';
 
 type SetupPhase = 'configure' | 'playing';
 
-function applyAiOverrides(
+export type AiOfficerTier = WarpSkillLevel | 'class1-star';
+
+interface LocalLaunchSession {
+  readonly config: LocalGameConfig;
+  readonly seed: number;
+  readonly roster: ReadonlyMap<string, WarpAiPlayer>;
+}
+
+function applyAiTierOverrides(
   aiCaptains: readonly AiCaptainConfig[],
-  skills: Record<string, WarpSkillLevel>
+  tiers: Record<string, AiOfficerTier>
 ): AiCaptainConfig[] {
-  return aiCaptains.map((ai) => ({
-    ...ai,
-    skill: skills[ai.id] ?? ai.skill,
-  }));
+  return aiCaptains.map((ai) => {
+    const tier = tiers[ai.id] ?? ai.skill;
+    if (tier === 'class1-star') {
+      return { ...ai, skill: 'commander', class1Star: true };
+    }
+    return { ...ai, skill: tier, class1Star: false };
+  });
 }
 
 function ratedObjective(objective: GameObjective): RatedObjective | null {
-  return objective === 'go-out' || objective === 'penalty' ? objective : null;
+  return objective === 'go-out' || objective === 'points' ? objective : null;
 }
 
 function skillOptionLabel(
@@ -68,7 +84,7 @@ export function LocalGamePage() {
   const [phase, setPhase] = useState<SetupPhase>('configure');
   const [humanName, setHumanName] = useState('Picard');
   const [playerCount, setPlayerCount] = useState(4);
-  const [objective, setObjective] = useState<GameObjective>('go-out');
+  const [objective, setObjective] = useState<GameObjective>(DEFAULT_GAME_OBJECTIVE);
   const [campaignRounds, setCampaignRounds] = useState(DEFAULT_CAMPAIGN_ROUNDS);
   const [salamander, setSalamander] = useState(false);
   const [qContinuum, setQContinuum] = useState(false);
@@ -76,13 +92,13 @@ export function LocalGamePage() {
   const [subspaceFractureScope, setSubspaceFractureScope] =
     useState<SubspaceFractureScope>(DEFAULT_SUBSPACE_FRACTURE_SCOPE);
   const [houseRules, setHouseRules] = useState<HouseRulesConfig>({});
-  const [aiSkills, setAiSkills] = useState<Record<string, WarpSkillLevel>>({});
+  const [aiTiers, setAiTiers] = useState<Record<string, AiOfficerTier>>({});
   const [academySaving, setAcademySaving] = useState(false);
+  const [launchError, setLaunchError] = useState<string | null>(null);
 
   const playerStats = usePlayerStats();
 
-  const [launchSeed, setLaunchSeed] = useState(() => Date.now());
-  const [activeConfig, setActiveConfig] = useState<LocalGameConfig | null>(
+  const [launchSession, setLaunchSession] = useState<LocalLaunchSession | null>(
     null
   );
 
@@ -92,8 +108,8 @@ export function LocalGamePage() {
   );
   const aiCount = aiCaptains.length;
   const configuredAiCaptains = useMemo(
-    () => applyAiOverrides(aiCaptains, aiSkills),
-    [aiCaptains, aiSkills]
+    () => applyAiTierOverrides(aiCaptains, aiTiers),
+    [aiCaptains, aiTiers]
   );
   const matchSkill = useMemo(
     () => classifyLocalAiMatchSkill(configuredAiCaptains),
@@ -105,15 +121,20 @@ export function LocalGamePage() {
       ? playerStats.displayTei(matchSkill, rated)
       : null;
 
-  const aiRoster = useMemo(() => {
-    if (!activeConfig) return null;
-    return buildAiRoster(activeConfig, launchSeed);
-  }, [activeConfig, launchSeed]);
-
   const game = useMemo(() => {
-    if (!activeConfig) return null;
-    return createLocalGame(activeConfig, launchSeed);
-  }, [activeConfig, launchSeed]);
+    if (!launchSession) return null;
+    return createLocalGame(launchSession.config, launchSession.seed);
+  }, [launchSession]);
+
+  const startSession = (config: LocalGameConfig, seed: number) => {
+    setLaunchError(null);
+    setLaunchSession({
+      config,
+      seed,
+      roster: buildAiRoster(config, seed),
+    });
+    setPhase('playing');
+  };
 
   const launch = () => {
     const count = clampLocalPlayerCount(playerCount);
@@ -130,29 +151,30 @@ export function LocalGamePage() {
         subspaceFractureScope,
       },
       houseRules,
-      aiCaptains: applyAiOverrides(buildAiCaptains(count - 1), aiSkills),
+      aiCaptains: applyAiTierOverrides(buildAiCaptains(count - 1), aiTiers),
     };
-    const seed = Date.now();
-    setLaunchSeed(seed);
-    setActiveConfig(next);
-    setPhase('playing');
+    void startSession(next, drawMatchSeed());
   };
 
   const rematch = () => {
-    if (!activeConfig) return;
-    setLaunchSeed(Date.now());
+    if (!launchSession) return;
+    startSession(launchSession.config, drawMatchSeed());
   };
 
-  if (phase === 'playing' && game && activeConfig && aiRoster) {
+  if (phase === 'playing' && game && launchSession) {
     return (
       <BridgeTable
         mode="local"
         game={game}
-        key={launchSeed}
-        localConfig={activeConfig}
-        aiPlayers={aiRoster}
+        key={launchSession.seed}
+        matchSeed={launchSession.seed}
+        localConfig={launchSession.config}
+        aiPlayers={launchSession.roster}
         onRematch={rematch}
-        onLeaveSetup={() => setPhase('configure')}
+        onLeaveSetup={() => {
+          setLaunchSession(null);
+          setPhase('configure');
+        }}
       />
     );
   }
@@ -205,7 +227,7 @@ export function LocalGamePage() {
         onChange={setObjective}
       />
 
-      {objective === 'penalty' && (
+      {objective === 'points' && (
         <fieldset className={styles.fieldset}>
           <legend>Campaign length</legend>
           <CampaignRoundsField
@@ -257,10 +279,10 @@ export function LocalGamePage() {
         <AcademyPlacementFieldset
           objective={rated}
           saving={academySaving}
-          onSave={async (skill, tei) => {
+          onSave={async (skill) => {
             setAcademySaving(true);
             try {
-              await playerStats.saveAcademyPlacement(rated, skill, tei);
+              await playerStats.saveAcademyPlacement(rated, skill);
             } finally {
               setAcademySaving(false);
             }
@@ -272,7 +294,7 @@ export function LocalGamePage() {
         playerStats.ready &&
         !playerStats.needsAcademyPlacementForObjective(rated) && (
         <fieldset className={styles.fieldset}>
-          <legend>Solo TEI ({rated === 'go-out' ? 'go-out' : 'penalty'})</legend>
+          <legend>Solo TEI ({TEI_OBJECTIVE_LABEL[rated]})</legend>
           {playerTei !== null ? (
             <p className={styles.hint}>
               Your TEI vs {formatTacticalClass(aiSkillToTacticalClass(matchSkill))}{' '}
@@ -302,11 +324,14 @@ export function LocalGamePage() {
             <span className={styles.aiName}>{ai.displayName}</span>
             <select
               aria-label={`${ai.displayName} tactical class`}
-              value={aiSkills[ai.id] ?? ai.skill}
+              value={
+                aiTiers[ai.id] ??
+                (ai.class1Star ? 'class1-star' : ai.skill)
+              }
               onChange={(e) =>
-                setAiSkills((current) => ({
+                setAiTiers((current) => ({
                   ...current,
-                  [ai.id]: e.target.value as WarpSkillLevel,
+                  [ai.id]: e.target.value as AiOfficerTier,
                 }))
               }
             >
@@ -321,6 +346,9 @@ export function LocalGamePage() {
                   <option value="commander">
                     {skillOptionLabel('commander', rated)}
                   </option>
+                  <option value="class1-star">
+                    {CLASS1_STAR_DISPLAY_NAME} (experimental)
+                  </option>
                 </>
               ) : (
                 <>
@@ -333,6 +361,9 @@ export function LocalGamePage() {
                   <option value="commander">
                     {formatAiSkillUnratedLabel('commander')}
                   </option>
+                  <option value="class1-star">
+                    {CLASS1_STAR_DISPLAY_NAME} (experimental)
+                  </option>
                 </>
               )}
             </select>
@@ -341,6 +372,11 @@ export function LocalGamePage() {
       </fieldset>
 
       <div className={styles.actions}>
+        {launchError ? (
+          <p className={styles.hint} role="alert">
+            {launchError}
+          </p>
+        ) : null}
         <button type="button" className={styles.primary} onClick={launch}>
           Launch simulation
         </button>

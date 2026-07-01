@@ -13,6 +13,33 @@ const STRENGTH_LABEL: Record<AdvisorMoveStrength, string> = {
   blunder: 'Likely blunder',
 };
 
+export interface FormatAdvisorReportOptions {
+  /** Label for AI opponents at the table (e.g. Class I*). */
+  readonly opponentLabel?: string;
+}
+
+function advisorReportHeader(
+  report: AdvisorReport,
+  options?: FormatAdvisorReportOptions
+): string[] {
+  const objectiveLine =
+    report.objective === 'go-out'
+      ? 'Advisor report — go-out race'
+      : 'Advisor report — points scoring';
+
+  const lines = [
+    objectiveLine,
+    'Advisor engine: ISMCTS deep search (explainable heuristics for move reasons).',
+    'Ratings compare each played move to other legal lines at that moment.',
+  ];
+
+  if (options?.opponentLabel) {
+    lines.push(`Table opponents: ${options.opponentLabel}.`);
+  }
+
+  return lines;
+}
+
 export function formatAdvisorMoveReview(
   review: AdvisorMoveReview,
   names: Readonly<Record<string, string>>
@@ -59,20 +86,15 @@ export function formatAdvisorMoveReview(
 
 export function formatAdvisorReport(
   report: AdvisorReport,
-  names: Readonly<Record<string, string>>
+  names: Readonly<Record<string, string>>,
+  options?: FormatAdvisorReportOptions
 ): string[] {
   if (report.reviews.length === 0) {
     return ['No captain moves to review this round.'];
   }
 
-  const header =
-    report.objective === 'go-out'
-      ? 'Advisor report — go-out race (Class II tactical profile)'
-      : 'Advisor report — penalty scoring (Class II tactical profile)';
-
   return [
-    header,
-    'Ratings compare each played move to other legal lines at that moment.',
+    ...advisorReportHeader(report, options),
     '',
     ...report.reviews.flatMap((review) => formatAdvisorMoveReview(review, names)),
   ];
@@ -80,7 +102,8 @@ export function formatAdvisorReport(
 
 export function advisorReportPlainText(
   report: AdvisorReport,
-  names: Readonly<Record<string, string>>
+  names: Readonly<Record<string, string>>,
+  options?: FormatAdvisorReportOptions
 ): string {
-  return formatAdvisorReport(report, names).join('\n');
+  return formatAdvisorReport(report, names, options).join('\n');
 }

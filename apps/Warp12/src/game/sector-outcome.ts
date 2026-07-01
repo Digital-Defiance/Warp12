@@ -1,4 +1,5 @@
 import type { GameState } from 'warp12-engine';
+import { formatCampaignPoints } from 'warp12-engine';
 
 export interface SectorStanding {
   readonly id: string;
@@ -19,7 +20,7 @@ export function sectorWinnerId(game: GameState): string | null {
 
   let winner = game.captains[0];
   for (const captain of game.captains) {
-    if (captain.penaltyScore < winner.penaltyScore) {
+    if (captain.pointsScore < winner.pointsScore) {
       winner = captain;
     }
   }
@@ -58,8 +59,8 @@ export function sectorStandings(
     .map((captain) => ({
       id: captain.id,
       name: names[captain.id] ?? captain.displayName,
-      value: captain.penaltyScore,
-      label: `${captain.penaltyScore} penalty`,
+      value: captain.pointsScore,
+      label: formatCampaignPoints(captain.pointsScore),
     }))
     .sort((left, right) => left.value - right.value);
 }
@@ -74,10 +75,10 @@ export function sectorCompleteHeadline(
     return `${winner} goes out first and wins the sector.`;
   }
   if (humanId && sectorWinnerId(game) === humanId) {
-    return `You win the ${game.campaignRounds}-round campaign with the lowest penalty total.`;
+    return `You win the ${game.campaignRounds}-round campaign with the lowest points total.`;
   }
   if (humanId && sectorWinnerId(game) !== humanId) {
     return `${winner} wins the ${game.campaignRounds}-round campaign.`;
   }
-  return `${winner} wins the campaign — lowest penalty total.`;
+  return `${winner} wins the campaign — lowest points total.`;
 }

@@ -180,7 +180,7 @@ export function SectorStatusHud({
         <div className={styles.row}>
           <dt>Objective</dt>
           <dd>
-            {game.objective === 'penalty'
+            {game.objective === 'points'
               ? `${GAME_OBJECTIVE_LABELS[game.objective]} (${game.campaignRounds} rounds)`
               : GAME_OBJECTIVE_LABELS[game.objective]}
           </dd>
@@ -189,7 +189,7 @@ export function SectorStatusHud({
           <div className={styles.row}>
             <dt>Round</dt>
             <dd>
-              {game.objective === 'penalty'
+              {game.objective === 'points'
                 ? formatCampaignRoundProgress(
                     round.roundNumber,
                     game.campaignRounds

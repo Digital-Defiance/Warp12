@@ -66,7 +66,15 @@ android.keystore
 *.aab
 *.idsig
 
+# ONNX Runtime Web wasm (run yarn sync:ort-wasm after install)
+apps/Warp12/public/ort/
+
+# Class I* trained weights (regenerate via yarn class1-star:pipeline)
+apps/Warp12/public/models/class1-star-v1.json
+apps/Warp12/public/models/class1-star-v1.onnx
+tools/nn/.venv/
+tools/nn/data/*.jsonl
+
 # Tauri mobile (Android signing — local only)
 **/key.properties
-**/keystore.properties
 **/local.properties

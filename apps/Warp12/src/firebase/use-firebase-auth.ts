@@ -1,6 +1,7 @@
 import { onAuthStateChanged, signInAnonymously, type User } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 
+import { signInWithGoogle as googleSignIn } from './auth-actions.js';
 import { getFirebaseAuth, isFirebaseConfigured } from './config.js';
 
 export interface FirebaseAuthState {
@@ -8,10 +9,11 @@ export interface FirebaseAuthState {
   configured: boolean;
   user: User | null;
   error: string | null;
+  signInWithGoogle: () => Promise<User>;
 }
 
 export function useFirebaseAuth(): FirebaseAuthState {
-  const [state, setState] = useState<FirebaseAuthState>({
+  const [state, setState] = useState<Omit<FirebaseAuthState, 'signInWithGoogle'>>({
     ready: !isFirebaseConfigured(),
     configured: isFirebaseConfigured(),
     user: null,
@@ -66,5 +68,15 @@ export function useFirebaseAuth(): FirebaseAuthState {
     return unsub;
   }, []);
 
-  return state;
+  return {
+    ...state,
+    signInWithGoogle: () =>
+      googleSignIn().catch((err) => {
+        setState((current) => ({
+          ...current,
+          error: err instanceof Error ? err.message : 'Sign-in failed',
+        }));
+        throw err;
+      }),
+  };
 }

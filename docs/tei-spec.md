@@ -1,8 +1,8 @@
 # TEI Specification (Tactical Effectiveness Index)
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Status:** Normative — interoperable definition for Warp 12 and third-party Mexican Train platforms  
-**Reference implementation:** `apps/Warp12/src/firebase/stats-elo.ts` (Warp 12 v1)
+**Reference implementation:** `apps/Warp12/src/firebase/stats-elo.ts`, `functions/src/tei/stats-elo.ts` (Warp 12 v1.1)
 
 ---
 
@@ -32,11 +32,25 @@ Third parties MAY implement this spec to:
 | **Match** | One completed **campaign** (sector): agreed round count, one victor by track rules |
 | **Unassisted** | No tactical-advisor / coach assistance during rated play |
 | **Reference profile** | AI tier σ ∈ {`ensign`, `lieutenant`, `commander`} ≡ Class {IV, III, II} |
+| **Reference policy** | The **uniform, unsearched heuristic policy stack** for σ: greedy candidate generation over engine-legal moves, scored by the fixed `SkillProfile` + heuristic weights for that tier — **no determinized lookahead, no MCTS/expectimax, no learned residual** |
 | **Reference TEI** | Fixed constant rating assigned to a reference profile (not updated) |
+| **Search-enabled opponent** | Player-facing bot that adds deep search on top of σ = `commander` heuristics — e.g. **Class I\***, **Fleet Admiral** — still buckets under σ for storage but applies a **search premium** (§7.1.2) in the update loop |
 | **Human TEI** | Dynamic rating for a human captain on a track |
 | **K-factor** | Elo step size; decreases with experience |
+| **Search premium** | Non-negative integer Δ added to `REF_TEI(T, σ)` when the rated opponent used deep search (§7.1.2) |
 
 **Not TEI:** Chain-of-command rank names (Ensign / Lieutenant / Commander) in fiction — those map to AI simulation tiers only. Human **Tactical Class I** is earned by TEI ≥ 1650, not by title.
+
+### 2.1 Frozen reference anchors (normative)
+
+Reference TEI bands (§7.1) are calibrated against **reference policies only**.
+
+1. **Heuristic-only execution.** Each σ MUST be implemented as the baseline greedy loop: `warpCandidateGenerator` (or equivalent) → heuristic scoring → skill-shaped selection. Class IV–II self-play calibration, paper benchmarks, and anchor spacing assume this stack.
+2. **Search is not an anchor.** Expectimax, ISMCTS, Fleet Admiral benches, and Class I\* residual models MAY be stronger than σ = `commander` heuristics; they MUST NOT retroactively change `REF_TEI(T, σ)`.
+3. **Search is a rated modifier.** When a human plays an unassisted rated match against a **search-enabled** local opponent, the opponent rating used in §6.4 is `REF_TEI(T, σ) + Δ_search` — not the raw anchor alone.
+4. **Advisor is never rated.** Tactical advisor / coach suggestions disqualify the match (§4 E3) regardless of opponent policy.
+
+Implementations that ship search-enabled practice opponents without applying Δ_search will **deflate** human TEI (wins count as upsets vs an under-rated opponent). Warp 12 v1.1 normatively requires the premium where search is enabled.
 
 ---
 
@@ -161,7 +175,7 @@ R' = round(R + K(N) · (S − E(R, R_opp)))
 Used when the only rated opponent is reference profile σ on track `T`:
 
 ```
-R_opp = REF_TEI(T, σ)     — constant from §7.1
+R_opp = REF_TEI(T, σ) + Δ_search(T, context)     — §7.1 + §7.1.2
 S     = 1 if human won campaign, else 0
 N     = N_ref(p, T, σ)
 R'    = round(R + K(N) · (S − E(R, R_opp)))
@@ -169,7 +183,11 @@ R'    = round(R + K(N) · (S − E(R, R_opp)))
 
 Then set `N ← N + 1`, update win count if `S = 1`.
 
-**Class I\* note:** Experimental search opponents still bucket under σ = `commander`; store `opponentClass1Star: true` in match metadata for display only — **reference TEI unchanged**.
+**Search context** `context` MUST record at minimum: `{ searchEnabled: boolean, objective: T, playerCount: n, searchEngine?: 'none' | 'expectimax' | 'ismcts' }`.
+
+**Class I\* / Fleet Admiral:** Opponent still buckets under σ = `commander` for storage (`localAi.commander`). Set `opponentClass1Star: true` (or equivalent) in match metadata. When `searchEnabled = true`, apply Δ_search from §7.1.2 — **do not** treat search strength as a new reference profile or move `REF_TEI`.
+
+**Example (normative):** 2-player points campaign vs Class I\* with expectimax → `R_opp = 1400 + 100 = 1500`. A human at `R = 1400` who wins ~50% is correctly rated near Commander anchor strength against a search opponent, not deflated as if they beat a 1400 heuristic bot.
 
 ### 6.5 Multi-opponent pairwise update (human table)
 
@@ -221,19 +239,47 @@ REF_TEI.go-out.lieutenant  = 1250
 REF_TEI.go-out.commander   = 1500
 ```
 
-These values are calibrated so a captain near `R ≈ REF_TEI(T, σ)` wins ~50% vs that AI tier over many matches.
+These values are calibrated so a captain near `R ≈ REF_TEI(T, σ)` wins ~50% vs that AI tier over many matches **under the reference policy (§2.1)**.
 
-### 7.1.1 AI engine strength does not move reference TEI
+### 7.1.1 Reference anchors are heuristic-only (frozen)
 
-Reference TEI constants (§7.1) are **fixed anchors** tied to **heuristic officer profiles** (Class IV–II), not to the strongest available search engine.
+`REF_TEI(T, σ)` is tied to the **heuristic officer profiles** (Class IV–II), not to the strongest deployable search engine.
 
-| Change | Effect on reference TEI | Effect on human ratings |
-|--------|-------------------------|-------------------------|
-| Stronger play AI (expectimax, ISMCTS, Class I\*) | **None** — still bucket under σ = `commander` at 1400/1500 | **None** for existing `R_ref` unless you deliberately recalibrate |
-| Human-pool online match | N/A | Uses live opponent `R_H`, not AI strength |
-| Display metadata | `opponentClass1Star: true` for Class I\* | Separate from rating math |
+| Layer | Rated as | Updates `REF_TEI`? |
+|-------|----------|-------------------|
+| σ = ensign / lieutenant / commander **heuristic** bots | `REF_TEI(T, σ)` | No — anchors are constants |
+| Class I\*, Fleet Admiral, expectimax, ISMCTS | `REF_TEI(T, commander) + Δ_search` | No — premium only affects `R_opp` in §6.4 |
+| Human-pool online match | live `R_H(q)` | No |
+| Tactical advisor | ineligible (§4 E3) | No |
 
-Improving simulation quality makes local practice harder; it does **not** retroactively inflate or deflate TEI unless maintainers publish a new reference profile version and migrate buckets intentionally.
+Improving simulation quality makes local practice harder; it does **not** change anchor constants. Maintainers who recalibrate anchors MUST re-run heuristic-only self-play and publish a new profile version + migration — not fold search wins into σ.
+
+### 7.1.2 Search premium Δ_search (normative)
+
+When `searchEnabled = true` for a rated reference-opponent match, add Δ_search to the opponent rating in §6.4:
+
+| Track | Players | Search engine (interactive / app) | Δ_search |
+|-------|---------|-----------------------------------|----------|
+| `points` | 2 | `expectimax` (Class I\*, Fleet Admiral default) | **+100** |
+| `points` | 3+ | `ismcts` | **+50** (provisional — calibrate in self-play) |
+| `go-out` | 2 | `expectimax` | **+75** (provisional — high race variance) |
+| `go-out` | 3+ | `ismcts` | **+50** (provisional) |
+| any | any | heuristic only (`searchEnabled = false`) | **0** |
+
+```typescript
+function opponentTeiForRatedMatch(
+  objective: RatedObjective,
+  skill: AiSkillLevel,
+  context: SearchContext
+): number {
+  const base = REF_TEI[objective][skill];
+  return base + searchPremium(objective, context);
+}
+```
+
+**Rationale:** A +100 shift on 2p points expectimax approximates one Elo “class” of extra strength (~64% Commander win rate in Fleet Admiral benches) without collapsing distinct σ buckets or inflating anchor constants. Go-out premiums are labeled provisional until percentile-smoothed calibration (§9) confirms spacing.
+
+**Conformance:** Implementations MUST apply Δ_search > 0 whenever rated play uses deep search; storing `opponentClass1Star: true` alone is insufficient for v1.1 conformance.
 
 ### 7.2 Human Tactical Class (display only)
 
@@ -284,6 +330,17 @@ Implementations SHOULD pass these vectors (tolerance ±0 for integers, ±1e-5 fo
 
 (`E(1000,1400) = 1/11`; `1029 = round(1000 + 32 × (1 − 1/11))`)
 
+### 8.2.1 Search premium (2p points vs Class I\*)
+
+Human `R = 1400`, opponent `R_opp = 1400 + 100 = 1500`, win `S = 1`, `K = 32`:
+
+```
+E(1400, 1500) = 1 / (1 + 10^(100/400)) ≈ 0.36
+R' = round(1400 + 32 × (1 − 0.36)) ≈ 1420
+```
+
+Without Δ_search, the same win would use `E(1400, 1400) = 0.5` → `R' = 1416` — understating upside vs search.
+
 ### 8.3 Multiplayer 3-player
 
 Ranks: A=1, B=2, C=3. TEI: A=1200, B=1200, C=1000. All `K=32`, `n=3`.
@@ -298,20 +355,40 @@ Ranks: A=1, B=2, C=3. TEI: A=1200, B=1200, C=1000. All `K=32`, `n=3`.
 
 ## 9. Leaderboard and percentile display
 
-### 9.1 Sorting
+Raw TEI is the authoritative rating state for updates (§6). **Public leaderboards SHOULD NOT expose raw TEI alone** — especially on the go-out track, where race variance compresses skill gaps and identical integers imply different mastery across tracks.
 
-For track `T` and reference profile σ, sort descending by `R_ref(p,T,σ)` among captains with `N_ref > 0`.
+### 9.1 Sorting (ordinal rank)
 
-### 9.2 Percentile label (go-out track recommended)
+For track `T` and reference profile σ, sort descending by `R_ref(p,T,σ)` among captains with `N_ref > 0`. Human-pool boards sort by `R_H(p,T)`.
 
-For rank `r` of `N` rated captains:
+### 9.2 Percentile label (required for go-out, recommended for points)
+
+For rank `r` of `N` rated captains on the same board:
 
 ```
 displayPercentile = max(1, min(100, round(100 · r / N)))
 label = "Top {displayPercentile}%"
 ```
 
-Go-out raw TEI gaps compress; percentile preserves ordinal meaning.
+Go-out **MUST** show a percentile (or equivalent ordinal band) alongside or instead of raw TEI in primary UI. Points **SHOULD** do the same when `N` is large enough for stable ordinals.
+
+**Cross-track rule:** A displayed value of 1500 on `points` and 1500 on `go-out` are **not** comparable mastery levels. UI copy MUST distinguish tracks (e.g. “Points TEI” vs “Go-out TEI”) and MUST NOT merge into one global ladder without explicit dual-track labeling.
+
+### 9.3 Smoothed display TEI (percentile-augmented thesis)
+
+To reduce single-match whiplash while preserving §6 update math, implementations MAY publish a **display-only** smoothed value `R̂` derived from stored `R` and recent history:
+
+```
+R̂(p, T) = round( α · R(p,T) + (1 − α) · mean(R_history(p,T, last m matches)) )
+```
+
+Recommended defaults: `α = 0.7`, `m = 10`. Smoothed values MUST NOT feed back into §6 updates.
+
+Alternatively, show **leaderboard percentile as the primary badge** and raw TEI only on profile drill-down — the paper’s recommended presentation for go-out and acceptable for points at scale.
+
+### 9.4 Provisional and low-sample captains
+
+When `N < 10` in a bucket, label TEI **Provisional** and prefer percentile within the local cohort over absolute integers. Academy seed (§7.3) is not a rated result until `N > 0`.
 
 ---
 
@@ -356,11 +433,14 @@ After update, publish new `R_H(p, points)` on leaderboard.
 | Spec section | Warp 12 module |
 |--------------|----------------|
 | §6.1–6.3 | `stats-elo.ts`: `expectedEloScore`, `updateTeiScore`, `kFactor` |
-| §6.4 | `stats-service.ts`: `incrementLocalAiSkillStats` |
+| §6.4, §7.1.2 | `stats-elo.ts`: `opponentTeiForObjective` + `searchPremium` (v1.1); `report-practice-ai.ts` |
 | §6.5 | `stats-elo.ts`: `updateTeiMultiplayerPairwise`, `rankCompetition` |
 | §7.1 | `stats-elo.ts`: `AI_OPPONENT_TEI_*`, `opponentTeiForObjective` |
 | §7.2 | `tactical-class.ts`: `teiToPlayerTacticalClass` |
 | §7.3 | `tactical-class.ts`: `ACADEMY_TEI_BANDS`, `clampAcademyTei` |
+| §9.2–9.3 | Leaderboard UI: percentile badge + track-specific labels (`profile-page.tsx`, rated match history) |
+
+**Implementation note (Warp 12 v1.1):** `reportPracticeAiMatch` applies heuristic-only `opponentTeiForObjective` today; search premium (§7.1.2) is normative in this spec and SHOULD be wired when `opponentClass1Star` / search context is reported.
 
 ---
 
@@ -368,6 +448,7 @@ After update, publish new `R_H(p, points)` on leaderboard.
 
 | Version | Changes |
 |---------|---------|
+| **1.1** | Frozen heuristic reference policies (§2.1); search premium Δ_search for Class I\* / Fleet Admiral (§6.4, §7.1.2); percentile-augmented leaderboard requirements (§9) |
 | **1.0** | Initial normative spec: dual tracks, reference AI buckets, human pairwise multiplayer, K-schedule, academy bands |
 
 Future versions MAY add: TrueSkill-style multi-player, draw handling for identical points campaigns, online human-pool Firestore schema.

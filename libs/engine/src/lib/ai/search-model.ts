@@ -6,7 +6,6 @@ import {
 } from '../types/coordinate.js';
 import {
   generateCoordinateSet,
-  shuffleCoordinates,
 } from '../domino/coordinates.js';
 import { applyAction } from '../engine/apply-action.js';
 import type { GameState } from '../types/game-state.js';
@@ -17,10 +16,11 @@ import type { GameObjective } from '../types/objective.js';
 import type { PlayerId } from '../types/player.js';
 import { toGameAction, type WarpAiAction } from './actions.js';
 import { warpCandidateGenerator } from './candidate-generator.js';
+import { assignHiddenHands } from './belief-constraints.js';
 import { collectPlacedCoordinates } from './context.js';
 import type { WarpAiObservation } from './observation.js';
 
-/** Penalty weight of a hand, honoring the Salamander module's 24-point 12-12. */
+/** Points weight of a hand, honoring the Salamander module's 24-point 12-12. */
 export function handPips(
   hand: readonly Coordinate[],
   modules: GameModules,
@@ -131,7 +131,7 @@ export function observationToState(obs: WarpAiObservation): GameState {
       : obs.round.turnOrder.map((id) => ({
           id,
           displayName: id,
-          penaltyScore: 0,
+          pointsScore: 0,
         })),
     round: obs.round,
     completedRounds: 0,
@@ -171,6 +171,11 @@ function rankAction(
   }
 }
 
+export interface WarpSearchModelOptions {
+  /** Rejection-sample opponent hands for observable consistency. */
+  useBeliefConstraints?: boolean;
+}
+
 /**
  * A {@link SearchModel} over Warp12's own engine, in {@link WarpAiAction} space.
  * Hidden information (opponent hands + the draw order) is resampled by
@@ -178,8 +183,10 @@ function rankAction(
  * authoritative round state.
  */
 export function createWarpSearchModel(
-  objective: GameObjective = 'penalty'
+  objective: GameObjective = 'points',
+  modelOptions: WarpSearchModelOptions = {}
 ): SearchModel<GameState, WarpAiAction> {
+  const useBeliefConstraints = modelOptions.useBeliefConstraints ?? false;
   const evaluate =
     objective === 'go-out' ? warpLeafEvalGoOut : warpLeafEvalPenalty;
 
@@ -244,31 +251,38 @@ export function createWarpSearchModel(
         seen.add(coordinateKey(coordinate));
       }
 
-      const pool = shuffleCoordinates(
-        generateCoordinateSet(12).filter(
-          (coordinate) => !seen.has(coordinateKey(coordinate))
-        ),
-        rng
+      const pool = generateCoordinateSet(12).filter(
+        (coordinate) => !seen.has(coordinateKey(coordinate))
       );
 
-      const hands: Record<PlayerId, Coordinate[]> = {};
-      let cursor = 0;
-      for (const id of round.turnOrder) {
-        if (id === perspective) {
-          hands[id] = [...myHand];
-          continue;
-        }
-        const count = (round.hands[id] ?? []).length;
-        hands[id] = pool.slice(cursor, cursor + count);
-        cursor += count;
+      const assigned = assignHiddenHands(
+        state,
+        perspective as PlayerId,
+        pool,
+        rng,
+        useBeliefConstraints
+      );
+
+      if (!assigned) {
+        return state;
       }
+
+      const assignedKeys = new Set<string>();
+      for (const id of round.turnOrder) {
+        for (const coordinate of assigned[id] ?? []) {
+          assignedKeys.add(coordinateKey(coordinate));
+        }
+      }
+      const remainder = pool.filter(
+        (coordinate) => !assignedKeys.has(coordinateKey(coordinate))
+      );
 
       return {
         ...state,
         round: {
           ...round,
-          hands,
-          unchartedSectors: pool.slice(cursor),
+          hands: assigned,
+          unchartedSectors: remainder,
         },
       };
     },

@@ -31,12 +31,12 @@ export interface PlaySelfPlayGameOptions {
 }
 
 export interface SelfPlayGameResult {
-  /** Lowest cumulative penalty at completion; null if the game didn't finish. */
+  /** Lowest cumulative points at completion; null if the game didn't finish. */
   winnerId: PlayerId | null;
   completed: boolean;
   completedRounds: number;
   steps: number;
-  penalties: Record<PlayerId, number>;
+  points: Record<PlayerId, number>;
   finalState: GameState;
 }
 
@@ -192,9 +192,9 @@ export function playSelfPlayGame(
     state = result.state;
   }
 
-  const penalties: Record<PlayerId, number> = {};
+  const points: Record<PlayerId, number> = {};
   for (const captain of state.captains) {
-    penalties[captain.id] = captain.penaltyScore;
+    points[captain.id] = captain.pointsScore;
   }
 
   let winnerId: PlayerId | null = null;
@@ -205,10 +205,10 @@ export function playSelfPlayGame(
         round?.roundWinnerId ??
         (round ? blockedRoundWinner(round, state) : null);
     } else {
-      let bestPenalty = Number.POSITIVE_INFINITY;
+      let bestPoints = Number.POSITIVE_INFINITY;
       for (const captain of state.captains) {
-        if (captain.penaltyScore < bestPenalty) {
-          bestPenalty = captain.penaltyScore;
+        if (captain.pointsScore < bestPoints) {
+          bestPoints = captain.pointsScore;
           winnerId = captain.id;
         }
       }
@@ -220,7 +220,7 @@ export function playSelfPlayGame(
     completed: state.phase === 'complete',
     completedRounds: state.completedRounds,
     steps,
-    penalties,
+    points: points,
     finalState: state,
   };
 }
@@ -230,12 +230,12 @@ export interface SelfPlayMatchResult {
   completed: number;
   /** Games each seat id won (completed games only). */
   wins: Record<PlayerId, number>;
-  /** Cumulative penalty each seat id accrued across all games (lower = better). */
-  penalties: Record<PlayerId, number>;
+  /** Cumulative points each seat id accrued across all games (lower = better). */
+  points: Record<PlayerId, number>;
 }
 
 /**
- * Runs a series of games and aggregates wins and accrued penalties per seat id.
+ * Runs a series of games and aggregates wins and accrued points per seat id.
  * `makeSeats(gameIndex)` is called per game so callers can rebuild freshly
  * seeded players and/or rotate seating to cancel first-mover advantage.
  */
@@ -250,7 +250,7 @@ export function runSelfPlayMatch(
   }
 ): SelfPlayMatchResult {
   const wins: Record<PlayerId, number> = {};
-  const penalties: Record<PlayerId, number> = {};
+  const playerPoints: Record<PlayerId, number> = {};
   let completed = 0;
   const baseSeed = options.seed ?? 1000;
 
@@ -270,10 +270,10 @@ export function runSelfPlayMatch(
         wins[result.winnerId] = (wins[result.winnerId] ?? 0) + 1;
       }
     }
-    for (const [id, penalty] of Object.entries(result.penalties)) {
-      penalties[id] = (penalties[id] ?? 0) + penalty;
+    for (const [id, points] of Object.entries(result.points)) {
+      playerPoints[id] = (playerPoints[id] ?? 0) + points;
     }
   }
 
-  return { games: options.games, completed, wins, penalties };
+  return { games: options.games, completed, wins, points: playerPoints };
 }

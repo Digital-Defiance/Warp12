@@ -15,6 +15,9 @@ export interface ObjectivePickerProps {
   disabled?: boolean;
 }
 
+/** Points first — penalty is the default victory objective. */
+const OBJECTIVE_OPTIONS = ['points', 'go-out'] as const satisfies readonly GameObjective[];
+
 /** Go out vs points — shared by local setup and online sector host settings. */
 export function ObjectivePicker({
   name,
@@ -27,7 +30,7 @@ export function ObjectivePicker({
   return (
     <fieldset className={styles.fieldset}>
       <legend>Victory objective</legend>
-      {(['go-out', 'penalty'] as const).map((objective) => (
+      {OBJECTIVE_OPTIONS.map((objective) => (
         <label key={objective} className={styles.radioRow}>
           <input
             type="radio"
@@ -92,7 +95,7 @@ export function ObjectiveSummary({ objective, campaignRounds }: ObjectiveSummary
     <>
       <fieldset className={`${styles.fieldset} ${styles.readOnlyFieldset}`}>
         <legend>Victory objective</legend>
-        {(['go-out', 'penalty'] as const).map((value) => (
+        {OBJECTIVE_OPTIONS.map((value) => (
           <label
             key={value}
             className={`${styles.radioRow} ${
@@ -110,7 +113,7 @@ export function ObjectiveSummary({ objective, campaignRounds }: ObjectiveSummary
           </label>
         ))}
       </fieldset>
-      {objective === 'penalty' && campaignRounds != null && (
+      {objective === 'points' && campaignRounds != null && (
         <fieldset className={`${styles.fieldset} ${styles.readOnlyFieldset}`}>
           <legend>Campaign length</legend>
           <p className={styles.subtitle}>

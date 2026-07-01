@@ -9,7 +9,7 @@ describe('sector-status-hud', () => {
   it('describes your turn in the footer', () => {
     expect(
       formatSectorTurnFooter({
-        game: { phase: 'active', objective: 'penalty', campaignRounds: 5 } as never,
+        game: { phase: 'active', objective: 'points', campaignRounds: 5 } as never,
         round: { roundNumber: 2 } as never,
         names: { you: 'Picard' },
         activePlayerId: 'you',
@@ -47,7 +47,7 @@ describe('sector-status-hud', () => {
 
     expect(
       formatSectorTurnFooter({
-        game: { phase: 'active', objective: 'penalty', campaignRounds: 3 } as never,
+        game: { phase: 'active', objective: 'points', campaignRounds: 3 } as never,
         round: { roundNumber: 2 } as never,
         names: { 'ai:riker': 'Riker' },
         activePlayerId: 'ai:riker',
@@ -75,7 +75,7 @@ describe('sector-status-hud', () => {
 
     expect(
       formatSectorTurnFooter({
-        game: { phase: 'active', objective: 'penalty', campaignRounds: 3 } as never,
+        game: { phase: 'active', objective: 'points', campaignRounds: 3 } as never,
         round: { roundNumber: 2 } as never,
         names: { 'ai:riker': 'Riker' },
         activePlayerId: 'ai:riker',

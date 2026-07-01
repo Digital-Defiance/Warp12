@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import {
   DEFAULT_CAMPAIGN_ROUNDS,
+  DEFAULT_GAME_OBJECTIVE,
   GAME_OBJECTIVE_LABELS,
   type GameObjective,
 } from 'warp12-engine';
@@ -37,7 +38,7 @@ import { isAiCaptain } from '../game/ai-captain.js';
 import styles from './lobby.module.scss';
 
 const DEFAULT_CREATE_OPTIONS: CreateLobbyOptions = {
-  objective: 'go-out',
+  objective: DEFAULT_GAME_OBJECTIVE,
   maxPlayers: 4,
   campaignRounds: DEFAULT_CAMPAIGN_ROUNDS,
   modules: {
@@ -292,7 +293,7 @@ export function OnlineLobbyPage() {
   if (inWaitingRoom && lobby) {
     const isHost = lobby.hostId === uid;
     const maxPlayers = lobby.maxPlayers ?? ONLINE_MAX_PLAYERS;
-    const objective = lobby.objective ?? 'go-out';
+    const objective = lobby.objective ?? DEFAULT_GAME_OBJECTIVE;
     const campaignRounds = lobby.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS;
 
     return (
@@ -354,7 +355,7 @@ export function OnlineLobbyPage() {
           />
         )}
 
-        {isHost && objective === 'penalty' && (
+        {isHost && objective === 'points' && (
           <fieldset className={styles.fieldset}>
             <legend>Campaign length</legend>
             <CampaignRoundsField

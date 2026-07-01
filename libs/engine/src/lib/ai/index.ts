@@ -24,6 +24,7 @@ export {
   CLASS_I_TAGLINE,
   ACADEMY_TEI_BANDS,
   aiSkillToTacticalClass,
+  formatAiOfficerTacticalClass,
   formatTacticalClass,
   formatTei,
   formatAiSkillUnratedLabel,
@@ -61,6 +62,107 @@ export type {
 } from './create-warp-ai.js';
 export type { LookaheadOptions } from './lookahead-options.js';
 export { createWarpAiPlayer } from './create-warp-ai.js';
+
+export {
+  CLASS1_STAR_ACTION_KIND_DIM,
+  CLASS1_STAR_CONTEXT_DIM,
+  CLASS1_STAR_DISPLAY_NAME,
+  CLASS1_STAR_FEATURE_DIM,
+  CLASS1_STAR_MODEL_VERSION,
+  CLASS1_STAR_ROUTE_KIND_DIM,
+  CLASS1_STAR_TILE_COUNT,
+} from './class1-star-constants.js';
+export {
+  encodeClass1StarFeatureBatch,
+  encodeClass1StarFeatures,
+} from './feature-encoder.js';
+export type {
+  Class1StarDenseLayer,
+  Class1StarModelWeights,
+  Class1StarResidualScorer,
+  Class1StarScore,
+  Class1StarScoreBatch,
+} from './residual-scorer.js';
+export {
+  createTsResidualScorer,
+  createZeroClass1StarModelWeights,
+  forwardClass1StarBatch,
+  forwardClass1StarModel,
+  isClass1StarScoreAsync,
+  resolveClass1StarScores,
+} from './residual-scorer.js';
+export {
+  augmentSearchValuesWithResidual,
+  augmentSearchValuesWithResidualAsync,
+  pickWarpActionWithResidual,
+  pickWarpActionWithResidualAsync,
+  scoreWarpCandidateHeuristic,
+  scoreWarpCandidatesWithResidual,
+  scoreWarpCandidatesWithResidualAsync,
+} from './class1-star-policy.js';
+export type { CreateClass1StarPlayerOptions } from './class1-star.js';
+export {
+  createClass1StarPlayer,
+  getClass1StarSkillProfile,
+} from './class1-star.js';
+
+export type {
+  Class1StarTrajectoryRow,
+  Class1StarTrajectorySink,
+  Class1StarCollectMode,
+  CollectClass1StarTrajectoriesOptions,
+  CollectClass1StarTrajectoriesResult,
+} from './collect-class1-star-trajectories.js';
+export {
+  collectClass1StarTrajectories,
+  collectClass1StarTrajectoriesToSink,
+  formatClass1StarTrajectoryJsonl,
+  serializeClass1StarTrajectoryRow,
+} from './collect-class1-star-trajectories.js';
+
+export type {
+  BenchClass1StarOptions,
+  BenchClass1StarResult,
+  Class1StarAgreementResult,
+} from './bench-class1-star.js';
+export {
+  benchClass1StarVsCommander,
+  measureClass1StarCommanderAgreement,
+} from './bench-class1-star.js';
+
+export type {
+  BenchFleetAdmiralOptions,
+  BenchFleetAdmiralResult,
+  BenchFleetAdmiralSliceOptions,
+  BenchGameSlice,
+} from './bench-fleet-admiral.js';
+export {
+  benchFleetAdmiralSlice,
+  benchFleetAdmiralVsCommander,
+  resolveFleetBenchOptions,
+} from './bench-fleet-admiral.js';
+
+export type { FleetAdmiralSearchProfile } from './fleet-admiral.js';
+export {
+  fleetAdmiralProfile,
+  resolveClass1StarPlayLookahead,
+  resolveDeepThinkAdvisorLookahead,
+  resolveFleetAdmiralExpectimaxLookahead,
+  resolveFleetAdmiralIsmctsLookahead,
+  resolveFleetAdmiralLookahead,
+  resolveFleetAdmiralPlayLookahead,
+  type FleetAdmiralPlayMode,
+} from './fleet-admiral.js';
+
+export { ismctsSearchActionValues } from './ismcts.js';
+export type { IsmctsOptions, ScoredIsmctsAction } from './ismcts.js';
+
+export { searchActionValuesWithBudget } from './time-budget-search.js';
+export {
+  assignHiddenHands,
+  passesBeliefConstraints,
+} from './belief-constraints.js';
+export type { WarpSearchModelOptions } from './search-model.js';
 
 export { explainWarpAiAction } from './explain-action.js';
 export { explainTurnResolution } from './explain-turn-resolution.js';

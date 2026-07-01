@@ -1,6 +1,7 @@
 import {
   applyAction,
   DEFAULT_CAMPAIGN_ROUNDS,
+  DEFAULT_GAME_OBJECTIVE,
   generateCoordinateSet,
   resolveHouseRules,
   shuffleCoordinates,
@@ -88,7 +89,7 @@ function mergeCaptainMetadata(
     const merged: FirestoreCaptain = {
       id: captain.id,
       displayName: captain.displayName,
-      penaltyScore: captain.penaltyScore,
+      pointsScore: captain.pointsScore,
       joinedAt: prior?.joinedAt ?? now,
     };
     if (prior && isAiCaptain(prior)) {
@@ -151,7 +152,7 @@ export async function createLobby(
     {
       id: hostId,
       displayName,
-      penaltyScore: 0,
+      pointsScore: 0,
       joinedAt: now,
     },
   ];
@@ -161,7 +162,7 @@ export async function createLobby(
     hostId,
     createdAt: now,
     updatedAt: now,
-    objective: options.objective ?? 'go-out',
+    objective: options.objective ?? DEFAULT_GAME_OBJECTIVE,
     campaignRounds: options.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS,
     maxPlayers: clampOnlineMaxPlayers(options.maxPlayers ?? ONLINE_MAX_PLAYERS),
     modules: {
@@ -211,7 +212,7 @@ export async function joinLobby(
     const now = new Date().toISOString();
     const captains = [
       ...data.captains,
-      { id: playerId, displayName: assignedName, penaltyScore: 0, joinedAt: now },
+      { id: playerId, displayName: assignedName, pointsScore: 0, joinedAt: now },
     ];
     tx.update(gameRef(gameId), {
       captains,
@@ -296,7 +297,7 @@ export async function addAiCaptain(
     created = {
       id: toAiCaptainId(officer.id),
       displayName,
-      penaltyScore: 0,
+      pointsScore: 0,
       joinedAt: now,
       isAi: true,
       skill: options.skill ?? 'lieutenant',
@@ -484,7 +485,7 @@ export async function launchOnlineGame(
           subspaceFractureScope: lobby.modules.subspaceFractureScope,
         },
         houseRules: lobby.houseRules,
-        objective: lobby.objective ?? 'penalty',
+        objective: lobby.objective ?? 'points',
         campaignRounds: lobby.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS,
       },
       { shuffledCoordinates: shuffled, roundStarterId: hostId }
@@ -529,7 +530,7 @@ export async function resetSectorToLobby(
 
     const resetCaptains =
       data.objective === 'go-out'
-        ? data.captains.map((c) => ({ ...c, penaltyScore: 0 }))
+        ? data.captains.map((c) => ({ ...c, pointsScore: 0 }))
         : data.captains;
 
     const now = new Date().toISOString();

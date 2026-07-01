@@ -67,7 +67,7 @@ describe('self-play harness', () => {
       playSelfPlayGame({ seats: seatsAdvVsBeginner(0), seed: 42 });
     const first = run();
     const second = run();
-    expect(second.penalties).toEqual(first.penalties);
+    expect(second.points).toEqual(first.points);
     expect(second.winnerId).toBe(first.winnerId);
     expect(second.completedRounds).toBe(first.completedRounds);
   });
@@ -82,7 +82,7 @@ describe('self-play harness', () => {
 
     expect(match.completed).toBe(10);
     expect(match.wins['adv'] ?? 0).toBeGreaterThan(match.wins['beg'] ?? 0);
-    expect(match.penalties['adv'] ?? 0).toBeLessThan(match.penalties['beg'] ?? 0);
+    expect(match.points['adv'] ?? 0).toBeLessThan(match.points['beg'] ?? 0);
   });
 
   it('lookahead captains play full, legal games to a tally', () => {

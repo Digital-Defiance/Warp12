@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   hasStartingTeiPlacedForObjective,
   incrementLocalAiSkillStats,
+  isReplayableLocalAiMatch,
   needsAcademyPlacement,
   needsAcademyPlacementForObjective,
   previewLocalAiMatchReport,
@@ -14,7 +15,7 @@ import { resolveEffectivePlayerTei } from './stats-elo.js';
 describe('needsAcademyPlacementForObjective', () => {
   it('is true per track until placement is saved or a rated match is played', () => {
     expect(needsAcademyPlacementForObjective(null, 'go-out')).toBe(true);
-    expect(needsAcademyPlacementForObjective(null, 'penalty')).toBe(true);
+    expect(needsAcademyPlacementForObjective(null, 'points')).toBe(true);
 
     const partial = {
       uid: 'u',
@@ -23,12 +24,12 @@ describe('needsAcademyPlacementForObjective', () => {
       matchesWon: 0,
       roundsPlayed: 0,
       roundsWon: 0,
-      totalPenaltyPoints: 0,
+      totalPoints: 0,
       startingTei: { goOut: 1250 },
       updatedAt: '2026-01-01T00:00:00.000Z',
     };
     expect(needsAcademyPlacementForObjective(partial, 'go-out')).toBe(false);
-    expect(needsAcademyPlacementForObjective(partial, 'penalty')).toBe(true);
+    expect(needsAcademyPlacementForObjective(partial, 'points')).toBe(true);
     expect(needsAcademyPlacement(partial)).toBe(true);
   });
 
@@ -46,7 +47,7 @@ describe('needsAcademyPlacementForObjective', () => {
       matchesWon: 1,
       roundsPlayed: 0,
       roundsWon: 0,
-      totalPenaltyPoints: 0,
+      totalPoints: 0,
       localAi: {
         ensign: stats,
         lieutenant: emptyLocalAiSkillStats(),
@@ -55,7 +56,7 @@ describe('needsAcademyPlacementForObjective', () => {
       updatedAt: '2026-01-01T00:00:00.000Z',
     };
     expect(needsAcademyPlacementForObjective(doc, 'go-out')).toBe(false);
-    expect(needsAcademyPlacementForObjective(doc, 'penalty')).toBe(true);
+    expect(needsAcademyPlacementForObjective(doc, 'points')).toBe(true);
   });
 });
 
@@ -63,13 +64,13 @@ describe('hasStartingTeiPlacedForObjective', () => {
   it('detects per-track seeds', () => {
     expect(
       hasStartingTeiPlacedForObjective(
-        { startingTei: { penalty: 1200 } } as never,
-        'penalty'
+        { startingTei: { points: 1200 } } as never,
+        'points'
       )
     ).toBe(true);
     expect(
       hasStartingTeiPlacedForObjective(
-        { startingTei: { penalty: 1200 } } as never,
+        { startingTei: { points: 1200 } } as never,
         'go-out'
       )
     ).toBe(false);
@@ -87,8 +88,8 @@ describe('needsAcademyPlacement', () => {
         matchesWon: 0,
         roundsPlayed: 0,
         roundsWon: 0,
-        totalPenaltyPoints: 0,
-        startingTei: { goOut: 1100, penalty: 1100 },
+        totalPoints: 0,
+        startingTei: { goOut: 1100, points: 1100 },
         updatedAt: '2026-01-01T00:00:00.000Z',
       })
     ).toBe(false);
@@ -96,7 +97,7 @@ describe('needsAcademyPlacement', () => {
 });
 
 describe('incrementLocalAiSkillStats', () => {
-  it('tracks go-out and penalty TEI separately', () => {
+  it('tracks go-out and points TEI separately', () => {
     let stats = incrementLocalAiSkillStats(emptyLocalAiSkillStats(), {
       skill: 'ensign',
       objective: 'go-out',
@@ -105,15 +106,15 @@ describe('incrementLocalAiSkillStats', () => {
     });
     stats = incrementLocalAiSkillStats(stats, {
       skill: 'ensign',
-      objective: 'penalty',
+      objective: 'points',
       won: false,
       advisorUsed: false,
     });
 
     expect(objectiveTeiStats(stats, 'go-out').unassistedTei).toBeGreaterThan(1000);
-    expect(objectiveTeiStats(stats, 'penalty').unassistedTei).toBeLessThan(1000);
+    expect(objectiveTeiStats(stats, 'points').unassistedTei).toBeLessThan(1000);
     expect(objectiveTeiStats(stats, 'go-out').unassistedMatches).toBe(1);
-    expect(objectiveTeiStats(stats, 'penalty').unassistedMatches).toBe(1);
+    expect(objectiveTeiStats(stats, 'points').unassistedMatches).toBe(1);
     expect(stats).not.toHaveProperty('unassistedTei');
   });
 
@@ -146,10 +147,13 @@ describe('incrementLocalAiSkillStats', () => {
         uid: 'u',
         displayName: 'You',
         skill: 'commander',
-        objective: 'penalty',
-        won: true,
+        objective: 'points',
         advisorUsed: false,
+        seed: 1,
+        config: {} as never,
+        humanActions: [],
       },
+      true,
       1100
     );
     expect(report.rated).toBe(true);
@@ -174,7 +178,7 @@ describe('Firestore player stats payload', () => {
       matchesWon: 1,
       roundsPlayed: 0,
       roundsWon: 0,
-      totalPenaltyPoints: 0,
+      totalPoints: 0,
       startingTei: undefined,
       bestRoundTimeMs: undefined,
       localAi: {},
@@ -183,7 +187,7 @@ describe('Firestore player stats payload', () => {
       matchHistory: [
         {
           playedAt: '2026-01-01T00:00:00.000Z',
-          objective: 'penalty',
+          objective: 'points',
           opponentSkill: 'ensign',
           won: true,
           advisorUsed: false,
@@ -197,5 +201,70 @@ describe('Firestore player stats payload', () => {
     expect(sanitized).not.toHaveProperty('bestRoundTimeMs');
     expect(sanitized.matchHistory?.[0]).not.toHaveProperty('teiBefore');
     expect(sanitized.matchHistory?.[0]?.teiAfter).toBe(1012);
+  });
+});
+
+describe('isReplayableLocalAiMatch', () => {
+  const base = {
+    skill: 'lieutenant' as const,
+    objective: 'go-out' as const,
+    advisorUsed: false,
+    opponentClass1Star: false,
+    seed: 42,
+    config: {
+      humanId: 'you',
+      humanName: 'You',
+      playerCount: 4,
+      objective: 'go-out' as const,
+      campaignRounds: 13,
+      modules: { salamanderPenalty: false, qContinuum: false, subspaceFracture: false },
+      aiCaptains: [{ id: 'riker', displayName: 'Riker', skill: 'lieutenant' as const }],
+    },
+    humanActions: [
+      { type: 'PASS_TURN' as const, playerId: 'you' },
+    ],
+  };
+
+  it('accepts replay payloads with human moves', () => {
+    expect(isReplayableLocalAiMatch(base)).toBe(true);
+  });
+
+  it('rejects legacy rows missing seed, advisorUsed, or humanActions', () => {
+    expect(isReplayableLocalAiMatch({ ...base, seed: NaN })).toBe(false);
+    expect(isReplayableLocalAiMatch({ ...base, advisorUsed: undefined })).toBe(false);
+    expect(
+      isReplayableLocalAiMatch({
+        ...base,
+        humanActions: [{ type: 'END_ROUND', winnerId: 'you' }],
+      })
+    ).toBe(false);
+    expect(
+      isReplayableLocalAiMatch({ ...base, humanActions: undefined as never })
+    ).toBe(false);
+  });
+
+  it('rejects Class I* opponents before hitting the server', () => {
+    expect(
+      isReplayableLocalAiMatch({
+        ...base,
+        opponentClass1Star: true,
+      })
+    ).toBe(false);
+    expect(
+      isReplayableLocalAiMatch({
+        ...base,
+        config: {
+          ...base.config,
+          aiCaptains: [
+            {
+              id: 'riker',
+              displayName: 'Riker',
+              skill: 'commander',
+              class1Star: true,
+            },
+          ],
+        },
+      })
+    ).toBe(false);
   });
 });

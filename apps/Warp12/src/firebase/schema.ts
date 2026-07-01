@@ -38,7 +38,7 @@ export interface FirestoreGameDocument {
 export interface FirestoreCaptain {
   id: string;
   displayName: string;
-  penaltyScore: number;
+  pointsScore: number;
   joinedAt: string;
   isAi?: boolean;
   skill?: WarpSkillLevel;

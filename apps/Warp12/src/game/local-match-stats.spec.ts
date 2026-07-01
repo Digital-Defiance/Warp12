@@ -2,6 +2,7 @@ import type { GameState } from 'warp12-engine';
 import { describe, expect, it } from 'vitest';
 
 import {
+  classifyLocalAiMatchOpponent,
   classifyLocalAiMatchSkill,
   humanWonLocalMatch,
 } from './local-match-stats.js';
@@ -14,6 +15,25 @@ describe('classifyLocalAiMatchSkill', () => {
         { id: 'b', displayName: 'B', skill: 'commander' },
       ])
     ).toBe('commander');
+  });
+});
+
+describe('classifyLocalAiMatchOpponent', () => {
+  it('marks Class I* when all top-tier officers use search tier', () => {
+    expect(
+      classifyLocalAiMatchOpponent([
+        { id: 'a', displayName: 'Riker', skill: 'commander', class1Star: true },
+        { id: 'b', displayName: 'Troi', skill: 'commander', class1Star: true },
+      ])
+    ).toEqual({ skill: 'commander', opponentClass1Star: true });
+  });
+
+  it('does not mark Class I* for standard Class II officers', () => {
+    expect(
+      classifyLocalAiMatchOpponent([
+        { id: 'a', displayName: 'Riker', skill: 'commander' },
+      ])
+    ).toEqual({ skill: 'commander', opponentClass1Star: false });
   });
 });
 
@@ -45,8 +65,8 @@ describe('humanWonLocalMatch', () => {
     const game = completedGame({
       objective: 'go-out',
       captains: [
-        { id: 'you', displayName: 'You', penaltyScore: 0 },
-        { id: 'ai', displayName: 'Riker', penaltyScore: 0 },
+        { id: 'you', displayName: 'You', pointsScore: 0 },
+        { id: 'ai', displayName: 'Riker', pointsScore: 0 },
       ],
       round: {
         roundWinnerId: 'you',
@@ -57,12 +77,12 @@ describe('humanWonLocalMatch', () => {
     expect(humanWonLocalMatch(game, 'ai')).toBe(false);
   });
 
-  it('detects a penalty campaign win by lowest score', () => {
+  it('detects a points campaign win by lowest score', () => {
     const game = completedGame({
-      objective: 'penalty',
+      objective: 'points',
       captains: [
-        { id: 'you', displayName: 'You', penaltyScore: 12 },
-        { id: 'ai', displayName: 'Data', penaltyScore: 24 },
+        { id: 'you', displayName: 'You', pointsScore: 12 },
+        { id: 'ai', displayName: 'Data', pointsScore: 24 },
       ],
     });
 

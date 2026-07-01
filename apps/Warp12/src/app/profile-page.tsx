@@ -2,11 +2,13 @@ import { Link } from 'react-router-dom';
 
 import {
   aiSkillToTacticalClass,
+  CLASS1_STAR_DISPLAY_NAME,
+  formatAiOfficerTacticalClass,
   formatTacticalClass,
   formatTei,
+  TEI_OBJECTIVE_LABEL,
   teiToPlayerTacticalClass,
   WARP_SKILL_LEVELS,
-  type WarpSkillLevel,
 } from 'warp12-engine';
 
 import {
@@ -14,15 +16,21 @@ import {
   recentTeiTrend,
 } from '../firebase/match-history.js';
 import { opponentTeiForObjective } from '../firebase/stats-elo.js';
+import { displayPlayerObjectiveTei } from '../firebase/stats-service.js';
+import { displayHumanObjectiveTei, humanObjectiveTeiStats } from '../firebase/human-tei.js';
 import {
-  displayPlayerObjectiveTei,
+  objectiveTeiStats,
+  type MatchHistoryEntry,
   type PlayerStatsDocument,
-} from '../firebase/stats-service.js';
-import { objectiveTeiStats, type RatedObjective } from '../firebase/stats-schema.js';
+  type RatedObjective,
+} from '../firebase/stats-schema.js';
 import { useFirebaseAuth } from '../firebase/use-firebase-auth.js';
 import { isFirebaseConfigured } from '../firebase/config.js';
 import { usePlayerStats } from '../firebase/use-player-stats.js';
+import { useCaptainProfile } from '../game/use-captain-profile.js';
+import { AccountUpgradeFieldset } from './account-upgrade-fieldset.js';
 import { AcademyPlacementFieldset } from './academy-placement-fieldset';
+import { CaptainGenderFieldset } from './captain-gender-fieldset';
 import styles from './lobby.module.scss';
 import profileStyles from './profile-page.module.scss';
 
@@ -30,10 +38,13 @@ function TrendChart({
   title,
   points,
   suffix = '',
+  relativeScale = false,
 }: {
   title: string;
   points: readonly { label: string; value: number }[];
   suffix?: string;
+  /** Scale bars to min–max in the series (TEI trends). */
+  relativeScale?: boolean;
 }) {
   if (points.length === 0) {
     return (
@@ -44,7 +55,20 @@ function TrendChart({
     );
   }
 
-  const max = Math.max(...points.map((point) => point.value), 1);
+  const values = points.map((point) => point.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = relativeScale ? Math.max(max - min, 1) : Math.max(max, 1);
+
+  const barHeight = (value: number): number => {
+    if (relativeScale) {
+      if (max === min) {
+        return 72;
+      }
+      return Math.max(8, ((value - min) / span) * 100);
+    }
+    return Math.max(8, (value / span) * 100);
+  };
 
   return (
     <div className={profileStyles.trendBlock}>
@@ -54,7 +78,7 @@ function TrendChart({
           <div key={point.label} className={profileStyles.trendBarWrap}>
             <div
               className={profileStyles.trendBar}
-              style={{ height: `${Math.max(8, (point.value / max) * 100)}%` }}
+              style={{ height: `${barHeight(point.value)}%` }}
             />
             <span className={profileStyles.trendLabel}>{point.label}</span>
           </div>
@@ -65,6 +89,62 @@ function TrendChart({
         {suffix}
       </p>
     </div>
+  );
+}
+
+function formatMatchOpponentLabel(entry: MatchHistoryEntry): string {
+  if (entry.opponentContext === 'human') {
+    const count = entry.playerCount ?? 2;
+    const rank = entry.finishRank ?? (entry.won ? 1 : count);
+    return `${count} captains (rank ${rank})`;
+  }
+  if (!entry.opponentSkill) {
+    return 'Unknown opponent';
+  }
+  return formatAiOfficerTacticalClass(entry.opponentSkill, {
+    class1Star: entry.opponentClass1Star,
+  });
+}
+
+function HumanTeiTable({
+  stats,
+  objective,
+}: {
+  stats: PlayerStatsDocument;
+  objective: RatedObjective;
+}) {
+  const track = humanObjectiveTeiStats(stats, objective);
+  const tei = displayHumanObjectiveTei(stats, objective);
+
+  return (
+    <table className={profileStyles.table}>
+      <thead>
+        <tr>
+          <th>Pool</th>
+          <th>Your TEI</th>
+          <th>Rated games</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Online human opponents</td>
+          <td>
+            {tei != null ? (
+              <>
+                {tei}
+                {' · '}
+                {formatTacticalClass(teiToPlayerTacticalClass(tei), {
+                  short: true,
+                })}
+              </>
+            ) : (
+              '—'
+            )}
+          </td>
+          <td>{track.unassistedMatches}</td>
+        </tr>
+      </tbody>
+    </table>
   );
 }
 
@@ -96,7 +176,11 @@ function TeiTable({
       <tbody>
         {rows.map((row) => (
           <tr key={row.skill}>
-            <td>{formatTacticalClass(aiSkillToTacticalClass(row.skill))}</td>
+            <td>
+              {row.skill === 'commander'
+                ? `${formatTacticalClass('II')} / ${CLASS1_STAR_DISPLAY_NAME}`
+                : formatTacticalClass(aiSkillToTacticalClass(row.skill))}
+            </td>
             <td>
               {row.tei != null ? (
                 <>
@@ -122,13 +206,26 @@ function TeiTable({
 export function ProfilePage() {
   const auth = useFirebaseAuth();
   const playerStats = usePlayerStats();
+  const { gender: captainGender, setCaptainGender } = useCaptainProfile();
   const configured = isFirebaseConfigured();
+
+  const captainAvatarFieldset = (
+    <CaptainGenderFieldset
+      gender={captainGender}
+      onChange={(next) => void setCaptainGender(next)}
+      disabled={!playerStats.ready}
+    />
+  );
 
   if (!configured) {
     return (
       <section className={`${styles.lobby} ${styles.lobbyWide}`}>
+        <p className={styles.backLink}>
+          <Link to="/">← Back to bridge</Link>
+        </p>
+        <h2 className={styles.title}>Captain profile</h2>
+        {captainAvatarFieldset}
         <p className={styles.hint}>Firebase is not configured — solo TEI is unavailable.</p>
-        <Link to="/">← Back</Link>
       </section>
     );
   }
@@ -144,8 +241,12 @@ export function ProfilePage() {
   if (!auth.user) {
     return (
       <section className={`${styles.lobby} ${styles.lobbyWide}`}>
-        <p className={styles.hint}>Sign in required for solo TEI and match history.</p>
-        <Link to="/">← Back</Link>
+        <p className={styles.backLink}>
+          <Link to="/">← Back to bridge</Link>
+        </p>
+        <h2 className={styles.title}>Captain profile</h2>
+        {captainAvatarFieldset}
+        <p className={styles.hint}>Sign in for solo TEI and match history.</p>
       </section>
     );
   }
@@ -161,24 +262,36 @@ export function ProfilePage() {
       </p>
       <h2 className={styles.title}>{displayName}</h2>
       <p className={styles.subtitle}>
-        Tactical Efficiency Index, decision-quality trends, and recent local-AI
-        matches.
+        Tactical Efficiency Index — reference-AI tracks, human-opponent pool,
+        decision-quality trends, and recent matches.
       </p>
+
+      {captainAvatarFieldset}
+
+      {auth.user && (
+        <AccountUpgradeFieldset
+          user={auth.user}
+          onUpgraded={async () => {
+            await auth.user?.getIdToken(true);
+            await playerStats.refresh();
+          }}
+        />
+      )}
 
       {playerStats.needsAcademyPlacementForObjective('go-out') && (
         <AcademyPlacementFieldset
           objective="go-out"
-          onSave={(skill, tei) =>
-            playerStats.saveAcademyPlacement('go-out', skill, tei)
+          onSave={(skill) =>
+            playerStats.saveAcademyPlacement('go-out', skill)
           }
         />
       )}
 
-      {playerStats.needsAcademyPlacementForObjective('penalty') && (
+      {playerStats.needsAcademyPlacementForObjective('points') && (
         <AcademyPlacementFieldset
-          objective="penalty"
-          onSave={(skill, tei) =>
-            playerStats.saveAcademyPlacement('penalty', skill, tei)
+          objective="points"
+          onSave={(skill) =>
+            playerStats.saveAcademyPlacement('points', skill)
           }
         />
       )}
@@ -186,13 +299,23 @@ export function ProfilePage() {
       {stats ? (
         <>
           <fieldset className={styles.fieldset}>
-            <legend>Go-out TEI</legend>
+            <legend>Go-out TEI (reference AI)</legend>
             <TeiTable stats={stats} objective="go-out" />
           </fieldset>
 
           <fieldset className={styles.fieldset}>
-            <legend>Penalty TEI</legend>
-            <TeiTable stats={stats} objective="penalty" />
+            <legend>Points TEI (reference AI)</legend>
+            <TeiTable stats={stats} objective="points" />
+          </fieldset>
+
+          <fieldset className={styles.fieldset}>
+            <legend>Go-out TEI (human pool)</legend>
+            <HumanTeiTable stats={stats} objective="go-out" />
+          </fieldset>
+
+          <fieldset className={styles.fieldset}>
+            <legend>Points TEI (human pool)</legend>
+            <HumanTeiTable stats={stats} objective="points" />
           </fieldset>
 
           <div className={profileStyles.trendGrid}>
@@ -204,10 +327,12 @@ export function ProfilePage() {
             <TrendChart
               title="Go-out TEI (unassisted)"
               points={recentTeiTrend(history, 'go-out')}
+              relativeScale
             />
             <TrendChart
-              title="Penalty TEI (unassisted)"
-              points={recentTeiTrend(history, 'penalty')}
+              title="Points TEI (unassisted)"
+              points={recentTeiTrend(history, 'points')}
+              relativeScale
             />
           </div>
 
@@ -219,10 +344,8 @@ export function ProfilePage() {
               <ul className={profileStyles.historyList}>
                 {history.map((entry) => (
                   <li key={entry.playedAt}>
-                    {entry.objective} vs{' '}
-                    {formatTacticalClass(
-                      aiSkillToTacticalClass(entry.opponentSkill)
-                    )}
+                    {TEI_OBJECTIVE_LABEL[entry.objective]} vs{' '}
+                    {formatMatchOpponentLabel(entry)}
                     {' — '}
                     {entry.won ? 'won' : 'lost'}
                     {entry.advisorUsed ? ' · advisor' : ''}

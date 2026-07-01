@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-import { GAME_OBJECTIVE_LABELS } from 'warp12-engine';
+import { DEFAULT_GAME_OBJECTIVE, GAME_OBJECTIVE_LABELS } from 'warp12-engine';
 
 import type { FirestoreGameDocument } from '../firebase';
 import { ONLINE_MAX_PLAYERS } from '../firebase';
@@ -34,7 +34,7 @@ export function JoinSectorPanel({
   firebaseConfigured,
 }: JoinSectorPanelProps) {
   const maxPlayers = lobby.maxPlayers ?? ONLINE_MAX_PLAYERS;
-  const objective = lobby.objective ?? 'go-out';
+  const objective = lobby.objective ?? DEFAULT_GAME_OBJECTIVE;
   const atCapacity = lobby.captains.length >= maxPlayers;
   const canJoin =
     !atCapacity &&

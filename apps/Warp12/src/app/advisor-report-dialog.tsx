@@ -17,6 +17,7 @@ export interface AdvisorReportDialogProps {
   downloadFilename: string;
   includeAllCaptains: boolean;
   onIncludeAllCaptainsChange: (value: boolean) => void;
+  opponentLabel?: string;
 }
 
 export function AdvisorReportDialog({
@@ -28,6 +29,7 @@ export function AdvisorReportDialog({
   downloadFilename,
   includeAllCaptains,
   onIncludeAllCaptainsChange,
+  opponentLabel,
 }: AdvisorReportDialogProps) {
   useEffect(() => {
     if (!open) {
@@ -46,10 +48,10 @@ export function AdvisorReportDialog({
     return null;
   }
 
-  const lines = formatAdvisorReport(report, names);
+  const lines = formatAdvisorReport(report, names, { opponentLabel });
 
   const handleDownload = () => {
-    const blob = new Blob([advisorReportPlainText(report, names)], {
+    const blob = new Blob([advisorReportPlainText(report, names, { opponentLabel })], {
       type: 'text/plain;charset=utf-8',
     });
     const url = URL.createObjectURL(blob);

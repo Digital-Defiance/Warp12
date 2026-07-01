@@ -1,16 +1,23 @@
 import type { AdvisorReport } from 'warp12-engine';
 
-import { formatAdvisorReport } from './advisor-report-format.js';
+import {
+  formatAdvisorReport,
+  type FormatAdvisorReportOptions,
+} from './advisor-report-format.js';
 
 export interface CampaignRoundReport {
   readonly roundNumber: number;
   readonly report: AdvisorReport;
 }
 
+export interface FormatCampaignAdvisorReportOptions extends FormatAdvisorReportOptions {
+  readonly includeAllCaptains?: boolean;
+}
+
 export function formatCampaignAdvisorReport(
   rounds: readonly CampaignRoundReport[],
   names: Readonly<Record<string, string>>,
-  options?: { includeAllCaptains?: boolean }
+  options?: FormatCampaignAdvisorReportOptions
 ): string[] {
   if (rounds.length === 0) {
     return ['No advisor data for this match.'];
@@ -27,7 +34,11 @@ export function formatCampaignAdvisorReport(
 
   for (const round of rounds) {
     lines.push(`--- Round ${round.roundNumber} ---`);
-    lines.push(...formatAdvisorReport(round.report, names));
+    lines.push(
+      ...formatAdvisorReport(round.report, names, {
+        opponentLabel: options?.opponentLabel,
+      })
+    );
     lines.push('');
   }
 
@@ -37,7 +48,7 @@ export function formatCampaignAdvisorReport(
 export function campaignAdvisorPlainText(
   rounds: readonly CampaignRoundReport[],
   names: Readonly<Record<string, string>>,
-  options?: { includeAllCaptains?: boolean }
+  options?: FormatCampaignAdvisorReportOptions
 ): string {
   return formatCampaignAdvisorReport(rounds, names, options).join('\n');
 }

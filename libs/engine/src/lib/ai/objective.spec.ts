@@ -63,7 +63,7 @@ describe('game objective', () => {
     if (result.ok) {
       expect(result.state.phase).toBe('complete');
       expect(result.state.completedRounds).toBe(1);
-      expect(result.state.captains.every((c) => c.penaltyScore === 0)).toBe(
+      expect(result.state.captains.every((c) => c.pointsScore === 0)).toBe(
         true
       );
     }
@@ -100,8 +100,8 @@ describe('game objective', () => {
       objective: 'go-out',
       campaignRounds: 13,
       captains: [
-        { id: 'a', displayName: 'Alpha', penaltyScore: 0 },
-        { id: 'b', displayName: 'Beta', penaltyScore: 0 },
+        { id: 'a', displayName: 'Alpha', pointsScore: 0 },
+        { id: 'b', displayName: 'Beta', pointsScore: 0 },
       ],
     };
 
@@ -152,16 +152,16 @@ describe('game objective', () => {
       playerId: 'a',
       modules: DEFAULT_MODULES,
       houseRules: DEFAULT_HOUSE_RULES,
-      objective: 'penalty',
+      objective: 'points',
       campaignRounds: 13,
       captains: [
-        { id: 'a', displayName: 'Alpha', penaltyScore: 0 },
-        { id: 'b', displayName: 'Beta', penaltyScore: 0 },
+        { id: 'a', displayName: 'Alpha', pointsScore: 0 },
+        { id: 'b', displayName: 'Beta', pointsScore: 0 },
       ],
     };
 
     const state = observationToState(obs);
-    // Holding 12-12 is worse than holding 0-1 under penalty scoring.
+    // Holding 12-12 is worse than holding 0-1 under points scoring.
     expect(warpLeafEvalPenalty(state, 'a')).toBeLessThan(
       warpLeafEvalPenalty(state, 'b')
     );
@@ -191,7 +191,7 @@ describe('game objective', () => {
   });
 
   it('createWarpSearchModel builds for each objective', () => {
-    expect(createWarpSearchModel('penalty').evaluate).toBeDefined();
+    expect(createWarpSearchModel('points').evaluate).toBeDefined();
     expect(createWarpSearchModel('go-out').evaluate).toBeDefined();
   });
 });

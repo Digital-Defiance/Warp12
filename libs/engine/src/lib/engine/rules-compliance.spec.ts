@@ -38,8 +38,8 @@ describe('tile recycle integrity', () => {
     const deal = dealRoundFromShuffled({
       roundNumber: 1,
       captains: [
-        { id: 'a', displayName: 'A', penaltyScore: 0 },
-        { id: 'b', displayName: 'B', penaltyScore: 0 },
+        { id: 'a', displayName: 'A', pointsScore: 0 },
+        { id: 'b', displayName: 'B', pointsScore: 0 },
       ],
       turnOrder: ['a', 'b'],
       shuffledCoordinates: generateCoordinateSet(12),
@@ -153,7 +153,7 @@ describe('tile recycle integrity', () => {
     const captains = ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({
       id,
       displayName: id,
-      penaltyScore: 0,
+      pointsScore: 0,
     }));
     const deal = dealRoundFromShuffled({
       roundNumber: 2,
@@ -851,9 +851,9 @@ describe('blocked sector (empty draw pile, no legal charts)', () => {
     const state = makeGame(round, {
       completedRounds: 12,
       captains: [
-        { id: 'a', displayName: 'A', penaltyScore: 0 },
-        { id: 'b', displayName: 'B', penaltyScore: 10 },
-        { id: 'c', displayName: 'C', penaltyScore: 0 },
+        { id: 'a', displayName: 'A', pointsScore: 0 },
+        { id: 'b', displayName: 'B', pointsScore: 10 },
+        { id: 'c', displayName: 'C', pointsScore: 0 },
       ],
     });
 
@@ -861,11 +861,11 @@ describe('blocked sector (empty draw pile, no legal charts)', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
-    expect(result.state.captains.find((c) => c.id === 'a')?.penaltyScore).toBe(3);
-    expect(result.state.captains.find((c) => c.id === 'b')?.penaltyScore).toBe(
+    expect(result.state.captains.find((c) => c.id === 'a')?.pointsScore).toBe(3);
+    expect(result.state.captains.find((c) => c.id === 'b')?.pointsScore).toBe(
       17
     );
-    expect(result.state.captains.find((c) => c.id === 'c')?.penaltyScore).toBe(
+    expect(result.state.captains.find((c) => c.id === 'c')?.pointsScore).toBe(
       11
     );
   });

@@ -15,9 +15,9 @@ export const N = normalizeCoordinate;
 export const TURN = ['a', 'b'] as const;
 
 export const TEST_CAPTAINS = [
-  { id: 'a', displayName: 'Alpha', penaltyScore: 0 },
-  { id: 'b', displayName: 'Beta', penaltyScore: 0 },
-  { id: 'c', displayName: 'Charlie', penaltyScore: 0 },
+  { id: 'a', displayName: 'Alpha', pointsScore: 0 },
+  { id: 'b', displayName: 'Beta', pointsScore: 0 },
+  { id: 'c', displayName: 'Charlie', pointsScore: 0 },
 ];
 
 export function makeRound(over: Partial<RoundState>): RoundState {

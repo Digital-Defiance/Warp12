@@ -6,6 +6,7 @@
     "doubletwelve": "workspace:*",
     "firebase": "^12.15.0",
     "html-to-image": "^1.11.13",
+    "onnxruntime-web": "^1.27.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "warp12-engine": "workspace:*",

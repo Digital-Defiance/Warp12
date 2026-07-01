@@ -12,15 +12,15 @@ function completeGame(over: Partial<GameState>): GameState {
   return {
     id: 'test',
     phase: 'complete',
-    objective: 'penalty',
+    objective: 'points',
     campaignRounds: 3,
     completedRounds: 3,
     captains: [
-      { id: 'you', displayName: 'You', penaltyScore: 42 },
-      { id: 'ai', displayName: 'AI', penaltyScore: 18 },
+      { id: 'you', displayName: 'You', pointsScore: 42 },
+      { id: 'ai', displayName: 'AI', pointsScore: 18 },
     ],
     modules: {
-      qContinuum: { enabled: false },
+      qContinuum: { enabled: false, activeFlash: null },
       salamanderPenalty: { enabled: false },
       subspaceFracture: { enabled: false, scope: 'own-trail' },
     },
@@ -30,6 +30,8 @@ function completeGame(over: Partial<GameState>): GameState {
       beaconClearsOnAnyPlay: false,
       roundStarterPlaysTwo: false,
       dropToImpulseCall: false,
+      allStopCeremony: false,
+      dropToImpulseCatchPenalty: 1,
     },
     round: {
       roundNumber: 3,
@@ -79,7 +81,7 @@ describe('sector outcome', () => {
     expect(sectorWinnerId(game)).toBe('you');
   });
 
-  it('picks penalty campaign winner by lowest total', () => {
+  it('picks points campaign winner by lowest total', () => {
     const game = completeGame({});
     expect(sectorWinnerId(game)).toBe('ai');
     expect(sectorStandings(game, { you: 'You', ai: 'AI' })[0]?.id).toBe('ai');

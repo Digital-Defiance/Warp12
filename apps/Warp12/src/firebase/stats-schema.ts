@@ -1,13 +1,22 @@
 import type { GameObjective, WarpSkillLevel } from 'warp12-engine';
 
+import type { CaptainGender } from '../game/captain-profile.js';
+
 export type AiSkillLevel = WarpSkillLevel;
-export type RatedObjective = Extract<GameObjective, 'go-out' | 'penalty'>;
+export type RatedObjective = Extract<GameObjective, 'go-out' | 'points'>;
 
 /** One completed local-AI match for profile trend charts. */
 export interface MatchHistoryEntry {
   readonly playedAt: string;
   readonly objective: RatedObjective;
-  readonly opponentSkill: WarpSkillLevel;
+  /** Present for reference-AI matches; omitted for human-opponent pool. */
+  readonly opponentSkill?: WarpSkillLevel;
+  /** True when top-tier AI opponents were Class I* (experimental search). */
+  readonly opponentClass1Star?: boolean;
+  /** `human` = online human-opponent pool; omitted = reference AI bucket. */
+  readonly opponentContext?: 'human' | 'reference';
+  readonly playerCount?: number;
+  readonly finishRank?: number;
   readonly won: boolean;
   readonly advisorUsed: boolean;
   readonly decisionPct?: number;
@@ -39,22 +48,38 @@ export interface LocalAiSkillStats extends MatchOutcomeStats {
 
 export type LocalAiStats = Record<AiSkillLevel, LocalAiSkillStats>;
 
+/** Human-vs-human pool TEI (one rating per objective track). */
+export interface HumanTeiStats {
+  goOut?: ObjectiveTeiStats;
+  points?: ObjectiveTeiStats;
+}
+
 export interface PlayerStatsDocument {
   uid: string;
   displayName: string;
+  /** Advisor-report icon preference (captain avatar). */
+  captainGender?: CaptainGender;
   matchesCompleted: number;
   matchesWon: number;
   roundsPlayed: number;
   roundsWon: number;
-  totalPenaltyPoints: number;
+  totalPoints: number;
   /** Optional self-reported seed before the first rated game per objective. */
-  startingTei?: Partial<Record<'goOut' | 'penalty', number>>;
+  startingTei?: Partial<Record<'goOut' | 'points', number>>;
+  /** Human-opponent pool TEI (online rated sectors, humans only). */
+  humanTei?: HumanTeiStats;
+  /** Idempotency — sector game ids already applied to humanTei. */
+  humanRatedGameIds?: string[];
   /** Recent local-AI matches for profile trends (newest first). */
   matchHistory?: MatchHistoryEntry[];
   localAi?: LocalAiStats;
   bestRoundTimeMs?: number;
   lastPlayedAt?: string;
   updatedAt: string;
+}
+
+export function emptyHumanTeiStats(): HumanTeiStats {
+  return {};
 }
 
 export function emptyMatchOutcomeStats(): MatchOutcomeStats {
@@ -82,8 +107,16 @@ export function emptyLocalAiStats(): LocalAiStats {
   };
 }
 
-export function objectiveTeiKey(objective: RatedObjective): 'goOut' | 'penalty' {
-  return objective === 'go-out' ? 'goOut' : 'penalty';
+export function objectiveTeiKey(objective: RatedObjective): 'goOut' | 'points' {
+  return objective === 'go-out' ? 'goOut' : 'points';
+}
+
+export function startingTeiForObjective(
+  doc: PlayerStatsDocument | null | undefined,
+  objective: RatedObjective
+): number | undefined {
+  const key = objectiveTeiKey(objective);
+  return doc?.startingTei?.[key];
 }
 
 export function objectiveTeiStats(

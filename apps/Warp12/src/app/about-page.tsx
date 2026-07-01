@@ -52,7 +52,7 @@ export function AboutPage() {
             Most store apps are well loved but closed boxes — three difficulty sliders,
             no public rules engine, no reproducible AI validation. We believe Warp 12
             is the most complete <em>documented</em> Mexican Train engine available
-            today: penalty and go-out objectives, house rules, optional modules, online
+            today: points and go-out objectives, house rules, optional modules, online
             sync, and TEI-rated play against fixed reference officers.
           </p>
           <div className={styles.links}>
@@ -97,7 +97,9 @@ export function AboutPage() {
             <li>
               <strong>Not “strongest AI on Earth.”</strong> Class II officers are
               heuristic agents with calibrated tiers — not Deep Blue, not solved
-              dominoes.
+              dominoes. Our experimental Class I* adds a neural residual on top;
+              early results show it can mimic Commander but has not yet beaten
+              Class II in go-out self-play.
             </li>
             <li>
               <strong>Not stronger than closed apps we cannot audit.</strong> We
@@ -145,7 +147,11 @@ export function AboutPage() {
                   <td>Self-play calibrated; human validation pending</td>
                 </tr>
                 <tr>
-                  <td>Go-out vs penalty</td>
+                  <td>Class I* (experimental)</td>
+                  <td>Heuristic + neural residual; local opponent only; not TEI-rated</td>
+                </tr>
+                <tr>
+                  <td>Go-out vs points</td>
                   <td>Separate profiles and TEI tracks — same engine</td>
                 </tr>
                 <tr>
@@ -158,11 +164,48 @@ export function AboutPage() {
         </section>
 
         <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Class I* — search without hiding the coach</h2>
+          <p className={styles.p}>
+            <strong>Class I*</strong> is our experimental “Deep Blue” step for local
+            play: the same Class II heuristics and explainable coach, but the AI
+            opponent runs <strong>deep belief-state search</strong> before it commits
+            to a move — expectimax in heads-up games, ISMCTS at three or more captains.
+            Pick Class I* in a local game to face that deeper thinker. It stays labeled
+            experimental because we are still measuring whether search beats Class II
+            with statistical confidence — not just whether it feels different.
+          </p>
+          <p className={styles.p}>
+            One design choice we keep: move <strong>explanations</strong> stay on the
+            explainable heuristic stack — plain-language reasons you can read at the
+            table. The optional advisor deep-think path can run ISMCTS on a short time
+            budget; search chooses the line, heuristics describe why it makes sense.
+          </p>
+          <p className={styles.p}>
+            <strong>What the numbers say so far (2026):</strong> a neural net (browser
+            ONNX) learned to imitate Commander but stayed near <strong>50%</strong> win
+            rate vs Class II in 2p — within noise. ISMCTS also flatlined at ~51% in 2p
+            points (1,000 games). Fixed-depth expectimax did better (~64% vs Commander
+            in 2p points). At four players go-out, ISMCTS outperformed greedy Commander
+            seats (~31% vs ~23% sector wins). We route the right engine to each lobby
+            setting. Results land in the{' '}
+            <Link to="/paper/log">calibration log</Link> and{' '}
+            <Link to="/paper">research outline</Link> — including negative results.
+          </p>
+          <p className={styles.p}>
+            Class I* is <strong>not</strong> on the leaderboard TEI ladder yet. When — and
+            only when — it beats Class II with statistical confidence, we will talk about
+            promoting it toward a reference officer. Until then it is R&amp;D you can opt
+            into at the local table. <strong>Class I</strong> on TEI remains the
+            human prestige band — we do not reuse that name for AI until the bar is cleared.
+          </p>
+        </section>
+
+        <section className={styles.section}>
           <h2 className={styles.sectionTitle}>TEI — for captains and for us</h2>
           <p className={styles.p}>
             <strong>Tactical Effectiveness Index (TEI)</strong> is our Elo-style skill
             rating on the leaderboard. Two independent tracks —{' '}
-            <strong>penalty</strong> and <strong>go-out</strong> — because they are
+            <strong>points</strong> and <strong>go-out</strong> — because they are
             strategically different games on the same table. Each track splits by the
             tactical class of AI you face (Class IV / III / II reference officers).
           </p>
@@ -172,7 +215,7 @@ export function AboutPage() {
           <ul className={styles.list}>
             <li>
               <strong>Calibration feedback.</strong> Fixed reference bands (~TEI 1000 /
-              1200 / 1400 penalty; wider for go-out) tell us whether Class IV–II AI
+              1200 / 1400 points; wider for go-out) tell us whether Class IV–II AI
               ordering matches design intent.
             </li>
             <li>
@@ -186,7 +229,7 @@ export function AboutPage() {
             </li>
             <li>
               <strong>Starfleet Academy.</strong> Pick a starting class and TEI band
-              once per track before your first rated mission — go-out and penalty are
+              once per track before your first rated mission — go-out and points are
               independent.
             </li>
           </ul>
@@ -214,9 +257,14 @@ export function AboutPage() {
               it.
             </li>
             <li>
-              <strong>Stronger officers.</strong> Class I heuristics, search-backed
-              coach, maybe one day belief-state play — without sacrificing
+              <strong>Stronger officers.</strong> Class I* hybrid learning (in progress),
+              ISMCTS-backed coach, maybe one day belief-state play — without sacrificing
               explainability for casual tables.
+            </li>
+            <li>
+              <strong>Honest ML.</strong> Document when neural nets imitate without
+              improving — go-out Class I* parity is a real result, not a failure to
+              mention.
             </li>
             <li>
               <strong>Share the stack.</strong> Open packages so other builders can
@@ -224,7 +272,7 @@ export function AboutPage() {
             </li>
             <li>
               <strong>Write it up.</strong> A short paper on dual-objective
-              calibration, go-out vs penalty variance, and what “skill” means in
+              calibration, go-out vs points variance, and what “skill” means in
               imperfect-information dominoes.
             </li>
           </ul>

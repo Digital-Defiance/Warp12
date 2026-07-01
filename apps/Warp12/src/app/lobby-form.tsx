@@ -1,4 +1,4 @@
-import { DEFAULT_CAMPAIGN_ROUNDS, type GameObjective } from 'warp12-engine';
+import { DEFAULT_CAMPAIGN_ROUNDS, DEFAULT_GAME_OBJECTIVE, type GameObjective } from 'warp12-engine';
 
 import type { CreateLobbyOptions } from '../firebase';
 import { clampOnlineMaxPlayers } from '../firebase';
@@ -92,11 +92,11 @@ export function LobbyForm({
 
       <ObjectivePicker
         name="online-objective"
-        value={createOptions.objective ?? 'go-out'}
+        value={createOptions.objective ?? DEFAULT_GAME_OBJECTIVE}
         onChange={setObjective}
       />
 
-      {(createOptions.objective ?? 'go-out') === 'penalty' && (
+      {(createOptions.objective ?? DEFAULT_GAME_OBJECTIVE) === 'points' && (
         <fieldset className={styles.fieldset}>
           <legend>Campaign length</legend>
           <CampaignRoundsField

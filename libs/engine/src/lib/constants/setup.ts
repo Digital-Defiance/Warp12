@@ -18,13 +18,13 @@ export const DOUBLE_TWELVE_MAX_PIPS = 12;
 /** Starting Spacedock double for round 1. */
 export const INITIAL_SPACEDOCK_VALUE = 12;
 
-/** Default penalty campaign length (12-12 through 0-0). */
+/** Default points campaign length (12-12 through 0-0). */
 export const DEFAULT_CAMPAIGN_ROUNDS = 13;
 
-/** Shortest penalty campaign (single spacedock round). */
+/** Shortest points campaign (single spacedock round). */
 export const MIN_CAMPAIGN_ROUNDS = 1;
 
-/** Longest penalty campaign for a double-twelve set. */
+/** Longest points campaign for a double-twelve set. */
 export const MAX_CAMPAIGN_ROUNDS = 13;
 
 /** Standard Salamander penalty multiplier for the 12-12 tile. */

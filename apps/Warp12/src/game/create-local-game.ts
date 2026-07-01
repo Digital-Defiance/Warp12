@@ -2,7 +2,7 @@ import {
   createWarpAiPlayer,
   generateCoordinateSet,
   getWarpSkillProfile,
-  resolveWarpLookahead,
+  resolveClass1StarPlayLookahead,
   shuffleCoordinates,
   startGame,
   type GameObjective,
@@ -68,14 +68,23 @@ export function buildAiRosterFromConfigs(
 ): ReadonlyMap<string, WarpAiPlayer> {
   const roster = new Map<string, WarpAiPlayer>();
   for (const [index, ai] of aiCaptains.entries()) {
+    const rng = mulberry32(seed + (index + 1) * 997);
+    const skill = getWarpSkillProfile(ai.skill, objective, playerCount);
+
     roster.set(
       ai.id,
-      createWarpAiPlayer({
-        skill: getWarpSkillProfile(ai.skill, objective, playerCount),
-        objective,
-        lookahead: resolveWarpLookahead(ai.skill, objective, playerCount),
-        rng: mulberry32(seed + (index + 1) * 997),
-      })
+      ai.class1Star
+        ? createWarpAiPlayer({
+            skill,
+            objective,
+            lookahead: resolveClass1StarPlayLookahead(objective, playerCount),
+            rng,
+          })
+        : createWarpAiPlayer({
+            skill,
+            objective,
+            rng,
+          })
     );
   }
   return roster;

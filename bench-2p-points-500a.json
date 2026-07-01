@@ -1,0 +1,21 @@
+{
+  "games": 500,
+  "completed": 500,
+  "fleetAdmiralWins": 243,
+  "commanderWins": 257,
+  "fleetAdmiralWinRate": 0.486,
+  "fleetLookahead": {
+    "searchEngine": "ismcts",
+    "useBeliefConstraints": true,
+    "maxBranch": 8,
+    "timeBudgetMs": 500,
+    "ismctsMaxIterations": 4000,
+    "ismctsRolloutDepth": 24
+  },
+  "usedClass1Star": false,
+  "fleetAdmiralSeatId": "a",
+  "objective": "points",
+  "playerCount": 2,
+  "parallel": true,
+  "weights": null
+}

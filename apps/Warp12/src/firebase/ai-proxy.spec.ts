@@ -27,20 +27,20 @@ function lobbyDoc(
       {
         id: 'host-uid',
         displayName: 'Picard',
-        penaltyScore: 0,
+        pointsScore: 0,
         joinedAt: '2026-01-01T00:00:00.000Z',
       },
       {
         id: 'ai:riker',
         displayName: 'Riker',
-        penaltyScore: 0,
+        pointsScore: 0,
         joinedAt: '2026-01-01T00:00:00.000Z',
         isAi: true,
         skill: 'lieutenant',
       },
     ],
     completedRounds: 0,
-    objective: 'penalty',
+    objective: 'points',
     campaignRounds: 13,
     maxPlayers: 4,
     round: {
@@ -87,7 +87,7 @@ describe('online AI move proxy', () => {
         {
           id: 'guest-uid',
           displayName: 'Kirk',
-          penaltyScore: 0,
+          pointsScore: 0,
           joinedAt: '2026-01-01T00:00:00.000Z',
         },
         base.captains[1]!,
@@ -126,7 +126,7 @@ describe('online AI move proxy', () => {
         {
           id: 'guest-uid',
           displayName: 'Janeway',
-          penaltyScore: 0,
+          pointsScore: 0,
           joinedAt: '2026-01-01T00:00:00.000Z',
         },
       ],
@@ -155,7 +155,7 @@ describe('online AI move proxy', () => {
         {
           id: 'guest-uid',
           displayName: 'Janeway',
-          penaltyScore: 0,
+          pointsScore: 0,
           joinedAt: '2026-01-01T00:00:00.000Z',
         },
       ],

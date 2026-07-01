@@ -1,14 +1,51 @@
 {
+  "auth": {
+    "providers": {
+      "anonymous": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Warp 12",
+        "supportEmail": "jessica@digitaldefiance.org",
+        "authorizedRedirectUris": [
+          "https://leaderboard.warp12.app",
+          "https://warp12.app"
+        ]
+      }
+    }
+  },
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local",
+        "src"
+      ],
+      "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"]
+    }
+  ],
   "hosting": [
     {
       "target": "bridge",
       "public": "apps/Warp12/dist",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "Cross-Origin-Opener-Policy",
+              "value": "same-origin-allow-popups"
+            }
+          ]
+        },
         {
           "source": "/assets/**",
           "headers": [
@@ -29,6 +66,46 @@
         }
       ],
       "rewrites": [
+        {
+          "source": "/api/fn/approveRatedMatch",
+          "run": { "serviceId": "approveratedmatch", "region": "us-central1" }
+        },
+        {
+          "source": "/api/fn/bootstrapAdmin",
+          "run": { "serviceId": "bootstrapadmin", "region": "us-central1" }
+        },
+        {
+          "source": "/api/fn/checkInToMatch",
+          "run": { "serviceId": "checkintomatch", "region": "us-central1" }
+        },
+        {
+          "source": "/api/fn/createRatedMatch",
+          "run": { "serviceId": "createratedmatch", "region": "us-central1" }
+        },
+        {
+          "source": "/api/fn/getMyRoles",
+          "run": { "serviceId": "getmyroles", "region": "us-central1" }
+        },
+        {
+          "source": "/api/fn/rejectRatedMatch",
+          "run": { "serviceId": "rejectratedmatch", "region": "us-central1" }
+        },
+        {
+          "source": "/api/fn/reportPracticeAiMatch",
+          "run": { "serviceId": "reportpracticeaimatch", "region": "us-central1" }
+        },
+        {
+          "source": "/api/fn/setAcademyPlacement",
+          "run": { "serviceId": "setacademyplacement", "region": "us-central1" }
+        },
+        {
+          "source": "/api/fn/setUserRoles",
+          "run": { "serviceId": "setuserroles", "region": "us-central1" }
+        },
+        {
+          "source": "/api/fn/submitMatchStandings",
+          "run": { "serviceId": "submitmatchstandings", "region": "us-central1" }
+        },
         {
           "source": "**",
           "destination": "/index.html"
@@ -41,6 +118,15 @@
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "headers": [
         {
+          "source": "**",
+          "headers": [
+            {
+              "key": "Cross-Origin-Opener-Policy",
+              "value": "same-origin-allow-popups"
+            }
+          ]
+        },
+        {
           "source": "/assets/**",
           "headers": [
             {
@@ -60,6 +146,46 @@
         }
       ],
       "rewrites": [
+        {
+          "source": "/api/fn/approveRatedMatch",
+          "run": { "serviceId": "approveratedmatch", "region": "us-central1" }
+        },
+        {
+          "source": "/api/fn/bootstrapAdmin",
+          "run": { "serviceId": "bootstrapadmin", "region": "us-central1" }
+        },
+        {
+          "source": "/api/fn/checkInToMatch",
+          "run": { "serviceId": "checkintomatch", "region": "us-central1" }
+        },
+        {
+          "source": "/api/fn/createRatedMatch",
+          "run": { "serviceId": "createratedmatch", "region": "us-central1" }
+        },
+        {
+          "source": "/api/fn/getMyRoles",
+          "run": { "serviceId": "getmyroles", "region": "us-central1" }
+        },
+        {
+          "source": "/api/fn/rejectRatedMatch",
+          "run": { "serviceId": "rejectratedmatch", "region": "us-central1" }
+        },
+        {
+          "source": "/api/fn/reportPracticeAiMatch",
+          "run": { "serviceId": "reportpracticeaimatch", "region": "us-central1" }
+        },
+        {
+          "source": "/api/fn/setAcademyPlacement",
+          "run": { "serviceId": "setacademyplacement", "region": "us-central1" }
+        },
+        {
+          "source": "/api/fn/setUserRoles",
+          "run": { "serviceId": "setuserroles", "region": "us-central1" }
+        },
+        {
+          "source": "/api/fn/submitMatchStandings",
+          "run": { "serviceId": "submitmatchstandings", "region": "us-central1" }
+        },
         {
           "source": "**",
           "destination": "/index.html"

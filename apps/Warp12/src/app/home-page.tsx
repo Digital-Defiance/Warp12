@@ -23,7 +23,7 @@ export function HomePage() {
           Match pips to chart routes on your trail, the communal Neutral Zone, or
           a rival&apos;s line when their distress beacon is down. Doubles trigger
           red alert. Optional house rules add Drop to Impulse; optional modules add
-          subspace fractures, All Stop! drama, and Q-Continuum chaos. Play a quick first-out sprint or a full penalty
+          subspace fractures, All Stop! drama, and Q-Continuum chaos. Play a quick first-out sprint or a full points
           campaign across thirteen spacedock rounds.
         </p>
         <Link to="/about" className={styles.heroLink}>
@@ -72,7 +72,7 @@ export function HomePage() {
             onClick={() => navigate('/local')}
           >
             <h2>Local simulation</h2>
-            <p>Play against 2–7 AI captains — first out or penalty campaign.</p>
+            <p>Play against 2–7 AI captains — first out or points campaign.</p>
           </button>
           <button
             type="button"

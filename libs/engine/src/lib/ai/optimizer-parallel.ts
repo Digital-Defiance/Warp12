@@ -1,6 +1,4 @@
 import { availableParallelism } from 'node:os';
-import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
 import { Worker } from 'node:worker_threads';
 
 import type { GameObjective } from '../types/objective.js';
@@ -16,6 +14,7 @@ import {
   type WarpSkillLevel,
   type WarpSkillProfile,
 } from './skill.js';
+import { workerExecArgv } from './worker-bootstrap.js';
 
 export interface ParallelMatchupJob {
   readonly kind: 'h2h' | 'focus';
@@ -99,12 +98,6 @@ function runMatchupJobSync(
     };
   }
   throw new Error('Invalid optimizer matchup job');
-}
-
-export function workerExecArgv(): string[] {
-  const require = createRequire(import.meta.url);
-  const jitiRoot = dirname(require.resolve('jiti/package.json'));
-  return ['--import', join(jitiRoot, 'lib/jiti-register.mjs')];
 }
 
 function runMatchupWorker(

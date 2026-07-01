@@ -132,7 +132,7 @@ describe('Q-Flash scope and winning 0-0', () => {
 });
 
 describe('scoreRound blocked vs domino wins', () => {
-  it('exempts the domino winner from pip penalties', () => {
+  it('exempts the domino winner from pip points', () => {
     const round = makeRound(['a', 'b'], {
       roundNumber: 13,
       phase: 'ended',
@@ -144,8 +144,8 @@ describe('scoreRound blocked vs domino wins', () => {
     const result = scoreRound(state, round);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.state.captains.find((c) => c.id === 'a')?.penaltyScore).toBe(0);
-    expect(result.state.captains.find((c) => c.id === 'b')?.penaltyScore).toBe(5);
+    expect(result.state.captains.find((c) => c.id === 'a')?.pointsScore).toBe(0);
+    expect(result.state.captains.find((c) => c.id === 'b')?.pointsScore).toBe(5);
   });
 
   it('rejects END_ROUND when winnerId does not match a domino win', () => {

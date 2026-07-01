@@ -27,7 +27,7 @@ describe('chooseQFlashEffect', () => {
     });
 
     const effect = chooseQFlashEffect(
-      obsFor(round, modulesWithQ(), 'penalty', 'a'),
+      obsFor(round, modulesWithQ(), 'points', 'a'),
       TEST_CAPTAINS,
       { rng: constantRng(0) }
     );
@@ -35,7 +35,7 @@ describe('chooseQFlashEffect', () => {
     expect(effect).toBe('salamander-swap');
   });
 
-  it('prefers skip-lowest-penalty when another captain leads the campaign', () => {
+  it('prefers skip-lowest-points when another captain leads the campaign', () => {
     const round = makeRound({
       spacedockValue: 0,
       qPendingInvoker: 'a',
@@ -43,18 +43,18 @@ describe('chooseQFlashEffect', () => {
       turnOrder: ['a', 'b', 'c'],
     });
     const captains = [
-      { id: 'a', displayName: 'Alpha', penaltyScore: 40 },
-      { id: 'b', displayName: 'Beta', penaltyScore: 5 },
-      { id: 'c', displayName: 'Charlie', penaltyScore: 12 },
+      { id: 'a', displayName: 'Alpha', pointsScore: 40 },
+      { id: 'b', displayName: 'Beta', pointsScore: 5 },
+      { id: 'c', displayName: 'Charlie', pointsScore: 12 },
     ];
 
     const effect = chooseQFlashEffect(
-      { ...obsFor(round, modulesWithQ(), 'penalty', 'a'), captains },
+      { ...obsFor(round, modulesWithQ(), 'points', 'a'), captains },
       captains,
       { rng: constantRng(0) }
     );
 
-    expect(effect).toBe('skip-lowest-penalty');
+    expect(effect).toBe('skip-lowest-points');
   });
 
   it('prefers q-gamble when the pile is deep and the hand is large', () => {
@@ -71,7 +71,7 @@ describe('chooseQFlashEffect', () => {
     });
 
     const effect = chooseQFlashEffect(
-      obsFor(round, modulesWithQ(), 'penalty', 'a'),
+      obsFor(round, modulesWithQ(), 'points', 'a'),
       TEST_CAPTAINS,
       { rng: constantRng(0) }
     );
@@ -94,7 +94,7 @@ describe('chooseQFlashEffect', () => {
       TEST_CAPTAINS
     );
     const effect = chooseQFlashEffect(
-      obsFor(round, modules, 'penalty', 'a'),
+      obsFor(round, modules, 'points', 'a'),
       TEST_CAPTAINS,
       { rng: constantRng(0) }
     );
@@ -114,7 +114,7 @@ describe('chooseQGambleKeepIndex', () => {
     });
 
     expect(
-      chooseQGambleKeepIndex(obsFor(round, undefined, 'penalty', 'a'))
+      chooseQGambleKeepIndex(obsFor(round, undefined, 'points', 'a'))
     ).toBe(1);
   });
 
@@ -127,12 +127,12 @@ describe('chooseQGambleKeepIndex', () => {
     });
 
     expect(
-      chooseQGambleKeepIndex(obsFor(round, undefined, 'penalty', 'a'), {
+      chooseQGambleKeepIndex(obsFor(round, undefined, 'points', 'a'), {
         rng: constantRng(0.1),
       })
     ).toBe(0);
     expect(
-      chooseQGambleKeepIndex(obsFor(round, undefined, 'penalty', 'a'), {
+      chooseQGambleKeepIndex(obsFor(round, undefined, 'points', 'a'), {
         rng: constantRng(0.9),
       })
     ).toBe(1);

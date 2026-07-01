@@ -8,11 +8,11 @@ describe('serialize round rule fields', () => {
     const state = {
       id: 'test',
       phase: 'active',
-      objective: 'penalty',
+      objective: 'points',
       campaignRounds: 13,
       completedRounds: 0,
       houseRules: resolveHouseRules(),
-      captains: [{ id: 'a', displayName: 'A', penaltyScore: 0 }],
+      captains: [{ id: 'a', displayName: 'A', pointsScore: 0 }],
       modules: {
         qContinuum: { enabled: false, activeFlash: null },
         salamanderPenalty: { enabled: false },

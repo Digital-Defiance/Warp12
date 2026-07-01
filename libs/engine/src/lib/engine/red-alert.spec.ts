@@ -82,10 +82,10 @@ function game(round: RoundState): GameState {
     objective: 'go-out',
     completedRounds: 0,
     captains: [
-      { id: 'you', displayName: 'Picard', penaltyScore: 0 },
-      { id: 'riker', displayName: 'Riker', penaltyScore: 0 },
-      { id: 'troi', displayName: 'Troi', penaltyScore: 0 },
-      { id: 'worf', displayName: 'Worf', penaltyScore: 0 },
+      { id: 'you', displayName: 'Picard', pointsScore: 0 },
+      { id: 'riker', displayName: 'Riker', pointsScore: 0 },
+      { id: 'troi', displayName: 'Troi', pointsScore: 0 },
+      { id: 'worf', displayName: 'Worf', pointsScore: 0 },
     ],
     modules: {
       qContinuum: { enabled: false, activeFlash: null },
@@ -294,7 +294,7 @@ describe('subspace fracture and red alert', () => {
     const state: GameState = {
       id: 'fracture-red-alert',
       phase: 'active',
-      captains: [{ id: 'laforge', displayName: 'La Forge', penaltyScore: 0 }],
+      captains: [{ id: 'laforge', displayName: 'La Forge', pointsScore: 0 }],
       objective: 'go-out',
       campaignRounds: 13,
       modules: { salamanderPenalty: { enabled: true }, qContinuum: { enabled: false, activeFlash: null }, subspaceFracture: { enabled: true, scope: 'own-trail' } },
