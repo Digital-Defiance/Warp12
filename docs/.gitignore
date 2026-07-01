@@ -1,0 +1,9 @@
+_site/
+.sass-cache/
+.jekyll-cache/
+.jekyll-metadata
+Gemfile.lock
+
+# Generated from repo root before Jekyll build (see sync-canonical.sh)
+rules.md
+neural-training.md

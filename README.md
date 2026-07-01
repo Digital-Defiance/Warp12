@@ -112,7 +112,7 @@ The client targets the [warp-12 Firebase project](https://console.firebase.googl
 4. Deploy Firestore rules: `yarn deploy:firestore` (requires [Firebase CLI](https://firebase.google.com/docs/cli) and `firebase login`)
 5. Without credentials, **Local simulation** still works; **Online fleet** requires the `.env` file
 
-**Online lobby:** Host picks fleet size (3–8), objective (go-out / penalty), and modules before launch. Up to eight captains per sector; host can kick, reset, or dissolve from the waiting room. Penalty campaigns score rounds server-side (all private hands are read briefly at round end, then redealt).
+**Online lobby:** Host picks fleet size (3–8), objective (points / go-out; **points is default**), and modules before launch. Up to eight captains per sector; host can kick, reset, or dissolve from the waiting room. Points campaigns score rounds server-side (all private hands are read briefly at round end, then redealt).
 
 **Multiplayer flow:**
 
@@ -227,20 +227,20 @@ Warp 12 ships with offline AI captains and a human-facing **tactical coach**, bo
 
 ### Captain AI (`createWarpAiPlayer`)
 
-Each AI officer runs entirely inside the rules engine — Distress Beacons, Red Alerts, Subspace Fractures, the Neutral Zone, house rules, and modules are all honored. Decisions use [DoubleTwelve](https://www.npmjs.com/package/doubletwelve)'s model-agnostic policy layer on top of Warp-specific heuristics (dump heavy pips, own-trail pressure, Red Alert safety, Q-Continuum timing, go-out vs penalty objective, and more).
+Each AI officer runs entirely inside the rules engine — Distress Beacons, Red Alerts, Subspace Fractures, the Neutral Zone, house rules, and modules are all honored. Decisions use [DoubleTwelve](https://www.npmjs.com/package/doubletwelve)'s model-agnostic policy layer on top of Warp-specific heuristics (dump heavy pips, own-trail pressure, Red Alert safety, Q-Continuum timing, go-out vs points objective, and more).
 
 | Setting | What it does |
 |---------|----------------|
 | **Tactical Class** (IV / III / II) | Controls blunder rate, heuristic weights, and **intrinsic search depth** for that simulation tier. Class IV officers make more mistakes; Class II play tighter heuristics. Lookahead is baked into the tier profile (not a separate toggle) so leaderboard TEI stays consistent. |
 
-**Class II go-out** uses depth-2 forward search at **2 players only**; at 3+ the race is too chaotic for search to help, so those tables use greedy sprint heuristics instead. **Penalty** captains stay greedy at all table sizes. Search simulates candidate moves through the real engine with sampled hidden hands — it **does not see your tiles**. Detail: [RULES.md §VII](./RULES.md#vii-ai-officers--tactical-advisor-digital).
+**Class II go-out** uses depth-2 forward search at **2 players only**; at 3+ the race is too chaotic for search to help, so those tables use greedy sprint heuristics instead. **Points** captains stay greedy at all table sizes. Search simulates candidate moves through the real engine with sampled hidden hands — it **does not see your tiles**. Detail: [RULES.md §VII](./RULES.md#vii-ai-officers--tactical-advisor-digital).
 
 Self-play suites in `libs/engine` verify skill ordering, symmetric seating fairness, and 4-player focus matchups. Run the calibration report:
 
 ```bash
 yarn calibrate:ai-tei          # 200 games per matchup + multi-table focus matrix
 AI_CALIBRATION_GAMES=500 yarn calibrate:ai-tei   # longer run for tighter estimates
-yarn calibrate:ai-tei-dti      # same report plus Drop to Impulse penalty sanity pass
+yarn calibrate:ai-tei-dti      # same report plus Drop to Impulse catch sanity pass
 yarn optimize:ai-weights       # coordinate search on go-out heuristic weights
 ```
 
@@ -255,17 +255,17 @@ Solo games vs AI feed **[leaderboard.warp12.app](https://leaderboard.warp12.app)
 | Track | When it applies |
 |-------|-----------------|
 | **Go-out TEI** | First player to empty their hand wins |
-| **Penalty TEI** | Lowest pip count when the round ends |
+| **Points TEI** | Lowest pip count when the round ends |
 
 Each track also splits by AI tactical class (`localAi` Class IV / III / II profiles).
 
-**Starfleet Academy:** before the first rated match in each track, captains pick Class IV / III / II and a starting TEI within that class’s band (saved once per track — go-out and penalty are independent).
+**Starfleet Academy:** before the first rated match in each track, captains pick Class IV / III / II and a starting TEI within that class’s band (saved once per track — go-out and points are independent).
 
 **Fixed reference TEI** (unassisted matches only):
 
 | Track | Class IV | Class III | Class II |
 |-------|----------|-----------|----------|
-| Penalty | ~TEI 1000 | ~TEI 1200 | ~TEI 1400 |
+| Points | ~TEI 1000 | ~TEI 1200 | ~TEI 1400 |
 | Go-out | ~TEI 1000 | ~TEI 1250 | ~TEI 1500 |
 
 Go-out uses wider spacing because race outcomes are noisier; the leaderboard also shows **percentile** (Top X%) within each board so rank is meaningful even when raw TEI gaps compress.
@@ -274,9 +274,28 @@ Your TEI updates with a standard Elo formula; K-factor starts at **40** for the 
 
 **Advisor disqualification:** if you used the tactical advisor during the match, the win still counts in general stats, but **TEI does not move** — only unassisted matches are rated. Assisted wins are tracked separately (`advisorMatches` / `advisorWins`).
 
-Calibration self-play (`yarn calibrate:ai-tei`) compares tier-vs-tier win rates to those fixed TEI reference bands. Penalty tiers align closely (~76–91% per 200-point step). Go-out ordering is stable but gaps are compressed by race variance; table-size tweaks live in `getWarpSkillProfile(..., playerCount, tableRole)`.
+Calibration self-play (`yarn calibrate:ai-tei`) compares tier-vs-tier win rates to those fixed TEI reference bands. Points tiers align closely (~76–91% per 200-point step). Go-out ordering is stable but gaps are compressed by race variance; table-size tweaks live in `getWarpSkillProfile(..., playerCount, tableRole)`.
 
-Paper outline (TEI, calibration, go-out vs penalty): [docs/tei-paper-outline.md](./docs/tei-paper-outline.md) · in-app: `/paper`. Self-improvement log: [docs/calibration-log.md](./docs/calibration-log.md) · `/paper/log`. Engine survey: [docs/mexican-train-engine-comparison.md](./docs/mexican-train-engine-comparison.md). Marketing: `/about`.
+### Class I* — experimental neural officer
+
+**Class I\*** (local games only, labeled experimental) is our first hybrid AI: Class II heuristics plus a small learned **residual** scored by a 303-feature MLP. Final pick is `argmax(heuristic + α·residual)`. The **tactical coach never uses the model** — only `scoreWithHeuristics` and explainable reasons.
+
+| Piece | Location |
+|-------|----------|
+| Engine policy | `libs/engine/src/lib/ai/class1-star-policy.ts` |
+| Offline training | `tools/nn/` — collect → PyTorch train → ONNX + JSON |
+| Browser inference | ONNX Runtime Web (WebNN → wasm → TS fallback) |
+
+```bash
+yarn class1-star:setup              # Python venv (once)
+CLASS1_STAR_GAMES=1000 yarn class1-star:pipeline:deep   # imitation (points default)
+CLASS1_STAR_GAMES=1000 yarn class1-star:pipeline:go-out # go-out alternate
+CLASS1_STAR_GAMES=1000 yarn class1-star:pipeline:deepblue  # RL regret pass (256×256, α=3)
+```
+
+**What we are learning:** imitation of Commander picks (~74% train top-1) changes ~17% of decisions but **does not beat Class II in 2p go-out** (~48–50% win rate over hundreds of games). Points imitation converges to a near-perfect Commander clone (98% top-1, 1.4% flip) with **no win-rate edge**. The **Deep Blue** pass (`pipeline:deepblue`) collects Class I* vs Commander games, trains with **regret targets** (reinforce winning deviations, learn Commander on losses), a **256×256** MLP, and **α=3.0** so the residual can override heuristics. Class I* is **not** a TEI reference tier until it wins with statistical significance. Details: [tools/nn/README.md](./tools/nn/README.md), [docs/calibration-log.md](./docs/calibration-log.md), paper §4.5.
+
+Paper outline (TEI, calibration, Class I*, go-out vs points): [docs/tei-paper-outline.md](./docs/tei-paper-outline.md) · in-app: `/paper`. Self-improvement log: [docs/calibration-log.md](./docs/calibration-log.md) · `/paper/log`. Engine survey: [docs/mexican-train-engine-comparison.md](./docs/mexican-train-engine-comparison.md). Marketing: `/about`.
 
 Published packages: `warp12-engine` (AI + rules), `warp12-react` (coach + table adapters).
 
@@ -288,6 +307,7 @@ Published packages: `warp12-engine` (AI + rules), `warp12-react` (coach + table 
 
 ## Useful links
 
+- [Documentation site](https://docs.warp12.app) (Jekyll + Just the Docs — `docs/`)
 - [Nx documentation](https://nx.dev)
 - [DoubleTwelve library](./vendor/DoubleTwelve/README.md)
 - [Firebase Console — warp-12](https://console.firebase.google.com/project/warp-12)

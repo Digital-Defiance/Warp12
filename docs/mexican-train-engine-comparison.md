@@ -16,10 +16,10 @@ Most store apps are **product known, engine unknown** — we cannot audit closed
 
 ## Survey (2026)
 
-| Implementation | Product known | Engine known | Rules spec | Automated tests | Dual objective (penalty + go-out) | Documented AI calibration | Open package |
+| Implementation | Product known | Engine known | Rules spec | Automated tests | Dual objective (points + go-out) | Documented AI calibration | Open package |
 |----------------|---------------|--------------|------------|-----------------|-----------------------------------|---------------------------|--------------|
 | **Warp 12** (`warp12-engine`) | Emerging | **Yes** | `RULES.md` | 200+ engine tests | **Yes** | **Yes** (`calibrate:ai-tei`) | **npm** |
-| Glowing Eye — Mexican Train Dominoes Gold / Classic | High | No | No | Unknown | Penalty/score typical | No | No |
+| Glowing Eye — Mexican Train Dominoes Gold / Classic | High | No | No | Unknown | Points/score typical | No | No |
 | Amuseware — Mexican Train Dominoes | Medium | No | No | Unknown | Unknown | No | No |
 | Doralogic — Mexican Train | Medium | No | No | Unknown | Unknown | No | No |
 

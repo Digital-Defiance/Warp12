@@ -1,0 +1,4 @@
+source "https://rubygems.org"
+
+# Matches GitHub Pages' Jekyll stack (local preview only; CI uses actions/jekyll-build-pages).
+gem "github-pages", "~> 231", group: :jekyll_plugins
