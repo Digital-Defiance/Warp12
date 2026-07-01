@@ -1,0 +1,107 @@
+title: Warp 12 Documentation
+description: >-
+  Navigational Operations Manual, TEI specification, AI calibration, and research
+  for the Warp 12 Mexican Train engine.
+url: https://docs.warp12.app
+baseurl: ""
+
+remote_theme: just-the-docs/just-the-docs@v0.10.0
+
+color_scheme: dark
+
+search_enabled: true
+heading_anchors: true
+
+aux_links:
+  GitHub:
+    - https://github.com/Digital-Defiance/Warp12
+  Play:
+    - https://warp12.app
+  Leaderboard:
+    - https://leaderboard.warp12.app
+
+footer_content: "Warp 12 — a Double-Twelve domino variant for the NX Epoch."
+
+plugins:
+  - jekyll-feed
+  - jekyll-github-metadata
+  - jekyll-seo-tag
+  - jekyll-include-cache
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+
+  - scope:
+      path: rules.md
+    values:
+      title: Navigational Operations Manual
+      parent: Game
+      nav_order: 1
+      description: Authoritative rules reference — Spacedock, Warp Trails, modules, AI officers.
+
+  - scope:
+      path: architecture.md
+    values:
+      title: System Architecture
+      parent: Game
+      nav_order: 2
+      description: Monorepo layout — engine, React adapters, client, and Firebase multiplayer.
+
+  - scope:
+      path: tei-spec.md
+    values:
+      title: TEI Specification
+      parent: TEI & Rating
+      nav_order: 1
+      description: Normative dual-track Elo-style skill rating for points and go-out campaigns.
+
+  - scope:
+      path: calibration-log.md
+    values:
+      title: Calibration Log
+      parent: TEI & Rating
+      nav_order: 2
+      description: Living record of self-play runs, optimizer passes, and preset changes.
+
+  - scope:
+      path: rated-matches.md
+    values:
+      title: Rated Matches
+      parent: TEI & Rating
+      nav_order: 3
+      description: Officiated human-pool TEI for in-person play via leaderboard.warp12.app.
+
+  - scope:
+      path: tei-paper-outline.md
+    values:
+      title: Paper Outline
+      parent: Research
+      nav_order: 1
+      description: TEI, self-play calibration, dual-objective AI, and Fleet Admiral search backends.
+
+  - scope:
+      path: mexican-train-engine-comparison.md
+    values:
+      title: Engine Survey
+      parent: Research
+      nav_order: 2
+      description: Survey of known Mexican Train implementations and Warp 12's engine claims.
+
+  - scope:
+      path: neural-training.md
+    values:
+      title: Class I* Neural Training
+      parent: AI Development
+      nav_order: 1
+      description: Offline PyTorch pipeline — collect, train, bench, and ship ONNX artifacts.
+
+compress_html:
+  clippings: all
+  comments: all
+  endings: all
+  startings: []
+  blanklines: false
+  profile: false

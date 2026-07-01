@@ -14,7 +14,7 @@ Fleet command chooses one objective before the sector opens:
 
 | Mode | Goal |
 | --- | --- |
-| **Penalty campaign** *(standard)* | Thirteen rounds — Spacedock descends **12-12** through **0-0**. Lowest **cumulative penalty score** wins the campaign. |
+| **Points campaign** *(standard)* | Thirteen rounds — Spacedock descends **12-12** through **0-0**. Lowest **cumulative points total** wins the campaign. |
 | **Go out** | First captain to empty their hand in a single round wins the sector immediately (no thirteen-round tally). |
 
 ---
@@ -168,17 +168,17 @@ Turn **All Stop! ceremony** off in game options for pure standard Mexican Train:
 
 **Drop to Impulse** *(house rule — off by default)*: when a captain charts down to **one** coordinate remaining, their turn **continues** — they may still chart, draw, cover Red Alert, or pass. They **may** announce **"Drop to Impulse!"** at any point that turn; announcing does **not** end the turn. They are **not** required to announce before passing.
 
-If they **pass** without announcing, any other captain may **catch** the miss while the catch window is open. A successful catch forces the forgetful captain to draw **one** penalty tile from Uncharted Sectors (if any remain). The window opens when they pass without announcing and **closes** when the **next** captain passes helm (if no one caught). This is separate from **All Stop!** ceremony.
+If they **pass** without announcing, any other captain may **catch** the miss while the catch window is open. A successful catch forces the forgetful captain to draw **one** tile from Uncharted Sectors (if any remain). The window opens when they pass without announcing and **closes** when the **next** captain passes helm (if no one caught). This is separate from **All Stop!** ceremony.
 
 ### Blocked sector
 
 If Uncharted Sectors are empty and **no captain** can make a legal chart (after dead doubles are resolved), the round ends **without** a domino winner. **Every** captain scores the pip total of tiles in hand — no exempt captain. All table tiles, hands, and any remaining pile are shuffled for the next round's deal (standard Mexican Train recycle — trails are not trimmed to open ends).
 
-### Penalty scoring *(penalty campaign)*
+### Round scoring *(points campaign)*
 
 When a round ends with a winner, every **other** captain totals pip values in hand and adds that to their campaign score. The round winner scores **0** for that round.
 
-**Next round:** Spacedock steps down one double (12-12 → 11-11 → … → 0-0). After round 13, lowest cumulative penalty wins.
+**Next round:** Spacedock steps down one double (12-12 → 11-11 → … → 0-0). After round 13, lowest cumulative points total wins.
 
 ---
 
@@ -229,12 +229,12 @@ When **enabled**, charting **0-0 on your own Warp Trail** triggers a **Q-Flash**
 | Q-Flash | Effect |
 | --- | --- |
 | **Reverse turn order** | Helm passes counter-clockwise for the rest of the round. |
-| **Skip lowest penalty** | The captain with the lowest campaign penalty score skips their next turn. |
+| **Skip lowest points** | The captain with the lowest campaign points score skips their next turn. |
 | **Peek Uncharted Sector** | The invoker sees the top tile in Uncharted Sectors (hidden from others). |
 | **Temporal inversion** | Turn order reverses until the next double is charted on the table. |
 | **Distress amplification** | All warp trails are open to every captain without a Distress Beacon. |
 | **Fracture immunity** | The next double on an own trail will not open Subspace Fracture (Red Alert still applies). |
-| **Salamander swap** *(requires Module Beta)* | If anyone holds 12-12 at round end, that Salamander penalty applies to the highest-penalty captain instead. |
+| **Salamander swap** *(requires Module Beta)* | If anyone holds 12-12 at round end, that Salamander penalty applies to the highest-points captain instead. |
 | **All Stop! echo** | Any captain going out this round must call All Stop! before the sector closes. |
 | **Q's gamble** | Draw two tiles from Uncharted Sectors — keep one, return the other face-down. |
 
@@ -242,7 +242,7 @@ When **enabled**, charting **0-0 on your own Warp Trail** triggers a **Q-Flash**
 
 ### Module Beta — The Salamander Penalty *(on by default in digital play)*
 
-If a round ends and a captain holds **12-12** in hand, that tile scores **24** penalty points instead of 12. Round 1 never applies (12-12 is Spacedock). From round 2 onward, 12-12 is in circulation.
+If a round ends and a captain holds **12-12** in hand, that tile scores **24** points instead of 12. Round 1 never applies (12-12 is Spacedock). From round 2 onward, 12-12 is in circulation.
 
 ---
 
@@ -297,6 +297,8 @@ Invoking the tactical advisor **during live play** marks the match as **assisted
 
 Local solo sectors against **AI officers** can report results to **[leaderboard.warp12.app](https://leaderboard.warp12.app)** when the client is signed in to Firebase. Team campaigns, unrated lobby modes, and builds without a working stats backend do not update the public boards.
 
+The normative rating math (Elo update, reference bands, multi-captain human tables) is defined in **[docs/tei-spec.md](docs/tei-spec.md)** for third-party interoperability.
+
 ### Lexicon
 
 | Term | Meaning |
@@ -312,15 +314,15 @@ Your solo TEI is **not** one number — the app keeps separate ratings for each 
 | Track | When it applies |
 | --- | --- |
 | **Go-out TEI** | First captain to empty their hand wins the sector |
-| **Penalty TEI** | Lowest cumulative penalty when the campaign ends *(or the round, in single-round solo)* |
+| **Points TEI** | Lowest cumulative points total when the campaign ends *(or the round, in single-round solo)* |
 
 Each track is further split by opponent profile: **Class IV**, **Class III**, and **Class II**. Beating Class II officers does not move your Class IV bucket.
 
 ### Starfleet Academy placement
 
-Before your first rated match in each track, the app asks for a **tactical classification** separately for **go-out** and **penalty**. Choose **Class IV**, **Class III**, or **Class II** on each track (with a short self-description), then fine-tune a **starting TEI** within that class’s band. You might place as Class II for go-out and Class IV for penalty. Each track is saved **once**; after you save placement for a track — or after your first unassisted rated match in that track — its starting TEI field locks. **Class I** is not selectable at onboarding — it is earned.
+Before your first rated match in each track, the app asks for a **tactical classification** separately for **go-out** and **points**. Choose **Class IV**, **Class III**, or **Class II** on each track (with a short self-description), then fine-tune a **starting TEI** within that class’s band. You might place as Class II for go-out and Class IV for points. Each track is saved **once**; after you save placement for a track — or after your first unassisted rated match in that track — its starting TEI field locks. **Class I** is not selectable at onboarding — it is earned.
 
-| Class | Self-description | Penalty TEI band | Go-out TEI band |
+| Class | Self-description | Points TEI band | Go-out TEI band |
 | --- | --- | --- | --- |
 | **Class IV** | New to dominoes | 400–1050 | 400–1125 |
 | **Class III** | Knows Mexican Train | 1050–1300 | 1125–1375 |
@@ -332,10 +334,10 @@ Unassisted matches are scored against **fixed** reference ratings — not the ot
 
 | Track | Class IV | Class III | Class II |
 | --- | --- | --- | --- |
-| **Penalty** | ~TEI 1000 | ~TEI 1200 | ~TEI 1400 |
+| **Points** | ~TEI 1000 | ~TEI 1200 | ~TEI 1400 |
 | **Go-out** | ~TEI 1000 | ~TEI 1250 | ~TEI 1500 |
 
-Go-out uses wider steps because race outcomes are noisier than penalty campaigns. The leaderboard also shows **percentile** (top X%) within each board so rank stays meaningful when raw TEI gaps compress.
+Go-out uses wider steps because race outcomes are noisier than points campaigns. The leaderboard also shows **percentile** (top X%) within each board so rank stays meaningful when raw TEI gaps compress.
 
 ### How your TEI moves
 
@@ -351,7 +353,7 @@ Early games swing more; veterans stabilize.
 
 ### Starting TEI *(Academy)*
 
-Before your **first rated** match in each track, complete **Starfleet Academy placement** for that track: pick Class IV, Class III, or Class II, then save a starting TEI within that class’s band. Tracks are independent — strong at go-out but new to penalty campaigns is fine. If you skip placement and play unassisted, the first match in that track’s bucket begins from **TEI 1000**.
+Before your **first rated** match in each track, complete **Starfleet Academy placement** for that track: pick Class IV, Class III, or Class II, then save a starting TEI within that class’s band. Tracks are independent — strong at go-out but new to points campaigns is fine. If you skip placement and play unassisted, the first match in that track’s bucket begins from **TEI 1000**.
 
 ### What counts as rated
 
@@ -383,7 +385,7 @@ When a rated match completes, the sector summary shows TEI **before → after** 
 | Beacon clears on any play | Optional Deluxe variant | House rule — opt-in |
 | Round starter plays two | Optional Deluxe variant | House rule — opt-in |
 | 0-0 anomaly | — | Q-Continuum — opt-in |
-| 12-12 hand penalty | — | Salamander — opt-in (default on) |
+| 12-12 Salamander Penalty | — | Salamander — opt-in (default on) |
 | NZ win announcement | — | All Stop! ceremony (opt-in house rule, default on — auto log/sound) |
 | One tile left announce | — | Drop to Impulse — house rule, opt-in |
 | Blocked boneyard | Round ends, all score | Blocked sector — same |
