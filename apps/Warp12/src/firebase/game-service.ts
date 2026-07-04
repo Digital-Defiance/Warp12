@@ -96,6 +96,10 @@ export interface CreateLobbyOptions {
   campaignRounds?: number;
   modules?: OnlineLobbySettings['modules'];
   houseRules?: HouseRulesConfig;
+  /** Host intent to play for TEI (default true). */
+  rated?: boolean;
+  /** True when the host is signed in with a durable (non-anonymous) account. */
+  verified?: boolean;
 }
 
 export async function createLobby(
@@ -111,6 +115,7 @@ export async function createLobby(
       displayName,
       pointsScore: 0,
       joinedAt: now,
+      ...(options.verified !== undefined ? { verified: options.verified } : {}),
     },
   ];
   const payload: FirestoreGameDocument = {
@@ -121,6 +126,7 @@ export async function createLobby(
     updatedAt: now,
     objective: options.objective ?? DEFAULT_GAME_OBJECTIVE,
     campaignRounds: options.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS,
+    rated: options.rated ?? true,
     maxPlayers: clampOnlineMaxPlayers(options.maxPlayers ?? ONLINE_MAX_PLAYERS),
     modules: {
       qContinuum: options.modules?.qContinuum ?? false,
@@ -143,7 +149,8 @@ export async function createLobby(
 export async function joinLobby(
   gameId: string,
   playerId: string,
-  displayName: string
+  displayName: string,
+  options: { verified?: boolean } = {}
 ): Promise<{ displayName: string }> {
   let assignedName = displayName.trim();
 
@@ -169,7 +176,15 @@ export async function joinLobby(
     const now = new Date().toISOString();
     const captains = [
       ...data.captains,
-      { id: playerId, displayName: assignedName, pointsScore: 0, joinedAt: now },
+      {
+        id: playerId,
+        displayName: assignedName,
+        pointsScore: 0,
+        joinedAt: now,
+        ...(options.verified !== undefined
+          ? { verified: options.verified }
+          : {}),
+      },
     ];
     tx.update(gameRef(gameId), {
       captains,
@@ -394,6 +409,7 @@ export async function updateLobbySettings(
       ...(settings.campaignRounds !== undefined
         ? { campaignRounds: settings.campaignRounds }
         : {}),
+      ...(settings.rated !== undefined ? { rated: settings.rated } : {}),
       ...(settings.modules !== undefined ? { modules: settings.modules } : {}),
       ...(settings.houseRules !== undefined
         ? { houseRules: settings.houseRules }
@@ -452,6 +468,7 @@ export async function launchOnlineGame(
       hostId: lobby.hostId,
       createdAt: lobby.createdAt,
       captains: lobby.captains,
+      rated: lobby.rated,
       maxPlayers: maxPlayersFor(lobby),
     });
 
@@ -563,6 +580,8 @@ export interface OnlineGameSnapshot {
   hostId: string;
   sectorCaptains: FirestoreCaptain[];
   aiHands: Record<string, readonly { low: number; high: number }[]>;
+  /** Host intent to play for TEI (default true). */
+  rated: boolean;
   dissolved: boolean;
 }
 
@@ -651,6 +670,7 @@ export function subscribeOnlineGame(
         hostId: '',
         sectorCaptains: [],
         aiHands: {},
+        rated: true,
         dissolved: true,
       });
       return;
@@ -685,6 +705,7 @@ export function subscribeOnlineGame(
       hostId: latestDoc.hostId,
       sectorCaptains: latestDoc.captains,
       aiHands,
+      rated: latestDoc.rated ?? true,
       dissolved: false,
     });
   };

@@ -118,9 +118,15 @@ import {
 import {
   ratedObjective,
   reportLocalAiMatch,
+  reportOnlineMatch,
   type LocalAiMatchReport,
   type OnlineHumanSelfReport,
 } from '../firebase/stats-service.js';
+import {
+  onlineMatchRatingEligibility,
+  onlineRatingWarning,
+  onlineUnratedNotice,
+} from '../firebase/human-tei.js';
 import { isNetworkAvailable } from '../game/offline-match-queue.js';
 import { CampaignCompleteOverlay } from './campaign-complete-overlay.js';
 import {
@@ -276,6 +282,8 @@ export interface BridgeTableProps {
   onlineAiCaptainIds?: ReadonlySet<string>;
   /** Online lobby captains — used for AI officer rank on tails and tooltips. */
   onlineCaptains?: readonly FirestoreCaptain[];
+  /** Online: host intent to play for TEI (default true). */
+  sectorRated?: boolean;
   /** Online: shared per-round applied-action history (full log + advisor). */
   onlineMoveLog?: readonly FirestoreRoundMove[];
   onAction?: (action: GameAction) => Promise<ActionResult>;
@@ -290,6 +298,8 @@ export interface BridgeTableProps {
   /** Online: tactical-advisor signals from Firestore presence subcollection. */
   coachPresence?: Record<string, CoachPresence>;
   onCoachSignal?: () => void | Promise<void>;
+  /** Online: toggle for the subspace comms panel. */
+  commsControl?: { open: boolean; onToggle: () => void };
 }
 
 export function BridgeTable({
@@ -304,6 +314,7 @@ export function BridgeTable({
   handCounts = {},
   onlineAiCaptainIds,
   onlineCaptains,
+  sectorRated = true,
   onlineMoveLog,
   onAction,
   onLeave,
@@ -316,6 +327,7 @@ export function BridgeTable({
   syncPending = false,
   coachPresence = {},
   onCoachSignal,
+  commsControl,
 }: BridgeTableProps) {
   const isOnline = mode === 'online';
   const isLocalPassAndPlay =
@@ -335,7 +347,10 @@ export function BridgeTable({
   const playerStatsRef = useRef(playerStats);
   playerStatsRef.current = playerStats;
   const reportedLocalMatchRef = useRef<string | null>(null);
+  const reportedOnlineMatchRef = useRef<string | null>(null);
   const advisorUsedThisMatchRef = useRef(false);
+  // The viewer has acknowledged that engaging the advisor unrates this sector.
+  const advisorConsentRef = useRef(false);
   // Seeded inter-round reshuffle stream so local round 2+ deals are reproducible
   // by the server verification replay (which uses the same seeded stream). Using
   // the engine default (Math.random) here makes the replay diverge with
@@ -393,7 +408,10 @@ export function BridgeTable({
 
   useEffect(() => {
     advisorUsedThisMatchRef.current = false;
+    advisorConsentRef.current = false;
+    setAdvisorConfirmOpen(false);
     reportedLocalMatchRef.current = null;
+    reportedOnlineMatchRef.current = null;
     roundReshuffleRef.current = null;
     campaignAdvisorReviewsRef.current = [];
     campaignRoundSnapshotsRef.current = [];
@@ -533,6 +551,79 @@ export function BridgeTable({
     matchSeed,
   ]);
 
+  // Online human-pool TEI: report the completed sector for server-side rating.
+  // The server re-derives standings and re-verifies every seat, so any verified
+  // captain reporting once is sufficient and idempotent per game id.
+  useEffect(() => {
+    if (!isOnline || game.phase !== 'complete') {
+      return;
+    }
+    const objective = ratedObjective(game.objective);
+    const captains = onlineCaptains ?? [];
+    if (!objective || captains.length === 0) {
+      return;
+    }
+
+    const eligibility = onlineMatchRatingEligibility(
+      captains,
+      game.objective,
+      sectorRated
+    );
+    if (!eligibility.rated) {
+      setMatchReportNotice(
+        onlineRatingWarning(eligibility, captains) ?? 'This sector is unrated.'
+      );
+      return;
+    }
+
+    if (!isFirebaseConfigured() || !auth.ready) {
+      return;
+    }
+
+    // Only verified captains can earn TEI; guests still see the final standings.
+    if (!auth.user || auth.user.isAnonymous) {
+      setMatchReportNotice(
+        'Rated sector — you are aboard as a guest. Sign in with an account to earn TEI.'
+      );
+      return;
+    }
+
+    if (reportedOnlineMatchRef.current === game.id) {
+      return;
+    }
+    reportedOnlineMatchRef.current = game.id;
+    setMatchReportPending(true);
+    setMatchReportNotice(null);
+
+    void reportOnlineMatch(game.id, objective)
+      .then((report) => {
+        setMatchReportPending(false);
+        if (!report) {
+          setMatchReportNotice(
+            'TEI was not saved — Firebase is not configured in this build.'
+          );
+          return;
+        }
+        if (!report.rated) {
+          setMatchReportNotice(onlineUnratedNotice(report.reason));
+          return;
+        }
+        setMatchReport(report);
+        void playerStatsRef.current.refresh();
+      })
+      .catch((error: unknown) => {
+        setMatchReportPending(false);
+        // Allow a retry when auth/roster deps change, not on every render.
+        reportedOnlineMatchRef.current = null;
+        const code = (error as { code?: string })?.code;
+        const message =
+          error instanceof Error ? error.message : 'network or server error.';
+        setMatchReportNotice(
+          `TEI was not saved — ${message}${code ? ` (${code})` : ''}`
+        );
+      });
+  }, [isOnline, game, onlineCaptains, sectorRated, auth.ready, auth.user]);
+
   const [tablePrefs, setTablePrefs] = useState(readTableOptions);
   const {
     layoutStyle,
@@ -581,6 +672,7 @@ export function BridgeTable({
   const [rematchConfirmOpen, setRematchConfirmOpen] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [setupConfirmOpen, setSetupConfirmOpen] = useState(false);
+  const [advisorConfirmOpen, setAdvisorConfirmOpen] = useState(false);
   const [localCoachSignals, setLocalCoachSignals] = useState<
     Record<string, CoachPresence>
   >({});
@@ -940,6 +1032,24 @@ export function BridgeTable({
     return indicators;
   }, [mergedCoachPresence, round]);
 
+  // Sector-wide advisor void: once any captain consults the advisor, an
+  // otherwise-rated online sector becomes unrated for everyone. Coach presence
+  // is broadcast to all clients, so every captain sees this the moment it happens.
+  const sectorAdvisorVoided = useMemo(() => {
+    if (!isOnline) {
+      return false;
+    }
+    if (
+      !onlineMatchRatingEligibility(onlineCaptains ?? [], game.objective, sectorRated)
+        .rated
+    ) {
+      return false;
+    }
+    return Object.values(mergedCoachPresence).some(
+      (presence) => presence.coachUsedThisRound === true
+    );
+  }, [isOnline, mergedCoachPresence, onlineCaptains, game.objective, sectorRated]);
+
   const coachChart = coachSuggestion
     ? coachChartMove(coachSuggestion.action)
     : null;
@@ -999,6 +1109,18 @@ export function BridgeTable({
     round,
   ]);
 
+  // True when engaging the advisor would flip an otherwise-rated online sector
+  // to unrated — the acting captain is asked to confirm first (once per match).
+  const advisorEngageNeedsConfirm = useCallback(() => {
+    return (
+      isOnline &&
+      !advisorConsentRef.current &&
+      !advisorUsedThisMatchRef.current &&
+      onlineMatchRatingEligibility(onlineCaptains ?? [], game.objective, sectorRated)
+        .rated
+    );
+  }, [isOnline, onlineCaptains, game.objective, sectorRated]);
+
   const applyCoachSuggestion = useCallback(
     (suggestion: CoachSuggestion, options?: { announce?: boolean }) => {
       setCoachSuggestion(suggestion);
@@ -1032,6 +1154,13 @@ export function BridgeTable({
       return;
     }
 
+    // Teaching mode auto-consults every turn; in a rated online sector, ask for
+    // consent before the first auto-engagement rather than silently unrating.
+    if (advisorEngageNeedsConfirm()) {
+      setAdvisorConfirmOpen(true);
+      return;
+    }
+
     const suggestion = getCoachSuggestion(game, handOwnerId, names);
     if (!suggestion) {
       setCoachSuggestion(null);
@@ -1041,6 +1170,7 @@ export function BridgeTable({
 
     applyCoachSuggestion(suggestion, { announce: true });
   }, [
+    advisorEngageNeedsConfirm,
     applyCoachSuggestion,
     coachAvailable,
     game,
@@ -1424,7 +1554,7 @@ export function BridgeTable({
     }
   }, [coachSuggestion]);
 
-  const askCoach = useCallback(async () => {
+  const runAskCoach = useCallback(async () => {
     if (!round || !coachAvailable || coachBusy) {
       return;
     }
@@ -1449,6 +1579,28 @@ export function BridgeTable({
     handOwnerId,
     round,
   ]);
+
+  const askCoach = useCallback(async () => {
+    if (advisorEngageNeedsConfirm()) {
+      setAdvisorConfirmOpen(true);
+      return;
+    }
+    await runAskCoach();
+  }, [advisorEngageNeedsConfirm, runAskCoach]);
+
+  const confirmAdvisorEngage = useCallback(() => {
+    advisorConsentRef.current = true;
+    setAdvisorConfirmOpen(false);
+    void runAskCoach();
+  }, [runAskCoach]);
+
+  const cancelAdvisorEngage = useCallback(() => {
+    setAdvisorConfirmOpen(false);
+    // Declining also stops teaching mode so it does not keep re-prompting.
+    if (teachingMode) {
+      patchTablePrefs({ teachingMode: false });
+    }
+  }, [patchTablePrefs, teachingMode]);
 
   const aiBusy = useRef(false);
 
@@ -2139,6 +2291,18 @@ export function BridgeTable({
           onClose={() => setSetupConfirmOpen(false)}
         />
 
+        <ConfirmDialog
+          open={advisorConfirmOpen}
+          title="Engage the tactical advisor?"
+          titleId="warp12-advisor-confirm-title"
+          message="This is a rated sector. Consulting the advisor makes the match assisted, and TEI will not change for any captain at the table. This cannot be undone for this sector."
+          confirmLabel="Engage advisor"
+          cancelLabel="Play unassisted"
+          confirmTone="danger"
+          onConfirm={confirmAdvisorEngage}
+          onClose={cancelAdvisorEngage}
+        />
+
         <HostLeaveSectorDialog
           open={leaveConfirmOpen}
           onClose={() => setLeaveConfirmOpen(false)}
@@ -2228,6 +2392,7 @@ export function BridgeTable({
             mode: logMode,
             onCycle: cycleLogMode,
           }}
+          commsControl={commsControl}
         >
           <div
             className={styles.hubOverlay}
@@ -2471,6 +2636,13 @@ export function BridgeTable({
               : 'Stand by'}
           </span>
         </header>
+
+        {sectorAdvisorVoided && (
+          <p className={styles.feedback} role="status">
+            ⚠ Sector unrated — the tactical advisor was engaged. TEI will not
+            change for any captain.
+          </p>
+        )}
 
         {(roundAwaitingScore ||
           lastMessage ||

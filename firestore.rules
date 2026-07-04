@@ -205,6 +205,44 @@ service cloud.firestore {
           && parentGame().phase == 'active';
       }
 
+      // ── Subspace Messaging ──────────────────────────────────────────────
+      // Messages are public to the sector (readable by any member). During a
+      // live **rated** sector, only quick-phrase hails are allowed (no free
+      // text, no DMs). Casual and unrated sectors allow free-form + DMs.
+      match /messages/{messageId} {
+        function parentGameForMsg() {
+          return get(/databases/$(database)/documents/games/$(gameId)).data;
+        }
+
+        // Any sector member can read all messages (including DMs — per the
+        // honor model, not private to sender/recipient).
+        allow read: if isSignedIn() && isMember(parentGameForMsg());
+
+        // Write rules: sender must be a member; enforce rated-sector comms
+        // gate at the rule level so tampered clients cannot bypass it.
+        allow create: if isSignedIn()
+          && isMember(parentGameForMsg())
+          && request.resource.data.from == request.auth.uid
+          && request.resource.data.at is string
+          && request.resource.data.kind in ['phrase', 'text']
+          // During live rated play: only public quick-hail phrases (no text, no DM).
+          && (
+            // Non-active phases (lobby, complete) — anything goes.
+            parentGameForMsg().phase != 'active'
+            // Active unrated — anything goes.
+            || parentGameForMsg().get('rated', true) == false
+            // Active rated — must be a phrase with no recipient (public only).
+            || (
+              request.resource.data.kind == 'phrase'
+              && request.resource.data.get('phraseId', '') != ''
+              && !request.resource.data.keys().hasAny(['text', 'to'])
+            )
+          );
+
+        // Messages are append-only — no edits or deletes.
+        allow update, delete: if false;
+      }
+
       match /hands/{playerId} {
         function parentGame() {
           return get(/databases/$(database)/documents/games/$(gameId)).data;

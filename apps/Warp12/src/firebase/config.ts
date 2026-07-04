@@ -1,6 +1,15 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { connectAuthEmulator, getAuth, type Auth } from 'firebase/auth';
+import {
+  connectFirestoreEmulator,
+  getFirestore,
+  type Firestore,
+} from 'firebase/firestore';
+
+import {
+  FIREBASE_EMULATOR_HOSTS,
+  useFirebaseEmulators,
+} from './emulator.js';
 
 export interface FirebaseConfig {
   apiKey: string;
@@ -33,6 +42,27 @@ export function isFirebaseConfigured(config: FirebaseConfig = readConfig()): boo
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
+let authEmulatorConnected = false;
+let firestoreEmulatorConnected = false;
+
+function connectAuthEmulatorIfNeeded(nextAuth: Auth): void {
+  if (!useFirebaseEmulators() || authEmulatorConnected) {
+    return;
+  }
+  connectAuthEmulator(nextAuth, FIREBASE_EMULATOR_HOSTS.auth, {
+    disableWarnings: true,
+  });
+  authEmulatorConnected = true;
+}
+
+function connectFirestoreEmulatorIfNeeded(nextDb: Firestore): void {
+  if (!useFirebaseEmulators() || firestoreEmulatorConnected) {
+    return;
+  }
+  const { host, port } = FIREBASE_EMULATOR_HOSTS.firestore;
+  connectFirestoreEmulator(nextDb, host, port);
+  firestoreEmulatorConnected = true;
+}
 
 /** Lazily initialize Firebase when credentials are present. */
 export function getFirebaseApp(): FirebaseApp | null {
@@ -51,7 +81,10 @@ export function getFirebaseAuth(): Auth | null {
     return null;
   }
 
-  auth ??= getAuth(firebaseApp);
+  if (!auth) {
+    auth = getAuth(firebaseApp);
+    connectAuthEmulatorIfNeeded(auth);
+  }
   return auth;
 }
 
@@ -61,7 +94,10 @@ export function getFirestoreDb(): Firestore | null {
     return null;
   }
 
-  db ??= getFirestore(firebaseApp);
+  if (!db) {
+    db = getFirestore(firebaseApp);
+    connectFirestoreEmulatorIfNeeded(db);
+  }
   return db;
 }
 

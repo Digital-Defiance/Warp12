@@ -67,6 +67,30 @@ export interface TeiRankedPlayer {
   readonly unassistedMatches?: number;
 }
 
+/**
+ * Competition ranks from sortable scores (1 = best). Ties share a rank, e.g.
+ * scores producing 1, 2, 2, 4. `lowerIsBetter` is true for points campaigns and
+ * for go-out tile counts (fewer tiles left = better).
+ */
+export function rankCompetition(
+  entries: readonly { playerId: string; score: number }[],
+  lowerIsBetter = true
+): Map<string, number> {
+  const sorted = [...entries].sort((left, right) =>
+    lowerIsBetter ? left.score - right.score : right.score - left.score
+  );
+  const ranks = new Map<string, number>();
+  for (let index = 0; index < sorted.length; index += 1) {
+    const entry = sorted[index]!;
+    if (index > 0 && sorted[index - 1]!.score === entry.score) {
+      ranks.set(entry.playerId, ranks.get(sorted[index - 1]!.playerId)!);
+    } else {
+      ranks.set(entry.playerId, index + 1);
+    }
+  }
+  return ranks;
+}
+
 function pairwiseScore(rankA: number, rankB: number): number {
   if (rankA < rankB) {
     return 1;

@@ -22,6 +22,12 @@ import {
   type FirestoreRoundMove,
 } from '../firebase';
 import { isAiCaptain } from '../game/ai-captain.js';
+import { resolveCommsMode } from '../game/comms-mode.js';
+import {
+  subscribeMessages,
+  type SubspaceMessage,
+} from '../firebase/messages.js';
+import { CommsPanel } from './comms-panel.js';
 import {
   createActionLog,
   playerIdForAction,
@@ -48,6 +54,7 @@ export function OnlineGamePage() {
     readonly FirestoreCaptain[]
   >([]);
   const [handCounts, setHandCounts] = useState<Record<string, number>>({});
+  const [sectorRated, setSectorRated] = useState(true);
   const [moveLog, setMoveLog] = useState<readonly FirestoreRoundMove[]>([]);
   const [aiHands, setAiHands] = useState<
     Record<string, readonly { low: number; high: number }[]>
@@ -58,6 +65,9 @@ export function OnlineGamePage() {
   const [coachPresence, setCoachPresence] = useState<
     Record<string, CoachPresence>
   >({});
+  const [commsMessages, setCommsMessages] = useState<SubspaceMessage[]>([]);
+  const [mutedUids, setMutedUids] = useState<Set<string>>(new Set());
+  const [commsOpen, setCommsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exportBusy, setExportBusy] = useState(false);
   const actionLogRef = useRef(createActionLog());
@@ -93,6 +103,7 @@ export function OnlineGamePage() {
         hostId: sectorHost,
         sectorCaptains: captains,
         aiHands: hostAiHands,
+        rated,
         dissolved,
       }) => {
         if (dissolved) {
@@ -115,6 +126,7 @@ export function OnlineGamePage() {
         setServerGame(state);
         setHostId(sectorHost);
         setSectorCaptains(captains);
+        setSectorRated(rated);
         setHandCounts(counts);
         setMoveLog(sharedMoveLog);
         setAiHands(hostAiHands);
@@ -149,6 +161,13 @@ export function OnlineGamePage() {
     }
 
     return subscribeCoachPresence(code, setCoachPresence);
+  }, [code]);
+
+  useEffect(() => {
+    if (!code) {
+      return;
+    }
+    return subscribeMessages(code, setCommsMessages);
   }, [code]);
 
   useEffect(() => {
@@ -296,6 +315,19 @@ export function OnlineGamePage() {
     await signalCoachRequest(code, uid, serverGame.round.roundNumber);
   }, [code, uid, serverGame?.round?.roundNumber]);
 
+  const handleMute = useCallback((targetUid: string) => {
+    setMutedUids((prev) => new Set([...prev, targetUid]));
+  }, []);
+
+  const toggleComms = useCallback(() => {
+    setCommsOpen((open) => !open);
+  }, []);
+
+  const commsMode = resolveCommsMode(
+    sectorRated,
+    game?.phase === 'active' ? 'active' : game?.phase === 'complete' ? 'complete' : 'lobby'
+  );
+
   const hostResetSector = async () => {
     if (!code || !uid) {
       return;
@@ -399,6 +431,7 @@ export function OnlineGamePage() {
         handCounts={handCounts}
         onlineAiCaptainIds={onlineAiCaptainIds}
         onlineCaptains={sectorCaptains}
+        sectorRated={sectorRated}
         onlineMoveLog={moveLog}
         onAction={dispatch}
         onLeave={() => navigate('/')}
@@ -411,7 +444,22 @@ export function OnlineGamePage() {
         syncPending={syncPending}
         coachPresence={coachPresence}
         onCoachSignal={signalCoach}
+        commsControl={{ open: commsOpen, onToggle: toggleComms }}
       />
+      {commsOpen && uid && (
+        <CommsPanel
+          gameId={code}
+          viewerUid={uid}
+          viewerName={
+            sectorCaptains.find((c) => c.id === uid)?.displayName ?? 'Captain'
+          }
+          messages={commsMessages}
+          mode={commsMode}
+          captains={sectorCaptains}
+          muted={mutedUids}
+          onMute={handleMute}
+        />
+      )}
     </div>
   );
 }

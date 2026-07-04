@@ -1,6 +1,6 @@
 {
   "name": "@warp12/Warp12",
-  "version": "0.4.15",
+  "version": "0.4.16",
   "private": true,
   "dependencies": {
     "@tauri-apps/api": "^2",

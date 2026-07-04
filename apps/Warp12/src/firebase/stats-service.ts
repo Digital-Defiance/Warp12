@@ -2,7 +2,6 @@ import { doc, getDoc, runTransaction } from 'firebase/firestore';
 
 import {
   type GameObjective,
-  type GameState,
   WARP_SKILL_LEVELS,
   type WarpSkillLevel,
 } from 'warp12-engine';
@@ -43,7 +42,6 @@ import {
 import { humanObjectiveTeiStats } from './human-tei.js';
 
 import type { CaptainGender } from '../game/captain-profile.js';
-import type { FirestoreCaptain } from './schema.js';
 import {
   emptyLocalAiSkillStats,
   objectiveTeiKey,
@@ -121,15 +119,20 @@ export interface OnlineHumanSelfReport {
   teiBefore: number | null;
   teiAfter: number | null;
   teiDelta: number | null;
+  /** When unrated, the server's reason code (e.g. `advisor_used`). */
+  reason?: string;
 }
 
-export interface ReportOnlineHumanSelfInput {
-  uid: string;
-  displayName: string;
-  gameId: string;
-  game: GameState;
-  onlineCaptains: readonly FirestoreCaptain[];
-  advisorUsed: boolean;
+/** Raw callable response from the `reportOnlineMatch` Cloud Function. */
+interface OnlineMatchCallableResult {
+  rated: boolean;
+  reason?: string;
+  won?: boolean;
+  rank?: number;
+  teiBefore?: number | null;
+  teiAfter?: number | null;
+  teiDelta?: number | null;
+  alreadyApplied?: boolean;
 }
 
 export { startingTeiForObjective } from './stats-schema.js';
@@ -416,12 +419,52 @@ export async function reportLocalAiMatch(
   }
 }
 
-/** @deprecated Human-pool TEI uses officiated rated matches on the leaderboard. */
-export async function reportOnlineHumanSelfTei(
-  input: ReportOnlineHumanSelfInput
+/**
+ * Report a completed online sector for human-pool TEI. The server re-derives the
+ * standings from the authoritative game document, re-verifies every human seat,
+ * and applies pairwise Elo (humans anchored against Class II–IV AI). Rating all
+ * eligible captains is idempotent per `gameId`, so it is safe for any verified
+ * captain at the table to call once the sector completes.
+ */
+export async function reportOnlineMatch(
+  gameId: string,
+  objective: RatedObjective
 ): Promise<OnlineHumanSelfReport | null> {
-  void input;
-  return null;
+  if (!isFirebaseConfigured()) {
+    return null;
+  }
+
+  const result = await callFunction<
+    { gameId: string },
+    OnlineMatchCallableResult
+  >('reportOnlineMatch', { gameId });
+
+  if (!result.rated) {
+    return {
+      rated: false,
+      won: false,
+      advisorUsed: result.reason === 'advisor_used',
+      objective,
+      humanPool: true,
+      rank: 0,
+      teiBefore: null,
+      teiAfter: null,
+      teiDelta: null,
+      reason: result.reason,
+    };
+  }
+
+  return {
+    rated: true,
+    won: result.won ?? false,
+    advisorUsed: false,
+    objective,
+    humanPool: true,
+    rank: result.rank ?? 0,
+    teiBefore: result.teiBefore ?? null,
+    teiAfter: result.teiAfter ?? null,
+    teiDelta: result.teiDelta ?? null,
+  };
 }
 
 export function displayPlayerObjectiveTei(

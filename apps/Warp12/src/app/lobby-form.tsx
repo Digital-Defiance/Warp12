@@ -123,6 +123,19 @@ export function LobbyForm({
 
       <fieldset className={styles.fieldset}>
         <legend>Host sector settings</legend>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={createOptions.rated ?? true}
+            onChange={(e) =>
+              onCreateOptionsChange({ ...createOptions, rated: e.target.checked })
+            }
+          />
+          <span>
+            Rated sector — results count toward TEI. Comms are limited to quick
+            hails during play. Uncheck for a casual game with open chat.
+          </span>
+        </label>
         <label className={styles.field}>
           <span>
             Fleet capacity ({LOCAL_MIN_PLAYERS}–{LOCAL_MAX_PLAYERS} captains)

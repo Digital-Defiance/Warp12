@@ -35,6 +35,11 @@ export interface FirestoreGameDocument {
   objective: GameObjective;
   /** Penalty campaign length (1–13). */
   campaignRounds: number;
+  /**
+   * Host intent to play for TEI. Default `true`. When `false`, the sector is a
+   * casual game — never rated — and free-form chat/DMs stay open during play.
+   */
+  rated?: boolean;
   /** Fleet capacity (3–8). */
   maxPlayers: number;
   /** Denormalized uid list for security rules. */
@@ -60,12 +65,20 @@ export interface FirestoreCaptain {
   isAi?: boolean;
   skill?: WarpSkillLevel;
   useLookahead?: boolean;
+  /**
+   * Human captains only: `true` when signed in with a durable (non-anonymous)
+   * account. Drives the lobby "unrated" warning; the server re-verifies against
+   * Firebase Auth before applying any TEI.
+   */
+  verified?: boolean;
 }
 
 export interface OnlineLobbySettings {
   objective: GameObjective;
   maxPlayers: number;
   campaignRounds: number;
+  /** Host intent to play for TEI (default true). */
+  rated?: boolean;
   modules: {
     qContinuum: boolean;
     salamanderPenalty: boolean;

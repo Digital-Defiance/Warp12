@@ -5,6 +5,7 @@ export {
   updateTeiScore,
   updateUnassistedTei,
   updateTeiMultiplayerPairwise,
+  rankCompetition,
   resolveEffectivePlayerTei,
   opponentTeiForObjective,
   type AiSkillLevel,

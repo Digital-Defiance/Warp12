@@ -50,6 +50,11 @@ export interface TableViewportSoundControl {
   onToggle: () => void;
 }
 
+export interface TableViewportCommsControl {
+  open: boolean;
+  onToggle: () => void;
+}
+
 export interface TableViewportProps {
   tableWidth: number;
   tableHeight: number;
@@ -58,6 +63,7 @@ export interface TableViewportProps {
   focusControl?: TableViewportFocusControl;
   soundControl?: TableViewportSoundControl;
   logControl?: TableViewportLogControl;
+  commsControl?: TableViewportCommsControl;
   autoFollowAction?: boolean;
   actionFocus?: TableViewportFocusTarget | null;
 }
@@ -70,6 +76,7 @@ export function TableViewport({
   focusControl,
   soundControl,
   logControl,
+  commsControl,
   autoFollowAction = false,
   actionFocus = null,
 }: TableViewportProps) {
@@ -179,7 +186,7 @@ export function TableViewport({
       </div>
 
       <div className={styles.viewportHud}>
-        {soundControl || focusControl || logControl ? (
+        {soundControl || focusControl || logControl || commsControl ? (
           <div className={styles.viewportToolbar}>
             {logControl ? (
               <button
@@ -206,6 +213,20 @@ export function TableViewport({
               >
                 <span className={styles.hudIconToggleGlyph} aria-hidden>
                   {soundControl.muted ? '🔇' : '🔊'}
+                </span>
+              </button>
+            ) : null}
+            {commsControl ? (
+              <button
+                type="button"
+                className={styles.hudIconToggle}
+                aria-pressed={commsControl.open}
+                aria-label={commsControl.open ? 'Close subspace comms' : 'Open subspace comms'}
+                title={commsControl.open ? 'Close comms' : 'Subspace comms'}
+                onClick={commsControl.onToggle}
+              >
+                <span className={styles.hudIconToggleGlyph} aria-hidden>
+                  💬
                 </span>
               </button>
             ) : null}
