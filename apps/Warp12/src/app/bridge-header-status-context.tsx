@@ -7,10 +7,19 @@ import {
   type ReactNode,
 } from 'react';
 
+/**
+ * Connection health for the header indicator:
+ * - `live`: listeners attached and showing server-confirmed data (green).
+ * - `stale`: listeners attached but showing local-cache data the server has not
+ *   yet confirmed — this client is out of sync (orange).
+ * - `pending`: reconnecting or transmitting a move (amber).
+ */
+export type BridgeConnectionState = 'live' | 'stale' | 'pending';
+
 export interface BridgeHeaderStatus {
   sectorLabel?: string;
   connectionLabel: string;
-  connectionLive?: boolean;
+  connectionState?: BridgeConnectionState;
 }
 
 interface BridgeHeaderStatusRegistration {
@@ -40,7 +49,7 @@ function statusEqual(
   return (
     current.sectorLabel === next.sectorLabel &&
     current.connectionLabel === next.connectionLabel &&
-    current.connectionLive === next.connectionLive
+    current.connectionState === next.connectionState
   );
 }
 

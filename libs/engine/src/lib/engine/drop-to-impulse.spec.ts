@@ -96,7 +96,7 @@ describe('drop to impulse house rule', () => {
     expect(result.state.round?.hands.a).toHaveLength(1);
   });
 
-  it('blocks charting the last coordinate while announce is pending', () => {
+  it('allows charting the last coordinate while at impulse without announcing', () => {
     const base = makeRound(['a', 'b'], { activePlayerId: 'a', spacedockValue: 12 });
     const round = makeRound(['a', 'b'], {
       activePlayerId: 'a',
@@ -110,7 +110,8 @@ describe('drop to impulse house rule', () => {
           ...base.table.warpTrails,
           a: {
             ...base.table.warpTrails.a,
-            tiles: [placed(T(12, 3), 0, 12)],
+            tiles: [placed(T(12, 3), 0, 3)],
+            distressBeacon: { active: false },
           },
         },
       },
@@ -124,7 +125,10 @@ describe('drop to impulse house rule', () => {
       route: { kind: 'warp-trail', playerId: 'a' },
     });
 
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.round?.dropToImpulseCallPending).toBeNull();
+    expect(result.state.round?.hands.a).toHaveLength(0);
   });
 
   it('allows passing helm without declaring even when shields are up', () => {
@@ -252,6 +256,81 @@ describe('drop to impulse house rule', () => {
     }
     expect(result.state.round?.dropToImpulseCatchable).toBeNull();
     expect(result.state.round?.activePlayerId).toBe('a');
+  });
+
+  it('returns to warp when stuck at impulse and must draw', () => {
+    const tile = T(0, 1);
+    const base = makeRound(['a', 'b'], { activePlayerId: 'a', spacedockValue: 12 });
+    const round = makeRound(['a', 'b'], {
+      activePlayerId: 'a',
+      spacedockValue: 12,
+      dropToImpulseCallPending: 'a',
+      hands: { a: [T(3, 4)], b: [] },
+      unchartedSectors: [tile],
+      table: {
+        ...base.table,
+        spacedock: { value: 12, placedBy: 'a' },
+        warpTrails: {
+          ...base.table.warpTrails,
+          a: {
+            ...base.table.warpTrails.a,
+            tiles: [placed(T(12, 3), 0, 12)],
+            distressBeacon: { active: true },
+          },
+        },
+      },
+    });
+    const state = impulseGame(round);
+
+    const result = applyAction(state, {
+      type: 'DRAW_FROM_UNCHARTED',
+      playerId: 'a',
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    expect(result.state.round?.dropToImpulseCallPending).toBeNull();
+    expect(result.state.round?.dropToImpulseCatchable).toBeNull();
+    expect(result.state.round?.hands.a).toEqual([T(3, 4), tile]);
+  });
+
+  it('returns to warp when catchable captain draws because they cannot play', () => {
+    const tile = T(0, 1);
+    const base = makeRound(['a', 'b'], { activePlayerId: 'a', spacedockValue: 12 });
+    const round = makeRound(['a', 'b'], {
+      activePlayerId: 'a',
+      spacedockValue: 12,
+      dropToImpulseCatchable: 'a',
+      hands: { a: [T(3, 4)], b: [] },
+      unchartedSectors: [tile],
+      table: {
+        ...base.table,
+        spacedock: { value: 12, placedBy: 'a' },
+        warpTrails: {
+          ...base.table.warpTrails,
+          a: {
+            ...base.table.warpTrails.a,
+            tiles: [placed(T(12, 3), 0, 12)],
+            distressBeacon: { active: true },
+          },
+        },
+      },
+    });
+    const state = impulseGame(round);
+
+    const result = applyAction(state, {
+      type: 'DRAW_FROM_UNCHARTED',
+      playerId: 'a',
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    expect(result.state.round?.dropToImpulseCatchable).toBeNull();
+    expect(result.state.round?.hands.a).toEqual([T(3, 4), tile]);
   });
 
   it('does nothing when the house rule is off', () => {

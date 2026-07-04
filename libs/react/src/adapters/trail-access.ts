@@ -125,6 +125,13 @@ export function isRedAlertFresh(round: RoundState): boolean {
     return false;
   }
 
+  // Authoritative once the engine records the first pass. The beacon heuristic
+  // below is a fallback for legacy states without the flag (and covers a free
+  // pass that leaves no beacon behind).
+  if (redAlert.passed === true) {
+    return false;
+  }
+
   const responsible = redAlert.responsiblePlayerId;
   for (const [playerId, trail] of Object.entries(round.table.warpTrails)) {
     if (trail.distressBeacon.active && playerId !== responsible) {

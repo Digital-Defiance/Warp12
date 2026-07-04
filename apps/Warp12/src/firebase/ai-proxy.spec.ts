@@ -232,6 +232,59 @@ describe('online AI move proxy', () => {
     ).toBeNull();
   });
 
+  it('rejects Drop to Impulse when the house rule is off', () => {
+    const doc = lobbyDoc({
+      houseRules: { dropToImpulseCall: false },
+      round: {
+        ...lobbyDoc().round!,
+        activePlayerId: 'host-uid',
+        dropToImpulseCallPending: 'host-uid',
+      },
+    });
+
+    expect(
+      assertActorMaySubmit(doc, 'host-uid', {
+        type: 'DROP_TO_IMPULSE',
+        playerId: 'host-uid',
+      })
+    ).toBe('DROP_TO_IMPULSE_NOT_REQUIRED');
+  });
+
+  it('allows RAISE_SHIELDS for the active captain', () => {
+    const doc = lobbyDoc({
+      houseRules: { manualShieldControl: true },
+      round: {
+        ...lobbyDoc().round!,
+        activePlayerId: 'host-uid',
+        playedThisTurn: true,
+      },
+    });
+
+    expect(
+      assertActorMaySubmit(doc, 'host-uid', {
+        type: 'RAISE_SHIELDS',
+        playerId: 'host-uid',
+      })
+    ).toBeNull();
+  });
+
+  it('rejects RAISE_SHIELDS for a non-active captain', () => {
+    const doc = lobbyDoc({
+      houseRules: { manualShieldControl: true },
+      round: {
+        ...lobbyDoc().round!,
+        activePlayerId: 'ai:riker',
+      },
+    });
+
+    expect(
+      assertActorMaySubmit(doc, 'host-uid', {
+        type: 'RAISE_SHIELDS',
+        playerId: 'host-uid',
+      })
+    ).toBe('NOT_YOUR_TURN');
+  });
+
   it('allows END_ROUND with a null winner when the sector is blocked', () => {
     const doc = lobbyDoc({
       round: {

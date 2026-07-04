@@ -2,6 +2,7 @@ import {
   canDeployDistressBeacon,
   canPassRedAlert,
   canPassTurn,
+  canRaiseShieldsManually,
   mustDrawBeforePassing,
 } from '../engine/beacon.js';
 import { getLegalMoves } from '../engine/legal-moves.js';
@@ -54,6 +55,11 @@ export function explainTurnResolution(
   const uncharted = round.unchartedSectors.length;
   const mustDraw = mustDrawBeforePassing(round, playerId, houseRules);
   const redAlertBlocking = isRedAlertBlocking(round.table.redAlert, playerId);
+  // The free pass (no draw, no beacon) applies only to the captain who charted
+  // the double, while the alert is still in the Caution phase (not yet passed).
+  const freePass =
+    houseRules.passRedAlertWithoutDraw &&
+    round.table.redAlert?.passed !== true;
   const beaconActive =
     round.table.warpTrails[playerId]?.distressBeacon.active === true;
   const fractureActive = isNavigationHaltedByFracture(
@@ -86,7 +92,9 @@ export function explainTurnResolution(
 
     if (redAlertBlocking && canPassRedAlert(round, playerId, { houseRules })) {
       lines.push(
-        'Pass Red Alert — you cannot add a stabilizer. Your Distress Beacon deploys and responsibility passes to the next captain.'
+        freePass
+          ? 'Pass Red Alert — you cannot add a stabilizer. Responsibility passes to the next captain and your shields stay up.'
+          : 'Pass Red Alert — you cannot add a stabilizer. Your Distress Beacon deploys and responsibility passes to the next captain.'
       );
       lines.push(
         'The next responsible captain must continue stabilizing until three branches are placed; the third clears both Subspace Fracture and Red Alert.'
@@ -120,21 +128,42 @@ export function explainTurnResolution(
     (round.hands[playerId]?.length ?? 0) === 1
   ) {
     lines.push(
-      'Drop to Impulse — announce with the button, or Pass helm to end your turn without declaring (opponents may catch a missed announce).'
-    );
-    lines.push(
-      'Your last coordinate waits for your next turn — you cannot play it on this turn.'
+      'At impulse (one tile left) — you may play that last tile without announcing, press Drop to Impulse! to announce and Pass helm, or Pass without announcing (opponents may catch until the next captain Pass helm). Drawing while stuck returns you to warp.'
     );
     return lines;
   }
 
   if (legalMoves.length > 0) {
+    if (houseRules.manualShieldControl) {
+      const beaconActive =
+        round.table.warpTrails[playerId]?.distressBeacon.active === true;
+      if (
+        !beaconActive &&
+        canDeployDistressBeacon(round, playerId, { houseRules })
+      ) {
+        lines.push(
+          'Shields down is legal — open your warp trail voluntarily after you have started your own trail. Charting on your own trail will not raise shields automatically.'
+        );
+      }
+      if (canRaiseShieldsManually(round, playerId, houseRules)) {
+        lines.push(
+          'Shields up is legal — close your warp trail until you drop shields again. You may do this before you pass helm.'
+        );
+      }
+    }
+    if (round.playedThisTurn) {
+      lines.push(
+        'Pass is legal — end your turn after any optional shield change.'
+      );
+    }
     return lines;
   }
 
-  if (mustDraw) {
+  if (mustDraw && !(redAlertBlocking && canPassRedAlert(round, playerId, { houseRules }))) {
     lines.push(
-      `Nothing in your hand plays — you must draw from Uncharted Sectors (${uncharted} tile${uncharted === 1 ? '' : 's'} left). Pass and shields-down options only apply after you draw, or when the pile is empty.`
+      houseRules.manualShieldControl
+        ? `Nothing in your hand plays — you must draw from Uncharted Sectors (${uncharted} tile${uncharted === 1 ? '' : 's'} left). If you still cannot chart afterward, shields down is required.`
+        : `Nothing in your hand plays — you must draw from Uncharted Sectors (${uncharted} tile${uncharted === 1 ? '' : 's'} left). Pass and shields-down options only apply after you draw, or when the pile is empty.`
     );
     if (redAlertBlocking) {
       lines.push(
@@ -148,11 +177,21 @@ export function explainTurnResolution(
     const target = redAlertTargetLabel(state, playerId, options?.names);
     if (canPassRedAlert(round, playerId, { houseRules })) {
       lines.push(
-        `Pass Red Alert is legal — nothing in your hand covers ${target}, and you have already drawn or Uncharted Sectors is empty.`
+        freePass
+          ? `Pass Red Alert is legal — nothing in your hand covers ${target}. You charted this double, so this table lets you pass without drawing and without deploying your Distress Beacon.`
+          : uncharted > 0
+            ? `Pass Red Alert is legal — nothing in your hand covers ${target}, and you have already drawn or Uncharted Sectors is empty.`
+            : `Pass Red Alert is legal — nothing in your hand covers ${target}, and Uncharted Sectors is empty.`
       );
-      lines.push(
-        'Passing deploys your Distress Beacon and moves Red Alert responsibility to the next captain — the double stays unsatisfied until someone covers it or completes three stabilizers on a Subspace Fracture.'
-      );
+      if (!freePass) {
+        lines.push(
+          'Passing deploys your Distress Beacon and moves Red Alert responsibility to the next captain — the double stays unsatisfied until someone covers it or completes three stabilizers on a Subspace Fracture.'
+        );
+      } else {
+        lines.push(
+          'Responsibility moves to the next captain — the double stays unsatisfied until someone covers it or completes three stabilizers on a Subspace Fracture.'
+        );
+      }
     } else {
       lines.push(
         `Red Alert is on you — cover ${target} if you can, or pass once no tile in your hand fits.`
@@ -199,9 +238,9 @@ function prioritizeFocus(
     'pass-red-alert': /Pass Red Alert/i,
     'pass-turn': /^Pass is legal/i,
     'deploy-beacon': /Shields down/i,
-    'drop-to-impulse': /Drop to Impulse is pending/i,
+    'drop-to-impulse': /At impulse|Drop to Impulse/i,
     'catch-drop-to-impulse': /catch/i,
-    'return-to-warp': /Return to warp/i,
+    'raise-shields': /Shields up/i,
   };
   const pattern = keywords[focus];
   if (!pattern) {

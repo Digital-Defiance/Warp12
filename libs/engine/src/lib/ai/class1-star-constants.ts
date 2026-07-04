@@ -36,7 +36,7 @@ export const ACTION_KIND_INDEX: Readonly<Record<WarpAiAction['kind'], number>> =
     'pass-red-alert': 3,
     'pass-turn': 4,
     'all-stop': 5,
-    'return-to-warp': 6,
+    'raise-shields': 6,
     'drop-to-impulse': 7,
     'catch-drop-to-impulse': 8,
     'invoke-q-flash': 9,

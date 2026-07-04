@@ -34,6 +34,19 @@ export interface PlayerStatsState {
   ) => boolean;
 }
 
+/**
+ * True for the callable's `failed-precondition` code ("academy placement is
+ * already set or rated play has started"). The Functions client surfaces it as
+ * either `failed-precondition` or `functions/failed-precondition`.
+ */
+function isAlreadyPlacedError(err: unknown): boolean {
+  const code =
+    typeof err === 'object' && err !== null && 'code' in err
+      ? String((err as { code: unknown }).code)
+      : '';
+  return code.endsWith('failed-precondition');
+}
+
 export function usePlayerStats(): PlayerStatsState {
   const auth = useFirebaseAuth();
   const [ready, setReady] = useState(!isFirebaseConfigured());
@@ -62,7 +75,17 @@ export function usePlayerStats(): PlayerStatsState {
       if (!auth.user) {
         return;
       }
-      await setAcademyPlacement(auth.user.uid, objective, skill);
+      try {
+        await setAcademyPlacement(auth.user.uid, objective, skill);
+      } catch (err) {
+        // The server already has a placement for this track (set on another
+        // device, or client stats were momentarily stale right after a sign-in
+        // account switch). Re-sync and treat as done — the placement form then
+        // disappears — rather than surfacing a confusing error.
+        if (!isAlreadyPlacedError(err)) {
+          throw err;
+        }
+      }
       await refresh();
     },
     [auth.user, refresh]

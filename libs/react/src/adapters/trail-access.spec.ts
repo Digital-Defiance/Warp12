@@ -243,4 +243,28 @@ describe('formatSectorRedAlertRow', () => {
       tone: 'alert',
     });
   });
+
+  it('shows red alert after a free pass even though no beacon was deployed', () => {
+    // Pass Red Alert without draw/beacon (mayhem) leaves no Distress Beacon,
+    // so the beacon heuristic alone would still read "Caution". The explicit
+    // `passed` flag keeps the status correct.
+    const freePassed: RoundState = {
+      ...roundBase,
+      table: {
+        ...roundBase.table,
+        redAlert: {
+          ...roundBase.table.redAlert!,
+          responsiblePlayerId: 'beta',
+          passed: true,
+        },
+      },
+    };
+
+    expect(isRedAlertFresh(freePassed)).toBe(false);
+    expect(formatSectorRedAlertRow(freePassed, names)).toEqual({
+      label: 'Red alert',
+      summary: 'Alpha · 6:6 · Beta must cover',
+      tone: 'alert',
+    });
+  });
 });

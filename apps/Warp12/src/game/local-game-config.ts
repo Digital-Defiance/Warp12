@@ -4,9 +4,15 @@ import type {
   HouseRulesConfig,
   WarpSkillLevel,
 } from 'warp12-engine';
-import { DEFAULT_CAMPAIGN_ROUNDS, DEFAULT_GAME_OBJECTIVE } from 'warp12-engine';
 
-export const LOCAL_MIN_PLAYERS = 3;
+import {
+  WARP12_OFFICIAL_CAMPAIGN_ROUNDS,
+  WARP12_OFFICIAL_HOUSE_RULES,
+  WARP12_OFFICIAL_MODULES,
+  WARP12_OFFICIAL_OBJECTIVE,
+} from './warp12-preset.js';
+
+export const LOCAL_MIN_PLAYERS = 2;
 export const LOCAL_MAX_PLAYERS = 8;
 export const PASS_AND_PLAY_MIN_PLAYERS = 2;
 
@@ -121,9 +127,10 @@ export function defaultLocalGameConfig(
     humanName: human.displayName,
     humanCaptains: [human],
     playerCount: count,
-    objective: DEFAULT_GAME_OBJECTIVE,
-    campaignRounds: DEFAULT_CAMPAIGN_ROUNDS,
-    modules: { salamanderPenalty: true, qContinuum: false, subspaceFracture: false, subspaceFractureScope: 'own-trail' },
+    objective: WARP12_OFFICIAL_OBJECTIVE,
+    campaignRounds: WARP12_OFFICIAL_CAMPAIGN_ROUNDS,
+    modules: { ...WARP12_OFFICIAL_MODULES },
+    houseRules: { ...WARP12_OFFICIAL_HOUSE_RULES },
     aiCaptains: buildAiCaptains(count - 1),
   };
 }

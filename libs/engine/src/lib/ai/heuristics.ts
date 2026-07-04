@@ -92,8 +92,8 @@ const preferChart: WarpHeuristic = {
         return -30;
       case 'deploy-beacon':
         return -40;
-      case 'return-to-warp':
-        return -500;
+      case 'raise-shields':
+        return -20;
       case 'invoke-q-flash':
       case 'resolve-q-gamble':
         return 150;

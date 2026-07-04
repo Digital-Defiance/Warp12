@@ -53,7 +53,11 @@ export function AccountUpgradeFieldset({
       }
       await onUpgraded();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not sign in with Google.');
+      console.error('[oauth] sign-in failed', err);
+      const code = (err as { code?: string })?.code;
+      const message =
+        err instanceof Error ? err.message : 'Could not sign in with Google.';
+      setError(code ? `${message} (${code})` : message);
     } finally {
       setBusy(false);
     }

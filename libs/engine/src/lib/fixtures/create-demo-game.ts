@@ -30,7 +30,7 @@ export function createDemoGame(seed = Date.now()): GameState {
     {
       id: `demo-${seed}`,
       captains: [...DEMO_CAPTAINS],
-      modules: { salamanderPenalty: true },
+      modules: { salamanderPenalty: false },
     },
     { shuffledCoordinates: shuffled }
   );

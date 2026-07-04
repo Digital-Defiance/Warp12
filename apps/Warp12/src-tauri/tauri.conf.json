@@ -1,7 +1,7 @@
 {
   "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Warp 12",
-  "version": "0.2.0",
+  "version": "0.4.9",
   "identifier": "org.digitaldefiance.app.warp12",
   "build": {
     "frontendDist": "../dist",
@@ -30,7 +30,8 @@
     "targets": "all",
     "category": "public.app-category.games",
     "macOS": {
-      "entitlements": "./Entitlements.plist"
+      "entitlements": "./Entitlements.plist",
+      "hardenedRuntime": true
     },
     "icon": [
       "icons/32x32.png",
@@ -41,14 +42,15 @@
     ],
     "android": {
       "minSdkVersion": 21,
-      "versionCode": 5,
+      "versionCode": 10,
       "debugApplicationIdSuffix": ".debug"
     },
     "iOS": {
       "developmentTeam": "J6887N729S",
       "minimumSystemVersion": "14.0",
-      "bundleVersion": "4",
+      "bundleVersion": "10",
       "infoPlist": "./Info.ios.plist"
     }
-  }
+  },
+  "plugins": {}
 }

@@ -13,6 +13,7 @@ export type {
   FirestoreGameDocument,
   FirestorePlayerHandDocument,
   FirestorePublicRound,
+  FirestoreRoundMove,
   OnlineLobbySettings,
 } from './schema.js';
 

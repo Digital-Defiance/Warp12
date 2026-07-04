@@ -2,10 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   applyAction,
   buildAdvisorReport,
-  canDeployDistressBeacon,
-  canPassRedAlert,
-  canPassTurn,
   canRaiseShieldsByCharting,
+  canRaiseShieldsManually,
   captainNameMap,
   createDemoGame,
   formatViolation,
@@ -28,6 +26,7 @@ import {
   type RoundState,
   type WarpAiPlayer,
 } from 'warp12-engine';
+import { resolveHelmControls } from '../game/helm-controls.js';
 import { DominoHub, DoubleTwelve, DominoThemeProvider } from 'doubletwelve';
 import {
   coachActionKind,
@@ -41,6 +40,8 @@ import {
   buildRoundOutcomeEntry,
   buildRoundRatingsEntry,
   buildRoundStartedEntry,
+  type GameLogEntry,
+  type GameLogRosterEntry,
   formatGameLogLine,
   gameStateToTrains,
   buildTrailSpokeStatuses,
@@ -77,7 +78,7 @@ import {
 } from '../game/share-round.js';
 import type { LocalGameConfig } from '../game/local-game-config';
 import { isPassAndPlay } from '../game/local-game-config';
-import type { FirestoreCaptain } from '../firebase/schema.js';
+import type { FirestoreCaptain, FirestoreRoundMove } from '../firebase/schema.js';
 import { useGameSoundEffects } from '../game/use-game-sounds.js';
 import { useBridgeAmbience } from '../game/use-bridge-ambience.js';
 import { countChartedTilesOnTable } from '../game/charted-tile-count.js';
@@ -98,7 +99,11 @@ import {
 } from '../game/local-match-stats.js';
 import { tableOpponentLabelForAdvisor } from '../game/advisor-report-meta.js';
 import { useCaptainProfile } from '../game/use-captain-profile.js';
-import { buildLocalRosterTei } from '../game/roster-elo.js';
+import {
+  buildLocalRosterTei,
+  buildOnlineRosterClasses,
+  rosterHasTacticalClasses,
+} from '../game/roster-elo.js';
 import {
   buildCaptainTacticalClassAbbrevById,
   buildCaptainTacticalClassLabelById,
@@ -133,8 +138,9 @@ import {
 } from './q-flash-panel';
 import { TrailSpokeIndicators } from './trail-spoke-indicators';
 import spokeStyles from './trail-spoke-indicators.module.scss';
-import { TableViewport } from './table-viewport';
+import { TableViewport, type LogVisibilityMode } from './table-viewport';
 import { TableOptionsDialog } from './table-options-dialog';
+import { SectorSettingsDialog } from './sector-settings-dialog';
 import {
   readTableOptions,
   writeTableOptions,
@@ -167,6 +173,7 @@ function formatPointsScoreLine(
   options: {
     handOwnerId: string;
     salamanderEnabled: boolean;
+    doubleZeroScore: import('warp12-engine').DoubleZeroScore;
   }
 ): string {
   const campaign = `${campaignScore} campaign`;
@@ -181,7 +188,8 @@ function formatPointsScoreLine(
   const inHand = handPoints(
     hand,
     options.salamanderEnabled,
-    round.roundNumber
+    round.roundNumber,
+    options.doubleZeroScore
   );
   return `${campaign} · ${inHand} in hand`;
 }
@@ -228,7 +236,12 @@ function roundPenaltyAdds(
         return null;
       }
       const hand = round.hands[captain.id] ?? [];
-      const points = handPoints(hand, salamander, round.roundNumber);
+      const points = handPoints(
+        hand,
+        salamander,
+        round.roundNumber,
+        game.houseRules.doubleZeroScore
+      );
       if (points === 0) {
         return null;
       }
@@ -259,6 +272,8 @@ export interface BridgeTableProps {
   onlineAiCaptainIds?: ReadonlySet<string>;
   /** Online lobby captains — used for AI officer rank on tails and tooltips. */
   onlineCaptains?: readonly FirestoreCaptain[];
+  /** Online: shared per-round applied-action history (full log + advisor). */
+  onlineMoveLog?: readonly FirestoreRoundMove[];
   onAction?: (action: GameAction) => Promise<ActionResult>;
   onLeave?: () => void;
   isOnlineHost?: boolean;
@@ -285,6 +300,7 @@ export function BridgeTable({
   handCounts = {},
   onlineAiCaptainIds,
   onlineCaptains,
+  onlineMoveLog,
   onAction,
   onLeave,
   isOnlineHost = false,
@@ -321,12 +337,14 @@ export function BridgeTable({
   const systemShareAvailable = canUseSystemShare();
   const actionLogRef = useRef(createActionLog());
   const gameLogRef = useRef(createGameLog());
+  const syncedMoveLogCountRef = useRef(0);
   const roundStartedAtRef = useRef(Date.now());
   const roundStartStateRef = useRef<GameState | null>(null);
   const actionLogRoundStartIndexRef = useRef(0);
   const roundOutcomeLoggedRef = useRef<number | null>(null);
   const [gameLogVersion, setGameLogVersion] = useState(0);
   const loggedRoundRef = useRef<number | null>(null);
+  const ratingsLoggedRoundRef = useRef<number | null>(null);
   const [advisorReportDialogOpen, setAdvisorReportDialogOpen] = useState(false);
   const [advisorReport, setAdvisorReport] = useState<AdvisorReport | null>(null);
   const [campaignCompleteOpen, setCampaignCompleteOpen] = useState(false);
@@ -521,7 +539,16 @@ export function BridgeTable({
   );
   const [coachBusy, setCoachBusy] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [gameLogDialogOpen, setGameLogDialogOpen] = useState(false);
+  const [logMode, setLogMode] = useState<LogVisibilityMode>('all');
+  const cycleLogMode = useCallback(
+    () =>
+      setLogMode((mode) =>
+        mode === 'all' ? 'mine' : mode === 'mine' ? 'off' : 'all'
+      ),
+    []
+  );
   const [roundLogDownloadBusy, setRoundLogDownloadBusy] = useState(false);
   const [rematchConfirmOpen, setRematchConfirmOpen] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
@@ -586,6 +613,7 @@ export function BridgeTable({
   const { muted: soundsMuted, toggleMuted: toggleSoundsMuted } = useGameAudio();
 
   const openOptions = useCallback(() => setOptionsOpen(true), []);
+  const openSettings = useCallback(() => setSettingsOpen(true), []);
 
   const trains = useMemo(
     () => (round ? gameStateToTrains(round, HUB_SLOTS) : []),
@@ -612,29 +640,98 @@ export function BridgeTable({
       actionLogRoundStartIndexRef.current =
         actionLogRef.current.snapshot().length;
       gameLogRef.current.append(buildRoundStartedEntry(round, startedAt));
-      if (isVsAi && localConfig) {
-        const rated = ratedObjective(localConfig.objective);
-        if (rated) {
-          const matchSkill = classifyLocalAiMatchSkill(localConfig.aiCaptains);
-          const humanTei = playerStats.ready
-            ? playerStats.displayTei(matchSkill, rated)
-            : null;
-          gameLogRef.current.append(
-            buildRoundRatingsEntry(
-              buildLocalRosterTei(localConfig, humanTei, rated),
-              round.roundNumber,
-              startedAt
-            )
-          );
-        }
-      }
       setGameLogVersion((version) => version + 1);
     }
     loggedRoundRef.current = round.roundNumber;
-  }, [isVsAi, localConfig, playerStats.ready, round?.roundNumber, round]);
+  }, [round?.roundNumber, round]);
+
+  // Ratings line (captain classes / TEI). Kept separate from the round-start
+  // entry so it can retry once the roster data is available — online captains
+  // and the local player's TEI can both arrive a tick after the round starts.
+  useEffect(() => {
+    if (!round) {
+      ratingsLoggedRoundRef.current = null;
+      return;
+    }
+    // Wait until the round-start line for this round has been logged.
+    if (loggedRoundRef.current !== round.roundNumber) {
+      return;
+    }
+    if (ratingsLoggedRoundRef.current === round.roundNumber) {
+      return;
+    }
+
+    let roster: readonly GameLogRosterEntry[] | null = null;
+    if (isVsAi && localConfig) {
+      const rated = ratedObjective(localConfig.objective);
+      if (rated && playerStats.ready) {
+        const matchSkill = classifyLocalAiMatchSkill(localConfig.aiCaptains);
+        const humanTei = playerStats.displayTei(matchSkill, rated);
+        roster = buildLocalRosterTei(localConfig, humanTei, rated);
+      }
+    } else if (isOnline && onlineCaptains?.length) {
+      const rated = ratedObjective(game.objective) ?? 'points';
+      const online = buildOnlineRosterClasses(
+        round.turnOrder,
+        onlineCaptains,
+        rated
+      );
+      if (rosterHasTacticalClasses(online)) {
+        roster = online;
+      }
+    }
+
+    if (roster && roster.length > 0) {
+      gameLogRef.current.append(
+        buildRoundRatingsEntry(roster, round.roundNumber, new Date().toISOString())
+      );
+      setGameLogVersion((version) => version + 1);
+      ratingsLoggedRoundRef.current = round.roundNumber;
+    }
+  }, [
+    isVsAi,
+    isOnline,
+    localConfig,
+    onlineCaptains,
+    playerStats.ready,
+    gameLogVersion,
+    round,
+  ]);
+
+  // Online: append newly-synced entries from the shared per-round move log so
+  // every client shows ALL captains' moves (not just the local player's). The
+  // server resets the log each round; when it shrinks we re-sync from zero
+  // (the round-start effect above has already cleared + re-seeded the ticker).
+  useEffect(() => {
+    if (!isOnline || !onlineMoveLog) {
+      return;
+    }
+    if (onlineMoveLog.length < syncedMoveLogCountRef.current) {
+      syncedMoveLogCountRef.current = 0;
+    }
+    if (onlineMoveLog.length === syncedMoveLogCountRef.current) {
+      return;
+    }
+    for (
+      let i = syncedMoveLogCountRef.current;
+      i < onlineMoveLog.length;
+      i += 1
+    ) {
+      const move = onlineMoveLog[i];
+      if (move.entry) {
+        gameLogRef.current.append(move.entry);
+      }
+      if (move.autoAllStop) {
+        gameLogRef.current.append(move.autoAllStop);
+      }
+    }
+    syncedMoveLogCountRef.current = onlineMoveLog.length;
+    setGameLogVersion((version) => version + 1);
+  }, [isOnline, onlineMoveLog]);
 
   useEffect(() => {
     prevRoundRef.current = null;
+    syncedMoveLogCountRef.current = 0;
     setActionFocus(null);
     setSelectedTile(null);
   }, [round?.roundNumber]);
@@ -786,14 +883,16 @@ export function BridgeTable({
     applySort,
     toggleFlip,
     isFlipped,
-    onDragStart,
-    onDragEnd,
-    onDragOver,
-    onDrop,
+    onHandTilePointerDown,
+    onHandTilePointerMove,
+    onHandTilePointerUp,
+    onHandTilePointerCancel,
+    pointerDraggingKey,
+    pointerDropTargetKey,
     shouldIgnoreClick,
   } = useHandLayout(game.id, handOwnerId, visibleHand);
-  const [draggingKey, setDraggingKey] = useState<string | null>(null);
-  const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
+  const activeDraggingKey = pointerDraggingKey;
+  const activeDropTargetKey = pointerDropTargetKey;
   const legalMoves =
     round && isMyTurn ? getLegalMoves(round, handOwnerId, game.houseRules) : [];
 
@@ -938,6 +1037,31 @@ export function BridgeTable({
 
   const humanCaptainId = isVsAi ? humanId : viewerId ?? undefined;
 
+  // Log ticker lines filtered by the Comms Log toggle. Structural entries
+  // (round start, ratings, outcome) always show; "Captain only" keeps just the
+  // viewer's own moves. The full log is always available via the round-log dialog.
+  const tickerLogLines = useMemo(() => {
+    if (logMode === 'all') {
+      return gameLogLines;
+    }
+    const structural: ReadonlySet<GameLogEntry['kind']> = new Set([
+      'ROUND_STARTED',
+      'ROUND_RATINGS',
+      'END_ROUND',
+    ]);
+    return gameLogEntries
+      .filter(
+        (entry) =>
+          structural.has(entry.kind) || entry.captainId === humanCaptainId
+      )
+      .map((entry) =>
+        formatGameLogLine(entry, names, {
+          roundStartedAtMs: roundStartedAtRef.current,
+        })
+      )
+      .filter((line) => line.length > 0);
+  }, [logMode, gameLogLines, gameLogEntries, humanCaptainId, names]);
+
   const humanCaptainTei = useMemo(() => {
     if (!humanCaptainId || !playerStats.ready) {
       return null;
@@ -993,14 +1117,23 @@ export function BridgeTable({
 
   const ownTrail = round ? round.table.warpTrails[handOwnerId] : undefined;
   const shieldsDown = ownTrail?.distressBeacon.active === true;
-  const canDeployBeacon =
-    !!round && isMyTurn && canDeployDistressBeacon(round, handOwnerId, { houseRules: game.houseRules });
-  const canPassAlert =
-    !!round && isMyTurn && canPassRedAlert(round, handOwnerId, { houseRules: game.houseRules });
-  const canPass =
-    !!round && isMyTurn && canPassTurn(round, handOwnerId, { houseRules: game.houseRules });
+  const helmControls = resolveHelmControls({
+    round,
+    handOwnerId,
+    isMyTurn,
+    houseRules: game.houseRules,
+    dropToImpulsePending,
+    legalMovesCount: legalMoves.length,
+  });
+  const canDeployBeacon = helmControls.showShieldsDown;
+  const canPassAlert = helmControls.showPassRedAlert;
+  const canPass = helmControls.showPass;
+  const canRaiseShieldsExplicitly = helmControls.showShieldsUp;
   const canRaiseShields =
-    !!round && isMyTurn && canRaiseShieldsByCharting(round, handOwnerId, game.houseRules);
+    !!round &&
+    isMyTurn &&
+    (canRaiseShieldsManually(round, handOwnerId, game.houseRules) ||
+      canRaiseShieldsByCharting(round, handOwnerId, game.houseRules));
 
   const spokeByCaptain = useMemo(
     () =>
@@ -1077,7 +1210,11 @@ export function BridgeTable({
           setLastMessage(null);
           setSelectedTile(null);
           setCoachSuggestion(null);
-          recordGameLog(before, result.state ?? before, action);
+          // Online: the move log comes from the shared per-round history on the
+          // game doc (see the onlineMoveLog effect), so every client shows all
+          // captains' moves. Do NOT record locally here or the local player's
+          // own actions would be double-logged.
+          void before;
           actionLogRef.current.append({
             playerId: playerIdForAction(action),
             action,
@@ -1201,6 +1338,11 @@ export function BridgeTable({
       });
     }
     actions.push({
+      id: 'rules',
+      label: 'Rules',
+      onClick: openSettings,
+    });
+    actions.push({
       id: 'options',
       label: 'Options',
       onClick: openOptions,
@@ -1214,6 +1356,7 @@ export function BridgeTable({
     onLeaveSetup,
     handleRematch,
     handleLeaveSetup,
+    openSettings,
     openOptions,
     registerActions,
   ]);
@@ -1711,7 +1854,13 @@ export function BridgeTable({
     if (moves.length === 0) {
       return;
     }
-    if (moves.length === 1) {
+    // Clicking a playable tile never charts it outright — it selects the tile
+    // and opens the Play/Flip prompt. This keeps "click to flip" safe (no
+    // accidental plays while arranging) and works identically on mouse and
+    // touch. A second click/tap on an already-selected single-route tile plays.
+    const alreadySelected =
+      selectedTile !== null && coordinatesEqual(selectedTile, coordinate);
+    if (alreadySelected && moves.length === 1) {
       playMove(moves[0]);
       return;
     }
@@ -1773,11 +1922,13 @@ export function BridgeTable({
           ['--warp-danger' as string]: warpPalette.danger,
         }}
       >
-        <GameLogTicker
-          lines={gameLogLines}
-          clickable={gameLogReviewable}
-          onOpen={handleOpenRoundLog}
-        />
+        {logMode !== 'off' && (
+          <GameLogTicker
+            lines={tickerLogLines}
+            clickable={gameLogReviewable}
+            onOpen={handleOpenRoundLog}
+          />
+        )}
 
         <div className={styles.controls}>
           <div className={styles.controlsRow}>
@@ -1805,7 +1956,7 @@ export function BridgeTable({
               type="button"
               className={styles.controlBtn}
               data-coach={coachKind === 'draw'}
-              disabled={!round || !isMyTurn || legalMoves.length > 0}
+              disabled={!round || !isMyTurn || !helmControls.showDraw}
               onClick={() =>
                 void dispatch({
                   type: 'DRAW_FROM_UNCHARTED',
@@ -1831,6 +1982,21 @@ export function BridgeTable({
                 }
               >
                 Shields down
+              </button>
+            )}
+            {canRaiseShieldsExplicitly && (
+              <button
+                type="button"
+                className={styles.controlBtn}
+                data-coach={coachKind === 'raise-shields'}
+                onClick={() =>
+                  void dispatch({
+                    type: 'RAISE_SHIELDS',
+                    playerId: handOwnerId,
+                  })
+                }
+              >
+                Shields up
               </button>
             )}
             {canPassAlert && (
@@ -1864,6 +2030,12 @@ export function BridgeTable({
             )}
           </div>
         </div>
+
+        <SectorSettingsDialog
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          game={game}
+        />
 
         <TableOptionsDialog
           open={optionsOpen}
@@ -1968,6 +2140,7 @@ export function BridgeTable({
           openTrailNames={openTrailNames}
           shieldsDown={shieldsDown}
           canRaiseShields={canRaiseShields}
+          manualShieldControl={game.houseRules.manualShieldControl}
           fractureActive={Boolean(fracture?.active)}
           fractureStabilizers={fracture?.stabilizers.length ?? 0}
           redAlertActive={sectorRedAlertRow != null}
@@ -2018,6 +2191,10 @@ export function BridgeTable({
           soundControl={{
             muted: soundsMuted,
             onToggle: toggleSoundsMuted,
+          }}
+          logControl={{
+            mode: logMode,
+            onCycle: cycleLogMode,
           }}
         >
           <div
@@ -2245,7 +2422,7 @@ export function BridgeTable({
         />
       </div>
 
-      <section className={styles.commandPanel}>
+      <section className={styles.commandPanel} data-my-turn={isMyTurn}>
         <header className={styles.commandHeader}>
           <h2 className={styles.commandTitle}>
             {game.phase === 'complete'
@@ -2277,9 +2454,11 @@ export function BridgeTable({
           </p>
         )}
 
-        {selectedTile && movesForSelected.length > 1 && (
+        {selectedTile && movesForSelected.length >= 1 && (
           <div className={styles.routePicker}>
-            <p className={styles.routePrompt}>Choose route:</p>
+            <p className={styles.routePrompt}>
+              {movesForSelected.length > 1 ? 'Choose route:' : 'Play here, or flip?'}
+            </p>
             {movesForSelected.map((move) => (
               <button
                 key={routeKey(move.route)}
@@ -2292,9 +2471,21 @@ export function BridgeTable({
                 }
                 onClick={() => playMove(move)}
               >
-                {routeLabel(move.route, names)}
+                {movesForSelected.length === 1
+                  ? `Play on ${routeLabel(move.route, names)}`
+                  : routeLabel(move.route, names)}
               </button>
             ))}
+            <button
+              type="button"
+              className={styles.routeBtn}
+              onClick={() => {
+                toggleFlip(coordinateKey(selectedTile));
+                setSelectedTile(null);
+              }}
+            >
+              Flip
+            </button>
             <button
               type="button"
               className={styles.routeCancel}
@@ -2371,34 +2562,17 @@ export function BridgeTable({
                     key={key}
                     type="button"
                     className={styles.handTile}
+                    data-hand-tile-key={key}
                     data-playable={playable}
                     data-selected={selected}
                     data-coach={coachTile}
                     data-flipped={flipped}
-                    data-dragging={draggingKey === key}
-                    data-drop-target={dropTargetKey === key}
-                    draggable
-                    onDragStart={(event) => {
-                      setDraggingKey(key);
-                      onDragStart(key, event);
-                    }}
-                    onDragEnd={() => {
-                      setDraggingKey(null);
-                      setDropTargetKey(null);
-                      onDragEnd();
-                    }}
-                    onDragOver={onDragOver}
-                    onDragEnter={() => setDropTargetKey(key)}
-                    onDragLeave={() =>
-                      setDropTargetKey((current) =>
-                        current === key ? null : current
-                      )
-                    }
-                    onDrop={() => {
-                      onDrop(key);
-                      setDraggingKey(null);
-                      setDropTargetKey(null);
-                    }}
+                    data-dragging={activeDraggingKey === key}
+                    data-drop-target={activeDropTargetKey === key}
+                    onPointerDown={(event) => onHandTilePointerDown(key, event)}
+                    onPointerMove={onHandTilePointerMove}
+                    onPointerUp={(event) => onHandTilePointerUp(key, event)}
+                    onPointerCancel={onHandTilePointerCancel}
                     onClick={(event) =>
                       onHandTileClick(coordinate, key, playable, event)
                     }
@@ -2523,6 +2697,7 @@ export function BridgeTable({
                         handOwnerId,
                         salamanderEnabled:
                           game.modules.salamanderPenalty.enabled,
+                        doubleZeroScore: game.houseRules.doubleZeroScore,
                       }
                     )}
                   </span>

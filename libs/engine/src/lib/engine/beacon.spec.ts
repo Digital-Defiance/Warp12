@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { applyAction } from './apply-action.js';
 import {
   canDeployDistressBeacon,
+  canDrawFromUncharted,
   canPassRedAlert,
   canRaiseShieldsByCharting,
+  canRaiseShieldsManually,
   hasEstablishedWarpTrail,
 } from './beacon.js';
 import { getLegalMoves } from './legal-moves.js';
@@ -18,6 +20,7 @@ import {
   shuffleCoordinates,
 } from '../domino/coordinates.js';
 import { normalizeCoordinate } from '../types/coordinate.js';
+import { resolveHouseRules } from '../types/house-rules.js';
 
 const captains = [
   { id: 'a', displayName: 'Alpha' },
@@ -139,7 +142,7 @@ describe('distress beacon helpers', () => {
     expect(canDeployDistressBeacon(round, 'a')).toBe(false);
   });
 
-  it('deploys after drawing when the drawn tile is unplayable', () => {
+  it('deploys the beacon and ends the turn when the drawn tile is unplayable and tiles remain', () => {
     const state = roundWithHands({ a: [normalizeCoordinate(1, 2)], b: [] }, {
       table: {
         warpTrails: {
@@ -153,6 +156,38 @@ describe('distress beacon helpers', () => {
       },
       spacedockValue: 6,
       unchartedSectors: [normalizeCoordinate(3, 4), normalizeCoordinate(5, 7)],
+    });
+
+    const draw = applyAction(state, {
+      type: 'DRAW_FROM_UNCHARTED',
+      playerId: 'a',
+    });
+
+    expect(draw.ok).toBe(true);
+    if (draw.ok) {
+      // Standard Mexican Train: one failed draw drops shields (marker down),
+      // even though Uncharted Sectors still holds tiles.
+      expect(draw.state.round?.table.warpTrails.a.distressBeacon.active).toBe(
+        true
+      );
+      expect(draw.state.round?.activePlayerId).toBe('b');
+    }
+  });
+
+  it('deploys a beacon when the drawn tile is unplayable and the pile is empty', () => {
+    const state = roundWithHands({ a: [normalizeCoordinate(1, 2)], b: [] }, {
+      table: {
+        warpTrails: {
+          a: { playerId: 'a', tiles: [], distressBeacon: { active: false } },
+          b: { playerId: 'b', tiles: [], distressBeacon: { active: false } },
+        },
+        neutralZone: { tiles: [] },
+        subspaceFracture: null,
+        redAlert: null,
+        spacedock: { value: 6, placedBy: 'a' },
+      },
+      spacedockValue: 6,
+      unchartedSectors: [normalizeCoordinate(3, 4)],
     });
 
     const draw = applyAction(state, {
@@ -193,6 +228,26 @@ describe('distress beacon helpers', () => {
       playerId: 'a',
     });
     expect(deploy).toEqual({ ok: false, violation: 'MUST_DRAW_FIRST' });
+  });
+
+  it('does not offer another draw after already drawing while unable to chart', () => {
+    const state = roundWithHands({ a: [normalizeCoordinate(1, 2)], b: [] }, {
+      drewThisTurn: true,
+      table: {
+        warpTrails: {
+          a: { playerId: 'a', tiles: [], distressBeacon: { active: false } },
+          b: { playerId: 'b', tiles: [], distressBeacon: { active: false } },
+        },
+        neutralZone: { tiles: [] },
+        subspaceFracture: null,
+        redAlert: null,
+        spacedock: { value: 6, placedBy: 'a' },
+      },
+      spacedockValue: 6,
+      unchartedSectors: [normalizeCoordinate(3, 4)],
+    });
+
+    expect(canDrawFromUncharted(state.round!, 'a')).toBe(false);
   });
 
   it('raises shields by charting on your own warp trail', () => {
@@ -294,5 +349,152 @@ describe('distress beacon helpers', () => {
     expect(
       applyAction(state, { type: 'PASS_RED_ALERT', playerId: 'a' })
     ).toEqual({ ok: false, violation: 'RED_ALERT_COVER_AVAILABLE' });
+  });
+
+  it('allows passing red alert without drawing or beacon when house rule is on', () => {
+    const state = {
+      ...roundWithHands(
+        { a: [normalizeCoordinate(1, 2)], b: [] },
+        {
+          table: {
+            warpTrails: {
+              a: {
+                playerId: 'a',
+                tiles: [
+                  {
+                    coordinate: normalizeCoordinate(6, 6),
+                    index: 0,
+                    openValue: 6,
+                  },
+                ],
+                distressBeacon: { active: false },
+              },
+              b: {
+                playerId: 'b',
+                tiles: [],
+                distressBeacon: { active: false },
+              },
+            },
+            neutralZone: { tiles: [] },
+            subspaceFracture: null,
+            redAlert: {
+              active: true,
+              anchor: {
+                coordinate: normalizeCoordinate(6, 6),
+                index: 0,
+                openValue: 6,
+              },
+              responsiblePlayerId: 'a',
+              trailPlayerId: 'a',
+            },
+            spacedock: { value: 6, placedBy: 'a' },
+          },
+          spacedockValue: 6,
+          unchartedSectors: [normalizeCoordinate(3, 4)],
+        }
+      ),
+      houseRules: resolveHouseRules({ passRedAlertWithoutDraw: true }),
+    };
+
+    expect(
+      canPassRedAlert(state.round!, 'a', { houseRules: state.houseRules })
+    ).toBe(true);
+
+    const pass = applyAction(state, { type: 'PASS_RED_ALERT', playerId: 'a' });
+    expect(pass.ok).toBe(true);
+    if (!pass.ok) return;
+    expect(pass.state.round?.table.redAlert?.responsiblePlayerId).toBe('b');
+    expect(pass.state.round?.table.warpTrails.a.distressBeacon.active).toBe(
+      false
+    );
+    expect(pass.state.round?.activePlayerId).toBe('b');
+  });
+
+  it('allows raising shields when manual shield control is enabled', () => {
+    const state = {
+      ...roundWithHands(
+        { a: [normalizeCoordinate(6, 7)], b: [] },
+        {
+          table: {
+            warpTrails: {
+              a: {
+                playerId: 'a',
+                tiles: [
+                  {
+                    coordinate: normalizeCoordinate(6, 6),
+                    index: 0,
+                    openValue: 6,
+                  },
+                ],
+                distressBeacon: { active: true, chartedOwnTrailSinceDown: true },
+              },
+              b: {
+                playerId: 'b',
+                tiles: [],
+                distressBeacon: { active: false },
+              },
+            },
+            neutralZone: { tiles: [] },
+            subspaceFracture: null,
+            redAlert: null,
+            spacedock: { value: 6, placedBy: 'a' },
+          },
+          spacedockValue: 6,
+        }
+      ),
+      houseRules: resolveHouseRules({ manualShieldControl: true }),
+    };
+
+    expect(
+      canRaiseShieldsManually(state.round!, 'a', state.houseRules)
+    ).toBe(true);
+    expect(
+      canRaiseShieldsByCharting(state.round!, 'a', state.houseRules)
+    ).toBe(false);
+
+    const raised = applyAction(state, {
+      type: 'RAISE_SHIELDS',
+      playerId: 'a',
+    });
+    expect(raised.ok).toBe(true);
+    if (!raised.ok) return;
+    expect(raised.state.round?.table.warpTrails.a.distressBeacon.active).toBe(
+      false
+    );
+    expect(raised.state.round?.activePlayerId).toBe('a');
+  });
+
+  it('blocks raising shields before the own trail is started', () => {
+    const state = {
+      ...roundWithHands(
+        { a: [normalizeCoordinate(6, 7)], b: [] },
+        {
+          table: {
+            warpTrails: {
+              a: {
+                playerId: 'a',
+                tiles: [],
+                distressBeacon: { active: true },
+              },
+              b: {
+                playerId: 'b',
+                tiles: [],
+                distressBeacon: { active: false },
+              },
+            },
+            neutralZone: { tiles: [] },
+            subspaceFracture: null,
+            redAlert: null,
+            spacedock: { value: 6, placedBy: 'a' },
+          },
+          spacedockValue: 6,
+        }
+      ),
+      houseRules: resolveHouseRules({ manualShieldControl: true }),
+    };
+
+    expect(
+      canRaiseShieldsManually(state.round!, 'a', state.houseRules)
+    ).toBe(false);
   });
 });

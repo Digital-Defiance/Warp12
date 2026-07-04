@@ -84,7 +84,7 @@ function AppShell() {
               ) : null}
               <span
                 className={styles.headerConnection}
-                data-live={headerStatus.connectionLive ? 'true' : undefined}
+                data-connection={headerStatus.connectionState}
               >
                 {headerStatus.connectionLabel}
               </span>
@@ -99,7 +99,7 @@ function AppShell() {
                 className={styles.navLink}
                 onClick={() => setRulesOpen(true)}
               >
-                Rules
+                Manual
               </button>
               <button
                 type="button"
@@ -118,7 +118,7 @@ function AppShell() {
                 Research
               </Link>
               <Link to="/rules" className={styles.navLink}>
-                Rules
+                Manual
               </Link>
               <Link to="/privacy" className={styles.navLink}>
                 Privacy

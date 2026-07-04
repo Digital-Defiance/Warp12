@@ -20,7 +20,6 @@ import {
 import { coordinateKey } from '../types/coordinate.js';
 import { trailsOpenToOthers } from './q-continuum.js';
 import { resolveDeadRedAlert } from './dead-red-alert.js';
-import { isDropToImpulseAnnouncePending } from './drop-to-impulse.js';
 import {
   canChartOnNeutralZone,
   canChartOnOpponentTrail,
@@ -101,6 +100,35 @@ function canPlayOnNeutralZone(
   return coordinateMatchesValue(coordinate, connectingValue);
 }
 
+/**
+ * Manual shield control: after charting, helm stays with you for optional shield
+ * toggles before you pass. Red Alert cover, fracture stabilizers, round-starter
+ * second tile, and mandatory drawn-tile plays are exempt.
+ */
+export function routineChartsBlockedByManualShieldWindow(
+  round: RoundState,
+  playerId: PlayerId,
+  houseRules: HouseRules,
+  options?: { fractureActive?: boolean; redAlertBlocking?: boolean }
+): boolean {
+  if (!houseRules.manualShieldControl || !round.playedThisTurn) {
+    return false;
+  }
+  if (options?.fractureActive || options?.redAlertBlocking) {
+    return false;
+  }
+  if (round.mandatoryPlay?.playerId === playerId) {
+    return false;
+  }
+  if (
+    houseRules.roundStarterPlaysTwo &&
+    round.roundStarterOpening?.playerId === playerId
+  ) {
+    return false;
+  }
+  return true;
+}
+
 function canStabilizeFracture(
   round: RoundState,
   coordinate: Coordinate
@@ -123,10 +151,6 @@ export function getLegalMoves(
     round.qPendingInvoker === playerId ||
     round.qGamblePending?.playerId === playerId
   ) {
-    return [];
-  }
-
-  if (isDropToImpulseAnnouncePending(round, playerId, houseRules)) {
     return [];
   }
 
@@ -156,6 +180,15 @@ export function getLegalMoves(
     playerId,
     houseRules
   );
+
+  if (
+    routineChartsBlockedByManualShieldWindow(round, playerId, houseRules, {
+      fractureActive,
+      redAlertBlocking,
+    })
+  ) {
+    return [];
+  }
 
   for (const coordinate of playableHand) {
     if (fractureActive) {

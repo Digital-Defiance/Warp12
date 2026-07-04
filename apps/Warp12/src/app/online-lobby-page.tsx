@@ -33,21 +33,20 @@ import {
 } from './join-sector-panel';
 import { CampaignRoundsField, ObjectivePicker, ObjectiveSummary } from './objective-picker';
 import { HouseRulesOptions } from './house-rules-options';
+import { DoubleZeroScoreField } from './double-zero-score-field';
 import { SubspaceFractureOptions } from './subspace-fracture-options';
+import { Warp12RulesPreset } from './warp12-rules-preset';
 import { isAiCaptain } from '../game/ai-captain.js';
+import {
+  WARP12_OFFICIAL_CAMPAIGN_ROUNDS,
+  WARP12_OFFICIAL_HOUSE_RULES,
+  WARP12_OFFICIAL_MODULES,
+  WARP12_OFFICIAL_OBJECTIVE,
+  warp12OfficialCreateLobbyOptions,
+} from '../game/warp12-preset.js';
 import styles from './lobby.module.scss';
 
-const DEFAULT_CREATE_OPTIONS: CreateLobbyOptions = {
-  objective: DEFAULT_GAME_OBJECTIVE,
-  maxPlayers: 4,
-  campaignRounds: DEFAULT_CAMPAIGN_ROUNDS,
-  modules: {
-    salamanderPenalty: true,
-    qContinuum: false,
-    subspaceFracture: false,
-    subspaceFractureScope: 'own-trail',
-  },
-};
+const DEFAULT_CREATE_OPTIONS = warp12OfficialCreateLobbyOptions();
 
 export function OnlineLobbyPage() {
   const { gameId: routeGameId } = useParams();
@@ -369,6 +368,17 @@ export function OnlineLobbyPage() {
         {isHost && (
           <fieldset className={styles.fieldset}>
             <legend>Mission settings</legend>
+            <Warp12RulesPreset
+              disabled={busy}
+              onApply={() =>
+                void saveSettings({
+                  objective: WARP12_OFFICIAL_OBJECTIVE,
+                  campaignRounds: WARP12_OFFICIAL_CAMPAIGN_ROUNDS,
+                  modules: { ...WARP12_OFFICIAL_MODULES },
+                  houseRules: { ...WARP12_OFFICIAL_HOUSE_RULES },
+                })
+              }
+            />
             <label className={styles.field}>
               <span>Fleet capacity</span>
               <select
@@ -423,6 +433,15 @@ export function OnlineLobbyPage() {
               />
               <span>Module Alpha — Q-Continuum</span>
             </label>
+            <DoubleZeroScoreField
+              value={lobby.houseRules?.doubleZeroScore}
+              disabled={busy}
+              onChange={(doubleZeroScore) =>
+                void saveSettings({
+                  houseRules: { ...lobby.houseRules, doubleZeroScore },
+                })
+              }
+            />
             <SubspaceFractureOptions
               enabled={lobby.modules.subspaceFracture ?? false}
               scope={lobby.modules.subspaceFractureScope ?? 'own-trail'}

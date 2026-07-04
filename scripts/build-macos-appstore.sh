@@ -70,7 +70,7 @@ Usage: bash scripts/build-macos-appstore.sh [OPTIONS] [VERSION] [-- extra tauri 
 Environment (set before build or enter when prompted):
 
   APPLE_TEAM_ID                  10-char team id (App ID Prefix)
-  APPLE_SIGNING_IDENTITY           Apple Distribution: … (TEAMID)
+  APPLE_SIGNING_IDENTITY   Apple Distribution: … (TEAMID) — matched from provisioning profile
   APPLE_INSTALLER_IDENTITY       3rd Party Mac Developer Installer: … (TEAMID)
   APPLE_PROVISIONING_PROFILE     default apps/Warp12/src-tauri/Warp_12.provisionprofile
 
@@ -218,7 +218,9 @@ disable_tauri_notarization_env() {
   _SAVED_APPLE_API_ISSUER="${APPLE_API_ISSUER:-}"
   _SAVED_APPLE_API_KEY_PATH="${APPLE_API_KEY_PATH:-}"
   _SAVED_APPLE_PROVIDER_SHORT_NAME="${APPLE_PROVIDER_SHORT_NAME:-}"
+  _SAVED_APPLE_SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY:-}"
   unset APPLE_ID APPLE_PASSWORD APPLE_API_KEY APPLE_API_ISSUER APPLE_API_KEY_PATH APPLE_PROVIDER_SHORT_NAME
+  unset APPLE_SIGNING_IDENTITY
 }
 
 restore_notarization_env() {
@@ -228,16 +230,150 @@ restore_notarization_env() {
   if [ -n "$_SAVED_APPLE_API_ISSUER" ]; then export APPLE_API_ISSUER="$_SAVED_APPLE_API_ISSUER"; else unset APPLE_API_ISSUER; fi
   if [ -n "$_SAVED_APPLE_API_KEY_PATH" ]; then export APPLE_API_KEY_PATH="$_SAVED_APPLE_API_KEY_PATH"; else unset APPLE_API_KEY_PATH; fi
   if [ -n "$_SAVED_APPLE_PROVIDER_SHORT_NAME" ]; then export APPLE_PROVIDER_SHORT_NAME="$_SAVED_APPLE_PROVIDER_SHORT_NAME"; else unset APPLE_PROVIDER_SHORT_NAME; fi
+  # App Store signing identity always comes from the provisioning profile after the Tauri build.
+  unset APPLE_SIGNING_IDENTITY
 }
 
 list_distribution_identities() {
-  # Valid identities only (omit -v). Apple Distribution signs the .app.
-  # find-identity lines include a SHA-1 hash before the quoted name.
   security find-identity -p codesigning 2>/dev/null \
-    | grep 'Apple Distribution:' \
-    | sed -n 's/.*"\(Apple Distribution:[^"]*\)".*/\1/p' \
+    | egrep 'Apple Distribution:|3rd Party Mac Developer Application:' \
+    | sed -n 's/.*"\([^"]*\)".*/\1/p' \
     | sort -u \
     | filter_identities_for_team
+}
+
+profile_plist_path() {
+  _profile="$1"
+  _out="$2"
+  security cms -D -i "$_profile" > "$_out" 2>/dev/null
+}
+
+profile_team_id() {
+  _profile="$1"
+  python3 - "$_profile" <<'PY'
+import plistlib
+import subprocess
+import sys
+
+profile = sys.argv[1]
+plist = subprocess.check_output(["security", "cms", "-D", "-i", profile])
+data = plistlib.loads(plist)
+teams = data.get("TeamIdentifier") or []
+if teams:
+    print(teams[0])
+PY
+}
+
+profile_signing_cert_hash() {
+  _profile="$1"
+  python3 - "$_profile" <<'PY'
+import hashlib
+import plistlib
+import subprocess
+import sys
+
+profile = sys.argv[1]
+plist = subprocess.check_output(["security", "cms", "-D", "-i", profile])
+data = plistlib.loads(plist)
+certs = data.get("DeveloperCertificates") or []
+if not certs:
+    sys.exit(1)
+print(hashlib.sha1(certs[0]).hexdigest().upper())
+PY
+}
+
+profile_signing_identity_name() {
+  _profile="$1"
+  python3 - "$_profile" <<'PY'
+import plistlib
+import subprocess
+import sys
+
+profile = sys.argv[1]
+plist = subprocess.check_output(["security", "cms", "-D", "-i", profile])
+data = plistlib.loads(plist)
+certs = data.get("DeveloperCertificates") or []
+if not certs:
+    sys.exit(1)
+subject = subprocess.check_output(
+    ["openssl", "x509", "-inform", "DER", "-subject", "-noout"],
+    input=certs[0],
+    text=True,
+).strip()
+for token in subject.split("/"):
+    if token.startswith("CN="):
+        print(token[3:])
+        break
+PY
+}
+
+identity_name_for_hash() {
+  _want="$(printf '%s' "$1" | tr '[:lower:]' '[:upper:]')"
+  security find-identity -p codesigning -v 2>/dev/null \
+    | grep "$_want" \
+    | sed -n 's/.*"\([^"]*\)".*/\1/p' \
+    | head -1
+}
+
+signing_identity_from_provisioning_profile() {
+  _profile="$1"
+  _hash="$(profile_signing_cert_hash "$_profile")" || return 1
+  [ -n "$_hash" ] || return 1
+  _identity="$(identity_name_for_hash "$_hash")"
+  if [ -n "$_identity" ]; then
+    printf '%s' "$_identity"
+    return 0
+  fi
+  profile_signing_identity_name "$_profile"
+}
+
+reject_developer_id_signing_identity() {
+  case "${APPLE_SIGNING_IDENTITY:-}" in
+    "Developer ID Application:"*)
+      echo "warning: ignoring Developer ID APPLE_SIGNING_IDENTITY for Mac App Store builds." >&2
+      unset APPLE_SIGNING_IDENTITY
+      ;;
+  esac
+}
+
+ensure_app_store_signing_identity() {
+  reject_developer_id_signing_identity
+
+  _profile_identity="$(signing_identity_from_provisioning_profile "$PROVISION_PROFILE" || true)"
+  if [ -n "$_profile_identity" ]; then
+    if [ -n "${APPLE_SIGNING_IDENTITY:-}" ]; then
+      _current="$APPLE_SIGNING_IDENTITY"
+      if is_signing_hash "$_current"; then
+        _current="$(identity_name_for_hash "$_current")"
+      fi
+      if [ "$_current" != "$_profile_identity" ]; then
+        echo "warning: APPLE_SIGNING_IDENTITY does not match the provisioning profile certificate." >&2
+        echo "  profile: ${_profile_identity}" >&2
+        echo "  current: ${APPLE_SIGNING_IDENTITY}" >&2
+        echo "Using the provisioning profile certificate for App Store signing." >&2
+      fi
+    fi
+    APPLE_SIGNING_IDENTITY="$_profile_identity"
+    export APPLE_SIGNING_IDENTITY
+    _profile_team="$(profile_team_id "$PROVISION_PROFILE" || true)"
+    if [ -n "$_profile_team" ]; then
+      if [ -n "${APPLE_TEAM_ID:-}" ] && [ "$APPLE_TEAM_ID" != "$_profile_team" ]; then
+        echo "warning: APPLE_TEAM_ID=${APPLE_TEAM_ID} does not match provisioning profile team ${_profile_team}; using profile team." >&2
+      fi
+      APPLE_TEAM_ID="$_profile_team"
+      export APPLE_TEAM_ID
+    else
+      infer_team_from_identity "$_profile_identity" APPLE_TEAM_ID
+    fi
+    echo "APPLE_SIGNING_IDENTITY: matched provisioning profile (${APPLE_SIGNING_IDENTITY})" >&2
+    return 0
+  fi
+
+  _profile_cn="$(profile_signing_identity_name "$PROVISION_PROFILE" || true)"
+  die "could not find the provisioning profile signing certificate in your keychain.
+Expected: ${_profile_cn:-Apple Distribution certificate for ${APPLE_TEAM_ID}}
+Installed App Store identities:
+$(list_distribution_identities | sed 's/^/  /')"
 }
 
 list_installer_identities() {
@@ -460,6 +596,8 @@ Or set APPLE_PROVISIONING_PROFILE to another path."
     cp -f "$PROVISION_PROFILE" "$_profile_dest"
     echo "Copied provisioning profile → ${_profile_dest}" >&2
   fi
+  PROVISION_PROFILE="$_profile_dest"
+  strip_app_store_extended_attributes "$_profile_dest"
   PROVISION_PROFILE_BASENAME="$_profile_name"
   export PROVISION_PROFILE_BASENAME
   echo "Provisioning profile: ${_profile_dest}" >&2
@@ -507,20 +645,74 @@ verify_app_sandbox_entitlement() {
   echo "Verified com.apple.security.app-sandbox on bundle." >&2
 }
 
+strip_app_store_extended_attributes() {
+  _path="$1"
+  if [ ! -e "$_path" ]; then
+    return 0
+  fi
+  echo "Stripping extended attributes from ${_path}..." >&2
+  xattr -cr "$_path" 2>/dev/null || true
+}
+
+verify_no_quarantine_attributes() {
+  _path="$1"
+  _label="${2:-$1}"
+  _hits="$(xattr -lr "$_path" 2>/dev/null | grep 'com.apple.quarantine' || true)"
+  if [ -n "$_hits" ]; then
+    die "com.apple.quarantine still present on ${_label}. App Store uploads reject quarantined files.
+${_hits}
+Run: xattr -cr \"${_path}\" and rebuild."
+  fi
+}
+
 sign_and_package_app() {
   _app="$1"
   _product_name="$2"
   _pkg_name="$(pkg_asset_basename "$_product_name" "$APP_VERSION")"
   mkdir -p "$PKG_OUT_DIR"
   _pkg="${PKG_OUT_DIR}/${_pkg_name}"
+  _embedded_profile="${_app}/Contents/embedded.provisionprofile"
+
+  ensure_app_store_signing_identity
+  cp -f "$PROVISION_PROFILE" "$_embedded_profile"
+  strip_app_store_extended_attributes "$_app"
+  verify_no_quarantine_attributes "$_app" "$_app"
 
   echo "Re-signing app for Mac App Store..." >&2
-  codesign --force --deep --options runtime --timestamp \
+  echo "  identity: ${APPLE_SIGNING_IDENTITY}" >&2
+  echo "  profile: ${_embedded_profile}" >&2
+
+  if [ -d "${_app}/Contents/Frameworks" ]; then
+    find "${_app}/Contents/Frameworks" -depth \( -name '*.dylib' -o -name '*.framework' \) -print0 2>/dev/null \
+      | while IFS= read -r -d '' _item; do
+          codesign --force --sign "$APPLE_SIGNING_IDENTITY" \
+            --options runtime \
+            --timestamp \
+            "$_item"
+        done
+  fi
+
+  _main_bin="${_app}/Contents/MacOS/warp12"
+  if [ ! -f "$_main_bin" ]; then
+    _main_bin="$(find "${_app}/Contents/MacOS" -type f -perm +111 | head -1)"
+  fi
+  [ -n "$_main_bin" ] && [ -f "$_main_bin" ] || die "main executable not found in ${_app}/Contents/MacOS"
+
+  codesign --force --sign "$APPLE_SIGNING_IDENTITY" \
     --entitlements "$ENTITLEMENTS_PLIST" \
-    --sign "$APPLE_SIGNING_IDENTITY" \
+    --options runtime \
+    --timestamp \
+    "$_main_bin"
+
+  codesign --force --sign "$APPLE_SIGNING_IDENTITY" \
+    --entitlements "$ENTITLEMENTS_PLIST" \
+    --options runtime \
+    --timestamp \
     "$_app"
 
   verify_app_sandbox_entitlement "$_app"
+  codesign --verify --deep --strict --verbose=2 "$_app" >&2 || die "codesign verify failed for ${_app}"
+  verify_no_quarantine_attributes "$_app" "$_app"
 
   echo "Creating signed .pkg..." >&2
   xcrun productbuild \
@@ -655,11 +847,11 @@ fi
 PRODUCT_NAME="$(read_product_name)"
 BUNDLE_ID="$(read_bundle_identifier)"
 
-auto_select_identity list_distribution_identities APPLE_SIGNING_IDENTITY
+ensure_provisioning_profile
+generate_entitlements
+ensure_app_store_signing_identity
 ensure_team_id
 resolve_installer_signing_identity
-generate_entitlements
-ensure_provisioning_profile
 
 echo "" >&2
 echo "Mac App Store build:" >&2

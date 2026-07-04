@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { handPoints, scoreRound } from './scoring.js';
 import { endBlockedRound } from './round-resolution.js';
 import { makeGame, makeRound, T } from './test-helpers.js';
+import { resolveHouseRules } from '../types/house-rules.js';
 import {
   createRoundStateFromDeal,
   dealRoundFromShuffled,
@@ -30,6 +31,70 @@ describe('handPoints', () => {
     expect(
       handPoints([{ low: 12, high: 12 }], true, 2)
     ).toBe(24);
+  });
+
+  it('scores a double-blank by the doubleZeroScore option', () => {
+    // Default (unspecified) is the tournament-standard 50.
+    expect(handPoints([{ low: 0, high: 0 }], false, 2)).toBe(50);
+    expect(handPoints([{ low: 0, high: 0 }], false, 2, 50)).toBe(50);
+    expect(handPoints([{ low: 0, high: 0 }], false, 2, 25)).toBe(25);
+    expect(handPoints([{ low: 0, high: 0 }], false, 2, 0)).toBe(0);
+    // A blank on a non-double tile still scores its pips (0 side + other).
+    expect(handPoints([{ low: 0, high: 5 }], false, 2, 50)).toBe(5);
+  });
+});
+
+describe('scoreRound double-blank scoring', () => {
+  function gameWith(doubleZeroScore: 0 | 25 | 50) {
+    // Final round so scoreRound completes the campaign (no next-round deal).
+    return makeGame(
+      makeRound(['a', 'b'], {
+        roundNumber: 13,
+        phase: 'ended',
+        roundWinnerId: 'a',
+        hands: { a: [], b: [T(0, 0)] },
+      }),
+      { houseRules: resolveHouseRules({ doubleZeroScore }), completedRounds: 12 }
+    );
+  }
+
+  it('applies the double-blank value in a blocked round too', () => {
+    const round = endBlockedRound(
+      makeRound(['a', 'b'], {
+        roundNumber: 13,
+        hands: { a: [T(0, 0)], b: [T(4, 5)] },
+      })
+    );
+    const state = makeGame(round, {
+      completedRounds: 12,
+      houseRules: resolveHouseRules({ doubleZeroScore: 25 }),
+    });
+    const result = scoreRound(state, round);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    // Blocked round: everyone scores; the 0-0 holder pays the configured value.
+    expect(result.state.captains.find((c) => c.id === 'a')?.pointsScore).toBe(25);
+    expect(result.state.captains.find((c) => c.id === 'b')?.pointsScore).toBe(9);
+  });
+
+  it('adds the configured double-blank value to the losing captain', () => {
+    const g50 = gameWith(50);
+    const at50 = scoreRound(g50, g50.round!);
+    expect(at50.ok).toBe(true);
+    if (!at50.ok) return;
+    expect(at50.state.captains.find((c) => c.id === 'b')?.pointsScore).toBe(50);
+
+    const g0 = gameWith(0);
+    const at0 = scoreRound(g0, g0.round!);
+    expect(at0.ok).toBe(true);
+    if (!at0.ok) return;
+    expect(at0.state.captains.find((c) => c.id === 'b')?.pointsScore).toBe(0);
+
+    const g25 = gameWith(25);
+    const at25 = scoreRound(g25, g25.round!);
+    expect(at25.ok).toBe(true);
+    if (!at25.ok) return;
+    expect(at25.state.captains.find((c) => c.id === 'b')?.pointsScore).toBe(25);
   });
 });
 

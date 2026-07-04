@@ -44,6 +44,8 @@ export function makeRound(over: Partial<RoundState>): RoundState {
     pendingRoundWin: null,
     roundBlocked: false,
     roundStarterOpening: null,
+    playedThisTurn: false,
+    drewThisTurn: false,
   };
   return { ...base, ...over };
 }

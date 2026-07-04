@@ -4,7 +4,7 @@ cask "warp12" do
   version "0.1.0"
   sha256 "REPLACE_WITH_SHA256"
 
-  url "https://github.com/Digital-Defiance/Warp12/releases/download/v#{version}/Warp%2012_#{version}_universal.dmg"
+  url "https://github.com/Digital-Defiance/Warp12/releases/download/v#{version}/Warp_12_#{version}_universal.dmg"
   name "Warp 12"
   desc "Star Trek-themed double-twelve Mexican Train dominoes (Tauri + React)"
   homepage "https://github.com/Digital-Defiance/Warp12"

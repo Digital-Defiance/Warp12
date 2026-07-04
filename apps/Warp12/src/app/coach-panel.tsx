@@ -19,6 +19,7 @@ function coachHint(
     case 'pass-red-alert':
     case 'pass-turn':
     case 'deploy-beacon':
+    case 'raise-shields':
       return 'Bullets above cite the rules for why this resolution is legal now.';
     case 'all-stop':
     case 'drop-to-impulse':

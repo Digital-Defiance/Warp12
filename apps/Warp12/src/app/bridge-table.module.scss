@@ -22,7 +22,7 @@
 
 .controls {
   position: absolute;
-  top: 12px;
+  bottom: 12px;
   left: 12px;
   z-index: 100;
   display: flex;
@@ -148,6 +148,23 @@
   border-radius: 10px;
   padding: 1rem 1.25rem;
   backdrop-filter: blur(8px);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+
+  // Light the border blue while it is this captain's turn (local + online).
+  &[data-my-turn='true'] {
+    border-color: var(--warp-accent, #38bdf8);
+    box-shadow:
+      0 0 0 1px var(--warp-accent, #38bdf8),
+      0 0 18px rgba(56, 189, 248, 0.45);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .commandPanel {
+    transition: none;
+  }
 }
 
 .commandHeader {
@@ -238,6 +255,7 @@
   border-radius: 6px;
   cursor: grab;
   user-select: none;
+  touch-action: none;
   -webkit-user-drag: element;
   transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s;
 

@@ -132,6 +132,8 @@ export function createRoundStateFromDeal(deal: RoundDealResult): RoundState {
     roundStarterOpening: null,
     dropToImpulseCallPending: null,
     dropToImpulseCatchable: null,
+    playedThisTurn: false,
+    drewThisTurn: false,
   };
 }
 

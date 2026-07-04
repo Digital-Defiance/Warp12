@@ -19,6 +19,7 @@ import {
   useFirebaseAuth,
   type CoachPresence,
   type FirestoreCaptain,
+  type FirestoreRoundMove,
 } from '../firebase';
 import { isAiCaptain } from '../game/ai-captain.js';
 import {
@@ -47,10 +48,12 @@ export function OnlineGamePage() {
     readonly FirestoreCaptain[]
   >([]);
   const [handCounts, setHandCounts] = useState<Record<string, number>>({});
+  const [moveLog, setMoveLog] = useState<readonly FirestoreRoundMove[]>([]);
   const [aiHands, setAiHands] = useState<
     Record<string, readonly { low: number; high: number }[]>
   >({});
   const [connected, setConnected] = useState(false);
+  const [synced, setSynced] = useState(false);
   const [syncPending, setSyncPending] = useState(false);
   const [coachPresence, setCoachPresence] = useState<
     Record<string, CoachPresence>
@@ -84,7 +87,9 @@ export function OnlineGamePage() {
       ({
         state,
         handCounts: counts,
+        moveLog: sharedMoveLog,
         connected: live,
+        synced: inSync,
         hostId: sectorHost,
         sectorCaptains: captains,
         aiHands: hostAiHands,
@@ -111,13 +116,16 @@ export function OnlineGamePage() {
         setHostId(sectorHost);
         setSectorCaptains(captains);
         setHandCounts(counts);
+        setMoveLog(sharedMoveLog);
         setAiHands(hostAiHands);
         setConnected(live);
+        setSynced(inSync);
         setOptimisticGame(null);
         setSyncPending(false);
       },
       (err) => {
         setConnected(false);
+        setSynced(false);
         setError(err.message);
       }
     );
@@ -247,14 +255,26 @@ export function OnlineGamePage() {
       game.captains.find((captain) => captain.id === uid)?.displayName ??
       'Captain';
 
+    const connectionLabel = syncPending
+      ? 'Transmitting move…'
+      : !connected
+        ? 'Reconnecting…'
+        : synced
+          ? 'Subspace link active'
+          : 'Resyncing subspace link…';
+
+    const connectionState = syncPending
+      ? 'pending'
+      : !connected
+        ? 'pending'
+        : synced
+          ? 'live'
+          : 'stale';
+
     setHeaderStatus({
       sectorLabel: `Sector ${code} · ${captainName}`,
-      connectionLabel: syncPending
-        ? 'Transmitting move…'
-        : connected
-          ? 'Subspace link active'
-          : 'Reconnecting…',
-      connectionLive: connected && !syncPending,
+      connectionLabel,
+      connectionState,
     });
 
     return () => setHeaderStatus(null);
@@ -262,6 +282,7 @@ export function OnlineGamePage() {
     auth.ready,
     code,
     connected,
+    synced,
     game,
     setHeaderStatus,
     syncPending,
@@ -378,6 +399,7 @@ export function OnlineGamePage() {
         handCounts={handCounts}
         onlineAiCaptainIds={onlineAiCaptainIds}
         onlineCaptains={sectorCaptains}
+        onlineMoveLog={moveLog}
         onAction={dispatch}
         onLeave={() => navigate('/')}
         isOnlineHost={isHost}

@@ -28,7 +28,11 @@ const MIN_COMPLETION_RATE = 0.85;
 const POINTS_THRESHOLDS = {
   orderingMinWinRate: 0.55,
   symmetricWinRateBand: { min: 0.35, max: 0.65 },
-  eloAlignmentBand: { min: 0.5, max: 0.92 },
+  // Upper bound guards against a degenerate "always wins" result while still
+  // allowing a strong tier to dominate a much weaker one. Widened from 0.92
+  // after the beacon-on-draw rule was corrected (marker now drops after a
+  // single failed draw), which lets the stronger AI exploit open trails more.
+  eloAlignmentBand: { min: 0.5, max: 0.95 },
   requiredOrderingMatchups: [
     ['ensign', 'lieutenant'],
     ['ensign', 'commander'],
@@ -40,7 +44,11 @@ const GO_OUT_THRESHOLDS = {
   orderingMinWinRate: 0.55,
   orderingMinWinRateIntermediateAdvanced: 0.52,
   symmetricWinRateBand: { min: 0.4, max: 0.6 },
-  fourPlayerFocusMinWinRate: 0.26,
+  // Focus AI must at least hold its fair share (0.25 at 4 players). Relaxed
+  // from 0.26 after the beacon-on-draw correction compressed the one-tier
+  // (lieutenant vs ensign) edge in chaotic 4-player go-out races; strict skill
+  // ordering is still enforced by the heads-up ordering tests above.
+  fourPlayerFocusMinWinRate: 0.25,
   fourPlayerAdvancedBeatsIntermediateGap: 0.02,
   requiredOrderingMatchups: [
     ['ensign', 'lieutenant'],
