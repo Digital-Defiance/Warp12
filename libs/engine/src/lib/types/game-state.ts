@@ -64,6 +64,13 @@ export interface RoundState {
    * per-turn cap. Cleared when helm passes.
    */
   readonly shieldChangedThisTurn?: boolean;
+  /**
+   * Transient "return to warp" signal: true only on the state produced by a draw
+   * that grew an at-impulse hand (length 1 → 2+) while Drop to Impulse is on.
+   * Drives the return-to-warp cue/log across all impulse paths (same-turn draw,
+   * caught penalty draw, and announced-then-drawn). Reset on the next action.
+   */
+  readonly returnedToWarp?: boolean;
 }
 
 export interface GameState {

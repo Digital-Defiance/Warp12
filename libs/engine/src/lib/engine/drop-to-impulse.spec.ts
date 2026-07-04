@@ -205,6 +205,7 @@ describe('drop to impulse house rule', () => {
     expect(result.state.round?.dropToImpulseCatchable).toBeNull();
     expect(result.state.round?.hands.a).toEqual([T(3, 4), tile]);
     expect(result.state.round?.unchartedSectors).toHaveLength(0);
+    expect(result.state.round?.returnedToWarp).toBe(true);
   });
 
   it('draws two tiles when the house rule sets a 2-tile catch penalty', () => {
@@ -294,6 +295,90 @@ describe('drop to impulse house rule', () => {
     expect(result.state.round?.dropToImpulseCallPending).toBeNull();
     expect(result.state.round?.dropToImpulseCatchable).toBeNull();
     expect(result.state.round?.hands.a).toEqual([T(3, 4), tile]);
+    expect(result.state.round?.returnedToWarp).toBe(true);
+  });
+
+  it('signals return to warp after ANNOUNCING drop to impulse then drawing (no flags left)', () => {
+    // Regression: DROP_TO_IMPULSE clears dropToImpulseCallPending and sets no
+    // catchable, so an announced captain who later draws has no impulse flag.
+    // The return-to-warp signal must still fire — it keys off the hand growing
+    // from one, not the flags.
+    const tile = T(0, 1);
+    const base = makeRound(['a', 'b'], { activePlayerId: 'a', spacedockValue: 12 });
+    const round = makeRound(['a', 'b'], {
+      activePlayerId: 'a',
+      spacedockValue: 12,
+      dropToImpulseCallPending: null,
+      dropToImpulseCatchable: null,
+      hands: { a: [T(3, 4)], b: [] },
+      unchartedSectors: [tile],
+      table: {
+        ...base.table,
+        spacedock: { value: 12, placedBy: 'a' },
+        warpTrails: {
+          ...base.table.warpTrails,
+          a: {
+            ...base.table.warpTrails.a,
+            tiles: [placed(T(12, 3), 0, 12)],
+            distressBeacon: { active: true },
+          },
+        },
+      },
+    });
+    const state = impulseGame(round);
+
+    const result = applyAction(state, {
+      type: 'DRAW_FROM_UNCHARTED',
+      playerId: 'a',
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.round?.returnedToWarp).toBe(true);
+  });
+
+  it('clears the return-to-warp signal on the next action', () => {
+    // Draw a tile that IS playable (contains 12, the open end) so the turn stays
+    // with 'a' via mandatoryPlay; charting it is a clean, valid follow-up action.
+    const drawn = T(12, 0);
+    const base = makeRound(['a', 'b'], { activePlayerId: 'a', spacedockValue: 12 });
+    const round = makeRound(['a', 'b'], {
+      activePlayerId: 'a',
+      spacedockValue: 12,
+      dropToImpulseCallPending: 'a',
+      hands: { a: [T(3, 4)], b: [T(6, 6)] },
+      unchartedSectors: [drawn],
+      table: {
+        ...base.table,
+        spacedock: { value: 12, placedBy: 'a' },
+        warpTrails: {
+          ...base.table.warpTrails,
+          a: {
+            ...base.table.warpTrails.a,
+            tiles: [placed(T(12, 3), 0, 12)],
+            distressBeacon: { active: true },
+          },
+        },
+      },
+    });
+    const drew = applyAction(impulseGame(round), {
+      type: 'DRAW_FROM_UNCHARTED',
+      playerId: 'a',
+    });
+    expect(drew.ok).toBe(true);
+    if (!drew.ok) return;
+    expect(drew.state.round?.returnedToWarp).toBe(true);
+
+    // The next action resets the transient signal.
+    const charted = applyAction(drew.state, {
+      type: 'CHART_COORDINATE',
+      playerId: 'a',
+      coordinate: drawn,
+      route: { kind: 'warp-trail', playerId: 'a' },
+    });
+    expect(charted.ok).toBe(true);
+    if (!charted.ok) return;
+    expect(charted.state.round?.returnedToWarp).toBe(false);
   });
 
   it('returns to warp when catchable captain draws because they cannot play', () => {

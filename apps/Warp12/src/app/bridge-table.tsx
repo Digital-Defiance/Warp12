@@ -88,7 +88,11 @@ import {
   type CoachPresence,
 } from '../firebase/coach-presence';
 import { isFirebaseConfigured } from '../firebase/config.js';
-import { extractHumanActions } from '../game/verify-local-ai-replay.js';
+import {
+  applyMatchAction,
+  createMatchRoundReshuffle,
+  extractHumanActions,
+} from '../game/verify-local-ai-replay.js';
 import { ratedMatchCheckInUrl } from '../firebase/auth-actions.js';
 import { useFirebaseAuth } from '../firebase/use-firebase-auth.js';
 import { usePlayerStats } from '../firebase/use-player-stats.js';
@@ -326,8 +330,23 @@ export function BridgeTable({
   );
   const auth = useFirebaseAuth();
   const playerStats = usePlayerStats();
+  // usePlayerStats returns a fresh object every render; keep a stable ref so
+  // effects can call it without listing the unstable object as a dependency.
+  const playerStatsRef = useRef(playerStats);
+  playerStatsRef.current = playerStats;
   const reportedLocalMatchRef = useRef<string | null>(null);
   const advisorUsedThisMatchRef = useRef(false);
+  // Seeded inter-round reshuffle stream so local round 2+ deals are reproducible
+  // by the server verification replay (which uses the same seeded stream). Using
+  // the engine default (Math.random) here makes the replay diverge with
+  // COORDINATE_NOT_IN_HAND. Created once per match, advanced on each END_ROUND.
+  const roundReshuffleRef = useRef<(() => number) | null>(null);
+  const ensureRoundReshuffle = useCallback(() => {
+    if (!roundReshuffleRef.current) {
+      roundReshuffleRef.current = createMatchRoundReshuffle(matchSeed ?? 0);
+    }
+    return roundReshuffleRef.current;
+  }, [matchSeed]);
 
   const [localGame, setLocalGame] = useState<GameState>(
     () => externalGame ?? createDemoGame()
@@ -375,6 +394,7 @@ export function BridgeTable({
   useEffect(() => {
     advisorUsedThisMatchRef.current = false;
     reportedLocalMatchRef.current = null;
+    roundReshuffleRef.current = null;
     campaignAdvisorReviewsRef.current = [];
     campaignRoundSnapshotsRef.current = [];
     lastScoredRoundRef.current = null;
@@ -463,7 +483,7 @@ export function BridgeTable({
         const localWon = humanWonLocalMatch(game, localConfig.humanId);
         if (result.status === 'uploaded') {
           setMatchReport(result.report);
-          void playerStats.refresh();
+          void playerStatsRef.current.refresh();
           return;
         }
         if (result.status === 'queued') {
@@ -486,12 +506,21 @@ export function BridgeTable({
         );
       })
       .catch((error) => {
+        console.error('[tei] local match report failed', {
+          code: (error as { code?: string })?.code,
+          message: (error as { message?: string })?.message,
+        });
         setMatchReportPending(false);
+        // Allow a retry only when auth/config actually changes (deps), not on
+        // every render — resetting here previously caused a re-report storm.
         reportedLocalMatchRef.current = null;
-        setMatchReportNotice(
+        const code = (error as { code?: string })?.code;
+        const message =
           error instanceof Error
-            ? `TEI was not saved — ${error.message}`
-            : 'TEI was not saved — network or server error.'
+            ? error.message
+            : 'network or server error.';
+        setMatchReportNotice(
+          `TEI was not saved — ${message}${code ? ` (${code})` : ''}`
         );
       });
   }, [
@@ -502,7 +531,6 @@ export function BridgeTable({
     isVsAi,
     localConfig,
     matchSeed,
-    playerStats,
   ]);
 
   const [tablePrefs, setTablePrefs] = useState(readTableOptions);
@@ -867,6 +895,7 @@ export function BridgeTable({
     allStopRequired: round?.allStopRequired === true,
     dropToImpulseCallPending: round?.dropToImpulseCallPending ?? null,
     dropToImpulseCatchable: round?.dropToImpulseCatchable ?? null,
+    returnedToWarp: round?.returnedToWarp === true,
     unchartedSectorCount: round?.unchartedSectors.length ?? 0,
     turnBeepsEnabled,
   });
@@ -1226,7 +1255,10 @@ export function BridgeTable({
       }
 
       const before = gameRef.current;
-      const result = applyAction(before, action);
+      // Route through applyMatchAction so END_ROUND reshuffles the next deal with
+      // the seeded stream (reproducible by the verification replay); all other
+      // actions behave exactly like applyAction.
+      const result = applyMatchAction(before, action, ensureRoundReshuffle());
       actionLogRef.current.append({
         playerId: playerIdForAction(action),
         action,
@@ -1244,7 +1276,7 @@ export function BridgeTable({
       recordGameLog(before, result.state, action);
       setLocalGame(result.state);
     },
-    [game, onAction, recordGameLog]
+    [game, onAction, recordGameLog, ensureRoundReshuffle]
   );
 
   const exportLocalDebug = async () => {

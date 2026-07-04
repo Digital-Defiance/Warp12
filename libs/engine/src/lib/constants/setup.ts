@@ -27,8 +27,16 @@ export const MIN_CAMPAIGN_ROUNDS = 1;
 /** Longest points campaign for a double-twelve set. */
 export const MAX_CAMPAIGN_ROUNDS = 13;
 
-/** Standard Salamander penalty multiplier for the 12-12 tile. */
-export const SALAMANDER_PENALTY_TILE_VALUE = 24;
+/** Base pip value of the 12-12 tile (both ends). */
+export const TWELVE_TWELVE_PIP_VALUE = 24;
+
+/**
+ * Salamander Penalty: a held 12-12 scores DOUBLE its pips (round 2+). Base pips
+ * are already 24 (both ends), so the penalty value is 48.
+ */
+export const SALAMANDER_PENALTY_TILE_VALUE = TWELVE_TWELVE_PIP_VALUE * 2;
+
+
 
 export function clampCampaignRounds(rounds: number): number {
   return Math.min(

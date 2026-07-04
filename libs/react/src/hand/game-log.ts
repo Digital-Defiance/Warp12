@@ -472,20 +472,13 @@ function chartEffects(
   return effects;
 }
 
-function returnedToWarpFromImpulse(
-  before: RoundState,
-  after: RoundState,
-  playerId: string
-): boolean {
-  const beforeHand = before.hands[playerId]?.length ?? 0;
-  const afterHand = after.hands[playerId]?.length ?? 0;
-  if (beforeHand !== 1 || afterHand <= beforeHand) {
-    return false;
-  }
-  return (
-    before.dropToImpulseCallPending === playerId ||
-    before.dropToImpulseCatchable === playerId
-  );
+/**
+ * Return to warp is signalled by the engine on the state produced by the draw
+ * (covers every impulse path: same-turn, caught penalty, and announced-then-
+ * drawn — which leaves no drop-to-impulse flag set).
+ */
+function returnedToWarpFromImpulse(after: RoundState): boolean {
+  return after.returnedToWarp === true;
 }
 
 function drawEffects(
@@ -503,7 +496,7 @@ function drawEffects(
   if (wasBlocking && beaconAfter && !beaconBefore) {
     effects.push('red-alert-opened');
   }
-  if (returnedToWarpFromImpulse(before, after, playerId)) {
+  if (returnedToWarpFromImpulse(after)) {
     effects.push('return-to-warp');
   }
   return effects;
@@ -521,12 +514,8 @@ function passRedAlertEffects(before: RoundState, after: RoundState): GameLogEffe
   return [];
 }
 
-function catchDropToImpulseEffects(
-  before: RoundState,
-  after: RoundState,
-  targetPlayerId: string
-): GameLogEffect[] {
-  if (returnedToWarpFromImpulse(before, after, targetPlayerId)) {
+function catchDropToImpulseEffects(after: RoundState): GameLogEffect[] {
+  if (returnedToWarpFromImpulse(after)) {
     return ['return-to-warp'];
   }
   return [];
@@ -642,11 +631,7 @@ export function buildGameLogEntry(
         kind: action.type,
         captainId: action.challengerId,
         targetCaptainId: action.targetPlayerId,
-        effects: catchDropToImpulseEffects(
-          beforeRound,
-          afterRound,
-          action.targetPlayerId
-        ),
+        effects: catchDropToImpulseEffects(afterRound),
       };
     case 'INVOKE_Q_FLASH':
       return {

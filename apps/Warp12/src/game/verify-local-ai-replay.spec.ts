@@ -57,6 +57,64 @@ describe('verify-local-ai-replay', () => {
     );
   }, 120_000);
 
+  it('verifies a full multi-round points campaign end to end', async () => {
+    // The default config is the Official points campaign (13 rounds), so this
+    // exercises the inter-round reshuffle — the path that broke when the live
+    // game scored rounds with Math.random instead of the seeded stream.
+    const simulated = await simulateLocalAiMatch({ seed: 7_005_001 });
+
+    expect(simulated.finalState.phase).toBe('complete');
+    // Genuinely multi-round: if the deal/verification only covered round 1 this
+    // guard would (correctly) stop protecting the reshuffle path.
+    expect(simulated.finalState.completedRounds).toBeGreaterThan(1);
+
+    const replay = await replayLocalAiHumanActions({
+      config: simulated.config,
+      seed: simulated.seed,
+      humanActions: extractHumanActions(simulated.config, simulated.actionLog),
+    });
+
+    expect(replay.ok).toBe(true);
+  }, 120_000);
+
+  it('is fully reproducible from the seed (same seed → identical action log)', async () => {
+    // Server verification only works if the whole pipeline (deal, AI, inter-round
+    // reshuffle) is deterministic under a fixed seed. Two runs must be identical.
+    const a = await simulateLocalAiMatch({ seed: 7_005_002 });
+    const b = await simulateLocalAiMatch({ seed: 7_005_002 });
+
+    const strip = (log: typeof a.actionLog) =>
+      log.map((entry) => ({
+        playerId: entry.playerId,
+        action: entry.action,
+        ok: entry.ok,
+        source: entry.source,
+      }));
+
+    expect(strip(a.actionLog)).toEqual(strip(b.actionLog));
+  }, 120_000);
+
+  it('FAILS verification when rounds were reshuffled with a non-matching stream', async () => {
+    // Models the fixed bug: the live game dealt round 2+ with a different RNG
+    // stream than the seeded verification replay. The deal seed matches, but the
+    // reshuffle stream does not, so round 2+ hands diverge and a later human
+    // chart references a tile the replay never dealt.
+    const diverged = await simulateLocalAiMatch({
+      seed: 7_005_003,
+      reshuffleSeed: 13_000_007,
+    });
+    expect(diverged.finalState.phase).toBe('complete');
+    expect(diverged.finalState.completedRounds).toBeGreaterThan(1);
+
+    const replay = await replayLocalAiHumanActions({
+      config: diverged.config,
+      seed: diverged.seed, // correct seeded reshuffle — will not match the diverged log
+      humanActions: extractHumanActions(diverged.config, diverged.actionLog),
+    });
+
+    expect(replay.ok).toBe(false);
+  }, 120_000);
+
   it('rejects tampered human move sequences', async () => {
     const simulated = await simulateLocalAiMatch({ seed: 7_001_003 });
     const humanActions = extractHumanActions(

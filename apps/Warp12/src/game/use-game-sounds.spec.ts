@@ -22,6 +22,7 @@ describe('detectGameSoundTransitions', () => {
     activePlayerId: null,
     dropToImpulseCallPending: null,
     dropToImpulseCatchable: null,
+    returnedToWarp: false,
     unchartedSectorCount: 10,
     turnBeepsEnabled: false,
   };
@@ -179,30 +180,24 @@ describe('detectGameSoundTransitions', () => {
     ).toEqual({ play: [], stop: [] });
   });
 
-  it('plays return to warp when Drop to Impulse catch forces a penalty draw', () => {
+  it('plays return to warp when the engine signals it (draw grew an at-impulse hand)', () => {
     expect(
       detectGameSoundTransitions(
-        {
-          ...base,
-          dropToImpulseCatchable: 'a',
-          unchartedSectorCount: 5,
-        },
-        {
-          ...base,
-          dropToImpulseCatchable: null,
-          unchartedSectorCount: 4,
-        }
+        { ...base, unchartedSectorCount: 5 },
+        { ...base, returnedToWarp: true, unchartedSectorCount: 4 }
       )
     ).toEqual({ play: ['returnToWarp'], stop: [] });
   });
 
-  it('plays return to warp when stuck at impulse and drawing from Uncharted Sectors', () => {
+  it('plays return to warp for an announced-then-drawn captain (no impulse flags set)', () => {
+    // Regression: announcing Drop to Impulse clears the flags, so flag-based
+    // detection missed this path. The engine signal covers it.
     expect(
       detectGameSoundTransitions(
         {
           ...base,
           activePlayerId: 'a',
-          dropToImpulseCallPending: 'a',
+          dropToImpulseCallPending: null,
           dropToImpulseCatchable: null,
           unchartedSectorCount: 5,
         },
@@ -211,6 +206,7 @@ describe('detectGameSoundTransitions', () => {
           activePlayerId: 'a',
           dropToImpulseCallPending: null,
           dropToImpulseCatchable: null,
+          returnedToWarp: true,
           unchartedSectorCount: 4,
         }
       )
@@ -220,37 +216,19 @@ describe('detectGameSoundTransitions', () => {
   it('does not play return to warp on a normal draw while not at impulse', () => {
     expect(
       detectGameSoundTransitions(
-        {
-          ...base,
-          dropToImpulseCallPending: null,
-          dropToImpulseCatchable: null,
-          unchartedSectorCount: 5,
-        },
-        {
-          ...base,
-          dropToImpulseCallPending: null,
-          dropToImpulseCatchable: null,
-          unchartedSectorCount: 4,
-        }
+        { ...base, unchartedSectorCount: 5 },
+        { ...base, returnedToWarp: false, unchartedSectorCount: 4 }
       )
     ).toEqual({ play: [], stop: [] });
   });
 
-  it('plays return to warp once when the catch penalty draws two tiles', () => {
+  it('plays return to warp only once (edge-triggered while the signal stays set)', () => {
     expect(
       detectGameSoundTransitions(
-        {
-          ...base,
-          dropToImpulseCatchable: 'a',
-          unchartedSectorCount: 5,
-        },
-        {
-          ...base,
-          dropToImpulseCatchable: null,
-          unchartedSectorCount: 3,
-        }
+        { ...base, returnedToWarp: true, unchartedSectorCount: 4 },
+        { ...base, returnedToWarp: true, unchartedSectorCount: 4 }
       )
-    ).toEqual({ play: ['returnToWarp'], stop: [] });
+    ).toEqual({ play: [], stop: [] });
   });
 
   it('does not play drop to impulse when drawing ends impulse on the same turn', () => {
@@ -314,6 +292,7 @@ describe('countTurnBeepsToPlay', () => {
     activePlayerId: null,
     dropToImpulseCallPending: null,
     dropToImpulseCatchable: null,
+    returnedToWarp: false,
     unchartedSectorCount: 10,
     turnBeepsEnabled: true,
   };

@@ -93,7 +93,7 @@ export const Q_FLASH_CATALOG: readonly QFlashCatalogEntry[] = [
     kind: 'salamander-swap',
     label: 'Salamander swap',
     description:
-      'If anyone holds 12-12 at round end, that penalty applies to the highest-points captain instead.',
+      'If anyone holds 12-12 at round end, the full 48-point penalty lands on the highest-points captain instead — the holder pays nothing for it.',
     requiresSalamander: true,
   },
   {

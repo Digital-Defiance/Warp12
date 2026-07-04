@@ -1,6 +1,6 @@
 # 🌌 WARP 12
 
-**A Double-Twelve Domino Variant for the NX Epoch**
+**A Double-Twelve Domino Variant**
 
 Warp 12 is a multiplayer, Star Trek-themed variant of standard Mexican Train (double-twelve) dominoes. This repository contains the game engine, client UI, domino rendering library, and Firebase-backed multiplayer infrastructure in a TypeScript Nx monorepo.
 
@@ -311,3 +311,28 @@ Published packages: `warp12-engine` (AI + rules), `warp12-react` (coach + table 
 - [Nx documentation](https://nx.dev)
 - [DoubleTwelve library](./vendor/DoubleTwelve/README.md)
 - [Firebase Console — warp-12](https://console.firebase.google.com/project/warp-12)
+
+## 📦 Install (macOS)
+
+Warp 12 ships as a macOS app via a Homebrew **cask** on the Digital Defiance tap:
+
+```bash
+brew tap digital-defiance/tap
+brew trust --cask digital-defiance/tap/warp12
+brew install --cask warp12
+```
+
+Or as a single command — installing a fully-qualified cask name taps and trusts just that item:
+
+```bash
+brew install --cask digital-defiance/tap/warp12
+```
+
+> **Why `brew trust`?** Since [Homebrew 6.0.0](https://docs.brew.sh/Tap-Trust), non-official taps must be explicitly trusted before installing. `brew trust --cask …` authorizes only the Warp 12 cask (not every current/future package in the tap).
+
+Update or remove later:
+
+```bash
+brew upgrade --cask warp12
+brew uninstall --cask warp12
+```

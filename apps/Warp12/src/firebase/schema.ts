@@ -109,6 +109,8 @@ export interface FirestorePublicRound {
   playedThisTurn?: boolean;
   drewThisTurn?: boolean;
   shieldChangedThisTurn?: boolean;
+  /** Transient return-to-warp signal (drives the cue/log on other clients). */
+  returnedToWarp?: boolean;
   /** Applied-action history for this round (shared log + advisor source). */
   moveLog?: FirestoreRoundMove[];
   table: FirestoreTableDocument;

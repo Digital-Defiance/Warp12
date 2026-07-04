@@ -296,6 +296,7 @@ describe('house rules feedback integration', () => {
       activePlayerId: round.activePlayerId,
       dropToImpulseCallPending: round.dropToImpulseCallPending,
       dropToImpulseCatchable: round.dropToImpulseCatchable,
+      returnedToWarp: round.returnedToWarp === true,
       unchartedSectorCount: round.unchartedSectors.length,
       turnBeepsEnabled: true,
     };
