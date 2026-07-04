@@ -161,8 +161,8 @@ function rankAction(
       return 500;
     case 'draw':
       return -1;
-    case 'return-to-warp':
-      return -10_000;
+    case 'raise-shields':
+      return -100;
     case 'invoke-q-flash':
     case 'resolve-q-gamble':
       return 5_000;

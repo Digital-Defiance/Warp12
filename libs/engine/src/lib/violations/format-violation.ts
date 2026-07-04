@@ -7,8 +7,12 @@ export function formatViolation(violation: string): string {
       return 'Drop to Impulse! is not required right now';
     case 'CATCH_DROP_TO_IMPULSE_NOT_ALLOWED':
       return 'You cannot catch Drop to Impulse right now';
-    case 'RETURN_TO_WARP_NOT_ALLOWED':
-      return 'You cannot return to warp right now';
+    case 'RAISE_SHIELDS_NOT_ALLOWED':
+      return 'You cannot raise shields right now';
+    case 'TURN_CHART_LIMIT':
+      return 'Pass helm or adjust shields before charting again';
+    case 'DRAW_NOT_ALLOWED':
+      return 'You can only draw once when unable to chart';
     default:
       return violation.replaceAll('_', ' ').toLowerCase();
   }

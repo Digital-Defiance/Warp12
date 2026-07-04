@@ -90,6 +90,20 @@ describe('game-log', () => {
       '02:10 - Riker drew and could not answer the Double, causing a Red Alert'
     );
 
+    const returnToWarp = formatGameLogLine(
+      {
+        at: '2026-06-28T21:02:20.000Z',
+        kind: 'DRAW_FROM_UNCHARTED',
+        captainId: 'riker',
+        effects: ['return-to-warp'],
+      },
+      names,
+      formatOptions
+    );
+    expect(returnToWarp).toBe(
+      '02:20 - Riker drew from Uncharted Sectors — returned to warp'
+    );
+
     const qFlash = formatGameLogLine(
       {
         at: '2026-06-28T21:03:00.000Z',
@@ -208,6 +222,26 @@ describe('game-log', () => {
     expect(ratings).toBe(
       '00:00 - Ratings · Picard TEI 1180 · Riker ~TEI 1200 · Class III'
     );
+
+    // hideTei renders captain classes without the TEI portion.
+    const onlineRatings = formatGameLogLine(
+      buildRoundRatingsEntry(
+        [
+          { captainId: 'picard', tei: null, hideTei: true },
+          {
+            captainId: 'riker',
+            tei: null,
+            hideTei: true,
+            tacticalClass: 'Class II',
+          },
+        ],
+        1,
+        '2026-06-28T21:00:00.000Z'
+      ),
+      { picard: 'Picard', riker: 'Riker' },
+      formatOptions
+    );
+    expect(onlineRatings).toBe('00:00 - Ratings · Picard · Riker · Class II');
 
     const pass = formatGameLogLine(
       {
@@ -713,6 +747,100 @@ describe('game-log', () => {
     expect(entry?.effects).toContain('red-alert-opened');
     expect(entry?.effects).toContain('subspace-fracture-opened');
     expect(entry?.effects).not.toContain('caution-opened');
+    });
+
+    it('logs return to warp when a stuck impulse draw ends Drop to Impulse', () => {
+      const impulse = resolveHouseRules({ dropToImpulseCall: true });
+      const base = makeRound(['a', 'b'], {
+        activePlayerId: 'a',
+        spacedockValue: 12,
+        dropToImpulseCallPending: 'a',
+        hands: { a: [T(3, 4)], b: [] },
+        unchartedSectors: [T(0, 1)],
+        table: {
+          ...createInitialTable(['a', 'b'], 12, 'a'),
+          warpTrails: {
+            a: {
+              playerId: 'a',
+              tiles: [placed(T(12, 3), 0, 12)],
+              distressBeacon: { active: true },
+            },
+            b: {
+              playerId: 'b',
+              tiles: [],
+              distressBeacon: { active: false },
+            },
+          },
+        },
+      });
+      const before = makeGame(base, { houseRules: impulse });
+      const draw = applyAction(before, {
+        type: 'DRAW_FROM_UNCHARTED',
+        playerId: 'a',
+      });
+      expect(draw.ok).toBe(true);
+      if (!draw.ok) return;
+
+      const entry = buildGameLogEntry(before, draw.state, {
+        type: 'DRAW_FROM_UNCHARTED',
+        playerId: 'a',
+      });
+      expect(entry?.effects).toContain('return-to-warp');
+      expect(
+        formatGameLogLine(
+          {
+            at: '2026-06-28T21:04:00.000Z',
+            kind: 'DRAW_FROM_UNCHARTED',
+            captainId: 'a',
+            effects: entry?.effects ?? [],
+          },
+          { a: 'Alpha' },
+          formatOptions
+        )
+      ).toBe('04:00 - Alpha drew from Uncharted Sectors — returned to warp');
+    });
+
+    it('logs return to warp when a catch penalty draw ends Drop to Impulse', () => {
+      const impulse = resolveHouseRules({ dropToImpulseCall: true });
+      const before = makeGame(
+        makeRound(['a', 'b'], {
+          activePlayerId: 'b',
+          dropToImpulseCatchable: 'a',
+          hands: { a: [T(3, 4)], b: [] },
+          unchartedSectors: [T(0, 1)],
+          table: createInitialTable(['a', 'b'], 12, 'a'),
+        }),
+        { houseRules: impulse }
+      );
+      const caught = applyAction(before, {
+        type: 'CATCH_DROP_TO_IMPULSE',
+        challengerId: 'b',
+        targetPlayerId: 'a',
+      });
+      expect(caught.ok).toBe(true);
+      if (!caught.ok) return;
+
+      const entry = buildGameLogEntry(before, caught.state, {
+        type: 'CATCH_DROP_TO_IMPULSE',
+        challengerId: 'b',
+        targetPlayerId: 'a',
+      });
+      expect(entry?.effects).toContain('return-to-warp');
+      expect(
+        formatGameLogLine(
+          {
+            at: '2026-06-28T21:04:10.000Z',
+            kind: 'CATCH_DROP_TO_IMPULSE',
+            captainId: 'b',
+            targetCaptainId: 'a',
+            effects: entry?.effects ?? [],
+          },
+          { a: 'Alpha', b: 'Beta' },
+          formatOptions
+        )
+      ).toBe(
+        '04:10 - Beta caught Alpha for a missed Drop to Impulse — Alpha returned to warp'
+      );
     });
   });
 });

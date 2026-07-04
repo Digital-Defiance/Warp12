@@ -80,15 +80,18 @@ export function detectGameSoundTransitions(
   if (
     previous.dropToImpulseCallPending &&
     !next.dropToImpulseCallPending &&
-    !next.dropToImpulseCatchable
+    !next.dropToImpulseCatchable &&
+    next.unchartedSectorCount >= previous.unchartedSectorCount
   ) {
     play.push('dropToImpulse');
   }
 
   if (
-    previous.dropToImpulseCatchable &&
-    !next.dropToImpulseCatchable &&
-    next.unchartedSectorCount < previous.unchartedSectorCount
+    next.unchartedSectorCount < previous.unchartedSectorCount &&
+    ((previous.dropToImpulseCatchable &&
+      !next.dropToImpulseCatchable) ||
+      (previous.dropToImpulseCallPending &&
+        !next.dropToImpulseCallPending))
   ) {
     play.push('returnToWarp');
   }

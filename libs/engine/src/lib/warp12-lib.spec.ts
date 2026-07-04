@@ -299,6 +299,7 @@ describe('applyAction', () => {
       return;
     }
 
+    // A single failed draw drops shields immediately — no need to exhaust the pile.
     const draw = applyAction(state, {
       type: 'DRAW_FROM_UNCHARTED',
       playerId,

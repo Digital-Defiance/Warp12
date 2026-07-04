@@ -56,10 +56,17 @@
 }
 
 .headerConnection {
+  // Default (pending: reconnecting / transmitting) — amber.
   color: #fbbf24;
 
-  &[data-live='true'] {
+  // Server-confirmed, in sync — green.
+  &[data-connection='live'] {
     color: #34d399;
+  }
+
+  // Attached but showing stale local-cache data — out of sync — orange.
+  &[data-connection='stale'] {
+    color: #fb923c;
   }
 }
 

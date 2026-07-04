@@ -95,13 +95,13 @@ export function formatCoachSuggestion(
       return options?.allStopEcho
         ? 'All Stop! · round win pending'
         : 'All Stop! · Neutral Zone win';
-    case 'return-to-warp':
-      return 'Return to warp · penalty draw instead of All Stop!';
+    case 'raise-shields':
+      return 'Raise shields · close your warp trail';
     case 'drop-to-impulse':
       return 'Drop to Impulse! · one coordinate left';
     case 'catch-drop-to-impulse': {
       const target = names[action.targetPlayerId] ?? action.targetPlayerId;
-      return `Catch Drop to Impulse · ${target}`;
+      return `Catch Drop to Impulse · ${target} returns to warp`;
     }
     case 'invoke-q-flash':
       return `Invoke Q-Flash · ${action.effect.replaceAll('-', ' ')}`;

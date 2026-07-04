@@ -88,6 +88,34 @@ export function HouseRulesOptions({
       <label className={styles.checkboxRow}>
         <input
           type="checkbox"
+          checked={value.passRedAlertWithoutDraw ?? false}
+          disabled={disabled}
+          onChange={(e) =>
+            onChange({ passRedAlertWithoutDraw: e.target.checked })
+          }
+        />
+        <span>
+          Pass Red Alert without drawing or shields down — only for the captain
+          who charted the double, and only before it passes (Caution phase)
+        </span>
+      </label>
+      <label className={styles.checkboxRow}>
+        <input
+          type="checkbox"
+          checked={value.manualShieldControl ?? false}
+          disabled={disabled}
+          onChange={(e) =>
+            onChange({ manualShieldControl: e.target.checked })
+          }
+        />
+        <span>
+          Manual shield control — open your train any time; close only after
+          charting your own trail since opening; one shield change per turn
+        </span>
+      </label>
+      <label className={styles.checkboxRow}>
+        <input
+          type="checkbox"
           checked={value.allStopCeremony ?? true}
           disabled={disabled}
           onChange={(e) => onChange({ allStopCeremony: e.target.checked })}

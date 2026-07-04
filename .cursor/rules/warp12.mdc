@@ -1,0 +1,8 @@
+---
+description: Warp 12 project guide — architecture, commands, conventions, game domain
+alwaysApply: true
+---
+
+The canonical agent guide for this repo is `AGENTS.md` at the project root. Read and follow it.
+
+@AGENTS.md

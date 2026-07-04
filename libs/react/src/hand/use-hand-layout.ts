@@ -16,17 +16,15 @@ import {
   type HandSortMode,
 } from './hand-layout.js';
 
-const TRANSPARENT_DRAG_IMAGE =
-  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+const POINTER_DRAG_THRESHOLD_PX = 6;
 
-let sharedDragImage: HTMLImageElement | null = null;
-
-function getTransparentDragImage(): HTMLImageElement {
-  if (!sharedDragImage) {
-    sharedDragImage = new Image();
-    sharedDragImage.src = TRANSPARENT_DRAG_IMAGE;
-  }
-  return sharedDragImage;
+function shouldUsePointerDrag(
+  _event: Pick<PointerEvent, 'pointerType'>
+): boolean {
+  // Pointer-based reordering for ALL pointer types (mouse, touch, pen). Native
+  // HTML5 drag-and-drop is unreliable in the macOS Tauri WKWebview, so we do not
+  // depend on it — pointer events work everywhere.
+  return true;
 }
 
 export function useHandLayout(
@@ -47,10 +45,23 @@ export function useHandLayout(
     const stored = readStoredHandLayout(gameId, playerId);
     return mergeFlippedKeys(stored?.flipped ?? {}, hand);
   });
+  const [pointerDropTargetKey, setPointerDropTargetKey] = useState<string | null>(
+    null
+  );
+  const [pointerDraggingKey, setPointerDraggingKey] = useState<string | null>(
+    null
+  );
 
   const layoutScopeRef = useRef('');
   const dragKeyRef = useRef<string | null>(null);
   const didDragRef = useRef(false);
+  const pointerDragRef = useRef<{
+    key: string;
+    pointerId: number;
+    startX: number;
+    startY: number;
+    active: boolean;
+  } | null>(null);
 
   useEffect(() => {
     const scope = `${gameId}:${playerId}`;
@@ -99,35 +110,109 @@ export function useHandLayout(
     [flipped]
   );
 
-  const onDragStart = useCallback(
-    (key: string, event: React.DragEvent<HTMLButtonElement>) => {
-      dragKeyRef.current = key;
-      didDragRef.current = true;
-      event.dataTransfer.effectAllowed = 'move';
-      event.dataTransfer.setData('text/plain', key);
-      event.dataTransfer.setDragImage(getTransparentDragImage(), 0, 0);
-    },
-    []
-  );
-
-  const onDragEnd = useCallback(() => {
+  const finishPointerDrag = useCallback((targetKey?: string) => {
+    const drag = pointerDragRef.current;
+    pointerDragRef.current = null;
+    setPointerDraggingKey(null);
+    setPointerDropTargetKey(null);
     dragKeyRef.current = null;
+
+    if (drag?.active && targetKey && drag.key !== targetKey) {
+      setOrder((previous) => reorderHand(previous, drag.key, targetKey));
+    }
+
     window.setTimeout(() => {
       didDragRef.current = false;
     }, 0);
   }, []);
 
-  const onDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
-  }, []);
+  const onHandTilePointerDown = useCallback(
+    (key: string, event: React.PointerEvent<HTMLButtonElement>) => {
+      if (event.button !== 0 || !shouldUsePointerDrag(event.nativeEvent)) {
+        return;
+      }
+      pointerDragRef.current = {
+        key,
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        active: false,
+      };
+      event.currentTarget.setPointerCapture(event.pointerId);
+    },
+    []
+  );
 
-  const onDrop = useCallback((targetKey: string) => {
-    const fromKey = dragKeyRef.current;
-    if (!fromKey) return;
-    setOrder((previous) => reorderHand(previous, fromKey, targetKey));
-    dragKeyRef.current = null;
-  }, []);
+  const onHandTilePointerMove = useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>) => {
+      if (!shouldUsePointerDrag(event.nativeEvent)) {
+        return;
+      }
+      const drag = pointerDragRef.current;
+      if (!drag || drag.pointerId !== event.pointerId) {
+        return;
+      }
+      const dx = event.clientX - drag.startX;
+      const dy = event.clientY - drag.startY;
+      if (!drag.active) {
+        if (Math.hypot(dx, dy) < POINTER_DRAG_THRESHOLD_PX) {
+          return;
+        }
+        drag.active = true;
+        dragKeyRef.current = drag.key;
+        didDragRef.current = true;
+        setPointerDraggingKey(drag.key);
+      }
+
+      const target = document.elementFromPoint(event.clientX, event.clientY);
+      const tile = target?.closest('[data-hand-tile-key]');
+      const targetKey = tile?.getAttribute('data-hand-tile-key');
+      setPointerDropTargetKey(
+        targetKey && targetKey !== drag.key ? targetKey : null
+      );
+    },
+    []
+  );
+
+  const onHandTilePointerUp = useCallback(
+    (key: string, event: React.PointerEvent<HTMLButtonElement>) => {
+      if (!shouldUsePointerDrag(event.nativeEvent)) {
+        return;
+      }
+      const drag = pointerDragRef.current;
+      if (!drag || drag.pointerId !== event.pointerId) {
+        return;
+      }
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+      let dropKey: string | undefined;
+      if (drag.active) {
+        const target = document.elementFromPoint(event.clientX, event.clientY);
+        const tile = target?.closest('[data-hand-tile-key]');
+        dropKey = tile?.getAttribute('data-hand-tile-key') ?? key;
+      }
+      finishPointerDrag(dropKey);
+    },
+    [finishPointerDrag]
+  );
+
+  const onHandTilePointerCancel = useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>) => {
+      if (!shouldUsePointerDrag(event.nativeEvent)) {
+        return;
+      }
+      const drag = pointerDragRef.current;
+      if (!drag || drag.pointerId !== event.pointerId) {
+        return;
+      }
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+      finishPointerDrag();
+    },
+    [finishPointerDrag]
+  );
 
   const shouldIgnoreClick = useCallback(() => didDragRef.current, []);
 
@@ -136,10 +221,12 @@ export function useHandLayout(
     applySort,
     toggleFlip,
     isFlipped,
-    onDragStart,
-    onDragEnd,
-    onDragOver,
-    onDrop,
+    onHandTilePointerDown,
+    onHandTilePointerMove,
+    onHandTilePointerUp,
+    onHandTilePointerCancel,
+    pointerDraggingKey,
+    pointerDropTargetKey,
     shouldIgnoreClick,
   };
 }

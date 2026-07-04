@@ -28,6 +28,19 @@ export interface RedAlert {
   readonly trailPlayerId: string;
   /** Uncovered double was charted on the Neutral Zone. */
   readonly neutralZone?: boolean;
+  /**
+   * True once Red Alert responsibility has left the captain who charted the
+   * double (via a pass or a Distress Beacon deploy). While this is falsy the
+   * alert is still in the "Caution" phase and the original captain holds it.
+   * The `passRedAlertWithoutDraw` house rule only grants a free pass during
+   * that Caution phase.
+   */
+  readonly passed?: boolean;
+}
+
+/** True once Red Alert responsibility has left the captain who charted the double. */
+export function hasRedAlertPassed(redAlert: RedAlert | null): boolean {
+  return redAlert?.passed === true;
 }
 
 export function stabilizersPlaced(

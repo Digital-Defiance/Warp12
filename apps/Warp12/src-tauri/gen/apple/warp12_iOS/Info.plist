@@ -15,9 +15,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.1.0</string>
+	<string>0.4.9</string>
 	<key>CFBundleVersion</key>
-	<string>3</string>
+	<string>10</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
@@ -41,5 +41,16 @@
 	<false/>
 	<key>UIRequiresFullScreen</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>org.digitaldefiance.app.warp12.google-oauth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.527330456110-pm7kpfigqrsiouivp3ufu6q4huo9j5up</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

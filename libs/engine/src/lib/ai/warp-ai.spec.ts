@@ -76,6 +76,8 @@ function makeRound(over: Partial<RoundState>): RoundState {
     roundStarterOpening: null,
     dropToImpulseCallPending: null,
     dropToImpulseCatchable: null,
+    playedThisTurn: false,
+    drewThisTurn: false,
   };
   return { ...base, ...over };
 }
@@ -257,8 +259,8 @@ describe('toGameAction', () => {
       type: 'ALL_STOP',
       playerId: 'a',
     });
-    expect(toGameAction({ kind: 'return-to-warp' }, 'a')).toEqual({
-      type: 'RETURN_TO_WARP',
+    expect(toGameAction({ kind: 'raise-shields' }, 'a')).toEqual({
+      type: 'RAISE_SHIELDS',
       playerId: 'a',
     });
     expect(toGameAction({ kind: 'drop-to-impulse' }, 'a')).toEqual({
@@ -581,13 +583,14 @@ describe('warpCandidateGenerator — Drop to Impulse', () => {
     ).toBe(false);
   });
 
-  it('offers declare and pass but not chart when announce is pending at one tile', () => {
+  it('offers declare, pass, and chart when at impulse with a playable last tile', () => {
     const round = makeRound({
       hands: { a: [N(5, 12)], b: [] },
       dropToImpulseCallPending: 'a',
+      table: tableWithOwnTrailOpen(12),
     });
     const candidates = warpCandidateGenerator(impulseObs(round));
-    expect(candidates.some((action) => action.kind === 'chart')).toBe(false);
+    expect(candidates.some((action) => action.kind === 'chart')).toBe(true);
     expect(candidates.some((action) => action.kind === 'drop-to-impulse')).toBe(
       true
     );
@@ -668,7 +671,7 @@ describe('createWarpAiPlayer — Drop to Impulse & ceremonies', () => {
     expect(forgetRate).toBeGreaterThan(0.05);
   });
 
-  it('advanced declares when announce is pending even if the last tile would chart', () => {
+  it('advanced charts the last tile at impulse when it wins the sector', () => {
     const round = makeRound({
       hands: { a: [N(5, 7)], b: [] },
       dropToImpulseCallPending: 'a',
@@ -683,7 +686,7 @@ describe('createWarpAiPlayer — Drop to Impulse & ceremonies', () => {
       rate(
         player,
         impulseObs(round, 'a', 'go-out'),
-        (action) => action.kind === 'drop-to-impulse',
+        (action) => action.kind === 'chart',
         200
       )
     ).toBeGreaterThan(0.95);

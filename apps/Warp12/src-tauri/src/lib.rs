@@ -1,6 +1,15 @@
+mod oauth_server;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
+    .plugin(tauri_plugin_opener::init())
+    .plugin(tauri_plugin_deep_link::init())
+    .manage(oauth_server::OAuthServers::default())
+    .invoke_handler(tauri::generate_handler![
+      oauth_server::start_oauth_server,
+      oauth_server::await_oauth_redirect
+    ])
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(
@@ -8,6 +17,15 @@ pub fn run() {
             .level(log::LevelFilter::Info)
             .build(),
         )?;
+        // Auto-open the webview inspector in dev so `[oauth]` console logs are visible.
+        // Compile-time gated: `open_devtools` only exists in debug/`devtools` builds.
+        #[cfg(all(desktop, debug_assertions))]
+        {
+          use tauri::Manager;
+          if let Some(window) = app.get_webview_window("main") {
+            window.open_devtools();
+          }
+        }
       }
       Ok(())
     })

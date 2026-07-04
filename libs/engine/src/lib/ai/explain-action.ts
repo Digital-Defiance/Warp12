@@ -272,15 +272,18 @@ function describeActionKind(
         return ['Round win pending — call All Stop!'];
       }
       return ['Neutral Zone win available — call All Stop!'];
-    case 'return-to-warp':
+    case 'raise-shields':
       return [
-        'Return to warp — take a penalty draw and keep playing instead of calling All Stop!',
+        'Raise shields — close your warp trail until you drop shields again.',
       ];
     case 'drop-to-impulse':
       return ['One coordinate left — announce Drop to Impulse!'];
     case 'catch-drop-to-impulse': {
       const target = names[action.targetPlayerId] ?? action.targetPlayerId;
-      return [`Catch missed Drop to Impulse · ${target} forgot to announce`];
+      return [
+        `Catch missed Drop to Impulse · ${target} forgot to announce`,
+        `${target} returns to warp by drawing from Uncharted Sectors`,
+      ];
     }
     case 'invoke-q-flash':
       return [`Reality shift: ${action.effect.replaceAll('-', ' ')}.`];

@@ -19,6 +19,7 @@ import {
 import { warpCandidateGenerator, warpOffTurnCandidateGenerator } from './candidate-generator.js';
 import {
   canDeployDistressBeacon,
+  canDrawFromUncharted,
   canPassRedAlert,
   canPassTurn,
 } from '../engine/beacon.js';
@@ -101,7 +102,7 @@ export function createWarpAiPlayer(
   const residualIsAsync = residualScorer?.inference === 'async';
 
   const fallback = (obs: WarpAiObservation): WarpAiAction => {
-    if (obs.round.unchartedSectors.length > 0) {
+    if (canDrawFromUncharted(obs.round, obs.playerId, obs.houseRules)) {
       return { kind: 'draw' };
     }
     if (canPassRedAlert(obs.round, obs.playerId, { houseRules: obs.houseRules })) {

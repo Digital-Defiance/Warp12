@@ -6160,6 +6160,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tauri-apps/api@npm:^2, @tauri-apps/api@npm:^2.11.0":
+  version: 2.11.1
+  resolution: "@tauri-apps/api@npm:2.11.1"
+  checksum: 10c0/78a08a64ee7eab9d34bd4ba1bdc3a2440c7e9cc5737b3f1d77bd80fa38b0cb5e9601efe04da40c947c5da2ca38dc702bec21b4ae96b18ee5f3e82980d1f0b325
+  languageName: node
+  linkType: hard
+
 "@tauri-apps/cli-darwin-arm64@npm:2.11.3":
   version: 2.11.3
   resolution: "@tauri-apps/cli-darwin-arm64@npm:2.11.3"
@@ -6278,6 +6285,24 @@ __metadata:
   bin:
     tauri: tauri.js
   checksum: 10c0/2d1af16d26d0fa248797d8fb3ec609753a9b08605059799554abe0bcb526d47e3f521975deb80e94df6875634404fffa50c2e09f7d6311438278fbb82b36aef0
+  languageName: node
+  linkType: hard
+
+"@tauri-apps/plugin-deep-link@npm:^2":
+  version: 2.4.9
+  resolution: "@tauri-apps/plugin-deep-link@npm:2.4.9"
+  dependencies:
+    "@tauri-apps/api": "npm:^2.11.0"
+  checksum: 10c0/3a3a5f41f4556889ecd94ab9c8b23f5faed5ebbe61590a4ddc6116b8ff7f4c6e16e33a60e384e11668101d85f9059600375a978ac280f51ea212b9906b6acc95
+  languageName: node
+  linkType: hard
+
+"@tauri-apps/plugin-opener@npm:^2":
+  version: 2.5.4
+  resolution: "@tauri-apps/plugin-opener@npm:2.5.4"
+  dependencies:
+    "@tauri-apps/api": "npm:^2.11.0"
+  checksum: 10c0/9d5b8893680e776d4ae91f2be8ba9a49c56a3163307b4ad10ff71ffdaf67d07f7a7d4335c465cf32f499582d4589a04d9a66064de117e761b2588254b5202d53
   languageName: node
   linkType: hard
 
@@ -7344,6 +7369,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@warp12/Warp12@workspace:apps/Warp12"
   dependencies:
+    "@tauri-apps/api": "npm:^2"
+    "@tauri-apps/plugin-deep-link": "npm:^2"
+    "@tauri-apps/plugin-opener": "npm:^2"
     doubletwelve: "workspace:*"
     firebase: "npm:^12.15.0"
     html-to-image: "npm:^1.11.13"
@@ -19813,10 +19841,10 @@ __metadata:
 
 "warp12-engine@file:vendor/warp12-engine::locator=%40warp12%2Ffunctions%40workspace%3Afunctions":
   version: 0.2.0
-  resolution: "warp12-engine@file:vendor/warp12-engine#vendor/warp12-engine::hash=fc5b06&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
+  resolution: "warp12-engine@file:vendor/warp12-engine#vendor/warp12-engine::hash=83925f&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
   peerDependencies:
     doubletwelve: ">=0.3.0"
-  checksum: 10c0/6ce44620c4d64238f9dce538651215d57ab578838e18661509c532464c97c9e442c30e2ae4c5ffc71fa8e30b125b04d0b6614840891399f5bd7156d41f9894a5
+  checksum: 10c0/5f33eee50220a3bd9dd96bd89567f34d084a68502f017f0b231331d7d4ec05562fd043f10067d6186d5fb9b3204e5a8da5d54ccc2621ad680f4f6908e545fc8d
   languageName: node
   linkType: hard
 

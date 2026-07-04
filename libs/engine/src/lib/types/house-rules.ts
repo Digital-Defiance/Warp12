@@ -1,6 +1,9 @@
 /** Tiles drawn when an opponent catches a missed Drop to Impulse announce. */
 export type DropToImpulseCatchPenalty = 1 | 2;
 
+/** Points a double-blank (0-0) scores when caught in hand. 50 = tournament standard. */
+export type DoubleZeroScore = 0 | 25 | 50;
+
 /** Optional house-rule toggles for tournament hosts (default = standard Mexican Train). */
 export interface HouseRules {
   /** Deluxe-style: must chart on your warp trail before an opponent's open trail. */
@@ -17,6 +20,12 @@ export interface HouseRules {
   readonly dropToImpulseCatchPenalty: DropToImpulseCatchPenalty;
   /** Auto All Stop! log/sound after Neutral Zone wins and All Stop! echo go-outs. */
   readonly allStopCeremony: boolean;
+  /** Pass Red Alert without drawing or deploying a Distress Beacon when you cannot cover the double. */
+  readonly passRedAlertWithoutDraw: boolean;
+  /** Voluntary shields down/up; own-trail charts do not auto-raise. Forced beacon after draw when stuck still applies. */
+  readonly manualShieldControl: boolean;
+  /** Points a double-blank (0-0) scores when caught in hand (50 = tournament standard). */
+  readonly doubleZeroScore: DoubleZeroScore;
 }
 
 export interface HouseRulesConfig {
@@ -27,6 +36,9 @@ export interface HouseRulesConfig {
   dropToImpulseCall?: boolean;
   dropToImpulseCatchPenalty?: DropToImpulseCatchPenalty;
   allStopCeremony?: boolean;
+  passRedAlertWithoutDraw?: boolean;
+  manualShieldControl?: boolean;
+  doubleZeroScore?: DoubleZeroScore;
 }
 
 export const DEFAULT_HOUSE_RULES: HouseRules = {
@@ -37,7 +49,15 @@ export const DEFAULT_HOUSE_RULES: HouseRules = {
   dropToImpulseCall: false,
   dropToImpulseCatchPenalty: 1,
   allStopCeremony: true,
+  passRedAlertWithoutDraw: false,
+  manualShieldControl: false,
+  doubleZeroScore: 50,
 };
+
+/** Normalize an arbitrary value to a supported double-zero score (default 50). */
+function resolveDoubleZeroScore(value: DoubleZeroScore | undefined): DoubleZeroScore {
+  return value === 0 || value === 25 ? value : 50;
+}
 
 export function resolveHouseRules(
   config: HouseRulesConfig = {}
@@ -51,5 +71,8 @@ export function resolveHouseRules(
     dropToImpulseCatchPenalty:
       config.dropToImpulseCatchPenalty === 2 ? 2 : 1,
     allStopCeremony: config.allStopCeremony ?? true,
+    passRedAlertWithoutDraw: config.passRedAlertWithoutDraw ?? false,
+    manualShieldControl: config.manualShieldControl ?? false,
+    doubleZeroScore: resolveDoubleZeroScore(config.doubleZeroScore),
   };
 }

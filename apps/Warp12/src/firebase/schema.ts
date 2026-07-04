@@ -1,5 +1,22 @@
 import type { GameObjective, WarpSkillLevel } from 'warp12-engine';
-import type { HouseRulesConfig } from 'warp12-engine';
+import type { GameAction, HouseRulesConfig } from 'warp12-engine';
+import type { GameLogEntry } from 'warp12-react';
+
+/**
+ * One applied action in an online round, persisted on the shared game doc so
+ * every client can render the full move log (all captains, not just the local
+ * player) and the end-of-round advisor has the complete action history.
+ */
+export interface FirestoreRoundMove {
+  at: string;
+  actorId: string;
+  source: 'human' | 'ai';
+  action: GameAction;
+  /** Precomputed ticker entry (null for actions that produce no log line). */
+  entry: GameLogEntry | null;
+  /** Auto "All Stop!" ceremony entry emitted alongside a round-winning chart. */
+  autoAllStop?: GameLogEntry | null;
+}
 
 export interface FirestoreGameDocument {
   id: string;
@@ -89,6 +106,11 @@ export interface FirestorePublicRound {
   } | null;
   dropToImpulseCallPending?: string | null;
   dropToImpulseCatchable?: string | null;
+  playedThisTurn?: boolean;
+  drewThisTurn?: boolean;
+  shieldChangedThisTurn?: boolean;
+  /** Applied-action history for this round (shared log + advisor source). */
+  moveLog?: FirestoreRoundMove[];
   table: FirestoreTableDocument;
 }
 
@@ -132,6 +154,8 @@ export interface FirestoreTrailDocument {
   playerId: string;
   tiles: FirestorePlacedCoordinate[];
   distressBeaconActive: boolean;
+  /** Manual shield control: owner has serviced their own trail since opening. */
+  distressBeaconChartedOwnTrailSinceDown?: boolean;
 }
 
 export interface FirestoreNeutralZoneDocument {
@@ -164,6 +188,7 @@ export interface FirestoreRedAlertDocument {
   responsiblePlayerId: string | null;
   trailPlayerId: string;
   neutralZone?: boolean;
+  passed?: boolean;
 }
 
 export interface FirestoreTableDocument {

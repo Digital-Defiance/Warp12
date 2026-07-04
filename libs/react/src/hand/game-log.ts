@@ -21,6 +21,12 @@ function wasRedAlertPassed(round: RoundState): boolean {
     return false;
   }
 
+  // Authoritative once the engine records the first pass; the beacon heuristic
+  // below is a fallback for legacy states (and free passes that leave no beacon).
+  if (redAlert.passed === true) {
+    return true;
+  }
+
   const responsible = redAlert.responsiblePlayerId;
   if (!responsible) {
     return false;
@@ -51,7 +57,8 @@ export type GameLogEffect =
   | 'beacon-deployed'
   | 'dead-double'
   | 'round-won'
-  | 'round-blocked';
+  | 'round-blocked'
+  | 'return-to-warp';
 
 export interface GameLogRoute {
   readonly kind: ChartRoute['kind'];
@@ -60,6 +67,8 @@ export interface GameLogRoute {
 }
 
 export interface GameLogRosterEntry {
+  /** Omit the TEI portion (e.g. online tables, which are not TEI-rated). */
+  readonly hideTei?: boolean;
   readonly captainId: string;
   readonly tei: number | null;
   readonly tacticalClass?: string;
@@ -263,15 +272,19 @@ function rosterPhrase(
     return '';
   }
   return roster
-    .map(({ captainId, tei, tacticalClass, reference }) => {
+    .map(({ captainId, tei, tacticalClass, reference, hideTei }) => {
       const name = captainLabel(captainId, names);
+      const classPart = tacticalClass ? ` · ${tacticalClass}` : '';
+      // Online tables are not TEI-rated — show captain classes only.
+      if (hideTei) {
+        return `${name}${classPart}`;
+      }
       const teiPart =
         tei == null
           ? 'TEI unrated'
           : reference
             ? `~TEI ${tei}`
             : `TEI ${tei}`;
-      const classPart = tacticalClass ? ` · ${tacticalClass}` : '';
       return `${name} ${teiPart}${classPart}`;
     })
     .join(' · ');
@@ -299,6 +312,9 @@ export function formatGameLogLine(
       if (entry.effects.includes('red-alert-opened')) {
         return `${prefix} drew and could not answer the Double${effectsPhrase(entry.effects)}`;
       }
+      if (entry.effects.includes('return-to-warp')) {
+        return `${prefix} drew from Uncharted Sectors — returned to warp${effectsPhrase(entry.effects.filter((e) => e !== 'return-to-warp'))}`;
+      }
       return `${prefix} drew from Uncharted Sectors${effectsPhrase(entry.effects)}`;
     case 'PASS_RED_ALERT': {
       const nextCaptain = entry.nextCaptainId
@@ -319,10 +335,14 @@ export function formatGameLogLine(
       const target = entry.targetCaptainId
         ? captainLabel(entry.targetCaptainId, names)
         : 'a captain';
-      return `${prefix} caught ${target} for a missed Drop to Impulse${effectsPhrase(entry.effects)}`;
+      const returned =
+        entry.effects.includes('return-to-warp')
+          ? ` — ${target} returned to warp`
+          : '';
+      return `${prefix} caught ${target} for a missed Drop to Impulse${returned}${effectsPhrase(entry.effects.filter((e) => e !== 'return-to-warp'))}`;
     }
-    case 'RETURN_TO_WARP':
-      return `${prefix} returned to warp${effectsPhrase(entry.effects)}`;
+    case 'RAISE_SHIELDS':
+      return `${prefix} raised shields${effectsPhrase(entry.effects)}`;
     case 'INVOKE_Q_FLASH':
       return `${prefix} invoked Q-Flash · ${entry.qFlashEffect?.replaceAll('-', ' ') ?? 'effect'}${effectsPhrase(entry.effects)}`;
     case 'RESOLVE_Q_GAMBLE':
@@ -452,11 +472,28 @@ function chartEffects(
   return effects;
 }
 
+function returnedToWarpFromImpulse(
+  before: RoundState,
+  after: RoundState,
+  playerId: string
+): boolean {
+  const beforeHand = before.hands[playerId]?.length ?? 0;
+  const afterHand = after.hands[playerId]?.length ?? 0;
+  if (beforeHand !== 1 || afterHand <= beforeHand) {
+    return false;
+  }
+  return (
+    before.dropToImpulseCallPending === playerId ||
+    before.dropToImpulseCatchable === playerId
+  );
+}
+
 function drawEffects(
   before: RoundState,
   after: RoundState,
   playerId: string
 ): GameLogEffect[] {
+  const effects: GameLogEffect[] = [];
   const wasBlocking = isRedAlertBlocking(before.table.redAlert, playerId);
   const beaconBefore =
     before.table.warpTrails[playerId]?.distressBeacon.active ?? false;
@@ -464,9 +501,12 @@ function drawEffects(
     after.table.warpTrails[playerId]?.distressBeacon.active ?? false;
 
   if (wasBlocking && beaconAfter && !beaconBefore) {
-    return ['red-alert-opened'];
+    effects.push('red-alert-opened');
   }
-  return [];
+  if (returnedToWarpFromImpulse(before, after, playerId)) {
+    effects.push('return-to-warp');
+  }
+  return effects;
 }
 
 function passRedAlertEffects(before: RoundState, after: RoundState): GameLogEffect[] {
@@ -477,6 +517,17 @@ function passRedAlertEffects(before: RoundState, after: RoundState): GameLogEffe
     wasRedAlertPassed(after)
   ) {
     return ['red-alert-opened'];
+  }
+  return [];
+}
+
+function catchDropToImpulseEffects(
+  before: RoundState,
+  after: RoundState,
+  targetPlayerId: string
+): GameLogEffect[] {
+  if (returnedToWarpFromImpulse(before, after, targetPlayerId)) {
+    return ['return-to-warp'];
   }
   return [];
 }
@@ -578,7 +629,7 @@ export function buildGameLogEntry(
       };
     case 'ALL_STOP':
     case 'DROP_TO_IMPULSE':
-    case 'RETURN_TO_WARP':
+    case 'RAISE_SHIELDS':
       return {
         at,
         kind: action.type,
@@ -591,7 +642,11 @@ export function buildGameLogEntry(
         kind: action.type,
         captainId: action.challengerId,
         targetCaptainId: action.targetPlayerId,
-        effects: [],
+        effects: catchDropToImpulseEffects(
+          beforeRound,
+          afterRound,
+          action.targetPlayerId
+        ),
       };
     case 'INVOKE_Q_FLASH':
       return {

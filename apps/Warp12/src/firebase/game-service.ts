@@ -1,5 +1,4 @@
 import {
-  applyAction,
   DEFAULT_CAMPAIGN_ROUNDS,
   DEFAULT_GAME_OBJECTIVE,
   generateCoordinateSet,
@@ -34,9 +33,10 @@ import {
   pickNextAiOfficer,
   toAiCaptainId,
 } from '../game/ai-captain.js';
-import { assertActorMaySubmit } from './ai-proxy.js';
-import { allocateUniqueCallSign } from './display-name.js';
-import { patchHandCounts } from './hand-counts.js';
+import {
+  buildPublicDoc,
+  prepareOnlineAction,
+} from './online-action.js';
 import {
   loadPrivateHandsForTurnOrder,
   shouldRedealHandsAfterScore,
@@ -46,6 +46,7 @@ import type {
   FirestoreCaptain,
   FirestoreGameDocument,
   FirestorePlayerHandDocument,
+  FirestoreRoundMove,
   OnlineLobbySettings,
 } from './schema.js';
 import {
@@ -54,6 +55,7 @@ import {
   ONLINE_MIN_PLAYERS,
 } from './schema.js';
 import { stripUndefined } from './strip-undefined.js';
+import { allocateUniqueCallSign } from './display-name.js';
 
 function gameRef(gameId: string) {
   const db = getFirestoreDb();
@@ -77,51 +79,6 @@ function captainIds(captains: readonly FirestoreCaptain[]): string[] {
 
 function maxPlayersFor(doc: FirestoreGameDocument): number {
   return doc.maxPlayers ?? ONLINE_MAX_PLAYERS;
-}
-
-function mergeCaptainMetadata(
-  nextCaptains: GameState['captains'],
-  previous: readonly FirestoreCaptain[]
-): FirestoreCaptain[] {
-  const now = new Date().toISOString();
-  return nextCaptains.map((captain) => {
-    const prior = previous.find((entry) => entry.id === captain.id);
-    const merged: FirestoreCaptain = {
-      id: captain.id,
-      displayName: captain.displayName,
-      pointsScore: captain.pointsScore,
-      joinedAt: prior?.joinedAt ?? now,
-    };
-    if (prior && isAiCaptain(prior)) {
-      merged.isAi = true;
-      if (prior.skill !== undefined) {
-        merged.skill = prior.skill;
-      }
-      if (prior.useLookahead !== undefined) {
-        merged.useLookahead = prior.useLookahead;
-      }
-    }
-    return merged;
-  });
-}
-
-function buildPublicDoc(
-  state: GameState,
-  meta: Pick<FirestoreGameDocument, 'hostId' | 'createdAt' | 'captains'> & {
-    maxPlayers?: number;
-  }
-): FirestoreGameDocument {
-  const serialized = serializePublicGame(state);
-  const captains = mergeCaptainMetadata(state.captains, meta.captains);
-  return stripUndefined({
-    ...serialized,
-    hostId: meta.hostId,
-    createdAt: meta.createdAt,
-    updatedAt: new Date().toISOString(),
-    captainIds: captainIds(captains),
-    captains,
-    maxPlayers: meta.maxPlayers ?? serialized.maxPlayers ?? ONLINE_MAX_PLAYERS,
-  });
 }
 
 export function generateGameCode(): string {
@@ -167,7 +124,7 @@ export async function createLobby(
     maxPlayers: clampOnlineMaxPlayers(options.maxPlayers ?? ONLINE_MAX_PLAYERS),
     modules: {
       qContinuum: options.modules?.qContinuum ?? false,
-      salamanderPenalty: options.modules?.salamanderPenalty ?? true,
+      salamanderPenalty: options.modules?.salamanderPenalty ?? false,
       subspaceFracture: options.modules?.subspaceFracture ?? false,
       subspaceFractureScope:
         options.modules?.subspaceFractureScope ?? 'own-trail',
@@ -594,7 +551,15 @@ export function subscribeLobby(
 export interface OnlineGameSnapshot {
   state: GameState | null;
   handCounts: Record<string, number>;
+  /** Shared per-round applied-action history (full log + advisor source). */
+  moveLog: readonly FirestoreRoundMove[];
   connected: boolean;
+  /**
+   * True when the game/hand snapshots reflect server-confirmed data. False when
+   * we are showing local-cache-only data that the backend has not yet confirmed
+   * (Firestore `metadata.fromCache`) — i.e. this client is out of sync.
+   */
+  synced: boolean;
   hostId: string;
   sectorCaptains: FirestoreCaptain[];
   aiHands: Record<string, readonly { low: number; high: number }[]>;
@@ -632,8 +597,13 @@ export function subscribeOnlineGame(
   > = {};
   let gameConnected = false;
   let handConnected = false;
+  let gameFromCache = true;
+  let handFromCache = true;
   let serverConfirmedMissing = false;
   let remoteHandUnsubs: Unsubscribe[] = [];
+
+  const isSynced = () =>
+    gameConnected && handConnected && !gameFromCache && !handFromCache;
 
   const resubscribeRemoteHands = () => {
     for (const unsub of remoteHandUnsubs) {
@@ -675,7 +645,9 @@ export function subscribeOnlineGame(
       onSnapshotState({
         state: null,
         handCounts: {},
+        moveLog: [],
         connected: gameConnected && handConnected,
+        synced: isSynced(),
         hostId: '',
         sectorCaptains: [],
         aiHands: {},
@@ -707,7 +679,9 @@ export function subscribeOnlineGame(
     onSnapshotState({
       state: mergeHandsIntoGame(latestDoc, hands),
       handCounts: latestDoc.round?.handCounts ?? {},
+      moveLog: latestDoc.round?.moveLog ?? [],
       connected: gameConnected && handConnected,
+      synced: isSynced(),
       hostId: latestDoc.hostId,
       sectorCaptains: latestDoc.captains,
       aiHands,
@@ -717,8 +691,10 @@ export function subscribeOnlineGame(
 
   const unsubGame = onSnapshot(
     gameRef(gameId),
+    { includeMetadataChanges: true },
     (snap) => {
       gameConnected = true;
+      gameFromCache = snap.metadata.fromCache;
       if (!snap.exists()) {
         // Local cache can briefly report "missing" while the public doc updates.
         // Keep the last live snapshot until the server confirms the new doc.
@@ -750,8 +726,10 @@ export function subscribeOnlineGame(
 
   const unsubHand = onSnapshot(
     handRef(gameId, viewerId),
+    { includeMetadataChanges: true },
     (snap) => {
       handConnected = true;
+      handFromCache = snap.metadata.fromCache;
       ownHand = snap.exists()
         ? (snap.data() as FirestorePlayerHandDocument)
         : null;
@@ -788,13 +766,12 @@ export async function submitOnlineAction(
     }
 
     const docData = gameSnap.data() as FirestoreGameDocument;
-    const authViolation = assertActorMaySubmit(docData, actorId, action);
-    if (authViolation) {
-      return { ok: false as const, violation: authViolation };
-    }
-
     const playerId =
-      action.type === 'END_ROUND' ? action.winnerId : action.playerId;
+      action.type === 'END_ROUND'
+        ? action.winnerId ?? ''
+        : action.type === 'CATCH_DROP_TO_IMPULSE'
+          ? action.challengerId
+          : action.playerId;
 
     const isEndRound = action.type === 'END_ROUND';
     const hands: Record<string, readonly { low: number; high: number }[]> = {};
@@ -815,7 +792,6 @@ export async function submitOnlineAction(
         const handDoc = handSnap.exists()
           ? (handSnap.data() as FirestorePlayerHandDocument)
           : null;
-        // Only the actor's tiles are loaded; never write empty hands for opponents.
         for (const captainId of docData.round.turnOrder) {
           hands[captainId] =
             captainId === playerId && handDoc ? handDoc.coordinates : [];
@@ -823,31 +799,13 @@ export async function submitOnlineAction(
       }
     }
 
-    const state = mergeHandsIntoGame(docData, hands);
-    const result = applyAction(state, action);
-
-    if (!result.ok) {
-      return { ok: false as const, violation: result.violation };
+    const planned = prepareOnlineAction(docData, actorId, action, hands);
+    if (!planned.ok) {
+      return { ok: false as const, violation: planned.violation };
     }
 
-    const publicDoc = buildPublicDoc(result.state, {
-      hostId: docData.hostId,
-      createdAt: docData.createdAt,
-      captains: docData.captains,
-      maxPlayers: maxPlayersFor(docData),
-    });
-
-    if (publicDoc.round && docData.round && !isEndRound) {
-      publicDoc.round = {
-        ...publicDoc.round,
-        handCounts: patchHandCounts(
-          docData.round.handCounts,
-          docData.round.turnOrder,
-          playerId,
-          result.state.round?.hands[playerId]?.length ?? 0
-        ),
-      };
-    }
+    const publicDoc = planned.publicDoc;
+    const result = { ok: true as const, state: planned.nextState };
 
     if (isEndRound) {
       if (shouldRedealHandsAfterScore(result.state.phase)) {

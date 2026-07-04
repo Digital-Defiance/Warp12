@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Update digital-defiance/homebrew-tap Casks/warp12.rb (version + sha256).
 #
-# Cask token: warp12. DMG/app: Warp 12 (productName in tauri.conf.json).
-# GitHub releases: Digital-Defiance/Warp12
+# Cask token: warp12. App bundle: Warp 12 (productName in tauri.conf.json).
+# GitHub release DMG: Warp_12_<version>_universal.dmg (no spaces — avoids GitHub asset rename).
 #
 # Usage:
 #   bash scripts/update-warp12-cask.sh 0.2.0 <sha256>
@@ -45,9 +45,7 @@ PRODUCT_NAME="$(node -e "
 # Normalize tag-style versions for the cask (no leading v).
 VERSION="$(printf '%s' "$VERSION" | sed 's/^v//')"
 
-DMG_ASSET="${PRODUCT_NAME}_#{version}_universal.dmg"
-# Homebrew/curl: spaces in release asset URLs are encoded as %20.
-DMG_URL_ASSET="$(printf '%s' "$DMG_ASSET" | sed 's/ /%20/g')"
+DMG_ASSET="Warp_12_#{version}_universal.dmg"
 
 if [ "$(uname -s)" = "Darwin" ]; then
   SED_INPLACE=(sed -i '')
@@ -61,7 +59,7 @@ fi
 # Universal DMG — do not restrict to Apple Silicon only.
 "${SED_INPLACE[@]}" '/depends_on arch: :arm64/d' "$CASK_PATH"
 
-"${SED_INPLACE[@]}" "s|^  url .*|  url \"https://github.com/${GITHUB_REPO}/releases/download/v#{version}/${DMG_URL_ASSET}\"|" "$CASK_PATH"
+"${SED_INPLACE[@]}" "s|^  url .*|  url \"https://github.com/${GITHUB_REPO}/releases/download/v#{version}/${DMG_ASSET}\"|" "$CASK_PATH"
 
 if ! grep -q "app \"${APP_BUNDLE}\"" "$CASK_PATH"; then
   "${SED_INPLACE[@]}" 's/^  app .*/  app "'"${APP_BUNDLE}"'"/' "$CASK_PATH"

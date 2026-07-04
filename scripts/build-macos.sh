@@ -10,7 +10,7 @@
 #   bash scripts/build-macos.sh 0.2.0 --publish --push-tap
 #   NONINTERACTIVE=1 bash scripts/build-macos.sh 0.1.0 --publish
 #
-# DMG + GitHub release asset: <productName>_<version>_universal.dmg (tauri.conf.json)
+# DMG + GitHub release asset: Warp_12_<version>_universal.dmg (no spaces — GitHub sanitizes spaces in asset names)
 
 set -e
 
@@ -24,6 +24,9 @@ TAURI_CONF="${TAURI_DIR}/tauri.conf.json"
 CARGO_TOML="${TAURI_DIR}/Cargo.toml"
 DMG_DIR="${TAURI_DIR}/target/universal-apple-darwin/release/bundle/dmg"
 TAURI_BIN="${ROOT}/node_modules/.bin/tauri"
+ENTITLEMENTS_DEVELOPER_ID_TEMPLATE="${TAURI_DIR}/Entitlements.DeveloperID.plist.in"
+ENTITLEMENTS_PLIST="${TAURI_DIR}/Entitlements.plist"
+DEFAULT_DEVELOPER_ID_TEAM="${DEFAULT_DEVELOPER_ID_TEAM:-J6887N729S}"
 
 SKIP_NOTARIZE=0
 EXTRA_TAURI_ARGS=""
@@ -47,7 +50,7 @@ Usage: bash scripts/build-macos.sh [OPTIONS] [VERSION] [-- extra tauri build arg
   VERSION          Semver for the bundle (default: apps/Warp12/package.json "version").
                    Writes apps/Warp12/package.json, src-tauri/tauri.conf.json, Cargo.toml.
                    Output: apps/Warp12/src-tauri/target/universal-apple-darwin/release/bundle/dmg/
-                           <productName>_<VERSION>_universal.dmg
+                           Warp_12_<VERSION>_universal.dmg (release asset; local Tauri name may include spaces)
 
   --version VER    Same as positional VERSION (v0.1.0 accepted; leading v is stripped)
   --release-tag TAG
@@ -219,7 +222,7 @@ release_tag_name() {
 }
 
 dmg_asset_basename() {
-  printf '%s_%s_universal.dmg' "$PRODUCT_NAME" "$APP_VERSION"
+  printf 'Warp_12_%s_universal.dmg' "$APP_VERSION"
 }
 
 find_built_dmg() {
@@ -383,8 +386,81 @@ list_developer_id_identities() {
     | sort -u
 }
 
+lookup_identity_name_by_hash() {
+  _hash="$(printf '%s' "$1" | tr '[:lower:]' '[:upper:]')"
+  security find-identity -p codesigning -v 2>/dev/null \
+    | grep -i "$_hash" \
+    | sed -n 's/.*"\([^"]*\)".*/\1/p' \
+    | head -1
+}
+
+normalize_signing_identity_value() {
+  _value="$(printf '%s' "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+  if printf '%s' "$_value" | grep -Eq '^[0-9A-Fa-f]{40}$'; then
+    _resolved="$(lookup_identity_name_by_hash "$_value")"
+    if [ -z "$_resolved" ]; then
+      die "no codesigning identity found for certificate hash ${_value}"
+    fi
+    printf '%s' "$_resolved"
+    return 0
+  fi
+  printf '%s' "$_value"
+}
+
+validate_developer_id_signing_identity() {
+  case "${APPLE_SIGNING_IDENTITY:-}" in
+    "Developer ID Application:"*) return 0 ;;
+    "Apple Distribution:"*)
+      die "APPLE_SIGNING_IDENTITY is an App Store certificate (Apple Distribution).
+Notarized DMGs require Developer ID Application, e.g.:
+  Developer ID Application: Digital Defiance (${DEFAULT_DEVELOPER_ID_TEAM})
+Unset APPLE_SIGNING_IDENTITY and re-run, or export the Developer ID identity name (not the App Store hash)."
+      ;;
+    "3rd Party Mac Developer Application:"*)
+      die "APPLE_SIGNING_IDENTITY is a Mac App Store development certificate.
+Use Developer ID Application for scripts/build-macos.sh."
+      ;;
+    *)
+      die "APPLE_SIGNING_IDENTITY must be a Developer ID Application certificate.
+Current value: ${APPLE_SIGNING_IDENTITY:-<unset>}
+Available identities:
+$(list_developer_id_identities | sed 's/^/  /')"
+      ;;
+  esac
+}
+
+pick_default_developer_id_identity() {
+  _preferred=""
+  _fallback=""
+  while IFS= read -r _line; do
+    [ -z "$_line" ] && continue
+    if [ -z "$_fallback" ]; then
+      _fallback="$_line"
+    fi
+    if printf '%s' "$_line" | grep -q "(${DEFAULT_DEVELOPER_ID_TEAM})"; then
+      _preferred="$_line"
+    fi
+  done <<EOF
+$(list_developer_id_identities)
+EOF
+  if [ -n "$_preferred" ]; then
+    printf '%s' "$_preferred"
+    return 0
+  fi
+  printf '%s' "$_fallback"
+}
+
+generate_developer_id_entitlements() {
+  [ -f "$ENTITLEMENTS_DEVELOPER_ID_TEMPLATE" ] || die "missing ${ENTITLEMENTS_DEVELOPER_ID_TEMPLATE}"
+  cp "$ENTITLEMENTS_DEVELOPER_ID_TEMPLATE" "$ENTITLEMENTS_PLIST"
+  echo "Wrote Developer ID entitlements → ${ENTITLEMENTS_PLIST}" >&2
+}
+
 ensure_signing_identity() {
   if [ -n "${APPLE_SIGNING_IDENTITY:-}" ]; then
+    APPLE_SIGNING_IDENTITY="$(normalize_signing_identity_value "$APPLE_SIGNING_IDENTITY")"
+    export APPLE_SIGNING_IDENTITY
+    validate_developer_id_signing_identity
     infer_team_from_signing_identity
     echo "Signing: ${APPLE_SIGNING_IDENTITY}" >&2
     return 0
@@ -410,6 +486,15 @@ ensure_signing_identity() {
   fi
 
   if [ "$_count" -gt 1 ]; then
+    _default="$(pick_default_developer_id_identity)"
+    if [ -n "$_default" ]; then
+      APPLE_SIGNING_IDENTITY="$_default"
+      export APPLE_SIGNING_IDENTITY
+      infer_team_from_signing_identity
+      echo "Signing: auto-selected ${APPLE_SIGNING_IDENTITY}" >&2
+      echo "  (override with APPLE_SIGNING_IDENTITY if needed)" >&2
+      return 0
+    fi
     echo "warning: multiple Developer ID Application identities; set APPLE_SIGNING_IDENTITY." >&2
     list_developer_id_identities | while IFS= read -r _line; do
       [ -n "$_line" ] && echo "  - ${_line}" >&2
@@ -422,7 +507,10 @@ ensure_signing_identity() {
     die "APPLE_SIGNING_IDENTITY is not set"
   fi
 
-  prompt_nonempty APPLE_SIGNING_IDENTITY "APPLE_SIGNING_IDENTITY"
+  prompt_nonempty APPLE_SIGNING_IDENTITY "APPLE_SIGNING_IDENTITY (Developer ID Application: …)"
+  APPLE_SIGNING_IDENTITY="$(normalize_signing_identity_value "$APPLE_SIGNING_IDENTITY")"
+  export APPLE_SIGNING_IDENTITY
+  validate_developer_id_signing_identity
   infer_team_from_signing_identity
   echo "Signing: ${APPLE_SIGNING_IDENTITY}" >&2
 }
@@ -573,6 +661,7 @@ print_release_env_summary() {
 
 ensure_signing_identity
 ensure_notarization
+generate_developer_id_entitlements
 print_release_env_summary
 
 echo "Building frontend..."

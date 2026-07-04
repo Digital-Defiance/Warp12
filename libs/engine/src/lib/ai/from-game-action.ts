@@ -58,8 +58,8 @@ export function gameActionToWarpAi(
       return { kind: 'pass-turn' };
     case 'ALL_STOP':
       return { kind: 'all-stop' };
-    case 'RETURN_TO_WARP':
-      return { kind: 'return-to-warp' };
+    case 'RAISE_SHIELDS':
+      return { kind: 'raise-shields' };
     case 'DROP_TO_IMPULSE':
       return { kind: 'drop-to-impulse' };
     case 'CATCH_DROP_TO_IMPULSE':

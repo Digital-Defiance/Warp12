@@ -50,6 +50,8 @@ export function emptyRoundFields(): Pick<
   | 'roundStarterOpening'
   | 'dropToImpulseCallPending'
   | 'dropToImpulseCatchable'
+  | 'playedThisTurn'
+  | 'drewThisTurn'
 > {
   return {
     allStopRequired: false,
@@ -64,6 +66,8 @@ export function emptyRoundFields(): Pick<
     roundStarterOpening: null,
     dropToImpulseCallPending: null,
     dropToImpulseCatchable: null,
+    playedThisTurn: false,
+    drewThisTurn: false,
   };
 }
 

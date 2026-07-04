@@ -29,6 +29,7 @@ export interface SectorStatusHudProps {
   openTrailNames: readonly string[];
   shieldsDown: boolean;
   canRaiseShields: boolean;
+  manualShieldControl: boolean;
   fractureActive: boolean;
   fractureStabilizers: number;
   redAlertActive: boolean;
@@ -138,6 +139,7 @@ export function SectorStatusHud({
   openTrailNames,
   shieldsDown,
   canRaiseShields,
+  manualShieldControl,
   fractureActive,
   fractureStabilizers,
   redAlertActive,
@@ -224,7 +226,9 @@ export function SectorStatusHud({
             <dt>Shields</dt>
             <dd>
               {canRaiseShields
-                ? 'Down — chart on your warp trail to raise'
+                ? manualShieldControl
+                  ? 'Down — use Shields up to close your trail'
+                  : 'Down — chart on your warp trail to raise'
                 : 'Down — trail open to all captains'}
             </dd>
           </div>

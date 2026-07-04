@@ -5,7 +5,12 @@ import {
 } from './subspace-fracture-scope.js';
 
 export type { SubspaceFractureScope } from './subspace-fracture-scope.js';
-export type { HouseRules, HouseRulesConfig } from './house-rules.js';
+export type {
+  HouseRules,
+  HouseRulesConfig,
+  DropToImpulseCatchPenalty,
+  DoubleZeroScore,
+} from './house-rules.js';
 export {
   DEFAULT_HOUSE_RULES,
   resolveHouseRules,

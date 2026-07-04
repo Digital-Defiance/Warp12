@@ -1036,7 +1036,46 @@ describe('calling all stop', () => {
     expect(win.state.round?.phase).toBe('ended');
   });
 
-  it('rejects RETURN_TO_WARP', () => {
+  it('allows RAISE_SHIELDS when manual shield control is enabled', () => {
+    const state = {
+      ...makeGame(
+        makeRound(['a', 'b'], {
+          activePlayerId: 'a',
+          hands: { a: [T(1, 2)], b: [] },
+          unchartedSectors: [T(3, 4)],
+          table: {
+            ...createInitialTable(['a', 'b'], 12, 'a'),
+            warpTrails: {
+              a: {
+                playerId: 'a',
+                tiles: [placed(T(12, 6), 0, 6)],
+                distressBeacon: { active: true, chartedOwnTrailSinceDown: true },
+              },
+              b: {
+                playerId: 'b',
+                tiles: [],
+                distressBeacon: { active: false },
+              },
+            },
+          },
+        })
+      ),
+      houseRules: resolveHouseRules({ manualShieldControl: true }),
+    };
+
+    const result = applyAction(state, {
+      type: 'RAISE_SHIELDS',
+      playerId: 'a',
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.round?.table.warpTrails.a.distressBeacon.active).toBe(
+      false
+    );
+    expect(result.state.round?.activePlayerId).toBe('a');
+  });
+
+  it('rejects RAISE_SHIELDS without manual shield control', () => {
     const state = makeGame(
       makeRound(['a', 'b'], {
         activePlayerId: 'a',
@@ -1045,12 +1084,12 @@ describe('calling all stop', () => {
     );
 
     const result = applyAction(state, {
-      type: 'RETURN_TO_WARP',
+      type: 'RAISE_SHIELDS',
       playerId: 'a',
     });
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.violation).toBe('RETURN_TO_WARP_NOT_ALLOWED');
+    expect(result.violation).toBe('RAISE_SHIELDS_NOT_ALLOWED');
   });
 
   it('auto-declares All Stop after a warp-trail win when All stop echo is active', () => {

@@ -4,6 +4,23 @@
 <dict>
   <key>ITSAppUsesNonExemptEncryption</key>
   <false/>
+  <!--
+    Google sign-in redirect scheme. Replace the value below with your iOS OAuth
+    client's REVERSED client id (Google Cloud → Credentials → your iOS client).
+    Example: com.googleusercontent.apps.1234567890-abcdefg
+    Must match VITE_GOOGLE_IOS_CLIENT_ID. See docs/mobile-google-signin.md.
+  -->
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key>
+      <string>org.digitaldefiance.app.warp12.google-oauth</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>com.googleusercontent.apps.527330456110-pm7kpfigqrsiouivp3ufu6q4huo9j5up</string>
+      </array>
+    </dict>
+  </array>
   <key>UIRequiresFullScreen</key>
   <true/>
   <key>UISupportedInterfaceOrientations~ipad</key>

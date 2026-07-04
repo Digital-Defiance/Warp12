@@ -15,6 +15,18 @@ const MIN_SCALE = 0.35;
 const MAX_SCALE = 2.5;
 const ZOOM_STEP = 0.15;
 
+const LOG_CONTROL_LABEL: Record<'all' | 'mine' | 'off', string> = {
+  all: 'Comms log: Fleet (tap for Captain-only)',
+  mine: 'Comms log: Captain only (tap to silence)',
+  off: 'Comms log: Silenced (tap to show Fleet)',
+};
+
+const LOG_CONTROL_GLYPH: Record<'all' | 'mine' | 'off', string> = {
+  all: '📡',
+  mine: '👤',
+  off: '📵',
+};
+
 export interface TableViewportFocusTarget {
   x: number;
   y: number;
@@ -24,6 +36,13 @@ export interface TableViewportFocusTarget {
 export interface TableViewportFocusControl {
   active: boolean;
   onToggle: () => void;
+}
+
+export type LogVisibilityMode = 'all' | 'mine' | 'off';
+
+export interface TableViewportLogControl {
+  mode: LogVisibilityMode;
+  onCycle: () => void;
 }
 
 export interface TableViewportSoundControl {
@@ -38,6 +57,7 @@ export interface TableViewportProps {
   contentRef?: RefObject<HTMLDivElement | null>;
   focusControl?: TableViewportFocusControl;
   soundControl?: TableViewportSoundControl;
+  logControl?: TableViewportLogControl;
   autoFollowAction?: boolean;
   actionFocus?: TableViewportFocusTarget | null;
 }
@@ -49,6 +69,7 @@ export function TableViewport({
   contentRef,
   focusControl,
   soundControl,
+  logControl,
   autoFollowAction = false,
   actionFocus = null,
 }: TableViewportProps) {
@@ -158,8 +179,22 @@ export function TableViewport({
       </div>
 
       <div className={styles.viewportHud}>
-        {soundControl || focusControl ? (
+        {soundControl || focusControl || logControl ? (
           <div className={styles.viewportToolbar}>
+            {logControl ? (
+              <button
+                type="button"
+                className={styles.hudIconToggle}
+                aria-pressed={logControl.mode !== 'off'}
+                aria-label={LOG_CONTROL_LABEL[logControl.mode]}
+                title={LOG_CONTROL_LABEL[logControl.mode]}
+                onClick={logControl.onCycle}
+              >
+                <span className={styles.hudIconToggleGlyph} aria-hidden>
+                  {LOG_CONTROL_GLYPH[logControl.mode]}
+                </span>
+              </button>
+            ) : null}
             {soundControl ? (
               <button
                 type="button"

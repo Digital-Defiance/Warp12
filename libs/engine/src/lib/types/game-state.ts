@@ -54,6 +54,16 @@ export interface RoundState {
   readonly dropToImpulseCallPending: PlayerId | null;
   /** Forgot to declare — opponents may catch until the next helm pass. */
   readonly dropToImpulseCatchable: PlayerId | null;
+  /** Manual shield control: active captain charted this turn and may toggle shields before passing. */
+  readonly playedThisTurn: boolean;
+  /** Set after drawing while unable to chart; cleared when helm passes. */
+  readonly drewThisTurn: boolean;
+  /**
+   * Manual shield control: the active captain has already changed their shield
+   * state (one open or one close) this turn. Enforces the one-shield-change-
+   * per-turn cap. Cleared when helm passes.
+   */
+  readonly shieldChangedThisTurn?: boolean;
 }
 
 export interface GameState {

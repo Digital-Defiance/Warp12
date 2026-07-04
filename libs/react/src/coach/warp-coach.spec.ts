@@ -41,6 +41,6 @@ describe('formatCoachSuggestion', () => {
         { kind: 'catch-drop-to-impulse', targetPlayerId: 'b' },
         { b: 'Beta' }
       )
-    ).toBe('Catch Drop to Impulse · Beta');
+    ).toBe('Catch Drop to Impulse · Beta returns to warp');
   });
 });

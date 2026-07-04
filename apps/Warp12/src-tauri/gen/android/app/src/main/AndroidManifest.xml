@@ -23,6 +23,17 @@
                 <!-- AndroidTV support -->
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
+            <!--
+              Google sign-in redirect. Replace the scheme below with your Android
+              OAuth client's REVERSED client id (must match VITE_GOOGLE_ANDROID_CLIENT_ID,
+              or VITE_GOOGLE_OAUTH_REDIRECT_SCHEME_ANDROID). See docs/mobile-google-signin.md.
+            -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.googleusercontent.apps.YOUR_ANDROID_CLIENT_ID" />
+            </intent-filter>
         </activity>
 
         <provider

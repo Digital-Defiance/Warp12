@@ -2,15 +2,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   isBridgeAmbienceEnabled,
+  isGameAudioBackgroundSuspended,
+  resetGameAudioStateForTests,
   setBridgeAmbienceEnabled,
+  setGameAudioBackgroundSuspended,
   setGameSoundsMuted,
   unlockGameAudio,
 } from './game-sounds.js';
 
 describe('bridge ambience', () => {
   beforeEach(() => {
-    setGameSoundsMuted(false);
-    setBridgeAmbienceEnabled(false);
+    resetGameAudioStateForTests();
     vi.restoreAllMocks();
   });
 
@@ -65,5 +67,34 @@ describe('bridge ambience', () => {
     setBridgeAmbienceEnabled(true);
     unlockGameAudio();
     expect(play).not.toHaveBeenCalled();
+  });
+
+  it('pauses bridge ambience while the app is backgrounded', () => {
+    const play = vi.fn().mockResolvedValue(undefined);
+    const pause = vi.fn();
+    vi.stubGlobal(
+      'Audio',
+      class MockAudio {
+        loop = false;
+        preload = '';
+        volume = 1;
+        paused = true;
+        currentTime = 0;
+        load = vi.fn();
+        play = play;
+        pause = pause;
+      }
+    );
+
+    setBridgeAmbienceEnabled(true);
+    unlockGameAudio();
+    expect(play).toHaveBeenCalledTimes(1);
+
+    setGameAudioBackgroundSuspended(true);
+    expect(isGameAudioBackgroundSuspended()).toBe(true);
+    expect(pause).toHaveBeenCalled();
+
+    setGameAudioBackgroundSuspended(false);
+    expect(play).toHaveBeenCalledTimes(2);
   });
 });

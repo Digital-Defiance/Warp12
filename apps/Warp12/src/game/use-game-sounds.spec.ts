@@ -179,7 +179,7 @@ describe('detectGameSoundTransitions', () => {
     ).toEqual({ play: [], stop: [] });
   });
 
-  it('plays return to warp when Drop to Impulse is caught', () => {
+  it('plays return to warp when Drop to Impulse catch forces a penalty draw', () => {
     expect(
       detectGameSoundTransitions(
         {
@@ -194,6 +194,84 @@ describe('detectGameSoundTransitions', () => {
         }
       )
     ).toEqual({ play: ['returnToWarp'], stop: [] });
+  });
+
+  it('plays return to warp when stuck at impulse and drawing from Uncharted Sectors', () => {
+    expect(
+      detectGameSoundTransitions(
+        {
+          ...base,
+          activePlayerId: 'a',
+          dropToImpulseCallPending: 'a',
+          dropToImpulseCatchable: null,
+          unchartedSectorCount: 5,
+        },
+        {
+          ...base,
+          activePlayerId: 'a',
+          dropToImpulseCallPending: null,
+          dropToImpulseCatchable: null,
+          unchartedSectorCount: 4,
+        }
+      )
+    ).toEqual({ play: ['returnToWarp'], stop: [] });
+  });
+
+  it('does not play return to warp on a normal draw while not at impulse', () => {
+    expect(
+      detectGameSoundTransitions(
+        {
+          ...base,
+          dropToImpulseCallPending: null,
+          dropToImpulseCatchable: null,
+          unchartedSectorCount: 5,
+        },
+        {
+          ...base,
+          dropToImpulseCallPending: null,
+          dropToImpulseCatchable: null,
+          unchartedSectorCount: 4,
+        }
+      )
+    ).toEqual({ play: [], stop: [] });
+  });
+
+  it('plays return to warp once when the catch penalty draws two tiles', () => {
+    expect(
+      detectGameSoundTransitions(
+        {
+          ...base,
+          dropToImpulseCatchable: 'a',
+          unchartedSectorCount: 5,
+        },
+        {
+          ...base,
+          dropToImpulseCatchable: null,
+          unchartedSectorCount: 3,
+        }
+      )
+    ).toEqual({ play: ['returnToWarp'], stop: [] });
+  });
+
+  it('does not play drop to impulse when drawing ends impulse on the same turn', () => {
+    expect(
+      detectGameSoundTransitions(
+        {
+          ...base,
+          activePlayerId: 'a',
+          dropToImpulseCallPending: 'a',
+          dropToImpulseCatchable: null,
+          unchartedSectorCount: 5,
+        },
+        {
+          ...base,
+          activePlayerId: 'a',
+          dropToImpulseCallPending: null,
+          dropToImpulseCatchable: null,
+          unchartedSectorCount: 4,
+        }
+      ).play
+    ).not.toContain('dropToImpulse');
   });
 
   it('is silent when the Drop to Impulse catch window closes without a catch', () => {

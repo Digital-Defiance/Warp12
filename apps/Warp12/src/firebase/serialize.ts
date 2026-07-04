@@ -71,6 +71,9 @@ export function serializePublicGame(state: GameState): FirestoreGameDocument {
       dropToImpulseCall: state.houseRules.dropToImpulseCall,
       dropToImpulseCatchPenalty: state.houseRules.dropToImpulseCatchPenalty,
       allStopCeremony: state.houseRules.allStopCeremony,
+      passRedAlertWithoutDraw: state.houseRules.passRedAlertWithoutDraw,
+      manualShieldControl: state.houseRules.manualShieldControl,
+      doubleZeroScore: state.houseRules.doubleZeroScore,
     },
     objective: state.objective,
     campaignRounds: state.campaignRounds,
@@ -170,6 +173,9 @@ function serializePublicRound(round: RoundState): FirestorePublicRound {
       : null,
     dropToImpulseCallPending: round.dropToImpulseCallPending ?? null,
     dropToImpulseCatchable: round.dropToImpulseCatchable ?? null,
+    playedThisTurn: round.playedThisTurn ?? false,
+    drewThisTurn: round.drewThisTurn ?? false,
+    shieldChangedThisTurn: round.shieldChangedThisTurn ?? false,
     table: serializeTable(round),
   };
 }
@@ -185,6 +191,9 @@ function serializeTable(round: RoundState): FirestoreTableDocument {
       playerId: trail.playerId,
       tiles: trail.tiles.map(toPlaced),
       distressBeaconActive: trail.distressBeacon.active,
+      ...(trail.distressBeacon.chartedOwnTrailSinceDown
+        ? { distressBeaconChartedOwnTrailSinceDown: true }
+        : {}),
     })),
     neutralZone: {
       tiles: table.neutralZone.tiles.map(toPlaced),
@@ -208,6 +217,7 @@ function serializeTable(round: RoundState): FirestoreTableDocument {
           responsiblePlayerId: table.redAlert.responsiblePlayerId ?? null,
           trailPlayerId: table.redAlert.trailPlayerId,
           ...(table.redAlert.neutralZone ? { neutralZone: true } : {}),
+          ...(table.redAlert.passed ? { passed: true } : {}),
         }
       : null,
   };
@@ -225,7 +235,12 @@ export function mergeHandsIntoGame(
       warpTrails[trail.playerId] = {
         playerId: trail.playerId,
         tiles: trail.tiles.map(fromPlaced),
-        distressBeacon: { active: trail.distressBeaconActive },
+        distressBeacon: {
+          active: trail.distressBeaconActive,
+          ...(trail.distressBeaconChartedOwnTrailSinceDown
+            ? { chartedOwnTrailSinceDown: true }
+            : {}),
+        },
       };
     }
   }
@@ -295,6 +310,9 @@ export function mergeHandsIntoGame(
         roundStarterOpening: doc.round.roundStarterOpening ?? null,
         dropToImpulseCallPending: doc.round.dropToImpulseCallPending ?? null,
         dropToImpulseCatchable: doc.round.dropToImpulseCatchable ?? null,
+        playedThisTurn: doc.round.playedThisTurn ?? false,
+        drewThisTurn: doc.round.drewThisTurn ?? false,
+        shieldChangedThisTurn: doc.round.shieldChangedThisTurn ?? false,
         table: tableDoc
           ? {
               spacedock: tableDoc.spacedock,
@@ -326,6 +344,7 @@ export function mergeHandsIntoGame(
                     ...(tableDoc.redAlert.neutralZone
                       ? { neutralZone: true }
                       : {}),
+                    ...(tableDoc.redAlert.passed ? { passed: true } : {}),
                   }
                 : null,
             }

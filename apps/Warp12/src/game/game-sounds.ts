@@ -24,6 +24,7 @@ const audioCache = new Map<GameSound, HTMLAudioElement>();
 const turnBeepCache = new Map<string, HTMLAudioElement>();
 let bridgeAmbienceClip: HTMLAudioElement | null = null;
 let bridgeAmbienceEnabled = false;
+let backgroundSuspended = false;
 let audioUnlocked = false;
 
 export function readStoredGameSoundsMuted(): boolean {
@@ -48,8 +49,8 @@ export function setGameSoundsMuted(muted: boolean): void {
   soundsMuted = muted;
   if (muted) {
     stopGameSounds();
-  } else if (bridgeAmbienceEnabled && audioUnlocked) {
-    playBridgeAmbience();
+  } else {
+    refreshBridgeAmbiencePlayback();
   }
 }
 
@@ -94,14 +95,55 @@ function pauseBridgeAmbience(): void {
   bridgeAmbienceClip.currentTime = 0;
 }
 
-/** Loop bridge ambience under one-shot table SFX (separate audio element). */
-export function setBridgeAmbienceEnabled(enabled: boolean): void {
-  bridgeAmbienceEnabled = enabled;
-  if (enabled && audioUnlocked && !soundsMuted) {
+function suspendBridgeAmbience(): void {
+  bridgeAmbienceClip?.pause();
+}
+
+function refreshBridgeAmbiencePlayback(): void {
+  if (bridgeAmbienceEnabled && audioUnlocked && !soundsMuted && !backgroundSuspended) {
     playBridgeAmbience();
+  } else if (backgroundSuspended) {
+    suspendBridgeAmbience();
   } else {
     pauseBridgeAmbience();
   }
+}
+
+/** Loop bridge ambience under one-shot table SFX (separate audio element). */
+export function setBridgeAmbienceEnabled(enabled: boolean): void {
+  bridgeAmbienceEnabled = enabled;
+  refreshBridgeAmbiencePlayback();
+}
+
+export function setGameAudioBackgroundSuspended(suspended: boolean): void {
+  backgroundSuspended = suspended;
+  if (suspended) {
+    suspendBridgeAmbience();
+    for (const clip of audioCache.values()) {
+      clip.pause();
+    }
+    for (const clip of turnBeepCache.values()) {
+      clip.pause();
+    }
+    return;
+  }
+  refreshBridgeAmbiencePlayback();
+}
+
+export function isGameAudioBackgroundSuspended(): boolean {
+  return backgroundSuspended;
+}
+
+/** @internal Resets module audio singletons between unit tests. */
+export function resetGameAudioStateForTests(): void {
+  stopGameSounds();
+  audioCache.clear();
+  turnBeepCache.clear();
+  bridgeAmbienceClip = null;
+  bridgeAmbienceEnabled = false;
+  backgroundSuspended = false;
+  audioUnlocked = false;
+  soundsMuted = false;
 }
 
 export function isBridgeAmbienceEnabled(): boolean {
@@ -129,9 +171,7 @@ export function unlockGameAudio(): void {
     clip.load();
   }
   bridgeAmbienceElement().load();
-  if (bridgeAmbienceEnabled && !soundsMuted) {
-    playBridgeAmbience();
-  }
+  refreshBridgeAmbiencePlayback();
 }
 
 export function stopGameSound(sound: GameSound): void {
@@ -144,7 +184,7 @@ export function stopGameSound(sound: GameSound): void {
 }
 
 export function playGameSound(sound: GameSound): void {
-  if (!audioUnlocked || soundsMuted) {
+  if (!audioUnlocked || soundsMuted || backgroundSuspended) {
     return;
   }
   const clip = audioFor(sound);
@@ -153,7 +193,7 @@ export function playGameSound(sound: GameSound): void {
 }
 
 export function playTurnBeep(url: string): void {
-  if (!audioUnlocked || soundsMuted) {
+  if (!audioUnlocked || soundsMuted || backgroundSuspended) {
     return;
   }
   let clip = turnBeepCache.get(url);

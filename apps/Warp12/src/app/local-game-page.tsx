@@ -24,11 +24,19 @@ import { BridgeTable } from './bridge-table';
 import styles from './lobby.module.scss';
 import { CampaignRoundsField, ObjectivePicker } from './objective-picker';
 import { HouseRulesOptions } from './house-rules-options';
+import { DoubleZeroScoreField } from './double-zero-score-field';
 import { SubspaceFractureOptions } from './subspace-fracture-options';
+import { Warp12RulesPreset } from './warp12-rules-preset';
 import {
   buildAiRoster,
   createLocalGame,
 } from '../game/create-local-game.js';
+import {
+  WARP12_OFFICIAL_CAMPAIGN_ROUNDS,
+  WARP12_OFFICIAL_HOUSE_RULES,
+  WARP12_OFFICIAL_MODULES,
+  WARP12_OFFICIAL_OBJECTIVE,
+} from '../game/warp12-preset.js';
 import {
   buildAiCaptains,
   clampLocalPlayerCount,
@@ -87,15 +95,37 @@ export function LocalGamePage() {
   const [playerCount, setPlayerCount] = useState(4);
   const [objective, setObjective] = useState<GameObjective>(DEFAULT_GAME_OBJECTIVE);
   const [campaignRounds, setCampaignRounds] = useState(DEFAULT_CAMPAIGN_ROUNDS);
-  const [salamander, setSalamander] = useState(false);
-  const [qContinuum, setQContinuum] = useState(false);
-  const [subspaceFracture, setSubspaceFracture] = useState(false);
+  const [salamander, setSalamander] = useState(
+    WARP12_OFFICIAL_MODULES.salamanderPenalty ?? true
+  );
+  const [qContinuum, setQContinuum] = useState(
+    WARP12_OFFICIAL_MODULES.qContinuum ?? true
+  );
+  const [subspaceFracture, setSubspaceFracture] = useState(
+    WARP12_OFFICIAL_MODULES.subspaceFracture ?? false
+  );
   const [subspaceFractureScope, setSubspaceFractureScope] =
-    useState<SubspaceFractureScope>(DEFAULT_SUBSPACE_FRACTURE_SCOPE);
-  const [houseRules, setHouseRules] = useState<HouseRulesConfig>({});
+    useState<SubspaceFractureScope>(
+      WARP12_OFFICIAL_MODULES.subspaceFractureScope ?? DEFAULT_SUBSPACE_FRACTURE_SCOPE
+    );
+  const [houseRules, setHouseRules] = useState<HouseRulesConfig>({
+    ...WARP12_OFFICIAL_HOUSE_RULES,
+  });
   const [aiTiers, setAiTiers] = useState<Record<string, AiOfficerTier>>({});
   const [academySaving, setAcademySaving] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
+
+  const applyOfficialWarp12Rules = () => {
+    setObjective(WARP12_OFFICIAL_OBJECTIVE);
+    setCampaignRounds(WARP12_OFFICIAL_CAMPAIGN_ROUNDS);
+    setSalamander(WARP12_OFFICIAL_MODULES.salamanderPenalty ?? true);
+    setQContinuum(WARP12_OFFICIAL_MODULES.qContinuum ?? true);
+    setSubspaceFracture(WARP12_OFFICIAL_MODULES.subspaceFracture ?? false);
+    setSubspaceFractureScope(
+      WARP12_OFFICIAL_MODULES.subspaceFractureScope ?? DEFAULT_SUBSPACE_FRACTURE_SCOPE
+    );
+    setHouseRules({ ...WARP12_OFFICIAL_HOUSE_RULES });
+  };
 
   const playerStats = usePlayerStats();
 
@@ -241,6 +271,11 @@ export function LocalGamePage() {
       )}
 
       <fieldset className={styles.fieldset}>
+        <legend>Rules preset</legend>
+        <Warp12RulesPreset onApply={applyOfficialWarp12Rules} />
+      </fieldset>
+
+      <fieldset className={styles.fieldset}>
         <legend>Optional directives</legend>
         <label className={styles.checkboxRow}>
           <input
@@ -262,6 +297,12 @@ export function LocalGamePage() {
 
       <fieldset className={styles.fieldset}>
         <legend>Game options</legend>
+        <DoubleZeroScoreField
+          value={houseRules.doubleZeroScore}
+          onChange={(doubleZeroScore) =>
+            setHouseRules((current) => ({ ...current, doubleZeroScore }))
+          }
+        />
         <SubspaceFractureOptions
           enabled={subspaceFracture}
           scope={subspaceFractureScope}

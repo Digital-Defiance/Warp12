@@ -1,7 +1,9 @@
 import {
   canDeployDistressBeacon,
+  canDrawFromUncharted,
   canPassRedAlert,
   canPassTurn,
+  canRaiseShieldsManually,
 } from '../engine/beacon.js';
 import { isRedAlertBlocking } from '../types/anomalies.js';
 import { getLegalMoves } from '../engine/legal-moves.js';
@@ -57,7 +59,7 @@ function resolutionCandidates(
     candidates.push(declare);
   }
 
-  if (round.unchartedSectors.length > 0) {
+  if (canDrawFromUncharted(round, playerId, houseRules)) {
     candidates.push({ kind: 'draw' });
   }
 
@@ -147,6 +149,21 @@ export function warpCandidateGenerator(
     const declare = dropToImpulseDeclareCandidate(round, playerId, houseRules);
     if (declare) {
       candidates.push(declare);
+    }
+    if (
+      houseRules.dropToImpulseCall &&
+      round.dropToImpulseCallPending === playerId &&
+      canPassTurn(round, playerId, { houseRules })
+    ) {
+      candidates.push({ kind: 'pass-turn' });
+    }
+    if (houseRules.manualShieldControl) {
+      if (canDeployDistressBeacon(round, playerId, { houseRules })) {
+        candidates.push({ kind: 'deploy-beacon' });
+      }
+      if (canRaiseShieldsManually(round, playerId, houseRules)) {
+        candidates.push({ kind: 'raise-shields' });
+      }
     }
     return candidates;
   }

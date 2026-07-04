@@ -2,13 +2,16 @@ import { DEFAULT_CAMPAIGN_ROUNDS, DEFAULT_GAME_OBJECTIVE, type GameObjective } f
 
 import type { CreateLobbyOptions } from '../firebase';
 import { clampOnlineMaxPlayers } from '../firebase';
+import { warp12OfficialCreateLobbyOptions } from '../game/warp12-preset.js';
 import {
   LOCAL_MAX_PLAYERS,
   LOCAL_MIN_PLAYERS,
 } from '../game/local-game-config.js';
 import { CampaignRoundsField, ObjectivePicker } from './objective-picker';
 import { HouseRulesOptions } from './house-rules-options';
+import { DoubleZeroScoreField } from './double-zero-score-field';
 import { SubspaceFractureOptions } from './subspace-fracture-options';
+import { Warp12RulesPreset } from './warp12-rules-preset';
 import styles from './lobby.module.scss';
 
 interface LobbyProps {
@@ -64,6 +67,13 @@ export function LobbyForm({
   const baseDisabled =
     busy || !firebaseReady || !firebaseConfigured || !displayName.trim();
 
+  const applyOfficialWarp12Rules = () =>
+    onCreateOptionsChange(
+      warp12OfficialCreateLobbyOptions({
+        maxPlayers: createOptions.maxPlayers,
+      })
+    );
+
   return (
     <section className={`${styles.lobby} ${styles.lobbyWide}`}>
       <h2 className={styles.title}>Fleet muster</h2>
@@ -107,6 +117,11 @@ export function LobbyForm({
       )}
 
       <fieldset className={styles.fieldset}>
+        <legend>Rules preset</legend>
+        <Warp12RulesPreset onApply={applyOfficialWarp12Rules} disabled={baseDisabled} />
+      </fieldset>
+
+      <fieldset className={styles.fieldset}>
         <legend>Host sector settings</legend>
         <label className={styles.field}>
           <span>
@@ -130,7 +145,7 @@ export function LobbyForm({
         <label className={styles.checkboxRow}>
           <input
             type="checkbox"
-            checked={createOptions.modules?.salamanderPenalty ?? true}
+            checked={createOptions.modules?.salamanderPenalty ?? false}
             onChange={(e) =>
               setModules({ salamanderPenalty: e.target.checked })
             }
@@ -149,6 +164,15 @@ export function LobbyForm({
 
       <fieldset className={styles.fieldset}>
         <legend>Game options</legend>
+        <DoubleZeroScoreField
+          value={createOptions.houseRules?.doubleZeroScore}
+          onChange={(doubleZeroScore) =>
+            onCreateOptionsChange({
+              ...createOptions,
+              houseRules: { ...createOptions.houseRules, doubleZeroScore },
+            })
+          }
+        />
         <SubspaceFractureOptions
           enabled={createOptions.modules?.subspaceFracture ?? false}
           scope={createOptions.modules?.subspaceFractureScope ?? 'own-trail'}

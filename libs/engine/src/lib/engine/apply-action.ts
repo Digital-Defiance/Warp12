@@ -43,11 +43,18 @@ import {
   trailsOpenToOthers,
   resolveRoundWinAllStop,
 } from './q-continuum.js';
-import { getLegalMoves, isLegalMove, placedTile } from './legal-moves.js';
+import {
+  getLegalMoves,
+  isLegalMove,
+  placedTile,
+  routineChartsBlockedByManualShieldWindow,
+} from './legal-moves.js';
 import {
   canDeployDistressBeacon,
+  canDrawFromUncharted,
   canPassRedAlert,
   canPassTurn,
+  canRaiseShieldsManually,
 } from './beacon.js';
 import { scoreRound } from './scoring.js';
 import {
@@ -77,6 +84,14 @@ function clearDistressBeacon(trail: WarpTrail): WarpTrail {
     return trail;
   }
   return { ...trail, distressBeacon: { active: false } };
+}
+
+/** Deploy (activate) a Distress Beacon, resetting the manual-shield close gate. */
+function deployBeaconOnTrail(trail: WarpTrail): WarpTrail {
+  return {
+    ...trail,
+    distressBeacon: { active: true, chartedOwnTrailSinceDown: false },
+  };
 }
 
 function updateHands(
@@ -222,6 +237,13 @@ function applyChartToRoute(
   }
 
   let nextRound = updateHands(round, playerId, hand);
+  if (
+    options.houseRules.dropToImpulseCall &&
+    nextRound.dropToImpulseCallPending === playerId &&
+    hand.length !== 1
+  ) {
+    nextRound = { ...nextRound, dropToImpulseCallPending: null };
+  }
   let table = { ...nextRound.table };
   let placed: PlacedCoordinate;
   let wasCover = false;
@@ -331,10 +353,30 @@ function applyChartToRoute(
       const trail = table.warpTrails[route.playerId];
       const connectingValue = trailOpenValue(trail, round.spacedockValue);
       placed = placedTile(removed, trail.tiles.length, connectingValue)!;
-      const updatedTrail =
-        route.playerId === playerId && !options.houseRules.beaconClearsOnAnyPlay
-          ? appendToTrail(clearDistressBeacon(trail), placed)
-          : appendToTrail(trail, placed);
+      const autoRaiseOnOwnTrail =
+        route.playerId === playerId &&
+        !options.houseRules.beaconClearsOnAnyPlay &&
+        !options.houseRules.manualShieldControl;
+      let updatedTrail = autoRaiseOnOwnTrail
+        ? appendToTrail(clearDistressBeacon(trail), placed)
+        : appendToTrail(trail, placed);
+      // Manual shield control: charting your own trail does not auto-raise, but
+      // it does earn back the right to raise shields manually (you have now
+      // serviced your own trail since dropping them).
+      if (
+        options.houseRules.manualShieldControl &&
+        route.playerId === playerId &&
+        updatedTrail.distressBeacon.active &&
+        updatedTrail.distressBeacon.chartedOwnTrailSinceDown !== true
+      ) {
+        updatedTrail = {
+          ...updatedTrail,
+          distressBeacon: {
+            ...updatedTrail.distressBeacon,
+            chartedOwnTrailSinceDown: true,
+          },
+        };
+      }
       table = {
         ...table,
         warpTrails: {
@@ -475,6 +517,16 @@ function ownTrailChartMoves(
   );
 }
 
+function finishRoutineChartTurn(
+  nextRound: RoundState,
+  houseRules: HouseRules
+): RoundState {
+  if (houseRules.manualShieldControl) {
+    return { ...nextRound, playedThisTurn: true };
+  }
+  return maybeEndBlockedRound(advanceTurn(nextRound, houseRules), houseRules);
+}
+
 function applyRoundStarterOpeningFailure(
   round: RoundState,
   playerId: string,
@@ -485,16 +537,17 @@ function applyRoundStarterOpeningFailure(
     ...round.table,
     warpTrails: {
       ...round.table.warpTrails,
-      [playerId]: {
-        ...trail,
-        distressBeacon: { active: true },
-      },
+      [playerId]: deployBeaconOnTrail(trail),
     },
   });
   const cleared: RoundState = {
     ...withBeacon,
     roundStarterOpening: null,
+    playedThisTurn: houseRules.manualShieldControl ? true : withBeacon.playedThisTurn,
   };
+  if (houseRules.manualShieldControl) {
+    return cleared;
+  }
   return maybeEndBlockedRound(advanceTurn(cleared, houseRules), houseRules);
 }
 
@@ -504,25 +557,26 @@ function resolveRoundStarterOpeningTurn(
   houseRules: HouseRules
 ): RoundState {
   if (!houseRules.roundStarterPlaysTwo) {
-    return maybeEndBlockedRound(advanceTurn(nextRound, houseRules), houseRules);
+    return finishRoutineChartTurn(nextRound, houseRules);
   }
   if (playerId !== nextRound.table.spacedock.placedBy) {
-    return maybeEndBlockedRound(advanceTurn(nextRound, houseRules), houseRules);
+    return finishRoutineChartTurn(nextRound, houseRules);
   }
 
   const ownTiles = nextRound.table.warpTrails[playerId]?.tiles.length ?? 0;
   if (ownTiles >= 2) {
     nextRound = { ...nextRound, roundStarterOpening: null };
-    return maybeEndBlockedRound(advanceTurn(nextRound, houseRules), houseRules);
+    return finishRoutineChartTurn(nextRound, houseRules);
   }
 
   if (ownTiles !== 1) {
-    return maybeEndBlockedRound(advanceTurn(nextRound, houseRules), houseRules);
+    return finishRoutineChartTurn(nextRound, houseRules);
   }
 
   nextRound = {
     ...nextRound,
     roundStarterOpening: { playerId },
+    playedThisTurn: houseRules.manualShieldControl ? true : nextRound.playedThisTurn,
   };
 
   if (
@@ -547,7 +601,15 @@ function advanceTurn(round: RoundState, houseRules: HouseRules): RoundState {
     return round;
   }
 
-  return advanceTurnWithDropToImpulse(round, houseRules);
+  return advanceTurnWithDropToImpulse(
+    {
+      ...round,
+      playedThisTurn: false,
+      drewThisTurn: false,
+      shieldChangedThisTurn: false,
+    },
+    houseRules
+  );
 }
 
 function handleDraw(
@@ -564,13 +626,15 @@ function handleDraw(
     ...(round.hands[playerId] ?? []),
     drawn,
   ]);
-  nextRound = { ...nextRound, unchartedSectors: remaining };
+  nextRound = { ...nextRound, unchartedSectors: remaining, drewThisTurn: true };
 
-  if (
-    nextRound.dropToImpulseCallPending === playerId &&
-    (nextRound.hands[playerId]?.length ?? 0) !== 1
-  ) {
-    nextRound = { ...nextRound, dropToImpulseCallPending: null };
+  if ((nextRound.hands[playerId]?.length ?? 0) !== 1) {
+    if (nextRound.dropToImpulseCallPending === playerId) {
+      nextRound = { ...nextRound, dropToImpulseCallPending: null };
+    }
+    if (nextRound.dropToImpulseCatchable === playerId) {
+      nextRound = { ...nextRound, dropToImpulseCatchable: null };
+    }
   }
 
   const legalWithDrawn = getLegalMoves(nextRound, playerId, state.houseRules).filter(
@@ -613,6 +677,13 @@ function handlePassRedAlert(
   playerId: string,
   options?: { afterDraw?: boolean }
 ): ActionResult {
+  // The free pass (no draw, no beacon) only applies to the captain who charted
+  // the double, while the alert is still in the Caution phase. Once it has been
+  // passed once, standard draw/beacon rules apply to everyone.
+  const freePass =
+    state.houseRules.passRedAlertWithoutDraw &&
+    round.table.redAlert?.passed !== true;
+
   if (!canPassRedAlert(round, playerId, { ...options, houseRules: state.houseRules })) {
     const redAlert = round.table.redAlert;
     if (!redAlert?.active || redAlert.responsiblePlayerId !== playerId) {
@@ -621,7 +692,7 @@ function handlePassRedAlert(
     if (getLegalMoves(round, playerId, state.houseRules).length > 0) {
       return fail('RED_ALERT_COVER_AVAILABLE');
     }
-    if (round.unchartedSectors.length > 0) {
+    if (round.unchartedSectors.length > 0 && !freePass) {
       return fail('MUST_DRAW_FIRST');
     }
     return fail('RED_ALERT_NOT_ACTIVE');
@@ -638,23 +709,23 @@ function handlePassRedAlert(
     redAlert: {
       ...redAlert,
       responsiblePlayerId: nextResponsible,
+      passed: true,
     },
   });
   nextRound = { ...nextRound, qEffects };
 
-  nextRound = {
-    ...nextRound,
-    table: {
-      ...nextRound.table,
-      warpTrails: {
-        ...nextRound.table.warpTrails,
-        [playerId]: {
-          ...nextRound.table.warpTrails[playerId],
-          distressBeacon: { active: true },
+  if (!freePass) {
+    nextRound = {
+      ...nextRound,
+      table: {
+        ...nextRound.table,
+        warpTrails: {
+          ...nextRound.table.warpTrails,
+          [playerId]: deployBeaconOnTrail(nextRound.table.warpTrails[playerId]),
         },
       },
-    },
-  };
+    };
+  }
 
   nextRound = advanceTurn(nextRound, state.houseRules);
   nextRound = maybeEndBlockedRound(nextRound, state.houseRules);
@@ -703,23 +774,51 @@ function handleDeployBeacon(
     redAlert = {
       ...redAlert,
       responsiblePlayerId: advanced.nextId,
+      passed: true,
     };
   }
   let nextRound = updateTable(round, {
     ...round.table,
     warpTrails: {
       ...round.table.warpTrails,
-      [playerId]: {
-        ...trail,
-        distressBeacon: { active: true },
-      },
+      [playerId]: deployBeaconOnTrail(trail),
     },
     redAlert,
   });
   nextRound = { ...nextRound, qEffects };
 
-  nextRound = advanceTurn(nextRound, state.houseRules);
-  nextRound = maybeEndBlockedRound(nextRound, state.houseRules);
+  // A forced marker (stuck after drawing) always ends the turn. Under manual
+  // shield control a *voluntary* open keeps the turn open for the rest of your
+  // play, but consumes your one shield change for the turn.
+  const forced = options?.afterDraw === true;
+  if (!state.houseRules.manualShieldControl || forced) {
+    nextRound = advanceTurn(nextRound, state.houseRules);
+    nextRound = maybeEndBlockedRound(nextRound, state.houseRules);
+  } else {
+    nextRound = { ...nextRound, shieldChangedThisTurn: true };
+  }
+  return { ok: true, state: withRound(state, nextRound) };
+}
+
+function handleRaiseShields(
+  state: GameState,
+  round: RoundState,
+  playerId: string
+): ActionResult {
+  if (!canRaiseShieldsManually(round, playerId, state.houseRules)) {
+    return fail('RAISE_SHIELDS_NOT_ALLOWED');
+  }
+  const trail = round.table.warpTrails[playerId];
+  const nextRound: RoundState = {
+    ...updateTable(round, {
+      ...round.table,
+      warpTrails: {
+        ...round.table.warpTrails,
+        [playerId]: clearDistressBeacon(trail),
+      },
+    }),
+    shieldChangedThisTurn: true,
+  };
   return { ok: true, state: withRound(state, nextRound) };
 }
 
@@ -977,6 +1076,25 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
         return fail('SHIELDS_UP');
       }
 
+      const fractureActive = isNavigationHaltedByFracture(
+        round.table.subspaceFracture,
+        round.table.redAlert
+      );
+      const redAlertBlocking = isRedAlertBlocking(
+        round.table.redAlert,
+        action.playerId
+      );
+      if (
+        routineChartsBlockedByManualShieldWindow(
+          round,
+          action.playerId,
+          state.houseRules,
+          { fractureActive, redAlertBlocking }
+        )
+      ) {
+        return fail('TURN_CHART_LIMIT');
+      }
+
       if (!isLegalMove(round, action.playerId, action.coordinate, action.route, state.houseRules)) {
         return fail('INVALID_ROUTE');
       }
@@ -1005,8 +1123,8 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
       if (qResolutionBlocksAction(round, action.playerId)) {
         return fail('Q_FLASH_NOT_PENDING');
       }
-      if (getLegalMoves(round, action.playerId, state.houseRules).length > 0) {
-        return fail('INVALID_ROUTE');
+      if (!canDrawFromUncharted(round, action.playerId, state.houseRules)) {
+        return fail('DRAW_NOT_ALLOWED');
       }
       return handleDraw(state, round, action.playerId);
     }
@@ -1068,8 +1186,15 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
       );
     }
 
-    case 'RETURN_TO_WARP': {
-      return fail('RETURN_TO_WARP_NOT_ALLOWED');
+    case 'RAISE_SHIELDS': {
+      const turnCheck = requirePlayerTurn(round, action.playerId);
+      if (turnCheck !== true) {
+        return fail(turnCheck);
+      }
+      if (qResolutionBlocksAction(round, action.playerId)) {
+        return fail('Q_FLASH_NOT_PENDING');
+      }
+      return handleRaiseShields(state, round, action.playerId);
     }
 
     case 'INVOKE_Q_FLASH': {

@@ -10,6 +10,7 @@ import {
 
 import {
   readStoredGameSoundsMuted,
+  setGameAudioBackgroundSuspended,
   setGameSoundsMuted,
   storeGameSoundsMuted,
   unlockGameAudio,
@@ -39,6 +40,21 @@ export function GameAudioProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
+    };
+  }, []);
+
+  useEffect(() => {
+    const syncBackgroundAudio = () => {
+      setGameAudioBackgroundSuspended(document.visibilityState === 'hidden');
+    };
+    syncBackgroundAudio();
+    document.addEventListener('visibilitychange', syncBackgroundAudio);
+    window.addEventListener('pagehide', syncBackgroundAudio);
+    window.addEventListener('pageshow', syncBackgroundAudio);
+    return () => {
+      document.removeEventListener('visibilitychange', syncBackgroundAudio);
+      window.removeEventListener('pagehide', syncBackgroundAudio);
+      window.removeEventListener('pageshow', syncBackgroundAudio);
     };
   }, []);
 

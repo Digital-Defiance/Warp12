@@ -19,7 +19,7 @@ describe('App', () => {
         <App />
       </MemoryRouter>
     );
-    expect(screen.getByRole('link', { name: /rules/i })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Manual' })).toBeTruthy();
     expect(screen.getByText(/local simulation/i)).toBeTruthy();
     expect(screen.getByText(/online fleet/i)).toBeTruthy();
     expect(screen.getByText(/navigational operations manual/i)).toBeTruthy();

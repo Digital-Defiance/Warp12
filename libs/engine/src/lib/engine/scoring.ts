@@ -6,6 +6,7 @@ import {
   salamanderPenaltyApplies,
 } from '../constants/setup.js';
 import type { GameState, RoundState } from '../types/game-state.js';
+import type { DoubleZeroScore } from '../types/house-rules.js';
 import { shuffleCoordinates } from '../domino/coordinates.js';
 import {
   collectRoundCoordinatesForRecycle,
@@ -19,6 +20,7 @@ function penaltyForHand(
   hand: readonly { low: number; high: number }[],
   salamanderEnabled: boolean,
   roundNumber: number,
+  doubleZeroScore: DoubleZeroScore,
   options?: { ignoreSalamanderDoubling?: boolean }
 ): number {
   const salamander =
@@ -32,6 +34,8 @@ function penaltyForHand(
       coordinate.high === 12
     ) {
       total += SALAMANDER_PENALTY_TILE_VALUE;
+    } else if (coordinate.low === 0 && coordinate.high === 0) {
+      total += doubleZeroScore;
     } else {
       total += coordinatePipValue(coordinate);
     }
@@ -39,13 +43,17 @@ function penaltyForHand(
   return total;
 }
 
-/** Pip penalty for tiles still in hand (same rules as end-of-round scoring). */
+/**
+ * Pip penalty for tiles still in hand (same rules as end-of-round scoring).
+ * `doubleZeroScore` sets the double-blank value (default 50 = tournament standard).
+ */
 export function handPoints(
   hand: readonly { low: number; high: number }[],
   salamanderEnabled: boolean,
-  roundNumber: number
+  roundNumber: number,
+  doubleZeroScore: DoubleZeroScore = 50
 ): number {
-  return penaltyForHand(hand, salamanderEnabled, roundNumber);
+  return penaltyForHand(hand, salamanderEnabled, roundNumber, doubleZeroScore);
 }
 
 function clearActiveQFlash(state: GameState): GameState {
@@ -63,6 +71,7 @@ function clearActiveQFlash(state: GameState): GameState {
 
 function tallyRoundPoints(state: GameState, round: RoundState) {
   const salamander = state.modules.salamanderPenalty.enabled;
+  const doubleZeroScore = state.houseRules.doubleZeroScore;
   const salamanderSwap =
     salamander && round.qEffects?.salamanderSwap === true;
 
@@ -93,9 +102,13 @@ function tallyRoundPoints(state: GameState, round: RoundState) {
       return captain;
     }
     const hand = round.hands[captain.id] ?? [];
-    let penalty = penaltyForHand(hand, salamander, round.roundNumber, {
-      ignoreSalamanderDoubling: captain.id === swapHolder,
-    });
+    let penalty = penaltyForHand(
+      hand,
+      salamander,
+      round.roundNumber,
+      doubleZeroScore,
+      { ignoreSalamanderDoubling: captain.id === swapHolder }
+    );
     if (
       swapTarget &&
       swapHolder &&
