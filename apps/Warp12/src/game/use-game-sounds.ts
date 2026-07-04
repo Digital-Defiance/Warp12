@@ -24,6 +24,8 @@ export interface GameSoundSnapshot {
   activePlayerId: string | null;
   dropToImpulseCallPending: string | null;
   dropToImpulseCatchable: string | null;
+  /** Engine signal: a draw just grew an at-impulse hand back to warp. */
+  returnedToWarp: boolean;
   unchartedSectorCount: number;
   turnBeepsEnabled: boolean;
 }
@@ -86,13 +88,7 @@ export function detectGameSoundTransitions(
     play.push('dropToImpulse');
   }
 
-  if (
-    next.unchartedSectorCount < previous.unchartedSectorCount &&
-    ((previous.dropToImpulseCatchable &&
-      !next.dropToImpulseCatchable) ||
-      (previous.dropToImpulseCallPending &&
-        !next.dropToImpulseCallPending))
-  ) {
+  if (next.returnedToWarp && !previous.returnedToWarp) {
     play.push('returnToWarp');
   }
 
@@ -132,6 +128,7 @@ export function useGameSoundEffects(options: {
   allStopRequired: boolean;
   dropToImpulseCallPending: string | null;
   dropToImpulseCatchable: string | null;
+  returnedToWarp: boolean;
   unchartedSectorCount: number;
   turnBeepsEnabled: boolean;
 }): void {
@@ -171,6 +168,7 @@ export function useGameSoundEffects(options: {
       activePlayerId: options.activePlayerId,
       dropToImpulseCallPending: options.dropToImpulseCallPending,
       dropToImpulseCatchable: options.dropToImpulseCatchable,
+      returnedToWarp: options.returnedToWarp,
       unchartedSectorCount: options.unchartedSectorCount,
       turnBeepsEnabled: options.turnBeepsEnabled,
     };
@@ -208,6 +206,7 @@ export function useGameSoundEffects(options: {
     options.allStopRequired,
     options.dropToImpulseCallPending,
     options.dropToImpulseCatchable,
+    options.returnedToWarp,
     options.unchartedSectorCount,
     options.turnBeepsEnabled,
   ]);

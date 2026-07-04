@@ -176,6 +176,7 @@ function serializePublicRound(round: RoundState): FirestorePublicRound {
     playedThisTurn: round.playedThisTurn ?? false,
     drewThisTurn: round.drewThisTurn ?? false,
     shieldChangedThisTurn: round.shieldChangedThisTurn ?? false,
+    ...(round.returnedToWarp ? { returnedToWarp: true } : {}),
     table: serializeTable(round),
   };
 }
@@ -313,6 +314,7 @@ export function mergeHandsIntoGame(
         playedThisTurn: doc.round.playedThisTurn ?? false,
         drewThisTurn: doc.round.drewThisTurn ?? false,
         shieldChangedThisTurn: doc.round.shieldChangedThisTurn ?? false,
+        returnedToWarp: doc.round.returnedToWarp === true,
         table: tableDoc
           ? {
               spacedock: tableDoc.spacedock,

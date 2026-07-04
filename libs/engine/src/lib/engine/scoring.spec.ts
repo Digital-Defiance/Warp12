@@ -4,6 +4,7 @@ import { handPoints, scoreRound } from './scoring.js';
 import { endBlockedRound } from './round-resolution.js';
 import { makeGame, makeRound, T } from './test-helpers.js';
 import { resolveHouseRules } from '../types/house-rules.js';
+import { resolveModules } from '../types/modules.js';
 import {
   createRoundStateFromDeal,
   dealRoundFromShuffled,
@@ -27,10 +28,13 @@ describe('handPoints', () => {
     ).toBe(19);
   });
 
-  it('doubles 12-12 when salamander applies', () => {
-    expect(
-      handPoints([{ low: 12, high: 12 }], true, 2)
-    ).toBe(24);
+  it('doubles 12-12 to 48 when salamander applies (round 2+)', () => {
+    // Base pips are 24 (both ends); Salamander doubles the held 12-12 to 48.
+    expect(handPoints([{ low: 12, high: 12 }], true, 2)).toBe(48);
+    // Round 1 never applies (12-12 is Spacedock), so it scores base pips.
+    expect(handPoints([{ low: 12, high: 12 }], true, 1)).toBe(24);
+    // Salamander off → base pips regardless of round.
+    expect(handPoints([{ low: 12, high: 12 }], false, 2)).toBe(24);
   });
 
   it('scores a double-blank by the doubleZeroScore option', () => {
@@ -95,6 +99,50 @@ describe('scoreRound double-blank scoring', () => {
     expect(at25.ok).toBe(true);
     if (!at25.ok) return;
     expect(at25.state.captains.find((c) => c.id === 'b')?.pointsScore).toBe(25);
+  });
+});
+
+describe('scoreRound salamander swap', () => {
+  it('moves the full 48-point 12-12 penalty to the leader; holder pays 0 for it', () => {
+    const round = makeRound(['a', 'b', 'c'], {
+      roundNumber: 13,
+      phase: 'ended',
+      roundWinnerId: 'a',
+      qEffects: {
+        reverseTurnOrder: false,
+        temporalInversion: false,
+        openAllTrails: false,
+        suppressNextFracture: false,
+        skipNextTurnFor: [],
+        peekedSector: null,
+        salamanderSwap: true,
+        allStopEcho: false,
+      },
+      hands: { a: [], b: [T(12, 12)], c: [T(4, 3)] },
+    });
+    const state = makeGame(round, {
+      completedRounds: 12,
+      captains: [
+        { id: 'a', displayName: 'A', pointsScore: 0 },
+        { id: 'b', displayName: 'B', pointsScore: 0 },
+        { id: 'c', displayName: 'C', pointsScore: 100 }, // leader → swap target
+      ],
+      modules: resolveModules({
+        qContinuum: true,
+        salamanderPenalty: true,
+        subspaceFracture: false,
+      }),
+    });
+
+    const result = scoreRound(state, round);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const points = (id: string) =>
+      result.state.captains.find((c) => c.id === id)?.pointsScore;
+
+    expect(points('a')).toBe(0); // winner
+    expect(points('b')).toBe(0); // 12-12 holder pays nothing for that tile
+    expect(points('c')).toBe(100 + 7 + 48); // leader: own 4-3 (7) + full 48
   });
 });
 

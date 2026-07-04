@@ -52,6 +52,12 @@ function pickHumanMove(state: GameState, humanId: string): GameAction | null {
 export async function simulateLocalAiMatch(input?: {
   config?: LocalGameConfig;
   seed?: number;
+  /**
+   * Test-only: seed the inter-round reshuffle stream independently of the deal
+   * seed. Defaults to `seed` (production behavior). Used to model a live game
+   * that reshuffled with a non-matching stream — which must FAIL verification.
+   */
+  reshuffleSeed?: number;
 }): Promise<{
   config: LocalGameConfig;
   seed: number;
@@ -61,7 +67,7 @@ export async function simulateLocalAiMatch(input?: {
   const config = input?.config ?? defaultLocalGameConfig('Test Captain', 4);
   const seed = input?.seed ?? 42_424_242;
   let state = createLocalGame(config, seed);
-  const roundReshuffle = createMatchRoundReshuffle(seed);
+  const roundReshuffle = createMatchRoundReshuffle(input?.reshuffleSeed ?? seed);
   const roster = buildAiRoster(config, seed);
   const actionLog: ActionLogEntry[] = [];
   let steps = 0;

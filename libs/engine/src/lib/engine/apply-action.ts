@@ -621,12 +621,20 @@ function handleDraw(
     return fail('EMPTY_UNCHARTED');
   }
 
+  const handBefore = round.hands[playerId]?.length ?? 0;
   const [drawn, ...remaining] = round.unchartedSectors;
   let nextRound = updateHands(round, playerId, [
     ...(round.hands[playerId] ?? []),
     drawn,
   ]);
   nextRound = { ...nextRound, unchartedSectors: remaining, drewThisTurn: true };
+
+  // Return to warp: an at-impulse hand (exactly one tile) drew back up. This
+  // holds across every impulse path (announced, caught, or same-turn) because it
+  // keys off the hand growing from 1, not the announce/catch flags.
+  if (state.houseRules.dropToImpulseCall && handBefore === 1) {
+    nextRound = { ...nextRound, returnedToWarp: true };
+  }
 
   if ((nextRound.hands[playerId]?.length ?? 0) !== 1) {
     if (nextRound.dropToImpulseCallPending === playerId) {
@@ -904,7 +912,11 @@ function handleCatchDropToImpulse(
     return fail('EMPTY_UNCHARTED');
   }
 
-  const nextRound = maybeEndBlockedRound(penalized, state.houseRules);
+  // The caught captain drew back up from impulse — return to warp.
+  const nextRound = maybeEndBlockedRound(
+    { ...penalized, returnedToWarp: true },
+    state.houseRules
+  );
   return { ok: true, state: withRound(state, nextRound) };
 }
 
@@ -1006,6 +1018,12 @@ function handleQGamble(
 }
 
 export function applyAction(state: GameState, action: GameAction): ActionResult {
+  // Clear the transient return-to-warp signal from the prior action so it is
+  // only ever true on the state produced by the draw that caused it.
+  if (state.round?.returnedToWarp) {
+    state = { ...state, round: { ...state.round, returnedToWarp: false } };
+  }
+
   if (action.type === 'END_ROUND') {
     if (state.phase !== 'active' || !state.round) {
       return fail('GAME_NOT_ACTIVE');

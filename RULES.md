@@ -199,6 +199,26 @@ When a round ends with a winner, every **other** captain totals pip values in ha
 
 **Next round:** Spacedock steps down one double (12-12 → 11-11 → … → 0-0). After round 13, lowest cumulative points total wins.
 
+### How to tally the score *(step by step)*
+
+The app does this automatically at round end and shows a summary before the next deal. The procedure below is for understanding the math (and for tabletop play with physical tiles).
+
+1. **Decide who counts.** When a captain goes out (empty hand), that **round winner scores 0**. Every **other** captain counts the tiles left in their hand. In a **blocked sector** (no winner), there is no exemption — **every** captain counts their hand.
+2. **Count a hand.** A tile is worth the **total number of pips on it — both ends added together**. A blank end counts as **0**. So:
+   - `5-3` = **8**, `6-0` (blank) = **6**, `0-0` (double-blank) = **0 pips**.
+   - A **double counts both halves**: `9-9` = **18**, `12-12` = **24**.
+   - Add every tile in the hand to get that captain's **round score**.
+3. **Apply special-tile settings** (if enabled — see Section VI):
+   - **Double-blank (0-0):** scored by the **Double-blank score** setting — **50** (tournament standard, the default for hand-built rule sets), **25**, or **0** (its 0 pips). The **Official Warp 12 rules** preset uses **0**.
+   - **Salamander Penalty (Module Beta):** a held **12-12** scores **double — 48** (from round 2 onward). See **Section VI → Module Beta**. It affects only the 12-12 tile.
+4. **Add to the campaign total.** Add each captain's round score to their running cumulative total. Lower is better.
+5. **Advance the round.** Step Spacedock down one double (`12-12 → 11-11 → … → 0-0`), re-deal, and play the next round. There are **13 rounds** in a full points campaign.
+6. **Declare the winner.** After round 13, the captain with the **lowest cumulative total** wins the sector. If two or more captains tie on the lowest total, they **share** the victory.
+
+**Worked example (round 5, Salamander off).** Picard goes out → **0**. Riker holds `5-3`, `9-9`, `6-0` → 8 + 18 + 6 = **23**. Troi holds `0-0` and `4-2` with Double-blank score = 50 → 50 + 6 = **56**. Those round scores are added to each captain's campaign total; Picard adds nothing.
+
+**Go out mode.** There is **no pip tally** — the first captain to empty their hand in any single round wins the sector immediately.
+
 ---
 
 ## VI. Optional directives and variants
@@ -276,7 +296,7 @@ When **enabled**, charting **0-0 on your own Warp Trail** triggers a **Q-Flash**
 | **Temporal inversion** | Turn order reverses until the next double is charted on the table. |
 | **Distress amplification** | All warp trails are open to every captain without a Distress Beacon. |
 | **Fracture immunity** | The next double on an own trail will not open Subspace Fracture (Red Alert still applies). |
-| **Salamander swap** *(requires Module Beta)* | If anyone holds 12-12 at round end, that Salamander penalty applies to the highest-points captain instead. |
+| **Salamander swap** *(requires Module Beta)* | If anyone holds 12-12 at round end, the full 48-point Salamander penalty lands on the highest-points captain instead — the holder pays nothing for that tile. |
 | **All Stop! echo** | Any captain going out this round must call All Stop! before the sector closes. |
 | **Q's gamble** | Draw two tiles from Uncharted Sectors — keep one, return the other face-down. |
 
@@ -284,7 +304,9 @@ When **enabled**, charting **0-0 on your own Warp Trail** triggers a **Q-Flash**
 
 ### Module Beta — The Salamander Penalty *(on in Official Warp 12 preset)*
 
-If a round ends and a captain holds **12-12** in hand, that tile scores **24** points instead of 12. Round 1 never applies (12-12 is Spacedock). From round 2 onward, 12-12 is in circulation.
+If a round ends and a captain holds **12-12** in hand, that tile scores **double its pips — 48** (its normal both-ends value is 24). Round 1 never applies (12-12 is Spacedock). From round 2 onward, 12-12 is in circulation.
+
+With **Salamander swap** (Q-Continuum, Module Alpha), the **entire 48-point penalty** transfers to the highest-points captain instead — the 12-12 holder pays **nothing** for that tile, and the leader eats the full 48.
 
 ---
 

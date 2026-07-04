@@ -21,19 +21,21 @@ function penaltyForHand(
   salamanderEnabled: boolean,
   roundNumber: number,
   doubleZeroScore: DoubleZeroScore,
-  options?: { ignoreSalamanderDoubling?: boolean }
+  options?: { swapHolder?: boolean }
 ): number {
   const salamander =
     salamanderEnabled && salamanderPenaltyApplies(roundNumber);
   let total = 0;
   for (const coordinate of hand) {
-    if (
-      salamander &&
-      !options?.ignoreSalamanderDoubling &&
-      coordinate.low === 12 &&
-      coordinate.high === 12
-    ) {
-      total += SALAMANDER_PENALTY_TILE_VALUE;
+    if (coordinate.low === 12 && coordinate.high === 12) {
+      if (salamander && options?.swapHolder) {
+        // Salamander swap: the entire doubled 12-12 penalty leaves the holder
+        // and lands on the leader — the holder pays nothing for this tile.
+        continue;
+      }
+      total += salamander
+        ? SALAMANDER_PENALTY_TILE_VALUE
+        : coordinatePipValue(coordinate);
     } else if (coordinate.low === 0 && coordinate.high === 0) {
       total += doubleZeroScore;
     } else {
@@ -107,7 +109,7 @@ function tallyRoundPoints(state: GameState, round: RoundState) {
       salamander,
       round.roundNumber,
       doubleZeroScore,
-      { ignoreSalamanderDoubling: captain.id === swapHolder }
+      { swapHolder: captain.id === swapHolder }
     );
     if (
       swapTarget &&
@@ -115,6 +117,8 @@ function tallyRoundPoints(state: GameState, round: RoundState) {
       swapTarget !== swapHolder &&
       captain.id === swapTarget
     ) {
+      // The full doubled Salamander penalty lands on the leader; the 12-12
+      // holder paid nothing for the tile (swapHolder above).
       penalty += SALAMANDER_PENALTY_TILE_VALUE;
     }
     return {

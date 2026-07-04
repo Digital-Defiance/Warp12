@@ -33,7 +33,7 @@ export interface QFlash {
   readonly effect: QFlashEffect;
 }
 
-/** Module Beta: The Salamander Penalty — holding 12-12 at round end costs 24 (round 2+). */
+/** Module Beta: The Salamander Penalty — holding 12-12 at round end scores double (48) (round 2+). */
 export interface SalamanderPenaltyModule {
   readonly enabled: boolean;
 }
