@@ -11,6 +11,7 @@ import {
   setUserRoles,
   submitMatchStandings,
 } from './rated-matches';
+import { reportOnlineMatch } from './report-online-match';
 import { reportPracticeAiMatch } from './report-practice-ai';
 import { setAcademyPlacement } from './set-academy-placement';
 
@@ -23,6 +24,7 @@ export {
   createRatedMatch,
   getMyRoles,
   rejectRatedMatch,
+  reportOnlineMatch,
   reportPracticeAiMatch,
   setAcademyPlacement,
   setUserRoles,

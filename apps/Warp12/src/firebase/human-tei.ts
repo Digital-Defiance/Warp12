@@ -1,4 +1,4 @@
-import type { GameState } from 'warp12-engine';
+import type { GameObjective, GameState } from 'warp12-engine';
 
 import { sectorStandings } from '../game/sector-outcome.js';
 import { isAiCaptain } from '../game/ai-captain.js';
@@ -25,6 +25,123 @@ export function isHumanOnlySector(
 ): boolean {
   const humans = captains.filter((captain) => !isAiCaptain(captain));
   return humans.length >= 2 && humans.length === captains.length;
+}
+
+const RATED_AI_SKILLS = ['ensign', 'lieutenant', 'commander'] as const;
+
+export type OnlineRatingIneligibleReason =
+  | 'casual'
+  | 'objective_not_rated'
+  | 'not_enough_humans'
+  | 'unrated_participant'
+  | 'unrated_ai';
+
+export interface OnlineRatingEligibility {
+  readonly rated: boolean;
+  readonly reason?: OnlineRatingIneligibleReason;
+  /** Unverified (guest) human captains blocking rating, by id. */
+  readonly unratedCaptainIds: readonly string[];
+}
+
+type EligibilityCaptain = Pick<
+  FirestoreCaptain,
+  'id' | 'isAi' | 'skill' | 'verified'
+> & { class1Star?: boolean };
+
+/**
+ * Whether a completed/lobby online sector qualifies for human-pool TEI under
+ * context B: two or more verified humans, and any AI seats are Class II–IV
+ * anchors (no Class I* / neural opponents). Mirrors the authoritative server
+ * gate in `functions/src/report-online-match.ts`; the lobby uses it to warn
+ * captains before launch.
+ */
+export function onlineMatchRatingEligibility(
+  captains: readonly EligibilityCaptain[],
+  objective: GameObjective,
+  rated = true
+): OnlineRatingEligibility {
+  if (!rated) {
+    return { rated: false, reason: 'casual', unratedCaptainIds: [] };
+  }
+  if (objective !== 'go-out' && objective !== 'points') {
+    return { rated: false, reason: 'objective_not_rated', unratedCaptainIds: [] };
+  }
+
+  const humans = captains.filter((captain) => !isAiCaptain(captain));
+  const ais = captains.filter((captain) => isAiCaptain(captain));
+
+  if (humans.length < 2) {
+    return { rated: false, reason: 'not_enough_humans', unratedCaptainIds: [] };
+  }
+
+  const unratedCaptainIds = humans
+    .filter((captain) => captain.verified !== true)
+    .map((captain) => captain.id);
+  if (unratedCaptainIds.length > 0) {
+    return { rated: false, reason: 'unrated_participant', unratedCaptainIds };
+  }
+
+  const hasUnratedAi = ais.some(
+    (captain) =>
+      captain.class1Star === true ||
+      (captain.skill !== undefined &&
+        !RATED_AI_SKILLS.includes(captain.skill as (typeof RATED_AI_SKILLS)[number]))
+  );
+  if (hasUnratedAi) {
+    return { rated: false, reason: 'unrated_ai', unratedCaptainIds: [] };
+  }
+
+  return { rated: true, unratedCaptainIds: [] };
+}
+
+/** Post-match explanation (including play-time reasons like advisor use). */
+export function onlineUnratedNotice(reason: string | undefined): string {
+  switch (reason) {
+    case 'casual':
+      return 'Casual sector — this game was not played for TEI.';
+    case 'advisor_used':
+      return 'Unrated sector — the tactical advisor was consulted during play. TEI is earned only in unassisted matches.';
+    case 'unrated_participant':
+      return 'Unrated sector — a captain played as a guest. Sign in with an account to earn TEI.';
+    case 'unrated_ai':
+      return 'Unrated sector — a Class I* officer was aboard. TEI is rated only against Class II–IV AI.';
+    case 'objective_not_rated':
+      return 'Unrated sector — this objective does not affect TEI.';
+    case 'not_enough_humans':
+      return 'Unrated sector — rated matches need at least two signed-in captains.';
+    default:
+      return 'This sector was unrated.';
+  }
+}
+
+/** Lobby-facing explanation for why a sector will not be rated. */
+export function onlineRatingWarning(
+  eligibility: OnlineRatingEligibility,
+  captains: readonly Pick<FirestoreCaptain, 'id' | 'displayName'>[]
+): string | null {
+  if (eligibility.rated) {
+    return null;
+  }
+  switch (eligibility.reason) {
+    case 'casual':
+      return 'Casual sector — TEI is off for this game. Free comms open.';
+    case 'objective_not_rated':
+      return 'This objective is not rated — TEI will not change.';
+    case 'not_enough_humans':
+      return 'Rated sectors need at least two signed-in captains. This match will be unrated.';
+    case 'unrated_participant': {
+      const names = eligibility.unratedCaptainIds
+        .map((id) => captains.find((c) => c.id === id)?.displayName ?? 'a guest')
+        .join(', ');
+      return `Unrated match — ${names} ${
+        eligibility.unratedCaptainIds.length > 1 ? 'are' : 'is'
+      } playing as a guest. Sign in with an account to earn TEI.`;
+    }
+    case 'unrated_ai':
+      return 'Unrated match — a Class I* officer is aboard. TEI is only rated against Class II–IV AI.';
+    default:
+      return 'This match will be unrated.';
+  }
 }
 
 export function humanCaptainsInSector(

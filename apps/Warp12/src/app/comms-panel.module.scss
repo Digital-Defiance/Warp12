@@ -1,0 +1,135 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 320px;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  background: #020617;
+  padding: 0.75rem;
+}
+
+.log {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 60px;
+  max-height: 180px;
+  font-family: var(--font-federation);
+  font-size: 0.75rem;
+  padding: 0.25rem;
+}
+
+.empty {
+  color: #64748b;
+  font-style: italic;
+}
+
+.msg {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.2rem 0;
+  position: relative;
+
+  &.own .sender {
+    color: #5eead4;
+  }
+
+  &.dm {
+    background: rgba(99, 102, 241, 0.08);
+    border-radius: 4px;
+    padding-left: 0.4rem;
+  }
+}
+
+.sender {
+  color: #94a3b8;
+  font-weight: 600;
+  flex-shrink: 0;
+
+  &::after {
+    content: ':';
+  }
+}
+
+.body {
+  color: #e2e8f0;
+}
+
+.muteBtn {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  border: none;
+  background: none;
+  color: #f87171;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.1rem 0.3rem;
+
+  .msg:hover & {
+    opacity: 1;
+  }
+}
+
+.composer {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.dmPicker {
+  font-family: var(--font-federation);
+  font-size: 0.7rem;
+  padding: 0.35rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #94a3b8;
+  max-width: 120px;
+}
+
+.textInput {
+  flex: 1;
+  font-family: var(--font-federation);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  padding: 0.45rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.sendBtn {
+  font-family: var(--font-federation);
+  font-size: 0.7rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #5eead4;
+  background: rgba(45, 212, 191, 0.08);
+  color: #5eead4;
+  cursor: pointer;
+  transition: background-color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: rgba(45, 212, 191, 0.15);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.restriction {
+  font-family: var(--font-federation);
+  font-size: 0.7rem;
+  color: #fbbf24;
+  margin: 0;
+}

@@ -48,6 +48,8 @@ function mergeCaptainMetadata(
       if (prior.useLookahead !== undefined) {
         merged.useLookahead = prior.useLookahead;
       }
+    } else if (prior?.verified !== undefined) {
+      merged.verified = prior.verified;
     }
     return merged;
   });
@@ -55,7 +57,7 @@ function mergeCaptainMetadata(
 
 export function buildPublicDoc(
   state: GameState,
-  meta: Pick<FirestoreGameDocument, 'hostId' | 'createdAt' | 'captains'> & {
+  meta: Pick<FirestoreGameDocument, 'hostId' | 'createdAt' | 'captains' | 'rated'> & {
     maxPlayers?: number;
   }
 ): FirestoreGameDocument {
@@ -68,6 +70,7 @@ export function buildPublicDoc(
     updatedAt: new Date().toISOString(),
     captainIds: captainIds(captains),
     captains,
+    rated: meta.rated ?? true,
     maxPlayers: meta.maxPlayers ?? serialized.maxPlayers ?? ONLINE_MAX_PLAYERS,
   });
 }
@@ -116,6 +119,7 @@ export function prepareOnlineAction(
     hostId: docData.hostId,
     createdAt: docData.createdAt,
     captains: docData.captains,
+    rated: docData.rated,
     maxPlayers: maxPlayersFor(docData),
   });
 

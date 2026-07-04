@@ -43,6 +43,28 @@
   }
 }
 
+.ratedBanner {
+  font-family: var(--font-federation);
+  font-size: 0.8rem;
+  color: #5eead4;
+  background: rgba(45, 212, 191, 0.08);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.unratedBanner {
+  font-family: var(--font-federation);
+  font-size: 0.8rem;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  margin: 0 0 1rem;
+}
+
 .field {
   display: flex;
   flex-direction: column;

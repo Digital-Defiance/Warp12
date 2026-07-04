@@ -130,6 +130,42 @@ export {
   measureClass1StarCommanderAgreement,
 } from './bench-class1-star.js';
 
+export {
+  OMEGA_DISPLAY_NAME,
+  OMEGA_SHORT_DISPLAY_NAME,
+  OMEGA_MODEL_VERSION,
+  OMEGA_POLICY_FEATURE_DIM,
+  OMEGA_STATE_FEATURE_DIM,
+} from './omega-constants.js';
+export {
+  encodeOmegaPolicyFeatureBatch,
+  encodeOmegaPolicyFeatures,
+  encodeOmegaStateFeatures,
+} from './omega-encoder.js';
+export type { OmegaDenseLayer, OmegaModelWeights } from './omega-net.js';
+export {
+  createZeroOmegaModelWeights,
+  forwardOmegaPolicyBatch,
+  forwardOmegaPolicyLogit,
+  forwardOmegaValue,
+  softmax,
+  validateOmegaModelWeights,
+} from './omega-net.js';
+export type { CreateOmegaPlayerOptions } from './omega-agent.js';
+export { createOmegaPlayer } from './omega-agent.js';
+export type {
+  CollectOmegaTrajectoriesOptions,
+  CollectOmegaTrajectoriesResult,
+  OmegaTrajectoryRow,
+  OmegaTrajectorySink,
+} from './collect-omega-trajectories.js';
+export {
+  collectOmegaTrajectoriesToSink,
+  serializeOmegaTrajectoryRow,
+} from './collect-omega-trajectories.js';
+export type { BenchOmegaOptions, BenchOmegaResult } from './bench-omega.js';
+export { benchOmegaVsCommander } from './bench-omega.js';
+
 export type {
   BenchFleetAdmiralOptions,
   BenchFleetAdmiralResult,

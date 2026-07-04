@@ -1,6 +1,6 @@
 {
   "name": "warp12-engine",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Warp 12 game engine — rules, state machine, Warp AI, and advisor explanations",
   "license": "MIT",
   "author": "Jessica Mulein",

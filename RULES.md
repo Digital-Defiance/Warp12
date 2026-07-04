@@ -19,6 +19,22 @@ This document is the authoritative rules reference **for Warp 12**. **Sections I
 
 ---
 
+## The Captain's Oath — Honor of the Fleet
+
+Warp 12 has no referees. Like the living-room Mexican Train tables it descends from, it runs on the honor of the people at the table — and on an older ideal, the one every officer sworn to explore the deep black knows by heart: that *how* you serve matters as much as whether you win.
+
+Every captain who takes the conn is expected to hold the line:
+
+- **We play with Honor.** A clean win is the only win worth logging. We do not cheat, exploit bugs, or manipulate a match to move a rating.
+- **We use sanctioned code.** Rated play runs on the official Warp 12 build and its published engine. We do not tamper with the client, spoof results, or automate our turns.
+- **We earn our rating.** TEI reflects genuine, unassisted skill. We do not farm it against weak opponents, collude to feed it, or sandbag to protect it.
+- **We keep the pool clean.** If we witness cheating, we name it and report it. Guarding the integrity of the leaderboard is every captain's duty, not the fleet's alone.
+- **We respect the table.** Opponents, AI officers, and hosts all deserve a fair match, played to its finish.
+
+A rated sector is a matter of record — treat it like one. Only sanctioned builds and eligible matches are ever rated; an unrated table carries no standings, but it carries the same courtesy. Play like it matters, because to a captain worth the uniform, it always does.
+
+---
+
 ## Victory conditions
 
 Fleet command chooses one objective before the sector opens:
@@ -357,11 +373,27 @@ Invoking the tactical advisor **during live play** marks the match as **assisted
 
 ---
 
-## VIII. Solo TEI & leaderboard *(digital)*
+## VIII. TEI & leaderboard *(digital)*
 
 Local solo sectors against **AI officers** can report results to **[leaderboard.warp12.app](https://leaderboard.warp12.app)** when the client is signed in to Firebase. Team campaigns, unrated lobby modes, and builds without a working stats backend do not update the public boards.
 
+Warp 12 keeps two rating pools, each split into **Go-out** and **Points** tracks:
+
+- **Solo pool** — unassisted matches against reference AI officers (Class IV / III / II).
+- **Human pool** — online sectors played against other captains.
+
 The normative rating math (Elo update, reference bands, multi-captain human tables) is defined in **[docs/tei-spec.md](docs/tei-spec.md)** for third-party interoperability.
+
+### Online sectors (human pool)
+
+A completed online sector is rated into the **human pool** when it meets every condition below; otherwise it plays out normally but changes no ratings. The lobby shows a live **rated / unrated** banner so the fleet knows before launch.
+
+- **Two or more captains are signed in with an account.** Guests (anonymous sign-in) can play, but a guest at the table makes the whole sector unrated — a rating that can't persist across devices isn't a rating.
+- **Every AI officer is Class IV / III / II.** These have fixed reference strength and serve as rating **anchors**: finishing above or below them moves your TEI, which keeps online results on the same scale as solo play. An experimental **Class I\*** officer makes the sector unrated.
+- **The objective is Points or Go-out.** Other modes are unrated.
+- **No captain consulted the tactical advisor.** Just as in solo play, invoking the in-game advisor during live turns makes a match *assisted* — and online, one assisted captain leaves the **whole** sector unrated. You are warned the moment you engage it.
+
+When the sector ends, every signed-in captain's TEI is updated with a single pairwise pass over the final standings (see the spec, §6.5 / §10). The server re-derives the result from the authoritative game record and re-checks each seat, so no captain can report a score they didn't earn. Ratings are applied once per sector.
 
 ### Lexicon
 
@@ -421,16 +453,65 @@ Before your **first rated** match in each track, complete **Starfleet Academy pl
 
 ### What counts as rated
 
-Only **unassisted** solo matches update TEI:
+**Solo pool** — only **unassisted** matches update TEI:
 
 - **Rated:** you played without invoking the in-game **tactical advisor** during live turns.
 - **Assisted:** you requested a coach suggestion during play. The win or loss still appears in your profile and general stats, but **TEI does not move**. Assisted wins are tracked separately (`advisorMatches` / `advisorWins`).
 
 Downloading a post-match advisor report or campaign analysis does **not** disqualify a match.
 
+**Human pool** — an online sector is rated when it clears the eligibility bar above (two or more signed-in captains, only Class IV / III / II AI, Points or Go-out, **and no captain used the advisor**). Any guest, Class I\* seat, or advisor consult leaves the whole sector unrated.
+
 ### After the sector
 
 When a rated match completes, the sector summary shows TEI **before → after** and the delta when applicable. If Firebase is unavailable, local decision-quality feedback may still run, but the TEI is not saved.
+
+---
+
+## IX. Subspace messaging *(digital — online sectors)*
+
+Online sectors include a persistent comms channel — **subspace messaging** — so captains can coordinate before launch, react during play, and debrief afterward. Messaging is designed to preserve the integrity of rated sectors while keeping casual games social.
+
+### Comms modes
+
+| Context | Mode | What's available |
+| --- | --- | --- |
+| **Lobby** (rated or casual) | Full | Quick-phrase hails, free-form text, DMs |
+| **Active play — casual sector** | Full | Quick-phrase hails, free-form text, DMs |
+| **Active play — rated sector** | Quick-only | Public quick-phrase hails only. No free text, no DMs. |
+| **Post-game** (rated or casual) | Full | All comms re-open once standings are final |
+
+The restriction during rated active play exists to prevent collusion — free text or private messages between opponents could be used to coordinate play, which would undermine TEI. The quick-phrase catalog is intentionally social and expressive, never strategic.
+
+### Quick-phrase hails
+
+Five groups, each with a category icon:
+
+- **Acknowledge** — Aye Captain · Acknowledged · Make it so · Course laid in
+- **Get moving** — Engage! · Punch it · Warp speed · Ahead full · Steady as she goes
+- **Sportsmanship** — Well played · A fine maneuver · The needs of the many… · Fly well, Captain
+- **Drama** — Red Alert! · Shields up! · All Stop! · Distress beacon away · She's breaking up! · Fascinating… · Bold. Very bold.
+- **Cheeky** — You're playing a dangerous game · Persistence is futile · Resistance is… noted · I have the conn now · Q would be proud
+
+Phrases are broadcast publicly and logged in the sector record. They cannot convey hand information or coordinate play, only camaraderie and table talk.
+
+### Free-form text and DMs
+
+Available in the lobby, casual active play, and after the sector completes. Messages are visible to all sector members (including DMs — transparency over privacy, consistent with The Captain's Oath). A per-recipient picker lets you direct a message, but every captain at the table can read it.
+
+### Moderation
+
+- **Per-user mute:** hide a captain's messages for the remainder of the session.
+- **Rate limiting:** a cooldown prevents message flooding (burst of 3, then 3 seconds between sends).
+- Future: report action tied to The Captain's Oath's "we identify cheaters and bad actors."
+
+### Rated sector toggle
+
+The host can opt out of rating at any time before launch by unchecking **Rated sector** in the lobby. When unchecked:
+
+- TEI will not change regardless of the sector's outcome.
+- Full comms (text + DMs) remain available during active play.
+- The lobby and bridge show a "Casual sector" banner so all captains know the match is unrated.
 
 ---
 
@@ -458,3 +539,5 @@ When a rated match completes, the sector summary shows TEI **before → after** 
 | Blocked boneyard | Round ends, all score | Blocked sector — same |
 | AI officers / tactical advisor | — | Section VII — digital only |
 | Solo TEI vs AI | — | Section VIII — leaderboard.warp12.app; unassisted matches only |
+| Online TEI (human pool) | — | Section VIII — auto-rated when all captains are signed in and any AI are Class II–IV |
+| Subspace messaging | — | Section IX — quick hails always; free-form/DMs in lobby, casual, and post-game only |

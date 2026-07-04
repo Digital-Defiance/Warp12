@@ -12,9 +12,10 @@ Warp 12 is a multiplayer, Star Trek-themed variant of standard **double-twelve M
 - Two objectives, chosen before launch:
   - **Points campaign** (default): 13 rounds, Spacedock double descends 12-12 → 0-0, lowest cumulative pip total wins.
   - **Go out**: first captain to empty their hand wins immediately.
-- **TEI** = the Elo-like leaderboard rating. Independent **Go-out** and **Points** tracks, each split by AI **Tactical Class** (IV / III / II). Only **unassisted** solo-vs-AI matches are rated; using the tactical advisor disqualifies a match from TEI.
+- **TEI** = the Elo-like leaderboard rating. Independent **Go-out** and **Points** tracks, each split by AI **Tactical Class** (IV / III / II). Solo unassisted matches and online human-pool sectors are rated. Using the tactical advisor disqualifies a match from TEI. Online sectors are auto-rated (context B: humans anchored against Class II–IV AI) when all human seats are verified, no Class I\* is aboard, the host opts in (rated=true), and no captain used the advisor. The host may toggle **Rated sector** before launch; casual sectors never update TEI.
+- **Subspace messaging** = in-game comms. Quick-phrase hails (five category groups) are always available. Free-form text + DMs are allowed in the lobby, casual active play, and post-game — but restricted to hails only during live rated play to prevent collusion. Per-user mute and rate-limiting are client-enforced; comms rules are also enforced server-side via Firestore security rules.
 
-Authoritative rules: `RULES.md` (Sections I–V = standard Mexican Train, VI = modules + Official Warp 12 preset, VII = AI/advisor, VIII = TEI/leaderboard). Full architecture/setup: `README.md`.
+Authoritative rules: `RULES.md` (Sections I–V = standard Mexican Train, VI = modules + Official Warp 12 preset, VII = AI/advisor, VIII = TEI/leaderboard, IX = Subspace messaging). Full architecture/setup: `README.md`.
 
 ---
 
@@ -87,9 +88,9 @@ docs/                Jekyll docs site (calibration log, TEI paper)
 ```
 
 ### Client app layout (`apps/Warp12/src/`)
-- `app/` — UI: pages, dialogs, HUD, table view, coach panel, contexts (`*-context.tsx`).
-- `firebase/` — auth, `game-service`, sync, `schema`, stats/Elo, serialize.
-- `game/` — local game orchestration, AI captain wiring, sounds, match stats, presets.
+- `app/` — UI: pages, dialogs, HUD, table view, coach panel, comms panel, contexts (`*-context.tsx`).
+- `firebase/` — auth, `game-service`, sync, `schema`, stats/Elo, serialize, `messages` (subspace comms).
+- `game/` — local game orchestration, AI captain wiring, sounds, match stats, presets, `quick-comms` (phrase catalog), `comms-mode`, `message-rate-limit`.
 - `ai/` — ONNX Class I* model loading (`ort-session`, `load-class1-star-scorer`).
 - `content/` — rules/paper/privacy markdown sources. `theme/`, `test/`.
 
@@ -132,5 +133,5 @@ Warp-specific mechanics: **Red Alert** (unsatisfied double), **Subspace Fracture
 - **Immutability** — engine state is never mutated in place.
 - **Tests co-located** as `*.spec.ts(x)`; add/update tests with behavior changes and run the relevant `test:*` script.
 - **Kebab-case** filenames; SCSS modules `*.module.scss`.
-- Firestore layout: `games/{gameId}` (public) + `/hands/{playerId}` (private), `playerStats/{uid}`, `playerProfiles/{uid}`, `publishedLogs/{logId}`. Config at root: `firebase.json`, `.firebaserc`, `firestore.rules`, `firestore.indexes.json`.
+- Firestore layout: `games/{gameId}` (public) + `/hands/{playerId}` (private) + `/messages/{id}` (subspace comms) + `/presence/{playerId}` (coach presence), `playerStats/{uid}`, `playerProfiles/{uid}`, `publishedLogs/{logId}`, `ratedMatches/{code}`. Config at root: `firebase.json`, `.firebaserc`, `firestore.rules`, `firestore.indexes.json`.
 - Prefer the direct `yarn` scripts over `nx run`. Build lib deps before dependents.

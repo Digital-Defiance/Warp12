@@ -38,6 +38,10 @@ import { SubspaceFractureOptions } from './subspace-fracture-options';
 import { Warp12RulesPreset } from './warp12-rules-preset';
 import { isAiCaptain } from '../game/ai-captain.js';
 import {
+  onlineMatchRatingEligibility,
+  onlineRatingWarning,
+} from '../firebase/human-tei.js';
+import {
   WARP12_OFFICIAL_CAMPAIGN_ROUNDS,
   WARP12_OFFICIAL_HOUSE_RULES,
   WARP12_OFFICIAL_MODULES,
@@ -122,7 +126,10 @@ export function OnlineLobbyPage() {
     setError(null);
     try {
       const code = generateGameCode();
-      await createLobby(code, uid, displayName.trim(), createOptions);
+      await createLobby(code, uid, displayName.trim(), {
+        ...createOptions,
+        verified: Boolean(auth.user && !auth.user.isAnonymous),
+      });
       navigate(`/online/${code}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create sector');
@@ -141,7 +148,9 @@ export function OnlineLobbyPage() {
     try {
       const code = (codeOverride ?? gameCode).toUpperCase();
       const requested = displayName.trim();
-      const { displayName: assigned } = await joinLobby(code, uid, requested);
+      const { displayName: assigned } = await joinLobby(code, uid, requested, {
+        verified: Boolean(auth.user && !auth.user.isAnonymous),
+      });
       if (assigned !== requested) {
         setDisplayName(assigned);
         setNotice(
@@ -306,6 +315,42 @@ export function OnlineLobbyPage() {
           {GAME_OBJECTIVE_LABELS[objective]}
         </p>
         <p className={styles.code}>{routeGameId?.toUpperCase()}</p>
+
+        {(() => {
+          const eligibility = onlineMatchRatingEligibility(
+            lobby.captains,
+            objective,
+            lobby.rated ?? true
+          );
+          if (eligibility.rated) {
+            return (
+              <p className={styles.ratedBanner} role="status">
+                ✔ Rated sector — TEI updates for every captain when the mission
+                ends.
+              </p>
+            );
+          }
+          return (
+            <p className={styles.unratedBanner} role="status">
+              ⚠ {onlineRatingWarning(eligibility, lobby.captains)}
+            </p>
+          );
+        })()}
+
+        {isHost && (
+          <label className={styles.checkboxRow}>
+            <input
+              type="checkbox"
+              checked={lobby.rated ?? true}
+              disabled={busy}
+              onChange={(e) => void saveSettings({ rated: e.target.checked })}
+            />
+            <span>
+              Rated sector — count results toward TEI (quick-hail comms only
+              during play). Uncheck for a casual game with open chat.
+            </span>
+          </label>
+        )}
 
         <ul className={styles.captainList}>
           {lobby.captains.map((captain) => (

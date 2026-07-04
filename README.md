@@ -4,6 +4,12 @@
 
 Warp 12 is a multiplayer, Star Trek-themed variant of standard Mexican Train (double-twelve) dominoes. This repository contains the game engine, client UI, domino rendering library, and Firebase-backed multiplayer infrastructure in a TypeScript Nx monorepo.
 
+Online sectors include **subspace messaging** — quick-phrase hails (always available, even during rated play) plus free-form text and DMs (lobby, casual, and post-game). Rated sectors restrict comms to hails to prevent collusion. See [Subspace messaging in RULES.md](RULES.md#ix-subspace-messaging-digital--online-sectors).
+
+## 🖖 The Captain's Oath
+
+Warp 12 has no referees — it runs on the honor of the captains at the table. Rated play is a matter of record, so we hold to a simple code: **play with honor, use sanctioned code, earn your rating, and keep the pool clean.** We don't cheat, tamper with the client, farm or sandbag TEI, and if we see cheating we report it. Only the official build and eligible matches are ever rated. See [The Captain's Oath in RULES.md](RULES.md#the-captains-oath--honor-of-the-fleet) for the full oath.
+
 ## 🏗 System Architecture
 
 Strict separation of concerns keeps the core engine agnostic of transport and presentation:

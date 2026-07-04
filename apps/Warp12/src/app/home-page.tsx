@@ -60,6 +60,21 @@ export function HomePage() {
         </ul>
       </section>
       <br />
+      <section className={styles.disclaimer} aria-label="The Captain's Oath">
+        <h2 className={styles.disclaimerTitle}>The Captain&apos;s Oath</h2>
+        <p>
+          Warp 12 has no referees — it runs on the honor of the captains at the
+          table. Rated play is a matter of record, so we hold a simple line:
+          play with honor, run the sanctioned build, earn your rating, and keep
+          the pool clean. We don&apos;t cheat, tamper with the client, farm or
+          sandbag TEI — and if we see cheating, we report it. It&apos;s the code
+          any officer worth the uniform lives by.
+        </p>
+        <Link to="/rules" className={styles.heroLink}>
+          Read the full oath in the Operations Manual
+        </Link>
+      </section>
+      <br />
       <section>
         <h2 className={styles.playHeading}>Choose your mission</h2>
         <p className={styles.playRequirement}>

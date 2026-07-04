@@ -3,9 +3,6 @@ export type AiSkillLevel = 'ensign' | 'lieutenant' | 'commander';
 
 export const DEFAULT_UNASSISTED_TEI = 1000;
 
-export type RatedObjective = 'go-out' | 'points';
-export type AiSkillLevel = 'ensign' | 'lieutenant' | 'commander';
-
 export const AI_OPPONENT_TEI_POINTS: Record<AiSkillLevel, number> = {
   ensign: 1000,
   lieutenant: 1200,

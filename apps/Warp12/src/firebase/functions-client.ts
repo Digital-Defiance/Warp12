@@ -1,15 +1,16 @@
 import { getFunctions, httpsCallable, connectFunctionsEmulator } from 'firebase/functions';
 
 import { getFirebaseApp, isFirebaseConfigured } from './config.js';
+import {
+  FIREBASE_EMULATOR_HOSTS,
+  useFirebaseEmulators,
+} from './emulator.js';
 
 let emulatorConnected = false;
 
 /** Same-origin /api/fn proxy (firebase.json) avoids cross-origin preflight to cloudfunctions.net. */
 function getFunctionsRegionOrCustomDomain(): string {
-  if (
-    import.meta.env.DEV &&
-    import.meta.env.VITE_FUNCTIONS_EMULATOR === 'true'
-  ) {
+  if (useFirebaseEmulators()) {
     return 'us-central1';
   }
   if (typeof window !== 'undefined') {
@@ -31,12 +32,9 @@ export function getCloudFunctions() {
     return null;
   }
   const functions = getFunctions(app, getFunctionsRegionOrCustomDomain());
-  if (
-    import.meta.env.DEV &&
-    import.meta.env.VITE_FUNCTIONS_EMULATOR === 'true' &&
-    !emulatorConnected
-  ) {
-    connectFunctionsEmulator(functions, '127.0.0.1', 5001);
+  if (useFirebaseEmulators() && !emulatorConnected) {
+    const { host, port } = FIREBASE_EMULATOR_HOSTS.functions;
+    connectFunctionsEmulator(functions, host, port);
     emulatorConnected = true;
   }
   return functions;

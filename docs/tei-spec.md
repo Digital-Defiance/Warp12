@@ -81,9 +81,11 @@ N_H(p, T)          — unassisted rated human-opponent matches
 
 Storage shape (Firestore): `humanTei[T_key].unassistedTei`, idempotency via `humanRatedGameIds`.
 
-Implementations MAY defer human-pool storage until online rated play ships; the update math in §6 is still normative for interoperability.
+Storage is idempotent per sector: a `gameId` recorded in `humanRatedGameIds` is never rated twice.
 
 **Warp 12 v1.1 (2026):** Human-pool TEI for offline play uses officiated `ratedMatches` on the leaderboard — see [rated-matches.md](./rated-matches.md).
+
+**Warp 12 v1.2 (2026):** Online sectors are auto-rated into the human pool. A completed sector is reported to the `reportOnlineMatch` Cloud Function, which re-derives the standings from the authoritative game document, re-verifies every seat, and applies §6.5 under **context B** (§10, P3). Eligibility (§4) requires two or more **verified** (non-anonymous) human captains, only Class II–IV AI at the table, and — per the unassisted rule (§4 E3) — that no captain consulted the tactical advisor (detected via the `games/{gameId}/presence` coach records). Advisor use by any single captain leaves the whole sector unrated.
 
 ---
 
@@ -98,8 +100,9 @@ A match `M` is **TEI-eligible** for captain `p` on track `T` iff all hold:
 | **E3 Unassisted** | Captain `p` did not use tactical advisor / coach on any rated decision |
 | **E4 Standard rules** | Same rules engine + house-rule profile as declared for the leaderboard (implementations SHOULD version their profile ID) |
 | **E5 Minimum field** | At least two captains finished the campaign |
+| **E6 Comms integrity** | Online: the sector's `rated` flag is `true` (host did not opt out); free-form messaging was restricted to quick-phrase hails during active play (§IX RULES.md) |
 
-**Ineligible:** advisor-assisted games, sandbox/debug, aborted campaigns, practice with custom non-standard rules (implementation-defined).
+**Ineligible:** advisor-assisted games, sandbox/debug, aborted campaigns, casual (unrated) sectors, practice with custom non-standard rules (implementation-defined).
 
 ---
 
@@ -400,7 +403,9 @@ When a campaign includes both humans and AI:
 |--------|------|
 | **P1 Local training** | Rate human vs **highest reference profile σ** at the table (Warp 12 v1) |
 | **P2 Online humans-only** | Use human-pool update (§6.5) |
-| **P3 Online mixed** | Implementations SHOULD NOT blend reference and human updates in one step; pick one context per match report |
+| **P3 Online mixed (context B)** | Rank the **full** table (humans + AI). Update each verified human with the §6.5 pairwise sum, treating every **Class II–IV** AI seat as a **fixed-`REF_TEI` anchor opponent** (`REF_TEI(T, σ)`, no `Δ_search`). AI ratings never move — they inject absolute scale so results stay commensurable with the solo ladder. **Exclude the whole sector** from rating if any seat is a **Class I\*** / search opponent, or if any human is unverified. |
+
+**Context B rationale:** a humans-only table is purely relative and can drift; anchoring against fixed-rating Class II–IV officers ties the online human pool to the same scale as solo play and the Academy bands. Because a below-rating anchor yields a small positive expected delta with no losing counterparty, anchor-farming is a known (bounded) abuse vector — mitigated by the verified-account requirement, per-sector idempotency, and fair-play review. This supersedes the earlier "pick one context" guidance.
 
 ---
 

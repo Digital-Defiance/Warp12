@@ -11,6 +11,71 @@ Python training pipeline for Warp 12 **Class I*** — Commander heuristics plus 
 
 Coach/advisor path never uses the model — only `scoreWithHeuristics`.
 
+---
+
+# Class Ω neural training (standalone self-play)
+
+**Class Ω ("Omega")** is a *different animal* from Class I*. Class I* is a residual
+bolted onto Commander and trained to imitate Commander — which is why it converged
+to a Commander clone (~parity, 98% top-1). Omega throws that out:
+
+- **Standalone policy + value network.** No heuristic score is added; the net
+  *is* the player. Policy head scores each candidate (303-dim state+action);
+  value head estimates the acting seat's outcome from the state alone (195-dim).
+- **Self-play from scratch.** The net drives every seat, sampling from its own
+  policy for exploration. A zero-init net = uniform-random play, iteratively
+  improved by playing itself.
+- **Outcome is the only reward.** Actor-critic (REINFORCE with a value baseline);
+  the sole supervision is win/loss (+1 / −1) for the acting seat. **There is no
+  Commander in the players, the targets, or the labels — anywhere.**
+- **Deliberately opaque.** Omega cannot explain its moves in heuristic terms.
+  That is the trade for letting it *exceed* Commander instead of imitating it.
+  The coach/advisor path is untouched and stays on the explainable heuristic
+  model (and advisor-assisted matches are unrated anyway).
+
+## Pipeline
+
+```bash
+# One iteration: self-play → train → bench sweep (2p/3p/4p)
+yarn omega:pipeline
+
+# Iterative self-play: warm-start from the current net, collect with it, retrain
+yarn omega:iterate      # repeat this to climb
+
+# Steps individually
+OMEGA_GAMES=1000 yarn omega:collect
+yarn omega:train                     # or omega:train:warm to continue a net
+OMEGA_BENCH_GAMES=500 yarn omega:bench
+```
+
+Early iterations will look **worse** than Commander before they surpass it — that
+is expected for from-scratch self-play. Gate promotion on `omega:bench` holding
+above Class II *across all player counts and both objectives* (the bench prints
+implied Elo per slice), not on a single 2p mode.
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `OMEGA_GAMES` | 200 | Self-play games per collection |
+| `OMEGA_PLAYERS` | 2 | Table size for collection |
+| `OMEGA_OBJECTIVE` | points | `points` or `go-out` |
+| `OMEGA_TEMPERATURE` | 1 | Self-play sampling temperature (exploration) |
+| `OMEGA_WEIGHTS` | `apps/Warp12/public/models/omega-v1.json` | Net for collect/bench (missing = zero-init) |
+| `OMEGA_POLICY_HIDDEN` | 256,256 | Policy hidden widths |
+| `OMEGA_VALUE_HIDDEN` | 256,128 | Value hidden widths |
+| `OMEGA_EPOCHS` | 20 | Training epochs |
+| `OMEGA_VALUE_COEF` | 1.0 | Value-loss weight |
+| `OMEGA_ENTROPY_COEF` | 0.01 | Policy entropy bonus (keeps exploration alive) |
+| `OMEGA_BENCH_GAMES` | 200 | Games per bench slice |
+| `OMEGA_BENCH_PLAYERS` | 2,3,4 | Player counts to sweep |
+
+## Artifacts
+
+| File | Purpose |
+|------|---------|
+| `omega-v1.json` | TS CPU fallback (`OmegaModelWeights`: policy + value heads) |
+| `omega-policy-v1.onnx` | Policy head (input `features` [N,303] → `logit` [N,1]) |
+| `omega-value-v1.onnx` | Value head (input `state` [N,195] → `value` [N,1]) |
+
 ## Quick start
 
 ```bash

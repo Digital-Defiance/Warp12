@@ -7,6 +7,9 @@ import {
   buildHumanSectorRankTable,
   hasRatedHumanSector,
   isHumanOnlySector,
+  onlineMatchRatingEligibility,
+  onlineRatingWarning,
+  onlineUnratedNotice,
 } from './human-tei.js';
 import type { PlayerStatsDocument } from './stats-schema.js';
 
@@ -84,6 +87,123 @@ describe('applyHumanTeiSelfUpdate', () => {
     expect(result?.update.won).toBe(true);
     expect(result?.update.teiAfter).toBeGreaterThan(result!.update.teiBefore);
     expect(result?.humanTei.points?.unassistedMatches).toBe(1);
+  });
+});
+
+describe('onlineMatchRatingEligibility', () => {
+  const verifiedHuman = (id: string): FirestoreCaptain => ({
+    id,
+    displayName: id,
+    pointsScore: 0,
+    joinedAt: '',
+    verified: true,
+  });
+
+  it('rates a sector of two or more verified humans', () => {
+    const result = onlineMatchRatingEligibility(
+      [verifiedHuman('u1'), verifiedHuman('u2')],
+      'points'
+    );
+    expect(result.rated).toBe(true);
+    expect(onlineRatingWarning(result, [])).toBeNull();
+  });
+
+  it('rates verified humans anchored against Class II–IV AI', () => {
+    const captains: FirestoreCaptain[] = [
+      verifiedHuman('u1'),
+      verifiedHuman('u2'),
+      {
+        id: 'ai:data',
+        displayName: 'Data',
+        pointsScore: 0,
+        joinedAt: '',
+        isAi: true,
+        skill: 'commander',
+      },
+    ];
+    expect(onlineMatchRatingEligibility(captains, 'go-out').rated).toBe(true);
+  });
+
+  it('is unrated when a human is a guest (unverified)', () => {
+    const captains: FirestoreCaptain[] = [
+      verifiedHuman('u1'),
+      { id: 'u2', displayName: 'Guest', pointsScore: 0, joinedAt: '' },
+    ];
+    const result = onlineMatchRatingEligibility(captains, 'points');
+    expect(result).toMatchObject({
+      rated: false,
+      reason: 'unrated_participant',
+      unratedCaptainIds: ['u2'],
+    });
+    expect(onlineRatingWarning(result, captains)).toContain('Guest');
+  });
+
+  it('is unrated with fewer than two humans', () => {
+    const captains: FirestoreCaptain[] = [
+      verifiedHuman('u1'),
+      {
+        id: 'ai:data',
+        displayName: 'Data',
+        pointsScore: 0,
+        joinedAt: '',
+        isAi: true,
+        skill: 'lieutenant',
+      },
+    ];
+    expect(onlineMatchRatingEligibility(captains, 'points').reason).toBe(
+      'not_enough_humans'
+    );
+  });
+
+  it('is unrated when a Class I* AI is aboard', () => {
+    const captains = [
+      verifiedHuman('u1'),
+      verifiedHuman('u2'),
+      {
+        id: 'ai:riker',
+        displayName: 'Riker',
+        pointsScore: 0,
+        joinedAt: '',
+        isAi: true,
+        skill: 'commander',
+        class1Star: true,
+      },
+    ] as FirestoreCaptain[];
+    expect(onlineMatchRatingEligibility(captains, 'points').reason).toBe(
+      'unrated_ai'
+    );
+  });
+
+  it('is unrated for non-rated objectives', () => {
+    const result = onlineMatchRatingEligibility(
+      [verifiedHuman('u1'), verifiedHuman('u2')],
+      'team' as never
+    );
+    expect(result.reason).toBe('objective_not_rated');
+  });
+
+  it('is unrated (casual) when the host opts out of rating', () => {
+    const result = onlineMatchRatingEligibility(
+      [verifiedHuman('u1'), verifiedHuman('u2')],
+      'points',
+      false
+    );
+    expect(result).toMatchObject({ rated: false, reason: 'casual' });
+    expect(onlineUnratedNotice('casual')).toContain('Casual');
+  });
+});
+
+describe('onlineUnratedNotice', () => {
+  it('explains advisor disqualification', () => {
+    expect(onlineUnratedNotice('advisor_used')).toContain('advisor');
+  });
+
+  it('explains a guest participant', () => {
+    expect(onlineUnratedNotice('unrated_participant')).toContain('guest');
+  });
+
+  it('falls back for unknown reasons', () => {
+    expect(onlineUnratedNotice(undefined)).toBe('This sector was unrated.');
   });
 });
 
