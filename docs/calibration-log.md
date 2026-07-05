@@ -79,7 +79,7 @@ Goal: **honest self-improvement** — measure, tune, document, repeat.
 
 ---
 
-## Class I* v2 experiments (Deep Blue pass)
+## Class I* v2 experiments (Deep Q pass)
 
 After upgrading the trainer, re-run and fill in:
 
@@ -98,7 +98,7 @@ CLASS1_STAR_GAMES=1000 yarn class1-star:pipeline:go-out
 
 ---
 
-## Class I* v3 — Deep Blue (RL regret)
+## Class I* v3 — Deep Q (RL regret)
 
 Imitation ceiling hit → **regret-based RL**: Class I* plays Commander, labels deviations, trains on win/loss regret targets with a larger net and higher α.
 

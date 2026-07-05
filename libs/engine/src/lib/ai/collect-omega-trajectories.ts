@@ -21,6 +21,7 @@ import { toGameAction, type WarpAiAction } from './actions.js';
 import { warpCandidateGenerator } from './candidate-generator.js';
 import { buildWarpContext } from './context.js';
 import { observe } from './observation.js';
+import { warpAiActionKey } from './from-game-action.js';
 import {
   encodeOmegaPolicyFeatures,
   encodeOmegaStateFeatures,
@@ -30,6 +31,7 @@ import {
   softmax,
   type OmegaModelWeights,
 } from './omega-net.js';
+import { omegaSearchVisits } from './omega-search.js';
 import { blockedRoundWinner } from './self-play.js';
 
 /**
@@ -50,6 +52,12 @@ export interface OmegaTrajectoryRow {
   readonly label: number;
   /** State features (195-dim) for the value head; present on the chosen row only. */
   readonly stateFeatures?: readonly number[];
+  /**
+   * ISMCTS visit count for this candidate (AlphaZero-style policy target).
+   * Present only when collected with `searchIterations > 0`; the trainer
+   * normalizes visits within a decision into a target distribution.
+   */
+  readonly searchVisits?: number;
   readonly objective: GameObjective;
   readonly playerCount: number;
   readonly gameIndex: number;
@@ -62,10 +70,24 @@ export interface CollectOmegaTrajectoriesOptions {
   seed?: number;
   objective?: GameObjective;
   playerCount?: number;
+  /**
+   * Mixed-table training: if set, each self-play game uses a table size drawn
+   * (round-robin by absolute game index) from this list, so one net learns the
+   * whole fleet range (3–8) plus optional 2p. Overrides `playerCount`.
+   */
+  playerCounts?: readonly number[];
   modules?: GameModuleConfig;
   houseRules?: HouseRulesConfig;
   /** Softmax exploration temperature during self-play (default 1). */
   temperature?: number;
+  /**
+   * If > 0, run value-net-guided ISMCTS at each decision and record per-candidate
+   * visit counts as the policy target; the played move is sampled from the visit
+   * distribution. 0 (default) = pure REINFORCE on the sampled policy move.
+   */
+  searchIterations?: number;
+  /** ISMCTS max branching factor when searching (default 8). */
+  searchMaxBranch?: number;
   maxSteps?: number;
   /** Log progress every N completed games (0 = silent). */
   progressEvery?: number;
@@ -93,6 +115,7 @@ interface MutableRow {
   playerId: PlayerId;
   label: number;
   stateFeatures?: number[];
+  searchVisits?: number;
   objective: GameObjective;
   playerCount: number;
   gameIndex: number;
@@ -100,7 +123,69 @@ interface MutableRow {
 
 interface PendingDecision {
   readonly playerId: PlayerId;
+  /** Round this decision was made in — labels are assigned per round, not per campaign. */
+  readonly roundNumber: number;
   readonly rows: MutableRow[];
+}
+
+/**
+ * Map per-seat round "scores" (lower = better) to a graded reward in [-1, 1]:
+ * best seat = +1, worst = -1, linear by competition rank with tie-averaging.
+ *
+ * Dense (every seat gets a distinct signal, not just the winner), bounded to
+ * match the tanh value head, and it reduces to ±1 at 2 players — consistent with
+ * the validated 2p binary per-round signal.
+ */
+function rankRewards(scores: Map<PlayerId, number>): Map<PlayerId, number> {
+  const ids = [...scores.keys()];
+  const n = ids.length;
+  const rewards = new Map<PlayerId, number>();
+  if (n <= 1) {
+    for (const id of ids) rewards.set(id, 0);
+    return rewards;
+  }
+  const sorted = [...ids].sort((a, b) => scores.get(a)! - scores.get(b)!);
+  let i = 0;
+  while (i < n) {
+    let j = i;
+    while (j + 1 < n && scores.get(sorted[j + 1])! === scores.get(sorted[i])!) {
+      j++;
+    }
+    const avgRank = (i + 1 + (j + 1)) / 2; // 1-based, tie-averaged
+    const reward = 1 - (2 * (avgRank - 1)) / (n - 1);
+    for (let k = i; k <= j; k++) rewards.set(sorted[k], reward);
+    i = j + 1;
+  }
+  return rewards;
+}
+
+/**
+ * Record each seat's graded per-round reward for a just-scored round.
+ *
+ * For **points**, campaign score is the *sum* of per-round pip totals — rounds
+ * are independent (hands re-dealt, no carryover but the score itself), so
+ * ranking seats by per-round pip delta is dense and exactly aligned with
+ * minimizing the cumulative total. For **go-out**, seats are ranked by remaining
+ * tiles (the captain who went out holds 0 → rank 1).
+ */
+function recordRoundRewards(
+  objective: GameObjective,
+  endedRound: RoundState,
+  stateAfter: GameState,
+  prevScores: Map<PlayerId, number>,
+  roundRewards: Map<number, Map<PlayerId, number>>
+): void {
+  const scores = new Map<PlayerId, number>();
+  if (objective === 'go-out') {
+    for (const id of endedRound.turnOrder) {
+      scores.set(id, (endedRound.hands[id] ?? []).length);
+    }
+  } else {
+    for (const captain of stateAfter.captains) {
+      scores.set(captain.id, captain.pointsScore - (prevScores.get(captain.id) ?? 0));
+    }
+  }
+  roundRewards.set(endedRound.roundNumber, rankRewards(scores));
 }
 
 function mulberry32(seed: number): () => number {
@@ -132,27 +217,6 @@ function roundReadyToScore(state: GameState, round: RoundState): RoundState {
     return { ...round, roundWinnerId: blockedRoundWinner(round, state) };
   }
   return round;
-}
-
-function resolveWinnerId(state: GameState): PlayerId | null {
-  if (state.phase !== 'complete') {
-    return null;
-  }
-  if (state.objective === 'go-out') {
-    const round = state.round;
-    return (
-      round?.roundWinnerId ?? (round ? blockedRoundWinner(round, state) : null)
-    );
-  }
-  let winnerId: PlayerId | null = null;
-  let bestPoints = Number.POSITIVE_INFINITY;
-  for (const captain of state.captains) {
-    if (captain.pointsScore < bestPoints) {
-      bestPoints = captain.pointsScore;
-      winnerId = captain.id;
-    }
-  }
-  return winnerId;
 }
 
 function fallbackAction(state: GameState, playerId: PlayerId): WarpAiAction {
@@ -199,6 +263,8 @@ export function collectOmegaTrajectoriesToSink(
   const playerCount = options.playerCount ?? 2;
   const baseSeed = options.seed ?? 2026;
   const temperature = options.temperature ?? 1;
+  const searchIterations = options.searchIterations ?? 0;
+  const searchMaxBranch = options.searchMaxBranch ?? 8;
   const progressEvery = options.progressEvery ?? 0;
   const net = options.net;
 
@@ -215,7 +281,13 @@ export function collectOmegaTrajectoriesToSink(
     const ctxRng = mulberry32(seed ^ 0xabc123);
     const pending: PendingDecision[] = [];
 
-    const captains = Array.from({ length: playerCount }, (_, index) => {
+    // Mixed-table: pick this game's size round-robin by absolute index (shard-safe).
+    const gamePlayerCount =
+      options.playerCounts && options.playerCounts.length > 0
+        ? options.playerCounts[gameIndex % options.playerCounts.length]
+        : playerCount;
+
+    const captains = Array.from({ length: gamePlayerCount }, (_, index) => {
       const id = String.fromCharCode(97 + index);
       return { id, displayName: id };
     });
@@ -242,15 +314,25 @@ export function collectOmegaTrajectoriesToSink(
     let stallGuard = 0;
     let lastHandTiles = state.round ? totalHandTiles(state.round) : -1;
 
+    // Per-round credit assignment: graded reward per seat for each round, and a
+    // running snapshot of cumulative scores to compute per-round deltas.
+    const roundRewards = new Map<number, Map<PlayerId, number>>();
+    let prevScores = new Map<PlayerId, number>(
+      state.captains.map((c) => [c.id, c.pointsScore])
+    );
+
     while (state.phase === 'active' && steps < maxSteps) {
       steps++;
       const round = state.round;
       if (!round) break;
 
       if (round.phase === 'ended') {
-        const result = scoreRound(state, roundReadyToScore(state, round), reshuffle);
+        const endedRound = roundReadyToScore(state, round);
+        const result = scoreRound(state, endedRound, reshuffle);
         if (!result.ok) break;
         state = result.state;
+        recordRoundRewards(objective, endedRound, state, prevScores, roundRewards);
+        prevScores = new Map(state.captains.map((c) => [c.id, c.pointsScore]));
         stallGuard = 0;
         lastHandTiles = state.round ? totalHandTiles(state.round) : -1;
         continue;
@@ -260,7 +342,7 @@ export function collectOmegaTrajectoriesToSink(
         const tiles = totalHandTiles(round);
         stallGuard = tiles === lastHandTiles ? stallGuard + 1 : 0;
         lastHandTiles = tiles;
-        if (stallGuard >= playerCount * 2) {
+        if (stallGuard >= gamePlayerCount * 2) {
           state = {
             ...state,
             round: {
@@ -295,14 +377,49 @@ export function collectOmegaTrajectoriesToSink(
         const featuresByCandidate = candidates.map((action) =>
           encodeOmegaPolicyFeatures(ctx, action)
         );
-        const logits = featuresByCandidate.map((features) =>
-          forwardOmegaPolicyLogit(features, net)
-        );
-        const probabilities = softmax(logits, temperature);
-        const chosenIndex =
-          temperature <= 0
-            ? logits.indexOf(Math.max(...logits))
-            : sampleIndex(probabilities, decideRng);
+
+        // Search-guided target (AlphaZero-style) when enabled, else pure policy.
+        let searchVisitsByCandidate: number[] | null = null;
+        if (searchIterations > 0) {
+          const visits = omegaSearchVisits(obs, net, {
+            iterations: searchIterations,
+            rng: decideRng,
+            maxBranch: searchMaxBranch,
+            useBeliefConstraints: true,
+          });
+          const byKey = new Map<string, number>();
+          for (const v of visits) byKey.set(warpAiActionKey(v.action), v.visits);
+          const counts = candidates.map(
+            (action) => byKey.get(warpAiActionKey(action)) ?? 0
+          );
+          if (counts.reduce((a, b) => a + b, 0) > 0) {
+            searchVisitsByCandidate = counts;
+          }
+        }
+
+        let chosenIndex: number;
+        if (searchVisitsByCandidate) {
+          // Self-play move = sample proportional to visit counts (temperature 0 = argmax).
+          if (temperature <= 0) {
+            chosenIndex = searchVisitsByCandidate.indexOf(
+              Math.max(...searchVisitsByCandidate)
+            );
+          } else {
+            const total = searchVisitsByCandidate.reduce((a, b) => a + b, 0);
+            chosenIndex = sampleIndex(
+              searchVisitsByCandidate.map((v) => v / total),
+              decideRng
+            );
+          }
+        } else {
+          const logits = featuresByCandidate.map((features) =>
+            forwardOmegaPolicyLogit(features, net)
+          );
+          chosenIndex =
+            temperature <= 0
+              ? logits.indexOf(Math.max(...logits))
+              : sampleIndex(softmax(logits, temperature), decideRng);
+        }
         chosen = candidates[chosenIndex];
 
         const stateFeatures = Array.from(encodeOmegaStateFeatures(ctx));
@@ -314,11 +431,14 @@ export function collectOmegaTrajectoriesToSink(
           playerId,
           label: 0,
           ...(index === chosenIndex ? { stateFeatures } : {}),
+          ...(searchVisitsByCandidate
+            ? { searchVisits: searchVisitsByCandidate[index] }
+            : {}),
           objective,
-          playerCount,
+          playerCount: gamePlayerCount,
           gameIndex,
         }));
-        pending.push({ playerId, rows: decisionRows });
+        pending.push({ playerId, roundNumber: round.roundNumber, rows: decisionRows });
       }
 
       const result = applyAction(state, toGameAction(chosen, playerId));
@@ -326,28 +446,34 @@ export function collectOmegaTrajectoriesToSink(
       state = result.state;
     }
 
-    const winnerId = resolveWinnerId(state);
-    if (winnerId !== null) {
-      const labeled: OmegaTrajectoryRow[] = [];
-      for (const decision of pending) {
-        const label = decision.playerId === winnerId ? 1 : -1;
-        for (const row of decision.rows) {
-          labeled.push({ ...row, label });
-        }
+    // Label each decision by its ROUND's graded reward (dense, correctly-aligned
+    // credit) rather than the far-off campaign winner. Decisions whose round
+    // never scored (incomplete final round) are dropped.
+    const labeled: OmegaTrajectoryRow[] = [];
+    for (const decision of pending) {
+      const rewards = roundRewards.get(decision.roundNumber);
+      if (!rewards) continue;
+      const label = rewards.get(decision.playerId);
+      if (label === undefined) continue;
+      for (const row of decision.rows) {
+        labeled.push({ ...row, label });
       }
-      if (labeled.length > 0) {
-        sink.write(labeled);
-        rows += labeled.length;
-      }
+    }
+    if (labeled.length > 0) {
+      sink.write(labeled);
+      rows += labeled.length;
+    }
+    if (state.phase === 'complete') {
       completedGames++;
-      if (
-        progressEvery > 0 &&
-        (completedGames % progressEvery === 0 || completedGames === gameCount)
-      ) {
-        console.log(
-          `  ${completedGames}/${gameCount} games, ${rows} rows (omega, ${objective})`
-        );
-      }
+    }
+    if (
+      progressEvery > 0 &&
+      completedGames > 0 &&
+      (completedGames % progressEvery === 0 || completedGames === gameCount)
+    ) {
+      console.log(
+        `  ${completedGames}/${gameCount} games, ${rows} rows (omega, ${objective})`
+      );
     }
   }
 

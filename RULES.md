@@ -389,7 +389,7 @@ The normative rating math (Elo update, reference bands, multi-captain human tabl
 A completed online sector is rated into the **human pool** when it meets every condition below; otherwise it plays out normally but changes no ratings. The lobby shows a live **rated / unrated** banner so the fleet knows before launch.
 
 - **Two or more captains are signed in with an account.** Guests (anonymous sign-in) can play, but a guest at the table makes the whole sector unrated — a rating that can't persist across devices isn't a rating.
-- **Every AI officer is Class IV / III / II.** These have fixed reference strength and serve as rating **anchors**: finishing above or below them moves your TEI, which keeps online results on the same scale as solo play. An experimental **Class I\*** officer makes the sector unrated.
+- **Every AI officer is Class IV / III / II.** These have fixed reference strength and serve as rating **anchors**: finishing above or below them moves your TEI, which keeps online results on the same scale as solo play. An experimental officer (**Class I\*** or **Class Ω**) makes the sector unrated.
 - **The objective is Points or Go-out.** Other modes are unrated.
 - **No captain consulted the tactical advisor.** Just as in solo play, invoking the in-game advisor during live turns makes a match *assisted* — and online, one assisted captain leaves the **whole** sector unrated. You are warned the moment you engage it.
 
@@ -460,7 +460,9 @@ Before your **first rated** match in each track, complete **Starfleet Academy pl
 
 Downloading a post-match advisor report or campaign analysis does **not** disqualify a match.
 
-**Human pool** — an online sector is rated when it clears the eligibility bar above (two or more signed-in captains, only Class IV / III / II AI, Points or Go-out, **and no captain used the advisor**). Any guest, Class I\* seat, or advisor consult leaves the whole sector unrated.
+**Human pool** — an online sector is rated when it clears the eligibility bar above (two or more signed-in captains, only Class IV / III / II AI, Points or Go-out, **and no captain used the advisor**). Any guest, experimental AI seat (Class I\* or Class Ω), or advisor consult leaves the whole sector unrated.
+
+> **Class Ω (experimental, forthcoming).** A self-play neural officer trained purely to win — no heuristic imitation. It is an **unrated experimental opponent** today; if it clears the promotion bar (beating Class II with statistical significance across player counts and both objectives) it will be added as a fixed reference band above Class II. Until then, a Class Ω seat leaves a sector unrated, exactly like Class I\*.
 
 ### After the sector
 

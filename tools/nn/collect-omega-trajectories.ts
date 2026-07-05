@@ -17,9 +17,32 @@ const repoRoot = resolve(here, '../..');
 
 const games = Number(process.env.OMEGA_GAMES ?? 200);
 const seed = Number(process.env.OMEGA_SEED ?? 2026);
-const playerCount = Number(process.env.OMEGA_PLAYERS ?? 2);
+
+/** Parse OMEGA_PLAYERS as a single count, comma list ("3,4,6,8"), or range ("3-8"). */
+function parsePlayerCounts(raw: string): number[] {
+  const trimmed = raw.trim();
+  const rangeMatch = trimmed.match(/^(\d+)\s*-\s*(\d+)$/);
+  if (rangeMatch) {
+    const lo = Number(rangeMatch[1]);
+    const hi = Number(rangeMatch[2]);
+    const out: number[] = [];
+    for (let n = lo; n <= hi; n++) out.push(n);
+    return out;
+  }
+  return trimmed
+    .split(',')
+    .map((part) => Number(part.trim()))
+    .filter((n) => Number.isFinite(n) && n >= 2);
+}
+
+const playerCountsRaw = process.env.OMEGA_PLAYERS ?? '2';
+const playerCounts = parsePlayerCounts(playerCountsRaw);
+const playerCount = playerCounts[0] ?? 2;
+const mixedTable = playerCounts.length > 1;
 const objective = (process.env.OMEGA_OBJECTIVE ?? 'points') as GameObjective;
 const temperature = Number(process.env.OMEGA_TEMPERATURE ?? 1);
+const searchIterations = Number(process.env.OMEGA_SEARCH_ITERS ?? 0);
+const searchMaxBranch = Number(process.env.OMEGA_SEARCH_MAX_BRANCH ?? 8);
 const outPath = process.env.OMEGA_OUT ?? resolve(here, 'data/omega-trajectories.jsonl');
 const progressEvery = Number(process.env.OMEGA_PROGRESS_EVERY ?? 25);
 const weightsPath =
@@ -52,7 +75,11 @@ function loadNet(): OmegaModelWeights {
 const net = loadNet();
 
 console.log(
-  `Collecting Class Ω self-play: ${games} games, ${playerCount}p, ${objective}, temperature=${temperature}`
+  `Collecting Class Ω self-play: ${games} games, ${
+    mixedTable ? `mixed tables [${playerCounts.join(',')}]` : `${playerCount}p`
+  }, ${objective}, temperature=${temperature}${
+    searchIterations > 0 ? `, ISMCTS ${searchIterations} iters/decision` : ''
+  }`
 );
 
 const result = await collectOmegaParallel({
@@ -62,7 +89,9 @@ const result = await collectOmegaParallel({
     seed,
     objective,
     playerCount,
+    ...(mixedTable ? { playerCounts } : {}),
     temperature,
+    ...(searchIterations > 0 ? { searchIterations, searchMaxBranch } : {}),
     progressEvery,
   },
   outPath,
