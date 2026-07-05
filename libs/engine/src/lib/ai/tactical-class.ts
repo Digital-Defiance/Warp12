@@ -87,7 +87,7 @@ export function teiToPlayerTacticalClass(tei: number | null): TacticalClass {
   if (tei < 1350) {
     return 'III';
   }
-  if (tei < 1650) {
+  if (tei < 1450) {
     return 'II';
   }
   return 'I';

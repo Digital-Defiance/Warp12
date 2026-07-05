@@ -4,32 +4,33 @@
 
 **Working title (white paper):** *Designing TEI: Skill Rating and AI Tiers for Warp 12 / Mexican Train*
 
-**Status:** Outline + draft notes — not submission-ready.
+**Status:** Outline + draft notes — not submission-ready.  
 
 ---
 
 ## Abstract (draft)
 
-Mexican Train dominoes is commonly played under two incompatible victory conditions: **points** (lowest pip total when the round ends) and **go-out** (first player to empty their hand). We describe Warp 12’s **Tactical Effectiveness Index (TEI)** — a dual-track Elo-style rating anchored to fixed AI reference tiers — and the **self-play calibration pipeline** used to validate Class IV–II AI officers against those bands. Agents combine interpretable heuristics, optional determinized lookahead, and a rules-faithful engine (Distress Beacons, Red Alert, Neutral Zone, modules, house rules). Empirical calibration shows that **skill ordering is stable and aligns with reference TEI spacing under points**, while **go-out compresses implied skill gaps** due to race variance — especially in heads-up Class III vs Class II matchups and at higher table sizes. We argue for **percentile-augmented leaderboards**, **objective-specific search depth**, and **runtime house-rule gating** instead of per-variant weight matrices. We also report results from **Class I\***, an experimental hybrid officer, and a **multi-engine Fleet Admiral** stack: **determinized expectimax** for 2-player points (~64% vs Commander at 500 games), **ISMCTS** for multi-player go-out (~31% sector win rate vs ~23% per greedy seat in 4p), and **Commander heuristics** for the player-facing tactical advisor. Large-scale benches (1,000+ games, parallel workers) show that **2-player points ISMCTS flatlines at parity (~51%)** — not because heuristics are weak, but because Commander already finds the greedy pip-dump optimum — while **MLP imitation/regret also converges to Commander without a win-rate edge**. These negative and near-parity results are as informative as a skill upgrade would be: they bound what browser-deployable search and small nets can extract under Mexican Train variance, and motivate **mapping the right search backend to the right lobby setting** rather than one algorithm for all modes.
+Mexican Train dominoes is commonly played under two incompatible victory conditions: **points** (lowest pip total when the round ends) and **go-out** (first player to empty their hand). We describe Warp 12’s **Tactical Effectiveness Index (TEI)** — a dual-track Elo-style rating anchored to fixed AI reference tiers — and the **self-play calibration pipeline** used to validate Class IV–II AI officers against those bands. Agents combine interpretable heuristics, optional determinized lookahead, and a rules-faithful engine (Distress Beacons, Red Alert, Neutral Zone, modules, house rules). Empirical calibration shows that **skill ordering is stable and aligns with reference TEI spacing under points**, while **go-out compresses implied skill gaps** due to race variance — especially in heads-up Class III vs Class II matchups and at higher table sizes. We argue for **percentile-augmented leaderboards**, **objective-specific search depth**, and **runtime house-rule gating** instead of per-variant weight matrices. We also report results from **Class I\***, an experimental hybrid officer, and a **multi-engine Fleet Admiral** stack. Large-scale benches show that 2-player points ISMCTS flatlines at parity (~51%), motivating the mapping of specific search backends to the right lobby settings. Finally, we report on **Class Ω**, a standalone self-play neural policy that has achieved 2-player parity via per-round credit assignment, but required a pivot to ISMCTS-distillation to overcome the imperfect-information wall in multi-player fleet modes.  
 
 ---
 
 ## 1. Introduction
 
 ### 1.1 Motivation
-- Mexican Train is widely played but under-studied in game AI literature.
-- Two win conditions create two different strategic games on the same table.
-- Online play needs interpretable skill measurement and fair AI opponents.
-- Coaching/advisor tools must not contaminate competitive ratings.
+- Mexican Train is widely played but under-studied in game AI literature.  
+- Two win conditions create two different strategic games on the same table.  
+- Online play needs interpretable skill measurement and fair AI opponents.  
+- Coaching/advisor tools must not contaminate competitive ratings.  
 
 ### 1.2 Contributions
-1. **Dual-track TEI** — independent points and go-out ratings with fixed reference AI bands.
-2. **Engine-faithful heuristic agents** — legal moves, modules, and house rules from the same code path as human play.
-3. **Self-play calibration methodology** — tier-vs-tier matrix + multi-player focus matchups + optional coordinate-search weight tuning.
-4. **Empirical comparison of objectives** — points calibrates cleanly; go-out is high-variance.
-5. **Product constraints as design** — advisor disqualification, baked-in lookahead tiers, percentile boards.
-6. **Class I\* residual learning (experimental)** — hybrid heuristic + MLP; documented imitation ceiling, points clone, and Deep Blue regret pass.
-7. **Multi-engine Fleet Admiral (2026-06-30)** — expectimax for 2p points, ISMCTS for 3p+ go-out; Commander heuristics for advisor only; 1,500-game parallel bench campaign on M4 Max.
+1. **Dual-track TEI** — independent points and go-out ratings with fixed reference AI bands.  
+2. **Engine-faithful heuristic agents** — legal moves, modules, and house rules from the same code path as human play.  
+3. **Self-play calibration methodology** — tier-vs-tier matrix + multi-player focus matchups + optional coordinate-search weight tuning.  
+4. **Empirical comparison of objectives** — points calibrates cleanly; go-out is high-variance.  
+5. **Product constraints as design** — advisor disqualification, baked-in lookahead tiers, percentile boards.  
+6. **Class I\* residual learning (experimental)** — hybrid heuristic + MLP; documented imitation ceiling, points clone, and Deep Q regret pass.  
+7. **Multi-engine Fleet Admiral** — expectimax for 2p points, ISMCTS for 3p+ go-out; Commander heuristics for advisor only.  
+8. **Class Ω standalone self-play** — A pure self-play neural opponent that reached 2-player parity via per-round credit assignment, currently utilizing ISMCTS-distillation (Path B) for fleet-size scaling.
 
 ### 1.3 Warp 12 terminology map
 | Player-facing | Internal / engine |
@@ -37,9 +38,10 @@ Mexican Train dominoes is commonly played under two incompatible victory conditi
 | Captain (seat) | `PlayerId` |
 | TEI | Elo-style rating displayed to humans |
 | Tactical Class IV–II | `ensign` / `lieutenant` / `commander` skill presets |
-| Class I* (experimental) | Class II heuristics + search backend (expectimax or ISMCTS by mode) + optional learned residual |
+| Class I* (experimental) | Class II heuristics + search backend + optional learned residual |
+| Class Ω (experimental) | Standalone self-play policy/value net — no heuristics, no Commander target, no search at inference |
 | Fleet Admiral (bench) | Deep-search opponent preset — not a TEI tier |
-| Class I (human) | Prestige band on leaderboard — not an AI opponent tier |
+| Class I (human) | Prestige band on leaderboard (TEI ≥ 1450) — not an AI opponent tier |
 
 ---
 
@@ -140,7 +142,7 @@ Public observation (objective, hand counts, pile, race phase, tile masks) plus a
 
 #### Offline training pipeline
 1. **Collect (imitation)** — Commander self-play; export all legal candidates per decision with win/loss labels and heuristic scores.
-2. **Collect (Deep Blue / RL)** — Class I* (current weights) vs Commander; label deviations with `commanderPick` for regret training.
+2. **Collect (Deep Q / RL)** — Class I* (current weights) vs Commander; label deviations with `commanderPick` for regret training.
 3. **Train** — PyTorch MLP → `class1-star-v1.onnx` + JSON weights.
 4. **Bench** — head-to-head Class I* vs Commander; measure win rate and decision flip rate.
 
@@ -153,7 +155,7 @@ yarn class1-star:pipeline:deepblue    # RL regret pass (recommended for strength
 | Loss | What it optimizes | Notes |
 |------|-------------------|-------|
 | **combined** (default) | Softmax on `heuristic + α·residual` | Matches inference; imitation baseline |
-| **rl-combined** | Same softmax, **regret targets** from RL data | **Deep Blue pass** — win → reinforce played move; loss + flipped → target Commander |
+| **rl-combined** | Same softmax, **regret targets** from RL data | **Deep Q pass** — win → reinforce played move; loss + flipped → target Commander |
 | ranking | Residual-only softmax | Ablation |
 | hinge | Pairwise margin vs alternatives | Stronger separation |
 | mse | Predict ±1 game outcome | Legacy — constant residual per turn |
@@ -164,7 +166,7 @@ yarn class1-star:pipeline:deepblue    # RL regret pass (recommended for strength
 | imitation | 2× win / 1× loss (Commander mimic) |
 | win-only | Train only on winner’s decisions |
 
-**Deep Blue pass (v3):** 256×256 hidden MLP, α=3.0, 40 epochs, warm-start from prior JSON when layer shapes match. Re-run `pipeline:deepblue` after each train cycle for iterative self-play (collection uses latest weights).
+**Deep Q pass (v3):** 256×256 hidden MLP, α=3.0, 40 epochs, warm-start from prior JSON when layer shapes match. Re-run `pipeline:deepblue` after each train cycle for iterative self-play (collection uses latest weights).
 
 #### What we learned (2026-06-30 through 2026-07-01)
 
@@ -181,7 +183,7 @@ yarn class1-star:pipeline:deepblue    # RL regret pass (recommended for strength
 |-----|------------|-------------|-----------|----------|
 | v2 combined + outcome, α=1.5 | combined | **97.6%** | **1.4%** | **51%** (100g) |
 
-**Deep Blue (RL regret), points, 256×256, α=3.0:**
+**Deep Q (RL regret), points, 256×256, α=3.0:**
 
 | Run | Train loss | Train top-1 | Flip rate | Win rate |
 |-----|------------|-------------|-----------|----------|
@@ -289,6 +291,48 @@ yarn jiti tools/nn/compare-fleet-search.ts      # expectimax vs ISMCTS head-to-h
 
 **Open bench gap:** Current 4p go-out tally is “1× ISMCTS vs 3× greedy Commander” with wins split across four seats. A cleaner test — ISMCTS vs 3× expectimax, or 2p go-out ISMCTS with seat symmetry — remains on the roadmap before claiming ISMCTS over expectimax in all multi-player modes.
 
+### 4.7 Class Ω — Standalone Self-Play Policy/Value
+
+Class I* and every prior neural pass shared one fatal design choice: **Commander was the training target**. Whether by imitation or regret, the optimum the net could reach was a Commander clone. Class Ω removes the tether entirely to create a pure self-play neural opponent designed for fleet games (3–8 players).  
+
+#### Architecture
+```
+policy_head:  state+action features (303) → MLP → logit per candidate → softmax
+value_head:   state features (195)         → MLP → tanh → E[outcome for acting seat]
+pick = argmax policy   (greedy at play; temperature-sampled during self-play)
+```
+
+- **Standalone:** No heuristics or `scoreWithHeuristics` term in the objective[cite: 1, 3].
+- **No Commander Target:** The net is trained purely on game outcomes, avoiding the imitation trap.  
+- **Opaque by Design:** Cannot explain moves in heuristic terms[cite: 1, 3].
+
+- #### The Credit Assignment Breakthrough
+
+  Early runs labeled every decision using the final 13-round campaign winner. This introduced massive noise, as a brilliant move and a blunder in round 3 received the exact same ±1 reward based on cumulative pips tallied ten rounds later.  
+
+  - **The Fix:** We implemented per-round graded rank rewards.  
+  - **Mathematical Justification:** Because a campaign is simply the sum of independent per-round pip totals with hands re-dealt each round, minimizing per-round pips accurately minimizes the cumulative campaign total.  
+  - **Result:** This produced a dense, immediate signal with a roughly 50/50 label balance (one winner, one loser per 2p round), acting as the primary accelerant that unlocked 2-player parity.  
+
+  #### Training Stability & The Policy Collapse
+
+  Raw REINFORCE training proved highly unstable. During iteration 4, the policy collapsed, dropping from a 41.5% peak win rate back to 31%.  
+
+  - **Root Cause:** Uncentered binary outcomes caused the network to penalize all moves by a losing seat, arbitrarily over-sharpening the logits and destroying data diversity.  
+  - **Stability Guards:** We implemented advantage standardization (zero mean, unit variance), a 3σ advantage clamp, a 0.05 entropy bonus, and gradient-norm clipping to bound weight changes.  
+  - **Champion Gating:** To prevent regressed networks from compounding errors, we introduced AlphaZero-style champion gating. Candidates are now evaluated across bench slices and only promoted if they beat the shipped champion network, ensuring a strictly monotonic skill ladder. The Adam learning rate was also lowered to 3e-4 to prevent warm-start overshoot.  
+
+  #### The Pivot to Path B: ISMCTS-Distillation
+
+  While 2-player models achieved parity, pure REINFORCE stalled at near-random baselines for fleet sizes (3–8 players). The network had ample capacity (policy top-1 ≈ 0.94), but the value baseline could not accurately predict placement against up to seven hidden hands—an imperfect-information wall.  
+
+  To overcome this, we pivoted to **Path B (ISMCTS-Distillation)**:
+
+  - Instead of raw self-play sampling, each decision during training runs value-net-independent ISMCTS with Commander-heuristic rollouts.  
+  - This generates a sharp visit-count distribution (approximately 0.90 top-move share).  
+  - The policy head is trained to match this search distribution via cross-entropy, rather than REINFORCE on the sampled move.  
+  - **Crucial Distinction:** Commander is only used as a rollout simulator to generate the search target. The shipped inference network runs purely on its own without Commander, avoiding the Class I* imitation trap since the target is the *search visit distribution*, not the Commander's specific picks.  
+
 ---
 
 ## 5. TEI (Tactical Effectiveness Index)
@@ -383,29 +427,23 @@ Paste output from `yarn calibrate:ai-tei`. Example structure:
 ### 7.4 Optimizer
 - Baseline vs optimized loss reduction from `yarn optimize:ai-weights`.
 
-### 7.5 Class I* and Fleet Admiral benches (experimental)
+### 7.5 Class I*, Fleet Admiral, and Class Ω Benches
 
-See [calibration-log.md](./calibration-log.md) §2026-06-30 and §Fleet Admiral. Summary:
+**Neural residual (MLP - Class I\*):**
 
-**Neural residual (MLP):**
-- **v1 (ranking + imitation, go-out):** 74.3% train top-1, 17% flip, **48.6%** win (500g, 2p).
-- **v2 (combined + outcome, points):** **97.6%** top-1, **1.4%** flip, **51%** win — Commander clone.
-- **v3 (RL regret):** **49.2%** win — parity persists.
+- **v1 (go-out):** 48.6% win (500g, 2p).  
+- **v2 (points):** 97.6% top-1, 1.4% flip, 51% win — Commander clone.  
+- **v3 (RL regret):** 49.2% win — parity persists.  
 
-**Expectimax Fleet Admiral:**
-- **64.4%** points 2p, **55.8%** go-out 2p vs Commander (500g each) — first significant edge over Class II.
-- Hybrid search + net **54.0%** (100g) — net regresses vs search-only.
+**Fleet Admiral (Search):**
 
-**ISMCTS Fleet Admiral (2026-06-30, 1,500 games, parallel):**
-- **2p points:** 48.6% (seat a) + 53.6% (seat b) = **51.1% combined** — dead heat with Commander.
-- **4p go-out:** Fleet **31.2%** sector wins; greedy Commander seats **~22–23%** each; random baseline 25%.
+- **Expectimax:** 64.4% points 2p, 55.8% go-out 2p vs Commander (500g each).  
+- **ISMCTS (1,500 games):** 51.1% combined in 2p points (dead heat); 31.2% sector wins in 4p go-out vs ~22–23% per greedy Commander seat.  
 
-**Research takeaway:** Three distinct outcomes by mode and algorithm:
-1. **MLP** (imitation → regret) → Commander clone, no edge.
-2. **Expectimax** → strong in **2p** (tight tactical tree).
-3. **ISMCTS** → parity in **2p points**, edge in **4p go-out** per-seat win rate.
+**Class Ω (Self-Play):**
 
-**Architecture decision:** Multi-engine routing (§4.6) — expectimax for 2p play, ISMCTS for 3p+ go-out, Commander heuristics for advisor. Not “more knobs on one engine.”
+- **2-Player Parity:** Utilizing per-round credit assignment, Class Ω successfully reached parity with Commander in 2-player points mode within 3 iterations from scratch (specialist network archived).  
+- **Fleet Baseline & Distillation:** Early iterations in fleet environments hovered near random baselines (e.g., 4-player win rate of ~0.21 vs 0.25 random). An automated loop running Path B (ISMCTS-distillation) is currently active, with the distillation lift expected to show in subsequent iterations.  
 
 ---
 
@@ -450,7 +488,7 @@ Deep Blue beat the world champion at **chess** — a two-player, perfect-informa
 
 **Conclusion:** There is no analogous “proof” or full tablebase. Superhuman MT means **strong belief-state play under uncertainty**, not brute-force enumeration.
 
-### 9.2 What “Deep Blue class” would mean operationally
+### 9.2 What “Deep Q class” would mean operationally
 
 A reasonable definition for Mexican Train:
 
@@ -462,7 +500,7 @@ A reasonable definition for Mexican Train:
 
 ### 9.3 Gap from current Warp 12 stack
 
-| Layer | Today (Class II) | Class I* / Fleet Admiral (2026) | Deep Blue class |
+| Layer | Today (Class II) | Class I* / Fleet Admiral (2026) | Deep Q class |
 |-------|------------------|----------------------------------|-----------------|
 | Policy | Weighted heuristics + blunder model | Heuristic + optional learned residual (experimental) | Learned policy or CFR blueprint |
 | Search | Depth-2 determinized lookahead (2p go-out only) | **Multi-engine:** expectimax 2p, ISMCTS 3p+ | Continual re-planning + belief particles |
@@ -487,18 +525,12 @@ A reasonable definition for Mexican Train:
 - **Result (2026-06-30):** Expectimax wins 2p; ISMCTS wins multi-player go-out per-seat rate; neither replaces Commander for advisor UI.
 - **Deliverable:** Multi-engine Class I* play routing (§4.6), not a single “ISMCTS everywhere” tier.
 
-#### Phase 2 — Learned value / policy (1–2 years) — **in progress (Class I\*)**
-- Collect self-play dataset from heuristic agents ✓ (Commander trajectories, all candidates).
-- Train policy/value net on `(public state, action features) → residual` ✓ (303-dim MLP, ONNX export).
-- Hybrid: net nudges heuristic scores ✓ — **win-rate edge not yet demonstrated** (go-out or points).
-- Imitation → outcome-weighted combined loss ✓ — points converges to Commander clone (98% top-1).
-- **Deep Blue regret pass** ✓ (RL collect, `rl-combined`, 256×256, α=3) — **parity persists** (~49–51%).
-- Separate heads or models for **points vs go-out** — points is default; go-out alternate pass available.
-- Next: wire multi-engine routing in app; clean 4p bench (ISMCTS vs expectimax seats); optional net as rollout policy inside search (not standalone residual).
+#### Phase 2 — Learned value / policy (1–2 years) — **in progress (Class Ω)**
 
-#### Phase 2 — Learned value / policy (full vision, 1–2 years)
-- Scale data and model; hybrid net guides MCTS rollouts (AlphaZero-style, scaled down).
-- Separate heads or models for **points vs go-out** (critical).
+- Collect self-play dataset from heuristic agents.  
+- Train policy/value net on `(public state, action features) → residual`.  
+- **Transition to Pure Self-Play:** Overcome the imperfect-information wall via Path B ISMCTS-distillation cross-entropy training.  
+- **Graduate to Path A (Pure Value-Guided Search):** Once the value network is competent enough to concentrate visits (value loss < 0.5), transition to Path A by dropping heuristic rollouts entirely. Leaf evaluations will strictly utilize the pure value-head during ISMCTS, completing the AlphaGo-to-AlphaZero progression.  
 
 #### Phase 3 — Multi-player equilibrium (research frontier)
 - 3+ players: optimize for **utility / placement** not pure win rate.
@@ -522,17 +554,17 @@ Warp 12’s goal is **fun, fair, calibrated AI** — not Nash equilibrium. Class
 - Measurable human progress.
 - Shippable compute on phones and browsers.
 
-Deep Blue depth trades away explainability, build cost, and mobile feasibility.
+Deep Q depth trades away explainability, build cost, and mobile feasibility.
 
-### 9.6 Intermediate wins (high ROI, pre–Deep Blue)
+- ### 9.6 The Explainability Problem & Omega Advisor
 
-1. ~~**Class I heuristic tier**~~ → **Class I\*** experimental tier with multi-engine search (shipped locally; not TEI reference yet).
-2. **Multi-engine play routing** — expectimax 2p, ISMCTS 3p+ (§4.6).
-3. **ISMCTS advisor mode** — 250ms time-boxed deep think; coach explanations stay heuristic.
-4. **Opening book** for round 1 given spacedock value + hand — cheap lift for points.
-5. **Human dataset** — log anonymized online games for future training.
-6. **Published benchmark** — “MT-Bench”: fixed seeds, rules profile, expected win rates by mode and engine.
-7. **Honest negative results** — imitation ceiling, ISMCTS 2p parity, expectimax 2p edge (Class I* §4.5–4.6, §7.5).
+  Because Class Ω operates as a standalone policy/value network, its decisions are opaque matrices rather than legible heuristics. While the current UI gracefully handles this by strictly separating the explainable Advisor (Commander heuristics) from the opaque opponent, there remains a product desire for an Advisor as strong as Omega.  
+
+  To avoid repeating the Class I* imitation trap—where an explainable model merely clones Commander—we propose a **Concept-Bottleneck Network**.  
+
+  - **The Architecture:** The network forces an intermediate layer to output predictions for ~20 named game concepts (e.g., pip-dump potential, hand flexibility).  
+  - **The Ground Truth:** This concept layer is supervised by facts derived directly from the engine state, independent of heuristic weights.  
+  - **The Output:** A final scoring head makes decisions based on Omega-distilled targets. This ensures the UI can deliver genuine text explanations ("hand-flexibility 0.85 → this pick") that reflect actual information bottlenecks rather than post-hoc rationalizations.  
 
 ---
 
@@ -579,5 +611,3 @@ TEI and self-play calibration provide a **practical, honest skill ladder** for a
 | **arXiv cs.AI** | White paper / preprint |
 
 ---
-
-*Generated for Warp 12 / Digital Defiance — living document; paste fresh calibration output into §7 before submission.*

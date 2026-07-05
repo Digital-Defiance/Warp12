@@ -82,7 +82,7 @@ implied Elo per slice), not on a single 2p mode.
 # 1. Python deps (once)
 yarn class1-star:setup
 
-# 2. Deep Blue pipeline (recommended — RL regret, points default)
+# 2. Deep Q pipeline (recommended — RL regret, points default)
 CLASS1_STAR_GAMES=1000 CLASS1_STAR_BENCH_GAMES=500 yarn class1-star:pipeline:deepblue
 
 # Imitation baseline (Commander self-play):
@@ -94,7 +94,7 @@ yarn class1-star:train:deep
 CLASS1_STAR_BENCH_GAMES=500 yarn class1-star:bench
 ```
 
-## Deep Blue (RL regret)
+## Deep Q (RL regret)
 
 When imitation hits parity (~51% win rate, 98% top-1), switch to **regret-based RL**:
 
@@ -124,7 +124,7 @@ yarn fleet-admiral:bench:500
 # Search + Class I* hybrid
 yarn fleet-admiral:bench:hybrid
 
-# Full pass: Deep Blue train + 500-game fleet bench
+# Full pass: Deep Q train + 500-game fleet bench
 yarn fleet-admiral:pipeline
 ```
 
@@ -165,7 +165,7 @@ Collection streams one game at a time to disk — you do **not** need to hold al
 | `CLASS1_STAR_LOSS` | combined | `combined`, `rl-combined`, `ranking`, `hinge`, `mse` |
 | `CLASS1_STAR_WEIGHT_SCHEME` | outcome | `outcome`, `imitation`, `win-only`, `uniform` (not used by rl-combined) |
 | `CLASS1_STAR_ALPHA` | 1.0 | Residual scale (export + combined loss) |
-| `CLASS1_STAR_HIDDEN` | 128,128 | Comma-separated hidden widths (Deep Blue: 256,256) |
+| `CLASS1_STAR_HIDDEN` | 128,128 | Comma-separated hidden widths (Deep Q: 256,256) |
 | `CLASS1_STAR_EPOCHS` | 20 | Training epochs |
 | `CLASS1_STAR_HINGE_MARGIN` | 1.0 | Pairwise margin for `--loss hinge` |
 
@@ -174,7 +174,7 @@ Collection streams one game at a time to disk — you do **not** need to hold al
 | `--loss` | What it learns | Use when |
 |----------|----------------|----------|
 | **`combined`** (default) | Softmax on `heuristic + α·residual` | Imitation baseline |
-| **`rl-combined`** | Same softmax, regret targets from RL data | **Deep Blue** — beat Commander |
+| **`rl-combined`** | Same softmax, regret targets from RL data | **Deep Q** — beat Commander |
 | `ranking` | Residual-only softmax over candidates | Ablation / imitation baseline |
 | `hinge` | Pairwise margin: chosen beats each alternative | Stronger separation signal |
 | `mse` | Predict +1/−1 game outcome | Legacy — weak for move ranking |

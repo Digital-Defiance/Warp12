@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 from collections import defaultdict
 from pathlib import Path
@@ -19,6 +20,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
+
+# Quiet the ONNX dynamo exporter's "torchvision not installed / skipping
+# torchvision::nms …" probes. We export plain MLPs (no vision ops), so those
+# registrations are irrelevant — cosmetic noise only.
+for _noisy in ("torch.onnx", "torch.onnx._internal.exporter._registration"):
+    logging.getLogger(_noisy).setLevel(logging.ERROR)
 
 POLICY_FEATURE_DIM = 303
 STATE_FEATURE_DIM = 195
@@ -49,6 +56,8 @@ def collate_padded(batch: list[dict]) -> dict:
     state = torch.zeros(b, STATE_FEATURE_DIM, dtype=torch.float32)
     chosen = torch.zeros(b, dtype=torch.long)
     label = torch.zeros(b, dtype=torch.float32)
+    search_target = torch.zeros(b, max_c, dtype=torch.float32)
+    has_search = torch.zeros(b, dtype=torch.bool)
 
     for i, group in enumerate(batch):
         cands = group["features"]
@@ -58,6 +67,10 @@ def collate_padded(batch: list[dict]) -> dict:
         state[i] = torch.tensor(group["state"], dtype=torch.float32)
         chosen[i] = int(group["chosen"])
         label[i] = float(group["label"])
+        tgt = group.get("search_target")
+        if tgt is not None:
+            search_target[i, :c] = torch.tensor(tgt, dtype=torch.float32)
+            has_search[i] = True
 
     return {
         "features": features,
@@ -65,6 +78,8 @@ def collate_padded(batch: list[dict]) -> dict:
         "state": state,
         "chosen": chosen,
         "label": label,
+        "search_target": search_target,
+        "has_search": has_search,
     }
 
 
@@ -135,12 +150,20 @@ def build_groups(rows: list[dict]) -> list[dict]:
         state = decision_rows[chosen_index].get("stateFeatures")
         if state is None:
             continue
+        # AlphaZero-style policy target from ISMCTS visit counts, when collected.
+        visits = [row.get("searchVisits") for row in decision_rows]
+        search_target = None
+        if all(v is not None for v in visits):
+            total = float(sum(visits))
+            if total > 0:
+                search_target = [float(v) / total for v in visits]
         groups.append(
             {
                 "features": [row["features"] for row in decision_rows],
                 "state": state,
                 "chosen": chosen_index,
                 "label": float(decision_rows[0].get("label", 0)),
+                "search_target": search_target,
             }
         )
     return groups
@@ -188,26 +211,27 @@ def export_json(
 def export_onnx(policy: Mlp, value: ValueNet, out_dir: Path) -> None:
     policy.eval()
     value.eval()
+    # Modern (dynamo) exporter, saved self-contained (external_data=False) so there
+    # is no `.onnx.data` sidecar to track/copy. Batch dim is fixed at export; the
+    # authoritative artifact is the JSON (TS fallback), so this ONNX is a
+    # convenience — when browser ONNX inference is wired, re-export with
+    # dynamic_shapes for a variable candidate-batch dimension.
     torch.onnx.export(
         policy,
-        torch.zeros(1, POLICY_FEATURE_DIM, dtype=torch.float32),
-        out_dir / "omega-policy-v1.onnx",
+        (torch.zeros(1, POLICY_FEATURE_DIM, dtype=torch.float32),),
         input_names=["features"],
         output_names=["logit"],
-        dynamic_axes={"features": {0: "batch"}, "logit": {0: "batch"}},
-        opset_version=17,
-        dynamo=False,
-    )
+        dynamo=True,
+        verbose=False,
+    ).save(str(out_dir / "omega-policy-v1.onnx"), external_data=False)
     torch.onnx.export(
         value,
-        torch.zeros(1, STATE_FEATURE_DIM, dtype=torch.float32),
-        out_dir / "omega-value-v1.onnx",
+        (torch.zeros(1, STATE_FEATURE_DIM, dtype=torch.float32),),
         input_names=["state"],
         output_names=["value"],
-        dynamic_axes={"state": {0: "batch"}, "value": {0: "batch"}},
-        opset_version=17,
-        dynamo=False,
-    )
+        dynamo=True,
+        verbose=False,
+    ).save(str(out_dir / "omega-value-v1.onnx"), external_data=False)
 
 
 def load_init(policy: Mlp, value: ValueNet, path: Path) -> None:
@@ -259,10 +283,13 @@ def train(args: argparse.Namespace) -> None:
         print(f"No init weights at {args.init}; training from scratch.")
 
     win_groups = sum(1 for g in groups if g["label"] > 0)
+    search_groups = sum(1 for g in groups if g.get("search_target") is not None)
     print(
-        f"Decision groups: {len(groups)} (win={win_groups}, loss={len(groups) - win_groups}) "
+        f"Decision groups: {len(groups)} (win={win_groups}, loss={len(groups) - win_groups}, "
+        f"search-target={search_groups}) "
         f"device={device.type} policy_hidden={policy_hidden} value_hidden={value_hidden} "
-        f"value_coef={args.value_coef} entropy_coef={args.entropy_coef}"
+        f"value_coef={args.value_coef} entropy_coef={args.entropy_coef} "
+        f"adv_clip={args.adv_clip} grad_clip={args.grad_clip}"
     )
 
     dataset = DecisionDataset(groups)
@@ -298,14 +325,33 @@ def train(args: argparse.Namespace) -> None:
             value_pred = value(state)  # [B]
             value_loss = F.mse_loss(value_pred, label)
             advantage = (label - value_pred).detach()  # [B]
+            # Standardize advantages within the batch (zero mean, unit variance).
+            # This is the key REINFORCE variance reducer: it makes the policy learn
+            # *relative* move quality this batch instead of pushing every losing-seat
+            # move down uniformly (which just diverges the logits). Then clamp the
+            # standardized values so no single decision dominates the update.
+            if advantage.numel() > 1:
+                advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-6)
+            advantage = advantage.clamp(-args.adv_clip, args.adv_clip)
 
             logits = policy(features.reshape(b * c, POLICY_FEATURE_DIM)).reshape(b, c)
             logits = torch.where(mask, logits, neg_inf)
             log_probs = F.log_softmax(logits, dim=1)  # [B, C]
             probs = log_probs.exp()
 
+            search_target = batch["search_target"].to(device)  # [B, C]
+            has_search = batch["has_search"].to(device)  # [B] bool
+
+            # REINFORCE loss (sampled move, advantage-weighted) — used where no search.
             chosen_log_prob = log_probs.gather(1, chosen.unsqueeze(1)).squeeze(1)
-            policy_loss = -(chosen_log_prob * advantage).mean()
+            reinforce = -(chosen_log_prob * advantage)  # [B]
+
+            # AlphaZero cross-entropy against the ISMCTS visit distribution — used
+            # where search targets exist. Far lower variance than REINFORCE.
+            ce = -(search_target * log_probs).sum(dim=1)  # [B]
+
+            per_group = torch.where(has_search, ce, reinforce)
+            policy_loss = per_group.mean()
 
             # Masked entropy (padding contributes 0 since probs there are 0).
             entropy = -(probs * torch.where(mask, log_probs, torch.zeros_like(log_probs)))
@@ -317,6 +363,10 @@ def train(args: argparse.Namespace) -> None:
                 - args.entropy_coef * entropy
             )
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(
+                list(policy.parameters()) + list(value.parameters()),
+                args.grad_clip,
+            )
             optimizer.step()
 
             pol_total += float(policy_loss.detach()) * b
@@ -389,11 +439,19 @@ def main() -> None:
         "--value-coef", type=float, default=env_float("OMEGA_VALUE_COEF", 1.0)
     )
     parser.add_argument(
-        "--entropy-coef", type=float, default=env_float("OMEGA_ENTROPY_COEF", 0.01)
+        "--entropy-coef", type=float, default=env_float("OMEGA_ENTROPY_COEF", 0.05)
     )
-    parser.add_argument("--epochs", type=int, default=env_int("OMEGA_EPOCHS", 20))
+    parser.add_argument(
+        "--adv-clip", type=float, default=env_float("OMEGA_ADV_CLIP", 3.0),
+        help="Clamp standardized advantage (z-score) magnitude (default 3.0 = 3σ)",
+    )
+    parser.add_argument(
+        "--grad-clip", type=float, default=env_float("OMEGA_GRAD_CLIP", 1.0),
+        help="Max gradient norm (default 1.0)",
+    )
+    parser.add_argument("--epochs", type=int, default=env_int("OMEGA_EPOCHS", 8))
     parser.add_argument("--batch-size", type=int, default=env_int("OMEGA_BATCH", 64))
-    parser.add_argument("--lr", type=float, default=env_float("OMEGA_LR", 1e-3))
+    parser.add_argument("--lr", type=float, default=env_float("OMEGA_LR", 3e-4))
     train(parser.parse_args())
 
 

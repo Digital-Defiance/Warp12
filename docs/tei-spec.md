@@ -39,7 +39,7 @@ Third parties MAY implement this spec to:
 | **K-factor** | Elo step size; decreases with experience |
 | **Search premium** | Non-negative integer Δ added to `REF_TEI(T, σ)` when the rated opponent used deep search (§7.1.2) |
 
-**Not TEI:** Chain-of-command rank names (Ensign / Lieutenant / Commander) in fiction — those map to AI simulation tiers only. Human **Tactical Class I** is earned by TEI ≥ 1650, not by title.
+**Not TEI:** Chain-of-command rank names (Ensign / Lieutenant / Commander) in fiction — those map to AI simulation tiers only. Human **Tactical Class I** is earned by TEI ≥ 1450, not by title.
 
 ### 2.1 Frozen reference anchors (normative)
 
@@ -47,6 +47,7 @@ Reference TEI bands (§7.1) are calibrated against **reference policies only**.
 
 1. **Heuristic-only execution.** Each σ MUST be implemented as the baseline greedy loop: `warpCandidateGenerator` (or equivalent) → heuristic scoring → skill-shaped selection. Class IV–II self-play calibration, paper benchmarks, and anchor spacing assume this stack.
 2. **Search is not an anchor.** Expectimax, ISMCTS, Fleet Admiral benches, and Class I\* residual models MAY be stronger than σ = `commander` heuristics; they MUST NOT retroactively change `REF_TEI(T, σ)`.
+   - **Class Ω (self-play neural, experimental).** A standalone policy/value network trained purely from self-play outcomes — no heuristic imitation, no Commander target. It is **not** a reference band in v1.1: matches against it are unrated (§4), exactly like Class I\*. If it clears the promotion bar (§9.5 of the paper: demonstrably above Class II with statistical significance across player counts and both objectives), a future spec version MAY add a fixed `REF_TEI(T, omega)` anchor (provisional target ~1700 points) — as a **new** band, never by moving Class IV–II constants.
 3. **Search is a rated modifier.** When a human plays an unassisted rated match against a **search-enabled** local opponent, the opponent rating used in §6.4 is `REF_TEI(T, σ) + Δ_search` — not the raw anchor alone.
 4. **Advisor is never rated.** Tactical advisor / coach suggestions disqualify the match (§4 E3) regardless of opponent policy.
 
@@ -292,10 +293,10 @@ From human-pool or primary display TEI on a track:
 |-----------|----------------|
 | `R < 1100` | IV — Provisional / New Profile |
 | `1100 ≤ R < 1350` | III — Competent / Standard |
-| `1350 ≤ R < 1650` | II — Veteran / Sharp |
-| `R ≥ 1650` | I — Elite / Master |
+| `1350 ≤ R < 1450` | II — Veteran / Sharp |
+| `R ≥ 1450` | I — Elite / Master |
 
-AI opponent **Class I\*** is experimental search tier — **not** a reference TEI band.
+AI opponent **Class I\*** is experimental search tier — **not** a reference TEI band. **Class Ω** is the self-play neural opponent (when promoted, reference ~1700).
 
 ### 7.3 Academy placement bands (starting TEI clamp)
 

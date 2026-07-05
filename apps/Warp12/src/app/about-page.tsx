@@ -166,7 +166,7 @@ export function AboutPage() {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Class I* — search without hiding the coach</h2>
           <p className={styles.p}>
-            <strong>Class I*</strong> is our experimental “Deep Blue” step for local
+            <strong>Class I*</strong> is our experimental “Deep Q” step for local
             play: the same Class II heuristics and explainable coach, but the AI
             opponent runs <strong>deep belief-state search</strong> before it commits
             to a move — expectimax in heads-up games, ISMCTS at three or more captains.
