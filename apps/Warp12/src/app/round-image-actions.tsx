@@ -4,10 +4,14 @@ import type { ShareRoundDelivery, ShareRoundImageMode } from '../game/share-roun
 import {
   LayerGroupIcon,
   RoundLogIcon,
+  RoundLogJsonIcon,
   SaveImageIcon,
   ShareImageIcon,
 } from './round-image-icons';
 import styles from './round-image-actions.module.scss';
+
+export const ROUND_LOG_REVIEW_LABEL = 'Review round log';
+export const ROUND_LOG_JSON_LABEL = 'Download round log (JSON)';
 
 interface RoundImageActionsProps {
   systemShareAvailable: boolean;
@@ -17,7 +21,8 @@ interface RoundImageActionsProps {
     mode: ShareRoundImageMode,
     delivery: ShareRoundDelivery
   ) => void | Promise<void>;
-  onSaveRoundLog?: () => void;
+  onOpenRoundLog?: () => void;
+  onDownloadRoundLogJson?: () => void;
   className?: string;
 }
 
@@ -89,36 +94,71 @@ function SplitIconGroup({
   );
 }
 
+function RoundLogSplitGroup({
+  disabled,
+  roundLogBusy,
+  onOpenRoundLog,
+  onDownloadRoundLogJson,
+}: {
+  disabled: boolean;
+  roundLogBusy: boolean;
+  onOpenRoundLog?: () => void;
+  onDownloadRoundLogJson?: () => void;
+}) {
+  return (
+    <div className={styles.splitGroup} role="group" aria-label="Round log">
+      <button
+        type="button"
+        className={styles.splitBtn}
+        disabled={disabled || !onOpenRoundLog}
+        data-busy={roundLogBusy ? 'true' : undefined}
+        aria-label={ROUND_LOG_REVIEW_LABEL}
+        title={ROUND_LOG_REVIEW_LABEL}
+        onClick={onOpenRoundLog}
+      >
+        {roundLogBusy ? (
+          <span className={styles.busyGlyph} aria-hidden>
+            ···
+          </span>
+        ) : (
+          <RoundLogIcon />
+        )}
+      </button>
+      <button
+        type="button"
+        className={styles.splitBtn}
+        disabled={disabled || !onDownloadRoundLogJson}
+        aria-label={ROUND_LOG_JSON_LABEL}
+        title={ROUND_LOG_JSON_LABEL}
+        onClick={onDownloadRoundLogJson}
+      >
+        <RoundLogJsonIcon />
+      </button>
+    </div>
+  );
+}
+
 export function RoundImageActions({
   systemShareAvailable,
   roundImageBusy,
   roundLogBusy = false,
   onRoundImage,
-  onSaveRoundLog,
+  onOpenRoundLog,
+  onDownloadRoundLogJson,
   className,
 }: RoundImageActionsProps) {
   const disabled = roundImageBusy !== null || roundLogBusy;
+  const showRoundLog = onOpenRoundLog ?? onDownloadRoundLogJson;
 
   return (
     <div className={[styles.row, className].filter(Boolean).join(' ')}>
-      {onSaveRoundLog && (
-        <button
-          type="button"
-          className={styles.singleBtn}
+      {showRoundLog && (
+        <RoundLogSplitGroup
           disabled={disabled}
-          data-busy={roundLogBusy ? 'true' : undefined}
-          aria-label="Open round log"
-          title="Open round log"
-          onClick={onSaveRoundLog}
-        >
-          {roundLogBusy ? (
-            <span className={styles.busyGlyph} aria-hidden>
-              ···
-            </span>
-          ) : (
-            <RoundLogIcon />
-          )}
-        </button>
+          roundLogBusy={roundLogBusy}
+          onOpenRoundLog={onOpenRoundLog}
+          onDownloadRoundLogJson={onDownloadRoundLogJson}
+        />
       )}
       <SplitIconGroup
         groupLabel="Save round image"

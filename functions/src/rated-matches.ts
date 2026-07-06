@@ -12,18 +12,30 @@ import {
 } from './auth';
 import {
   applyHumanTeiForPlayer,
+  applyGroupTeiForPlayer,
+  buildCertificatePlayer,
+  buildRatedMatchCertificate,
   buildTeiTableFromStandings,
   generateMatchCode,
+  groupObjectiveTeiStats,
+  groupRatedClaimId,
   humanObjectiveTeiStats,
   normalizeMatchCode,
   resolveEffectivePlayerTei,
   startingTeiForObjective,
+  WARP12_OFFICIAL_RULES_PROFILE_ID,
   type PlayerStatsDocument,
+  type RatedMatchCertificatePlayer,
   type RatedMatchDocument,
   type RatedMatchStanding,
   type RatedObjective,
   type WarpRole,
 } from './tei';
+import {
+  loadCharter,
+  validateCharterRatedMatch,
+  assertCharterMember,
+} from './charters';
 
 const db = admin.firestore();
 
@@ -81,23 +93,52 @@ function validateStandings(
 async function applyTeiForApprovedMatch(
   match: RatedMatchDocument
 ): Promise<void> {
+  const charter = match.charterId
+    ? await loadCharter(match.charterId)
+    : null;
+
   const teiByUid = new Map<string, { tei: number; matches: number }>();
   for (const row of match.standings) {
     const stats = await loadStats(row.uid);
-    const track = humanObjectiveTeiStats(stats, match.objective);
-    teiByUid.set(row.uid, {
-      tei: resolveEffectivePlayerTei(
-        track.unassistedTei,
-        track.unassistedMatches,
-        startingTeiForObjective(stats, match.objective)
-      ),
-      matches: track.unassistedMatches,
-    });
+    if (charter) {
+      const track = groupObjectiveTeiStats(
+        stats,
+        charter.charterId,
+        match.objective,
+        charter.seasonKey
+      );
+      teiByUid.set(row.uid, {
+        tei: resolveEffectivePlayerTei(
+          track.unassistedTei,
+          track.unassistedMatches,
+          startingTeiForObjective(stats, match.objective)
+        ),
+        matches: track.unassistedMatches,
+      });
+    } else {
+      const track = humanObjectiveTeiStats(stats, match.objective);
+      teiByUid.set(row.uid, {
+        tei: resolveEffectivePlayerTei(
+          track.unassistedTei,
+          track.unassistedMatches,
+          startingTeiForObjective(stats, match.objective)
+        ),
+        matches: track.unassistedMatches,
+      });
+    }
   }
 
   const table = buildTeiTableFromStandings(match, teiByUid);
   const now = new Date().toISOString();
   const claims: Record<string, boolean> = { ...(match.teiClaims ?? {}) };
+  const groupClaim = charter
+    ? groupRatedClaimId(
+        charter.charterId,
+        match.matchCode,
+        charter.seasonKey
+      )
+    : null;
+  const certificatePlayers: RatedMatchCertificatePlayer[] = [];
 
   for (const row of match.standings) {
     if (claims[row.uid]) {
@@ -105,43 +146,112 @@ async function applyTeiForApprovedMatch(
     }
 
     const existing = await loadStats(row.uid);
-    const applied = applyHumanTeiForPlayer(
-      existing,
-      match.objective,
-      table,
-      row.uid
-    );
-    if (!applied) {
+    if (
+      groupClaim &&
+      existing?.groupRatedIds?.includes(groupClaim)
+    ) {
+      claims[row.uid] = true;
       continue;
     }
 
     const participant = match.participants.find((p) => p.uid === row.uid);
-    const base = existing ?? emptyStats(row.uid, participant?.displayName ?? 'Captain');
-    const ratedIds = [...(base.humanRatedGameIds ?? []), match.matchCode];
+    const base =
+      existing ?? emptyStats(row.uid, participant?.displayName ?? 'Captain');
+
+    let teiBefore = 0;
+    let teiAfter = 0;
+    let won = false;
+    let rank = row.rank;
+    let humanTei = base.humanTei;
+    let groupTei = base.groupTei;
+    const groupRatedIds = [...(base.groupRatedIds ?? [])];
+    let globalTeiBefore: number | undefined;
+    let globalTeiAfter: number | undefined;
+
+    if (charter) {
+      const groupApplied = applyGroupTeiForPlayer(
+        existing,
+        charter.charterId,
+        match.objective,
+        table,
+        row.uid,
+        charter.seasonKey
+      );
+      if (!groupApplied) {
+        continue;
+      }
+      teiBefore = groupApplied.teiBefore;
+      teiAfter = groupApplied.teiAfter;
+      won = groupApplied.won;
+      rank = groupApplied.rank;
+      groupTei = groupApplied.groupTei;
+      if (groupClaim && !groupRatedIds.includes(groupClaim)) {
+        groupRatedIds.push(groupClaim);
+      }
+
+      if (charter.isGlobalOfficial) {
+        const humanApplied = applyHumanTeiForPlayer(
+          existing,
+          match.objective,
+          table,
+          row.uid
+        );
+        if (humanApplied) {
+          humanTei = humanApplied.humanTei;
+          globalTeiBefore = humanApplied.teiBefore;
+          globalTeiAfter = humanApplied.teiAfter;
+        }
+      }
+    } else {
+      const applied = applyHumanTeiForPlayer(
+        existing,
+        match.objective,
+        table,
+        row.uid
+      );
+      if (!applied) {
+        continue;
+      }
+      teiBefore = applied.teiBefore;
+      teiAfter = applied.teiAfter;
+      won = applied.won;
+      rank = applied.rank;
+      humanTei = applied.humanTei;
+    }
 
     const historyEntry = {
       playedAt: now,
       objective: match.objective,
       opponentContext: 'human' as const,
-      playerCount: match.participants.length,
-      finishRank: applied.rank,
-      won: applied.won,
+      playerCount:
+        match.playerCount ?? match.participants.length,
+      finishRank: rank,
+      won,
       advisorUsed: false,
-      teiBefore: applied.teiBefore,
-      teiAfter: applied.teiAfter,
-      teiDelta: applied.teiAfter - applied.teiBefore,
+      teiBefore,
+      teiAfter,
+      teiDelta: teiAfter - teiBefore,
+      charterId: charter?.charterId,
+      charterName: charter?.name,
     };
     const priorHistory = (base as { matchHistory?: unknown[] }).matchHistory ?? [];
     const matchHistory = [historyEntry, ...priorHistory].slice(0, 60);
+    const ratedIds = !charter
+      ? [...(base.humanRatedGameIds ?? []), match.matchCode]
+      : charter.isGlobalOfficial
+        ? [...(base.humanRatedGameIds ?? []), match.matchCode]
+        : base.humanRatedGameIds;
 
     await statsRef(row.uid).set(
       {
         ...base,
         displayName: participant?.displayName ?? base.displayName,
         matchesCompleted: base.matchesCompleted + 1,
-        matchesWon: base.matchesWon + (applied.won ? 1 : 0),
-        humanTei: applied.humanTei,
+        matchesWon: base.matchesWon + (won ? 1 : 0),
+        humanTei,
+        groupTei,
         humanRatedGameIds: ratedIds,
+        groupRatedIds,
         matchHistory,
         lastPlayedAt: now,
         updatedAt: now,
@@ -150,10 +260,44 @@ async function applyTeiForApprovedMatch(
     );
 
     claims[row.uid] = true;
+
+    const standing = match.standings.find((s) => s.uid === row.uid);
+    certificatePlayers.push(
+      buildCertificatePlayer({
+        uid: row.uid,
+        displayName: participant?.displayName ?? base.displayName,
+        rank,
+        score: standing?.score ?? 0,
+        teiBefore,
+        teiAfter,
+        charterId: charter?.charterId,
+        globalTeiBefore,
+        globalTeiAfter,
+      })
+    );
   }
+
+  const certificate = buildRatedMatchCertificate({
+    matchCode: match.matchCode,
+    issuedAt: now,
+    objective: match.objective,
+    charter: charter
+      ? {
+          charterId: charter.charterId,
+          name: charter.name,
+          slug: charter.slug,
+          rulesProfileId: charter.rulesProfileId,
+          playerCount: charter.playerCount,
+          campaignRounds: charter.campaignRounds,
+          seasonLabel: charter.seasonLabel,
+        }
+      : undefined,
+    players: certificatePlayers,
+  });
 
   await matchRef(match.matchCode).update({
     teiClaims: claims,
+    certificate,
     updatedAt: now,
   });
 }
@@ -193,15 +337,36 @@ export const createRatedMatch = onCall(async (request) => {
     venue?: string;
     notes?: string;
     officialDisplayName?: string;
+    charterId?: string;
+    playerCount?: number;
+    rulesProfileId?: string;
   };
 
-  if (data.objective !== 'go-out' && data.objective !== 'points') {
+  let objective = data.objective;
+  let campaignRounds = data.campaignRounds ?? 4;
+  let charterId = data.charterId?.trim() || undefined;
+  let playerCount = data.playerCount;
+  let rulesProfileId = data.rulesProfileId ?? WARP12_OFFICIAL_RULES_PROFILE_ID;
+
+  if (charterId) {
+    const charter = await loadCharter(charterId);
+    await assertCharterMember(charter, officialId);
+    objective = charter.objective;
+    campaignRounds = charter.campaignRounds;
+    playerCount = charter.playerCount;
+    rulesProfileId = charter.rulesProfileId;
+  }
+
+  if (objective !== 'go-out' && objective !== 'points') {
     throw new HttpsError('invalid-argument', 'objective must be go-out or points.');
   }
 
-  const campaignRounds = data.campaignRounds ?? 4;
   if (campaignRounds < 1 || campaignRounds > 13) {
     throw new HttpsError('invalid-argument', 'campaignRounds must be 1–13.');
+  }
+
+  if (playerCount !== undefined && (playerCount < 2 || playerCount > 8)) {
+    throw new HttpsError('invalid-argument', 'playerCount must be 2–8.');
   }
 
   let matchCode = generateMatchCode();
@@ -217,7 +382,7 @@ export const createRatedMatch = onCall(async (request) => {
   const doc: RatedMatchDocument = {
     matchCode,
     status: 'open',
-    objective: data.objective,
+    objective,
     campaignRounds,
     venue: data.venue?.trim() || undefined,
     notes: data.notes?.trim() || undefined,
@@ -229,6 +394,9 @@ export const createRatedMatch = onCall(async (request) => {
     participants: [],
     standings: [],
     teiClaims: {},
+    charterId,
+    rulesProfileId,
+    playerCount,
   };
 
   await matchRef(matchCode).set(doc);
@@ -257,6 +425,16 @@ export const checkInToMatch = onCall(async (request) => {
       'failed-precondition',
       `Match is ${match.status}; check-in is only allowed while open.`
     );
+  }
+
+  if (match.charterId) {
+    const charter = await loadCharter(match.charterId);
+    if (!charter.memberUids.includes(uid)) {
+      throw new HttpsError(
+        'permission-denied',
+        'Join this crew on the leaderboard before checking in to a crew match.'
+      );
+    }
   }
 
   if (match.participants.some((p) => p.uid === uid)) {
@@ -307,6 +485,17 @@ export const submitMatchStandings = onCall(async (request) => {
   }
 
   validateStandings(standings, match.participants);
+
+  if (match.charterId) {
+    const charter = await loadCharter(match.charterId);
+    await validateCharterRatedMatch(charter, {
+      objective: match.objective,
+      campaignRounds: match.campaignRounds,
+      rulesProfileId: match.rulesProfileId,
+      playerCount: match.playerCount,
+      participantUids: match.participants.map((p) => p.uid),
+    });
+  }
 
   const now = new Date().toISOString();
   await ref.update({

@@ -1,7 +1,9 @@
 import { DEFAULT_CAMPAIGN_ROUNDS, DEFAULT_GAME_OBJECTIVE, type GameObjective } from 'warp12-engine';
 
 import type { CreateLobbyOptions } from '../firebase';
+import type { PublicCharterView } from '../firebase/charter-service.js';
 import { clampOnlineMaxPlayers } from '../firebase';
+import { lobbyOptionsFromCharter } from '../game/charter-lobby.js';
 import { warp12OfficialCreateLobbyOptions } from '../game/warp12-preset.js';
 import {
   LOCAL_MAX_PLAYERS,
@@ -27,6 +29,7 @@ interface LobbyProps {
   error: string | null;
   firebaseReady: boolean;
   firebaseConfigured: boolean;
+  myCharters?: PublicCharterView[];
 }
 
 export function LobbyForm({
@@ -42,7 +45,11 @@ export function LobbyForm({
   error,
   firebaseReady,
   firebaseConfigured,
+  myCharters = [],
 }: LobbyProps) {
+  const charterLocked = Boolean(createOptions.charterId);
+  const activeCharter =
+    myCharters.find((crew) => crew.charterId === createOptions.charterId) ?? null;
   const setObjective = (objective: GameObjective) =>
     onCreateOptionsChange({ ...createOptions, objective });
 
@@ -100,10 +107,53 @@ export function LobbyForm({
         />
       </label>
 
+      {myCharters.length > 0 && (
+        <label className={styles.field}>
+          <span>Quick setup from crew</span>
+          <select
+            aria-label="Crew quick setup"
+            value={createOptions.charterId ?? ''}
+            disabled={baseDisabled}
+            onChange={(e) => {
+              const crewId = e.target.value;
+              if (!crewId) {
+                onCreateOptionsChange({
+                  ...createOptions,
+                  charterId: undefined,
+                  rulesProfileId: undefined,
+                });
+                return;
+              }
+              const crew = myCharters.find((row) => row.charterId === crewId);
+              if (!crew) {
+                return;
+              }
+              onCreateOptionsChange(lobbyOptionsFromCharter(crew, createOptions));
+            }}
+          >
+            <option value="">Custom sector settings</option>
+            {myCharters.map((crew) => (
+              <option key={crew.charterId} value={crew.charterId}>
+                {crew.name} ({crew.playerCount}p ·{' '}
+                {crew.objective === 'go-out' ? 'go-out' : 'points'})
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      {activeCharter && (
+        <p className={styles.notice} role="status">
+          Crew charter: {activeCharter.name} — lobby settings locked to match
+          your crew rules.
+        </p>
+      )}
+
       <ObjectivePicker
         name="online-objective"
         value={createOptions.objective ?? DEFAULT_GAME_OBJECTIVE}
         onChange={setObjective}
+        disabled={baseDisabled || charterLocked}
       />
 
       {(createOptions.objective ?? DEFAULT_GAME_OBJECTIVE) === 'points' && (
@@ -112,13 +162,17 @@ export function LobbyForm({
           <CampaignRoundsField
             value={createOptions.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS}
             onChange={setCampaignRounds}
+            disabled={baseDisabled || charterLocked}
           />
         </fieldset>
       )}
 
       <fieldset className={styles.fieldset}>
         <legend>Rules preset</legend>
-        <Warp12RulesPreset onApply={applyOfficialWarp12Rules} disabled={baseDisabled} />
+        <Warp12RulesPreset
+          onApply={applyOfficialWarp12Rules}
+          disabled={baseDisabled || charterLocked}
+        />
       </fieldset>
 
       <fieldset className={styles.fieldset}>
@@ -143,6 +197,7 @@ export function LobbyForm({
           <select
             aria-label="Fleet capacity"
             value={createOptions.maxPlayers ?? LOCAL_MAX_PLAYERS}
+            disabled={baseDisabled || charterLocked}
             onChange={(e) => setMaxPlayers(Number(e.target.value))}
           >
             {Array.from(
@@ -159,6 +214,7 @@ export function LobbyForm({
           <input
             type="checkbox"
             checked={createOptions.modules?.salamanderPenalty ?? false}
+            disabled={baseDisabled || charterLocked}
             onChange={(e) =>
               setModules({ salamanderPenalty: e.target.checked })
             }
@@ -169,6 +225,7 @@ export function LobbyForm({
           <input
             type="checkbox"
             checked={createOptions.modules?.qContinuum ?? false}
+            disabled={baseDisabled || charterLocked}
             onChange={(e) => setModules({ qContinuum: e.target.checked })}
           />
           <span>Module Alpha — Q-Continuum</span>
@@ -179,6 +236,7 @@ export function LobbyForm({
         <legend>Game options</legend>
         <DoubleZeroScoreField
           value={createOptions.houseRules?.doubleZeroScore}
+          disabled={baseDisabled || charterLocked}
           onChange={(doubleZeroScore) =>
             onCreateOptionsChange({
               ...createOptions,
@@ -189,6 +247,7 @@ export function LobbyForm({
         <SubspaceFractureOptions
           enabled={createOptions.modules?.subspaceFracture ?? false}
           scope={createOptions.modules?.subspaceFractureScope ?? 'own-trail'}
+          disabled={baseDisabled || charterLocked}
           onEnabledChange={(enabled) => setModules({ subspaceFracture: enabled })}
           onScopeChange={(scope) =>
             setModules({ subspaceFractureScope: scope })
@@ -196,6 +255,7 @@ export function LobbyForm({
         />
         <HouseRulesOptions
           value={createOptions.houseRules ?? {}}
+          disabled={baseDisabled || charterLocked}
           onChange={(patch) =>
             onCreateOptionsChange({
               ...createOptions,

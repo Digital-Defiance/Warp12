@@ -45,6 +45,45 @@ export interface RatedMatchDocument {
   standings: RatedMatchStanding[];
   /** Per-uid TEI applied after approval. */
   teiClaims?: Record<string, boolean>;
+  /** Friend-group / charter ladder this match counts toward. */
+  charterId?: string;
+  rulesProfileId?: string;
+  playerCount?: number;
+  /** Issued on approval — downloadable match certificate (Phase 4). */
+  certificate?: RatedMatchCertificate;
+}
+
+export interface RatedMatchCertificatePlayer {
+  uid: string;
+  displayName: string;
+  rank: number;
+  score: number;
+  crewTeiBefore?: number;
+  crewTeiAfter?: number;
+  crewTeiDelta?: number;
+  globalTeiBefore?: number;
+  globalTeiAfter?: number;
+  globalTeiDelta?: number;
+  humanTeiBefore?: number;
+  humanTeiAfter?: number;
+  humanTeiDelta?: number;
+}
+
+export interface RatedMatchCertificate {
+  version: 1;
+  matchCode: string;
+  issuedAt: string;
+  objective: RatedObjective;
+  charter?: {
+    charterId: string;
+    name: string;
+    slug: string;
+    rulesProfileId: string;
+    playerCount: number;
+    campaignRounds: number;
+    seasonLabel?: string;
+  };
+  players: RatedMatchCertificatePlayer[];
 }
 
 export function normalizeMatchCode(raw: string): string {
@@ -73,6 +112,7 @@ export interface ObjectiveTeiStats {
 export interface HumanTeiStats {
   goOut?: ObjectiveTeiStats;
   points?: ObjectiveTeiStats;
+  seasonKey?: string;
 }
 
 export interface PlayerStatsDocument {
@@ -86,6 +126,10 @@ export interface PlayerStatsDocument {
   startingTei?: Partial<Record<'goOut' | 'points', number>>;
   humanTei?: HumanTeiStats;
   humanRatedGameIds?: string[];
+  /** Scoped TEI per crew charter (`charterId` → track buckets). */
+  groupTei?: Record<string, HumanTeiStats>;
+  /** Idempotency keys `${charterId}:${matchCode|gameId}`. */
+  groupRatedIds?: string[];
   updatedAt: string;
 }
 

@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { benchOmegaParallel } from '../../libs/engine/src/lib/ai/bench-omega-parallel.ts';
 import {
-  benchOmegaVsCommander,
   validateOmegaModelWeights,
   type OmegaModelWeights,
 } from '../../libs/engine/src/lib/ai/index.ts';
@@ -36,13 +36,15 @@ for (const playerCount of playerCounts) {
   const seatIds = playerCount === 2 ? (['a', 'b'] as const) : (['a'] as const);
   for (const omegaSeatId of seatIds) {
     results.push(
-      benchOmegaVsCommander({
-        games,
-        net,
-        seed,
-        objective,
-        playerCount,
-        omegaSeatId,
+      await benchOmegaParallel({
+        options: {
+          games,
+          net,
+          seed,
+          objective,
+          playerCount,
+          omegaSeatId,
+        },
       })
     );
   }

@@ -1,15 +1,25 @@
 # Rated matches (officiated TEI)
 
-Human-pool TEI for **offline / in-person** domino is applied only through **approved rated matches** on [leaderboard.warp12.app](https://leaderboard.warp12.app).
+Human-pool and **crew** TEI for **offline / in-person** domino is applied through **approved rated matches** on [leaderboard.warp12.app](https://leaderboard.warp12.app).
 
 ## Flow
 
 1. **Match official** (role: `match_official`) creates a match → receives code e.g. `MT-7K3Q`
 2. **Captains** sign in with Google at `/matches` and check in with the code
 3. After play, the **official** enters standings at `/officiate/{code}`
-4. **Official approves** → Cloud Function applies human-pool TEI server-side
+4. **Official approves** → Cloud Function applies TEI server-side
 
 Practice vs AI TEI still uses the `reportPracticeAiMatch` callable (reference-AI buckets).
+
+## Crew-rated matches
+
+When the official selects a **crew charter** at `/officiate`:
+
+1. Match objective, fleet size, and campaign length are **locked** to the charter.
+2. Checked-in captains must be **members** of that crew (join via invite link first).
+3. On approval, TEI updates **`groupTei[charterId]`** — not global `humanTei`, unless the charter is **Global Official** (updates both).
+
+See [Crews & charters](./crews-roadmap.md) for membership, invites, and online sector parity.
 
 ## Roles
 
@@ -90,8 +100,10 @@ Anyone who knows `BOOTSTRAP_ADMIN_SECRET` can claim admin **until you rotate or 
 
 ## Firestore
 
-- `ratedMatches/{matchCode}` — read-only to clients; writes via Admin SDK (Functions)
-- `playerStats/{uid}` — clients cannot mutate `humanTei`, `humanRatedGameIds`, or `localAi`
+- `ratedMatches/{matchCode}` — read-only to clients; writes via Admin SDK (Functions); optional `charterId`, `rulesProfileId`, `playerCount`
+- `charters/{charterId}` — read-only to clients; writes via Functions
+- `charterMembers/{charterId}_{uid}` — read own membership only
+- `playerStats/{uid}` — clients cannot mutate `humanTei`, `humanRatedGameIds`, `groupTei`, `groupRatedIds`, or `localAi`
 
 ## Bridge integration
 

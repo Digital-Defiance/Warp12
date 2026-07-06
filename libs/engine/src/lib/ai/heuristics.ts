@@ -495,7 +495,7 @@ const qContinuum: WarpHeuristic = {
 
 /**
  * Drop to Impulse: strongly prefer announcing when stuck at one tile with no
- * chart; a small bonus when a legal chart exists (table manners).
+ * chart; a small bonus when going out on a later turn after announcing.
  */
 const dropToImpulseDeclare: WarpHeuristic = {
   id: H.dropToImpulseDeclare,
@@ -505,15 +505,7 @@ const dropToImpulseDeclare: WarpHeuristic = {
     if (ctx.obs.round.dropToImpulseCallPending !== ctx.obs.playerId) return 0;
     if (ctx.hand.length !== 1) return 0;
 
-    const hasChart = getLegalMoves(
-      ctx.obs.round,
-      ctx.obs.playerId,
-      ctx.obs.houseRules
-    ).length > 0;
-    if (!hasChart) {
-      return 80;
-    }
-    return ctx.obs.objective === 'go-out' ? 8 : 5;
+    return ctx.obs.objective === 'go-out' ? 80 : 75;
   },
 };
 
@@ -539,11 +531,6 @@ const dropToImpulseForget: WarpHeuristic = {
     if (!ctx.obs.houseRules.dropToImpulseCall) return 0;
     if (ctx.obs.round.dropToImpulseCallPending !== ctx.obs.playerId) return 0;
     if (ctx.hand.length !== 1) return 0;
-    if (
-      getLegalMoves(ctx.obs.round, ctx.obs.playerId, ctx.obs.houseRules).length > 0
-    ) {
-      return 0;
-    }
     return 35;
   },
 };

@@ -450,7 +450,7 @@ def main() -> None:
         help="Max gradient norm (default 1.0)",
     )
     parser.add_argument("--epochs", type=int, default=env_int("OMEGA_EPOCHS", 8))
-    parser.add_argument("--batch-size", type=int, default=env_int("OMEGA_BATCH", 64))
+    parser.add_argument("--batch-size", type=int, default=env_int("OMEGA_BATCH", 512))
     parser.add_argument("--lr", type=float, default=env_float("OMEGA_LR", 3e-4))
     train(parser.parse_args())
 

@@ -18,6 +18,7 @@ export default defineConfig(() => ({
   },
   resolve: {
     dedupe: ['react', 'react-dom'],
+    conditions: ['@warp12/source', 'import', 'module', 'browser', 'default'],
     alias: {
       doubletwelve: path.resolve(
         import.meta.dirname,

@@ -1,4 +1,6 @@
-export type RatedObjective = 'go-out' | 'points';
+import type { RatedObjective } from './rated-match-schema.js';
+
+export type { RatedObjective } from './rated-match-schema.js';
 export type AiSkillLevel = 'ensign' | 'lieutenant' | 'commander';
 
 export const DEFAULT_UNASSISTED_TEI = 1000;

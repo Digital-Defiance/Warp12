@@ -66,6 +66,7 @@ import { archiveFractureStabilizers } from '../table/fracture-stabilizers.js';
 import {
   advanceTurnWithDropToImpulse,
   applyDropToImpulsePenaltyDraw,
+  isDropToImpulseAnnouncePending,
   maybeMarkDropToImpulsePending,
 } from './drop-to-impulse.js';
 
@@ -1064,6 +1065,12 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
 
       if (qResolutionBlocksAction(round, action.playerId)) {
         return fail('Q_FLASH_NOT_PENDING');
+      }
+
+      if (
+        isDropToImpulseAnnouncePending(round, action.playerId, state.houseRules)
+      ) {
+        return fail('DROP_TO_IMPULSE_CHART_BLOCKED');
       }
 
       if (

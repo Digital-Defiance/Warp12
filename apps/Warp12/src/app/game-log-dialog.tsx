@@ -2,8 +2,14 @@ import { useEffect } from 'react';
 
 import type { NameColorEntry } from './game-log-display.js';
 import { GameLogLine } from './game-log-line.js';
+import {
+  ROUND_LOG_JSON_LABEL,
+} from './round-image-actions.js';
+import { RoundLogJsonIcon } from './round-image-icons.js';
 import dialogStyles from './rules-view.module.scss';
 import styles from './game-log-dialog.module.scss';
+
+export const ROUND_LOG_TEXT_LABEL = 'Download round log (text)';
 
 export interface GameLogDialogProps {
   open: boolean;
@@ -12,7 +18,9 @@ export interface GameLogDialogProps {
   lines: readonly string[];
   nameColors: readonly NameColorEntry[];
   downloadFilename: string;
+  downloadJsonFilename: string;
   onDownload: () => void;
+  onDownloadJson: () => void;
   downloadBusy?: boolean;
 }
 
@@ -23,7 +31,9 @@ export function GameLogDialog({
   lines,
   nameColors,
   downloadFilename,
+  downloadJsonFilename,
   onDownload,
+  onDownloadJson,
   downloadBusy = false,
 }: GameLogDialogProps) {
   useEffect(() => {
@@ -83,16 +93,31 @@ export function GameLogDialog({
         </div>
 
         <footer className={styles.footer}>
-          <p className={styles.hint}>Review the log, then download if you want a copy.</p>
-          <button
-            type="button"
-            className={styles.downloadBtn}
-            disabled={downloadBusy || lines.length === 0}
-            onClick={onDownload}
-            title={downloadFilename}
-          >
-            {downloadBusy ? 'Preparing…' : 'Download log'}
-          </button>
+          <p className={styles.hint}>
+            Review the log, then download a text or JSON copy.
+          </p>
+          <div className={styles.downloadActions}>
+            <button
+              type="button"
+              className={styles.downloadBtn}
+              disabled={downloadBusy || lines.length === 0}
+              onClick={onDownload}
+              aria-label={ROUND_LOG_TEXT_LABEL}
+              title={`${ROUND_LOG_TEXT_LABEL} — ${downloadFilename}`}
+            >
+              {downloadBusy ? 'Preparing…' : 'Download text'}
+            </button>
+            <button
+              type="button"
+              className={styles.downloadJsonBtn}
+              disabled={downloadBusy || lines.length === 0}
+              onClick={onDownloadJson}
+              aria-label={ROUND_LOG_JSON_LABEL}
+              title={`${ROUND_LOG_JSON_LABEL} — ${downloadJsonFilename}`}
+            >
+              <RoundLogJsonIcon />
+            </button>
+          </div>
         </footer>
       </div>
     </div>

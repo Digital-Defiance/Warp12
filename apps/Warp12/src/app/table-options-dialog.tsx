@@ -50,7 +50,9 @@ export interface TableOptionsDialogProps {
     mode: ShareRoundImageMode,
     delivery: ShareRoundDelivery
   ) => void | Promise<void>;
-  onSaveRoundLog?: () => void;
+  onOpenRoundLog?: () => void;
+  onDownloadRoundLogJson?: () => void;
+  roundLogBusy?: boolean;
 }
 
 export function TableOptionsDialog({
@@ -83,7 +85,9 @@ export function TableOptionsDialog({
   systemShareAvailable = false,
   roundImageBusy = null,
   onRoundImage,
-  onSaveRoundLog,
+  onOpenRoundLog,
+  onDownloadRoundLogJson,
+  roundLogBusy = false,
 }: TableOptionsDialogProps) {
   useEffect(() => {
     if (!open) {
@@ -320,14 +324,16 @@ export function TableOptionsDialog({
               <RoundImageActions
                 systemShareAvailable={systemShareAvailable}
                 roundImageBusy={roundImageBusy}
+                roundLogBusy={roundLogBusy}
                 onRoundImage={onRoundImage}
-                onSaveRoundLog={onSaveRoundLog}
+                onOpenRoundLog={onOpenRoundLog}
+                onDownloadRoundLogJson={onDownloadRoundLogJson}
               />
               <p className={optionStyles.hint}>
-                Book icon opens the round log to review before download. Left save segment:
-                board + logo. Right segment (layer group icon): adds stats
-                overlay. Hover for labels; save downloads, share opens the
-                system sheet.
+                Book icon opens the round log to review; curly-brace icon
+                downloads structured JSON. Left save segment: board + logo. Right
+                segment (layer group icon): adds stats overlay. Hover for
+                labels; save downloads, share opens the system sheet.
               </p>
             </section>
           )}

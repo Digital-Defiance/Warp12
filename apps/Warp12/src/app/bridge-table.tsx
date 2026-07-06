@@ -67,6 +67,7 @@ import { downloadDebugExport } from '../game/debug-export.js';
 import {
   buildRoundLogFilename,
   downloadRoundLog,
+  downloadRoundLogJson,
 } from '../game/save-round-log.js';
 import {
   canUseSystemShare,
@@ -1637,13 +1638,66 @@ export function BridgeTable({
     return buildRoundLogFilename(
       round.roundNumber,
       new Date().toISOString(),
-      sectorCode ?? (isOnline ? undefined : 'local')
+      sectorCode ?? (isOnline ? undefined : 'local'),
+      'txt'
+    );
+  }, [isOnline, round, sectorCode]);
+  const roundLogJsonFilename = useMemo(() => {
+    if (!round) {
+      return 'warp12-round-log.json';
+    }
+    return buildRoundLogFilename(
+      round.roundNumber,
+      new Date().toISOString(),
+      sectorCode ?? (isOnline ? undefined : 'local'),
+      'json'
     );
   }, [isOnline, round, sectorCode]);
 
   const handleOpenRoundLog = useCallback(() => {
     setGameLogDialogOpen(true);
   }, []);
+
+  const buildCurrentRoundLogExport = useCallback(() => {
+    if (!round) {
+      return null;
+    }
+    return buildRoundLogExport(
+      gameLogRef.current.snapshot(),
+      round.roundNumber,
+      names,
+      {
+        sectorCode: sectorCode ?? (isOnline ? undefined : 'local'),
+        roundStartedAtMs: roundStartedAtRef.current,
+      }
+    );
+  }, [isOnline, names, round, sectorCode]);
+
+  const handleDownloadRoundLog = useCallback(() => {
+    const payload = buildCurrentRoundLogExport();
+    if (!payload) {
+      return;
+    }
+    setRoundLogDownloadBusy(true);
+    try {
+      downloadRoundLog(payload);
+    } finally {
+      setRoundLogDownloadBusy(false);
+    }
+  }, [buildCurrentRoundLogExport]);
+
+  const handleDownloadRoundLogJson = useCallback(() => {
+    const payload = buildCurrentRoundLogExport();
+    if (!payload) {
+      return;
+    }
+    setRoundLogDownloadBusy(true);
+    try {
+      downloadRoundLogJson(payload);
+    } finally {
+      setRoundLogDownloadBusy(false);
+    }
+  }, [buildCurrentRoundLogExport]);
 
   const focusPlayerIdsForAdvisor = useMemo(() => {
     if (isVsAi) {
@@ -1845,28 +1899,6 @@ export function BridgeTable({
     },
     [shareRoundMetadata]
   );
-
-  const handleDownloadRoundLog = useCallback(() => {
-    if (!round) {
-      return;
-    }
-    setRoundLogDownloadBusy(true);
-    try {
-      downloadRoundLog(
-        buildRoundLogExport(
-          gameLogRef.current.snapshot(),
-          round.roundNumber,
-          names,
-          {
-            sectorCode: sectorCode ?? (isOnline ? undefined : 'local'),
-            roundStartedAtMs: roundStartedAtRef.current,
-          }
-        )
-      );
-    } finally {
-      setRoundLogDownloadBusy(false);
-    }
-  }, [round, names, sectorCode, isOnline]);
 
   useEffect(() => {
     if (!roundAwaitingScore || !round) {
@@ -2263,7 +2295,10 @@ export function BridgeTable({
           systemShareAvailable={systemShareAvailable}
           roundImageBusy={roundImageBusy}
           onRoundImage={handleRoundImage}
-          onSaveRoundLog={canShareRound ? handleOpenRoundLog : undefined}
+          onOpenRoundLog={canShareRound ? handleOpenRoundLog : undefined}
+          onDownloadRoundLogJson={
+            canShareRound ? handleDownloadRoundLogJson : undefined
+          }
           roundLogBusy={roundLogDownloadBusy}
         />
 
@@ -2459,7 +2494,9 @@ export function BridgeTable({
                 systemShareAvailable={systemShareAvailable}
                 roundImageBusy={roundImageBusy}
                 onRoundImage={handleRoundImage}
-                onSaveRoundLog={handleOpenRoundLog}
+                onOpenRoundLog={handleOpenRoundLog}
+                onDownloadRoundLogJson={handleDownloadRoundLogJson}
+                roundLogBusy={roundLogDownloadBusy}
               />
               <div className={styles.roundEndActions}>
                 {canOpenAdvisorReport && (
@@ -2501,7 +2538,9 @@ export function BridgeTable({
               systemShareAvailable={systemShareAvailable}
               roundImageBusy={roundImageBusy}
               onRoundImage={handleRoundImage}
-              onSaveRoundLog={handleOpenRoundLog}
+              onOpenRoundLog={handleOpenRoundLog}
+              onDownloadRoundLogJson={handleDownloadRoundLogJson}
+              roundLogBusy={roundLogDownloadBusy}
             />
             <div className={styles.roundEndActions}>
               {canOpenAdvisorReport && (
@@ -2542,7 +2581,9 @@ export function BridgeTable({
           lines={gameLogLines}
           nameColors={gameLogNameColors}
           downloadFilename={roundLogFilename}
+          downloadJsonFilename={roundLogJsonFilename}
           onDownload={handleDownloadRoundLog}
+          onDownloadJson={handleDownloadRoundLogJson}
           downloadBusy={roundLogDownloadBusy}
         />
 
