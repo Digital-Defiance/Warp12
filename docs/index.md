@@ -35,7 +35,8 @@ For hands-on development, start with [System Architecture](architecture) and the
 | -------- | ----------- |
 | [TEI Specification](tei-spec) | Normative dual-track Elo-style rating for **points** and **go-out** campaigns — interoperable across platforms |
 | [Calibration Log](calibration-log) | Living self-play record: tier-vs-tier matrices, optimizer passes, Fleet Admiral benches |
-| [Rated Matches](rated-matches) | Officiated human-pool TEI for in-person play via the leaderboard |
+| [Rated Matches](rated-matches) | Officiated TEI for in-person play — global human pool or crew charters |
+| [Crews & Charters](crews-roadmap) | Friend-group ladders (shipped); Global Official + ecosystem (Phase 3–4) |
 
 ### Research
 

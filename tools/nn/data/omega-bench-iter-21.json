@@ -1,0 +1,51 @@
+{
+  "weights": "tools/nn/data/omega-candidate/omega-v1.json",
+  "objective": "points",
+  "gamesPerSlice": 120,
+  "results": [
+    {
+      "games": 120,
+      "completed": 120,
+      "objective": "points",
+      "playerCount": 3,
+      "omegaSeatId": "a",
+      "omegaWins": 45,
+      "omegaWinRate": 0.375,
+      "impliedEloGap": null,
+      "fairShareRatio": 1.125
+    },
+    {
+      "games": 120,
+      "completed": 120,
+      "objective": "points",
+      "playerCount": 4,
+      "omegaSeatId": "a",
+      "omegaWins": 33,
+      "omegaWinRate": 0.275,
+      "impliedEloGap": null,
+      "fairShareRatio": 1.1
+    },
+    {
+      "games": 120,
+      "completed": 120,
+      "objective": "points",
+      "playerCount": 6,
+      "omegaSeatId": "a",
+      "omegaWins": 29,
+      "omegaWinRate": 0.24166666666666667,
+      "impliedEloGap": null,
+      "fairShareRatio": 1.45
+    },
+    {
+      "games": 120,
+      "completed": 120,
+      "objective": "points",
+      "playerCount": 8,
+      "omegaSeatId": "a",
+      "omegaWins": 26,
+      "omegaWinRate": 0.21666666666666667,
+      "impliedEloGap": null,
+      "fairShareRatio": 1.7333333333333334
+    }
+  ]
+}

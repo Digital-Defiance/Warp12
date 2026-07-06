@@ -97,7 +97,10 @@ export function createWarpAiPlayer(
   const skill = options.skill;
   const goOutTuning = resolveProfileGoOutTuning(skill);
   const heuristics = options.heuristics ?? DEFAULT_WARP_HEURISTICS;
-  const generateCandidates = options.generateCandidates ?? warpCandidateGenerator;
+  const generateCandidates =
+    options.generateCandidates ??
+    ((obs: WarpAiObservation) =>
+      warpCandidateGenerator(obs, { captains: obs.captains, rng }));
   const residualScorer = options.residualScorer;
   const residualIsAsync = residualScorer?.inference === 'async';
 

@@ -92,6 +92,8 @@ service cloud.firestore {
     function ratedStatsFieldsUnchanged() {
       return request.resource.data.get('humanTei', null) == resource.data.get('humanTei', null)
         && request.resource.data.get('humanRatedGameIds', null) == resource.data.get('humanRatedGameIds', null)
+        && request.resource.data.get('groupTei', null) == resource.data.get('groupTei', null)
+        && request.resource.data.get('groupRatedIds', null) == resource.data.get('groupRatedIds', null)
         && request.resource.data.get('localAi', null) == resource.data.get('localAi', null)
         && request.resource.data.get('startingTei', null) == resource.data.get('startingTei', null)
         && request.resource.data.get('matchHistory', null) == resource.data.get('matchHistory', null)
@@ -113,6 +115,8 @@ service cloud.firestore {
         && !request.resource.data.keys().hasAny([
           'humanTei',
           'humanRatedGameIds',
+          'groupTei',
+          'groupRatedIds',
           'localAi',
           'matchHistory',
           'startingTei',
@@ -132,6 +136,28 @@ service cloud.firestore {
     match /ratedMatches/{matchCode} {
       allow read: if isSignedIn();
       allow create, update, delete: if false;
+    }
+
+    match /charters/{charterId} {
+      allow read: if isSignedIn()
+        && (
+          resource.data.isGlobalOfficial == true
+          || request.auth.uid in resource.data.memberUids
+        );
+      allow create, update, delete: if false;
+    }
+
+    match /charterMembers/{memberId} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    match /charterJoinRequests/{requestId} {
+      allow read, write: if false;
+    }
+
+    match /charterSeasonArchives/{archiveId} {
+      allow read, write: if false;
     }
 
     match /games/{gameId} {

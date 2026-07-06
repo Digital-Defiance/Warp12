@@ -100,7 +100,7 @@ export function warpOffTurnCandidateGenerator(
  * 1. Q-Flash / Q's gamble resolution when pending.
  * 2. Catch a missed Drop to Impulse when the window is open.
  * 3. Any legal chart move → chart candidates (canonical "play if you can"), plus
- *    optional Drop to Impulse declare when pending at one tile.
+ *    Drop to Impulse declare and pass when pending at one tile (no chart while pending).
  * 4. Otherwise draw (if Uncharted Sectors remain).
  * 5. Otherwise pass the Red Alert (if responsible) or deploy the Distress Beacon.
  *

@@ -8,8 +8,10 @@ This document describes what the fleet can trust today, what remains client-infl
 |--------|--------------|-----------|
 | Practice vs AI (unassisted) | Yes | **Server replay** (`reportPracticeAiMatch`) |
 | Human pool (officiated) | Yes | **Match official + Cloud Functions** |
+| Human pool (online sectors) | Yes | **`reportOnlineMatch`** — server re-derives standings from game doc |
+| Crew / charter TEI | Yes | Same paths with `charterId`; **`groupTei`** via Functions only |
 | Academy starting TEI | Yes (seed only) | **`setAcademyPlacement` callable** |
-| Online multiplayer sectors | No | Client-synced Firestore game docs |
+| Online multiplayer sync | No (TEI) | Client-synced Firestore game docs; TEI applied only at sector complete |
 | Advisor-assisted practice | No (unrated) | Logged locally; optional server write without TEI |
 | Offline practice queue | Yes (when synced) | Same replay path after upload |
 | Fleet win counters (legacy) | No longer client-writable | Server merges on verified writes only |
@@ -29,11 +31,20 @@ This document describes what the fleet can trust today, what remains client-infl
 1. A **match official** (custom claim) creates a rated match code.
 2. Players check in with Google accounts.
 3. Official submits standings; approval applies TEI via Cloud Functions.
-4. Clients cannot write `humanTei` or `humanRatedGameIds`.
+4. Clients cannot write `humanTei`, `humanRatedGameIds`, `groupTei`, or `groupRatedIds`.
 
-## Online sectors (not TEI)
+## Crew / charter TEI
 
-Multiplayer lobbies and active games live in Firestore `games/{id}` with member updates. This path is **not** used for leaderboard TEI today. Treat it as cooperative sync, not anti-cheat for rated play.
+1. Crew owners create charters via `createCharter`; members join with invite links (verified Google accounts).
+2. Officiated matches may carry `charterId`; approval applies **`groupTei[charterId]`** when set.
+3. Online sectors with `charterId` on the game document are rated via `reportOnlineMatch` when charter metadata and membership validate.
+4. **Global Official** updates both `groupTei` and `humanTei`. Private crews update `groupTei` only.
+
+See [crews-roadmap.md](./crews-roadmap.md) and [tei-spec.md](./tei-spec.md) §3.3.
+
+## Online sectors
+
+Multiplayer lobbies and active games live in Firestore `games/{id}`. Clients sync moves; **TEI is not client-reported**. At sector complete, `reportOnlineMatch` reads the authoritative game document, re-verifies seats, and applies §6.5 once per `gameId` (and per charter via `groupRatedIds`).
 
 ## Firestore `playerStats` lockdown
 
@@ -43,7 +54,8 @@ Clients may only create empty competitive profiles and update cosmetic fields (`
 
 The public leaderboard (`leaderboard.warp12.app`) ranks **verified pools only**:
 
-- **Human pool** — officiated matches
+- **Human pool** — officiated matches and verified online sectors
+- **Crew ladders** — `groupTei` per charter at `/crews`
 - **Practice vs AI** — replay-verified unassisted matches per skill tier
 - **Verified fleet** — sum of the above (excludes legacy client-reported totals)
 
@@ -85,5 +97,6 @@ yarn deploy:hosting:leaderboard
 
 ## Related docs
 
+- [Crews & charters](./crews-roadmap.md)
 - [Practice AI replay investigation](./practice-ai-replay-investigation.md)
 - [Roadmap](./roadmap.md)

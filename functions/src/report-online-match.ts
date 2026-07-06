@@ -13,10 +13,18 @@ import {
 } from './tei/stats-elo';
 import {
   applyHumanTeiForPlayer,
+  applyGroupTeiForPlayer,
+  groupObjectiveTeiStats,
+  groupRatedClaimId,
   humanObjectiveTeiStats,
   startingTeiForObjective,
   type PlayerStatsDocument,
 } from './tei';
+import {
+  loadCharter,
+  validateCharterRatedMatch,
+} from './charters';
+import type { CharterHouseRulesInput, CharterModulesInput } from './tei';
 
 const db = admin.firestore();
 const AI_ID_PREFIX = 'ai:';
@@ -47,6 +55,16 @@ interface GameDoc {
   phase: string;
   objective: string;
   rated?: boolean;
+  campaignRounds?: number;
+  charterId?: string;
+  rulesProfileId?: string;
+  modules?: {
+    qContinuum: boolean;
+    salamanderPenalty: boolean;
+    subspaceFracture: boolean;
+    subspaceFractureScope: string;
+  };
+  houseRules?: Record<string, boolean | number | undefined>;
   captains: GameCaptainDoc[];
   round?: GameRoundDoc | null;
 }
@@ -206,6 +224,31 @@ export const reportOnlineMatch = onCall(
     const humans = game.captains.filter((c) => !isAiGameCaptain(c));
     const ais = game.captains.filter(isAiGameCaptain);
 
+    const charter = game.charterId
+      ? await loadCharter(game.charterId)
+      : null;
+
+    if (charter) {
+      try {
+        await validateCharterRatedMatch(charter, {
+          objective,
+          campaignRounds: game.campaignRounds ?? 13,
+          rulesProfileId: game.rulesProfileId,
+          playerCount: game.captains.length,
+          modules: game.modules as CharterModulesInput | undefined,
+          houseRules: game.houseRules as CharterHouseRulesInput | undefined,
+          participantUids: humans.map((h) => h.id),
+        });
+      } catch (error) {
+        logger.info('reportOnlineMatch unrated', {
+          gameId,
+          reason: 'charter_mismatch',
+          message: error instanceof Error ? error.message : String(error),
+        });
+        return { rated: false, reason: 'charter_mismatch' };
+      }
+    }
+
     // Every human seat must be a non-anonymous account, or the sector is unrated.
     for (const human of humans) {
       if (!(await isVerifiedAccount(human.id))) {
@@ -233,7 +276,14 @@ export const reportOnlineMatch = onCall(
     const teiByUid = new Map<string, { tei: number; matches: number }>();
     for (const human of humans) {
       const stats = await loadStats(human.id);
-      const track = humanObjectiveTeiStats(stats, objective);
+      const track = charter
+        ? groupObjectiveTeiStats(
+            stats,
+            charter.charterId,
+            objective,
+            charter.seasonKey
+          )
+        : humanObjectiveTeiStats(stats, objective);
       teiByUid.set(human.id, {
         tei: resolveEffectivePlayerTei(
           track.unassistedTei,
@@ -268,7 +318,15 @@ export const reportOnlineMatch = onCall(
       teiBefore: number;
       teiAfter: number;
       teiDelta: number;
+      charterId?: string;
+      charterTeiBefore?: number;
+      charterTeiAfter?: number;
+      charterTeiDelta?: number;
     } | null = null;
+
+    const groupClaim = charter
+      ? groupRatedClaimId(charter.charterId, gameId, charter.seasonKey)
+      : null;
 
     for (const human of humans) {
       const ref = db.collection('playerStats').doc(human.id);
@@ -281,13 +339,68 @@ export const reportOnlineMatch = onCall(
         const fresh = freshSnap.exists
           ? (freshSnap.data() as PlayerStatsDocument)
           : null;
-        if (fresh?.humanRatedGameIds?.includes(gameId)) {
+        if (!charter && fresh?.humanRatedGameIds?.includes(gameId)) {
+          return null;
+        }
+        if (charter?.isGlobalOfficial && fresh?.humanRatedGameIds?.includes(gameId)) {
+          return null;
+        }
+        if (groupClaim && fresh?.groupRatedIds?.includes(groupClaim)) {
           return null;
         }
 
-        const result = applyHumanTeiForPlayer(fresh, objective, table, human.id);
-        if (!result) {
-          return null;
+        let humanTei = fresh?.humanTei;
+        let groupTei = fresh?.groupTei;
+        let teiBefore = 0;
+        let teiAfter = 0;
+        let won = false;
+        let rank = 0;
+        let charterTeiBefore: number | undefined;
+        let charterTeiAfter: number | undefined;
+
+        if (charter) {
+          const groupApplied = applyGroupTeiForPlayer(
+            fresh,
+            charter.charterId,
+            objective,
+            table,
+            human.id,
+            charter.seasonKey
+          );
+          if (!groupApplied) {
+            return null;
+          }
+          groupTei = groupApplied.groupTei;
+          charterTeiBefore = groupApplied.teiBefore;
+          charterTeiAfter = groupApplied.teiAfter;
+          teiBefore = groupApplied.teiBefore;
+          teiAfter = groupApplied.teiAfter;
+          won = groupApplied.won;
+          rank = groupApplied.rank;
+
+          if (charter.isGlobalOfficial) {
+            const humanApplied = applyHumanTeiForPlayer(
+              fresh,
+              objective,
+              table,
+              human.id
+            );
+            if (humanApplied) {
+              humanTei = humanApplied.humanTei;
+              teiBefore = humanApplied.teiBefore;
+              teiAfter = humanApplied.teiAfter;
+            }
+          }
+        } else {
+          const result = applyHumanTeiForPlayer(fresh, objective, table, human.id);
+          if (!result) {
+            return null;
+          }
+          humanTei = result.humanTei;
+          teiBefore = result.teiBefore;
+          teiAfter = result.teiAfter;
+          won = result.won;
+          rank = result.rank;
         }
 
         const now = new Date().toISOString();
@@ -307,12 +420,14 @@ export const reportOnlineMatch = onCall(
           objective,
           opponentContext: 'human' as const,
           playerCount: game.captains.length,
-          finishRank: result.rank,
-          won: result.won,
+          finishRank: rank,
+          won,
           advisorUsed: false,
-          teiBefore: result.teiBefore,
-          teiAfter: result.teiAfter,
-          teiDelta: result.teiAfter - result.teiBefore,
+          teiBefore,
+          teiAfter,
+          teiDelta: teiAfter - teiBefore,
+          charterId: charter?.charterId,
+          charterName: charter?.name,
         };
         const priorHistory =
           (base as { matchHistory?: unknown[] }).matchHistory ?? [];
@@ -323,9 +438,17 @@ export const reportOnlineMatch = onCall(
             ...base,
             displayName: human.displayName || base.displayName,
             matchesCompleted: base.matchesCompleted + 1,
-            matchesWon: base.matchesWon + (result.won ? 1 : 0),
-            humanTei: result.humanTei,
-            humanRatedGameIds: [...(base.humanRatedGameIds ?? []), gameId],
+            matchesWon: base.matchesWon + (won ? 1 : 0),
+            humanTei,
+            groupTei,
+            humanRatedGameIds:
+              !charter || charter.isGlobalOfficial
+                ? [...(base.humanRatedGameIds ?? []), gameId]
+                : base.humanRatedGameIds,
+            groupRatedIds:
+              groupClaim
+                ? [...(base.groupRatedIds ?? []), groupClaim]
+                : base.groupRatedIds,
             matchHistory: [historyEntry, ...priorHistory].slice(
               0,
               MAX_MATCH_HISTORY
@@ -336,7 +459,14 @@ export const reportOnlineMatch = onCall(
           { merge: true }
         );
 
-        return result;
+        return {
+          won,
+          rank,
+          teiBefore,
+          teiAfter,
+          charterTeiBefore,
+          charterTeiAfter,
+        };
       });
 
       if (applied && human.id === callerUid) {
@@ -347,6 +477,18 @@ export const reportOnlineMatch = onCall(
           teiBefore: applied.teiBefore,
           teiAfter: applied.teiAfter,
           teiDelta: applied.teiAfter - applied.teiBefore,
+          ...(charter
+            ? {
+                charterId: charter.charterId,
+                charterTeiBefore: applied.charterTeiBefore,
+                charterTeiAfter: applied.charterTeiAfter,
+                charterTeiDelta:
+                  applied.charterTeiAfter !== undefined &&
+                  applied.charterTeiBefore !== undefined
+                    ? applied.charterTeiAfter - applied.charterTeiBefore
+                    : undefined,
+              }
+            : {}),
         };
       }
     }

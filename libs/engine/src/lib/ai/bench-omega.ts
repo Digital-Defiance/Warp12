@@ -19,6 +19,11 @@ export interface BenchOmegaOptions {
   houseRules?: HouseRulesConfig;
   /** Which seat Class Ω occupies (default `a`). Swap to `b` to test symmetry. */
   omegaSeatId?: PlayerId;
+  /**
+   * Play a disjoint slice of games by absolute index (for parallel bench shards).
+   * Seeds derive from the absolute game index so shards are reproducible.
+   */
+  slice?: { startGameIndex?: number; gameCount?: number };
 }
 
 export interface BenchOmegaResult {
@@ -29,8 +34,14 @@ export interface BenchOmegaResult {
   omegaSeatId: PlayerId;
   omegaWins: number;
   omegaWinRate: number | null;
-  /** Implied Elo gap vs Commander from the win rate (null if degenerate). */
+  /** Implied Elo gap vs Commander from the win rate (2-player only; null otherwise). */
   impliedEloGap: number | null;
+  /**
+   * Win rate ÷ fair share (1/playerCount). The correct multi-player strength
+   * signal: 1.0 = parity with Commander, >1 = beats Commander, <1 = weaker.
+   * (The 2p `impliedEloGap` is meaningless for N>2 — use this instead.)
+   */
+  fairShareRatio: number | null;
 }
 
 function mulberry32(seed: number): () => number {
@@ -82,12 +93,15 @@ export function benchOmegaVsCommander(
   const playerCount = options.playerCount ?? 2;
   const baseSeed = options.seed ?? 9001;
   const omegaSeatId = options.omegaSeatId ?? 'a';
+  const startGameIndex = options.slice?.startGameIndex ?? 0;
+  const gameCount = options.slice?.gameCount ?? options.games;
+  const endGameIndex = startGameIndex + gameCount;
 
   let omegaWins = 0;
   let completed = 0;
 
-  for (let game = 0; game < options.games; game++) {
-    const seed = baseSeed + game * 7919;
+  for (let gameIndex = startGameIndex; gameIndex < endGameIndex; gameIndex++) {
+    const seed = baseSeed + gameIndex * 7919;
     const seats: SelfPlaySeat[] = [];
     for (let index = 0; index < playerCount; index++) {
       const id = String.fromCharCode(97 + index);
@@ -133,7 +147,7 @@ export function benchOmegaVsCommander(
   const omegaWinRate = completed > 0 ? omegaWins / completed : null;
 
   return {
-    games: options.games,
+    games: gameCount,
     completed,
     objective,
     playerCount,
@@ -141,6 +155,10 @@ export function benchOmegaVsCommander(
     omegaWins,
     omegaWinRate,
     impliedEloGap:
-      omegaWinRate !== null ? impliedEloFromWinRate(omegaWinRate) : null,
+      omegaWinRate !== null && playerCount === 2
+        ? impliedEloFromWinRate(omegaWinRate)
+        : null,
+    fairShareRatio:
+      omegaWinRate !== null ? omegaWinRate * playerCount : null,
   };
 }

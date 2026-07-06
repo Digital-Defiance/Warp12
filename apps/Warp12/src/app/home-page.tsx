@@ -19,6 +19,9 @@ export function HomePage() {
           center double is <em>Spacedock</em>, and every captain builds a{' '}
           <em>warp trail</em> into the void.
         </p>
+        <p className={styles.heroLead}>
+          Warp 12 is what Wesley would play if he were playing Mexican Train on the Enterprise.
+        </p>
         <p className={styles.heroBody}>
           Match pips to chart routes on your trail, the communal Neutral Zone, or
           a rival&apos;s line when their distress beacon is down. Doubles trigger

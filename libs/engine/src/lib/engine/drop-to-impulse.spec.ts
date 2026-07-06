@@ -96,7 +96,7 @@ describe('drop to impulse house rule', () => {
     expect(result.state.round?.hands.a).toHaveLength(1);
   });
 
-  it('allows charting the last coordinate while at impulse without announcing', () => {
+  it('rejects charting at impulse until announce or pass', () => {
     const base = makeRound(['a', 'b'], { activePlayerId: 'a', spacedockValue: 12 });
     const round = makeRound(['a', 'b'], {
       activePlayerId: 'a',
@@ -125,10 +125,9 @@ describe('drop to impulse house rule', () => {
       route: { kind: 'warp-trail', playerId: 'a' },
     });
 
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.state.round?.dropToImpulseCallPending).toBeNull();
-    expect(result.state.round?.hands.a).toHaveLength(0);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.violation).toBe('DROP_TO_IMPULSE_CHART_BLOCKED');
   });
 
   it('allows passing helm without declaring even when shields are up', () => {

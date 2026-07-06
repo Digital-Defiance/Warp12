@@ -25,6 +25,7 @@ import {
   canChartOnOpponentTrail,
   mustRestrictToOwnTrailForOpening,
 } from './house-rules.js';
+import { isDropToImpulseAnnouncePending } from './drop-to-impulse.js';
 import {
   DEFAULT_HOUSE_RULES,
   type HouseRules,
@@ -151,6 +152,10 @@ export function getLegalMoves(
     round.qPendingInvoker === playerId ||
     round.qGamblePending?.playerId === playerId
   ) {
+    return [];
+  }
+
+  if (isDropToImpulseAnnouncePending(round, playerId, houseRules)) {
     return [];
   }
 

@@ -44,14 +44,20 @@
         "*.local",
         "src"
       ],
-      "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"]
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
     }
   ],
   "hosting": [
     {
       "target": "bridge",
       "public": "apps/Warp12/dist",
-      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
       "headers": [
         {
           "source": "**",
@@ -84,43 +90,178 @@
       "rewrites": [
         {
           "source": "/api/fn/approveRatedMatch",
-          "run": { "serviceId": "approveratedmatch", "region": "us-central1" }
+          "run": {
+            "serviceId": "approveratedmatch",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/api/fn/bootstrapAdmin",
-          "run": { "serviceId": "bootstrapadmin", "region": "us-central1" }
+          "run": {
+            "serviceId": "bootstrapadmin",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/api/fn/checkInToMatch",
-          "run": { "serviceId": "checkintomatch", "region": "us-central1" }
+          "run": {
+            "serviceId": "checkintomatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/createCharter",
+          "run": {
+            "serviceId": "createcharter",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/api/fn/createRatedMatch",
-          "run": { "serviceId": "createratedmatch", "region": "us-central1" }
+          "run": {
+            "serviceId": "createratedmatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getCharter",
+          "run": {
+            "serviceId": "getcharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getCharterLeaderboard",
+          "run": {
+            "serviceId": "getcharterleaderboard",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getCharterManageInfo",
+          "run": {
+            "serviceId": "getchartermanageinfo",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/api/fn/getMyRoles",
-          "run": { "serviceId": "getmyroles", "region": "us-central1" }
+          "run": {
+            "serviceId": "getmyroles",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/joinCharter",
+          "run": {
+            "serviceId": "joincharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/leaveCharter",
+          "run": {
+            "serviceId": "leavecharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listCharterJoinRequests",
+          "run": {
+            "serviceId": "listcharterjoinrequests",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listListedCharters",
+          "run": {
+            "serviceId": "listlistedcharters",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listMyCharters",
+          "run": {
+            "serviceId": "listmycharters",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/api/fn/rejectRatedMatch",
-          "run": { "serviceId": "rejectratedmatch", "region": "us-central1" }
+          "run": {
+            "serviceId": "rejectratedmatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/reportOnlineMatch",
+          "run": {
+            "serviceId": "reportonlinematch",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/api/fn/reportPracticeAiMatch",
-          "run": { "serviceId": "reportpracticeaimatch", "region": "us-central1" }
+          "run": {
+            "serviceId": "reportpracticeaimatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/requestJoinCharter",
+          "run": {
+            "serviceId": "requestjoincharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/resolveJoinRequest",
+          "run": {
+            "serviceId": "resolvejoinrequest",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/resetGlobalOfficialSeason",
+          "run": {
+            "serviceId": "resetglobalofficialseason",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/rotateCharterInvite",
+          "run": {
+            "serviceId": "rotatecharterinvite",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/api/fn/setAcademyPlacement",
-          "run": { "serviceId": "setacademyplacement", "region": "us-central1" }
+          "run": {
+            "serviceId": "setacademyplacement",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/api/fn/setUserRoles",
-          "run": { "serviceId": "setuserroles", "region": "us-central1" }
+          "run": {
+            "serviceId": "setuserroles",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/api/fn/submitMatchStandings",
-          "run": { "serviceId": "submitmatchstandings", "region": "us-central1" }
+          "run": {
+            "serviceId": "submitmatchstandings",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/updateCharterListing",
+          "run": {
+            "serviceId": "updatecharterlisting",
+            "region": "us-central1"
+          }
         },
         {
           "source": "**",
@@ -131,7 +272,11 @@
     {
       "target": "leaderboard",
       "public": "Warp12-leaderboard/dist",
-      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
       "headers": [
         {
           "source": "**",
@@ -164,43 +309,178 @@
       "rewrites": [
         {
           "source": "/api/fn/approveRatedMatch",
-          "run": { "serviceId": "approveratedmatch", "region": "us-central1" }
+          "run": {
+            "serviceId": "approveratedmatch",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/api/fn/bootstrapAdmin",
-          "run": { "serviceId": "bootstrapadmin", "region": "us-central1" }
+          "run": {
+            "serviceId": "bootstrapadmin",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/api/fn/checkInToMatch",
-          "run": { "serviceId": "checkintomatch", "region": "us-central1" }
+          "run": {
+            "serviceId": "checkintomatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/createCharter",
+          "run": {
+            "serviceId": "createcharter",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/api/fn/createRatedMatch",
-          "run": { "serviceId": "createratedmatch", "region": "us-central1" }
+          "run": {
+            "serviceId": "createratedmatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getCharter",
+          "run": {
+            "serviceId": "getcharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getCharterLeaderboard",
+          "run": {
+            "serviceId": "getcharterleaderboard",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getCharterManageInfo",
+          "run": {
+            "serviceId": "getchartermanageinfo",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/api/fn/getMyRoles",
-          "run": { "serviceId": "getmyroles", "region": "us-central1" }
+          "run": {
+            "serviceId": "getmyroles",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/joinCharter",
+          "run": {
+            "serviceId": "joincharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/leaveCharter",
+          "run": {
+            "serviceId": "leavecharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listCharterJoinRequests",
+          "run": {
+            "serviceId": "listcharterjoinrequests",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listListedCharters",
+          "run": {
+            "serviceId": "listlistedcharters",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listMyCharters",
+          "run": {
+            "serviceId": "listmycharters",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/api/fn/rejectRatedMatch",
-          "run": { "serviceId": "rejectratedmatch", "region": "us-central1" }
+          "run": {
+            "serviceId": "rejectratedmatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/reportOnlineMatch",
+          "run": {
+            "serviceId": "reportonlinematch",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/api/fn/reportPracticeAiMatch",
-          "run": { "serviceId": "reportpracticeaimatch", "region": "us-central1" }
+          "run": {
+            "serviceId": "reportpracticeaimatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/requestJoinCharter",
+          "run": {
+            "serviceId": "requestjoincharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/resolveJoinRequest",
+          "run": {
+            "serviceId": "resolvejoinrequest",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/resetGlobalOfficialSeason",
+          "run": {
+            "serviceId": "resetglobalofficialseason",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/rotateCharterInvite",
+          "run": {
+            "serviceId": "rotatecharterinvite",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/api/fn/setAcademyPlacement",
-          "run": { "serviceId": "setacademyplacement", "region": "us-central1" }
+          "run": {
+            "serviceId": "setacademyplacement",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/api/fn/setUserRoles",
-          "run": { "serviceId": "setuserroles", "region": "us-central1" }
+          "run": {
+            "serviceId": "setuserroles",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/api/fn/submitMatchStandings",
-          "run": { "serviceId": "submitmatchstandings", "region": "us-central1" }
+          "run": {
+            "serviceId": "submitmatchstandings",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/updateCharterListing",
+          "run": {
+            "serviceId": "updatecharterlisting",
+            "region": "us-central1"
+          }
         },
         {
           "source": "**",

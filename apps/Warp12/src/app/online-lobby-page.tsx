@@ -42,6 +42,13 @@ import {
   onlineRatingWarning,
 } from '../firebase/human-tei.js';
 import {
+  listMyCharters,
+  type PublicCharterView,
+} from '../firebase/charter-service.js';
+import {
+  lobbyOptionsFromCharter,
+} from '../game/charter-lobby.js';
+import {
   WARP12_OFFICIAL_CAMPAIGN_ROUNDS,
   WARP12_OFFICIAL_HOUSE_RULES,
   WARP12_OFFICIAL_MODULES,
@@ -67,6 +74,7 @@ export function OnlineLobbyPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [lobby, setLobby] = useState<FirestoreGameDocument | null>(null);
   const [lobbyLoaded, setLobbyLoaded] = useState(false);
+  const [myCharters, setMyCharters] = useState<PublicCharterView[]>([]);
 
   const uid = auth.user?.uid;
   const sectorCode = routeGameId?.toUpperCase() ?? '';
@@ -117,6 +125,14 @@ export function OnlineLobbyPage() {
       }
     );
   }, [routeGameId, auth.ready, navigate, uid]);
+
+  useEffect(() => {
+    if (!auth.user || auth.user.isAnonymous) {
+      setMyCharters([]);
+      return;
+    }
+    void listMyCharters().then(setMyCharters).catch(() => setMyCharters([]));
+  }, [auth.user]);
 
   const openSector = async () => {
     if (!uid) {
@@ -195,6 +211,9 @@ export function OnlineLobbyPage() {
     campaignRounds?: number;
     modules?: CreateLobbyOptions['modules'];
     houseRules?: CreateLobbyOptions['houseRules'];
+    rated?: boolean;
+    charterId?: string;
+    rulesProfileId?: string;
   }) => {
     if (!uid || !routeGameId || !lobby) {
       return;
@@ -303,6 +322,9 @@ export function OnlineLobbyPage() {
     const maxPlayers = lobby.maxPlayers ?? ONLINE_MAX_PLAYERS;
     const objective = lobby.objective ?? DEFAULT_GAME_OBJECTIVE;
     const campaignRounds = lobby.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS;
+    const charterLocked = Boolean(lobby.charterId);
+    const activeCharter =
+      myCharters.find((crew) => crew.charterId === lobby.charterId) ?? null;
 
     return (
       <section className={`${styles.waitingRoom} ${styles.lobbyWide}`}>
@@ -336,6 +358,52 @@ export function OnlineLobbyPage() {
             </p>
           );
         })()}
+
+        {activeCharter && (
+          <p className={styles.ratedBanner} role="status">
+            Crew charter: {activeCharter.name} — {activeCharter.playerCount}{' '}
+            captains ·{' '}
+            {activeCharter.objective === 'go-out' ? 'Go-out' : 'Points'}
+            {activeCharter.isGlobalOfficial
+              ? ' · also counts toward Global Official TEI'
+              : ''}
+          </p>
+        )}
+
+        {isHost && myCharters.length > 0 && (
+          <label className={styles.field}>
+            <span>Crew (optional)</span>
+            <select
+              aria-label="Crew charter"
+              value={lobby.charterId ?? ''}
+              disabled={busy}
+              onChange={(e) => {
+                const crewId = e.target.value;
+                if (!crewId) {
+                  void saveSettings({ charterId: '' });
+                  return;
+                }
+                const crew = myCharters.find((row) => row.charterId === crewId);
+                if (!crew) {
+                  return;
+                }
+                void saveSettings(
+                  lobbyOptionsFromCharter(crew, {
+                    rated: lobby.rated ?? true,
+                  })
+                );
+              }}
+            >
+              <option value="">No crew — global human pool</option>
+              {myCharters.map((crew) => (
+                <option key={crew.charterId} value={crew.charterId}>
+                  {crew.name} ({crew.playerCount}p ·{' '}
+                  {crew.objective === 'go-out' ? 'go-out' : 'points'})
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         {isHost && (
           <label className={styles.checkboxRow}>
@@ -389,7 +457,7 @@ export function OnlineLobbyPage() {
           <ObjectivePicker
             name="waiting-objective"
             value={objective}
-            disabled={busy}
+            disabled={busy || charterLocked}
             onChange={(value) => void saveSettings({ objective: value })}
           />
         ) : (
@@ -404,7 +472,7 @@ export function OnlineLobbyPage() {
             <legend>Campaign length</legend>
             <CampaignRoundsField
               value={campaignRounds}
-              disabled={busy}
+              disabled={busy || charterLocked}
               onChange={(value) => void saveSettings({ campaignRounds: value })}
             />
           </fieldset>
@@ -414,7 +482,7 @@ export function OnlineLobbyPage() {
           <fieldset className={styles.fieldset}>
             <legend>Mission settings</legend>
             <Warp12RulesPreset
-              disabled={busy}
+              disabled={busy || charterLocked}
               onApply={() =>
                 void saveSettings({
                   objective: WARP12_OFFICIAL_OBJECTIVE,
@@ -429,7 +497,7 @@ export function OnlineLobbyPage() {
               <select
                 aria-label="Fleet capacity"
                 value={maxPlayers}
-                disabled={busy}
+                disabled={busy || charterLocked}
                 onChange={(e) =>
                   void saveSettings({
                     maxPlayers: clampOnlineMaxPlayers(Number(e.target.value)),
@@ -450,7 +518,7 @@ export function OnlineLobbyPage() {
               <input
                 type="checkbox"
                 checked={lobby.modules.salamanderPenalty}
-                disabled={busy}
+                disabled={busy || charterLocked}
                 onChange={(e) =>
                   void saveSettings({
                     modules: {
@@ -466,7 +534,7 @@ export function OnlineLobbyPage() {
               <input
                 type="checkbox"
                 checked={lobby.modules.qContinuum}
-                disabled={busy}
+                disabled={busy || charterLocked}
                 onChange={(e) =>
                   void saveSettings({
                     modules: {
@@ -480,7 +548,7 @@ export function OnlineLobbyPage() {
             </label>
             <DoubleZeroScoreField
               value={lobby.houseRules?.doubleZeroScore}
-              disabled={busy}
+              disabled={busy || charterLocked}
               onChange={(doubleZeroScore) =>
                 void saveSettings({
                   houseRules: { ...lobby.houseRules, doubleZeroScore },
@@ -490,7 +558,7 @@ export function OnlineLobbyPage() {
             <SubspaceFractureOptions
               enabled={lobby.modules.subspaceFracture ?? false}
               scope={lobby.modules.subspaceFractureScope ?? 'own-trail'}
-              disabled={busy}
+              disabled={busy || charterLocked}
               onEnabledChange={(enabled) =>
                 void saveSettings({
                   modules: {
@@ -510,7 +578,7 @@ export function OnlineLobbyPage() {
             />
             <HouseRulesOptions
               value={lobby.houseRules ?? {}}
-              disabled={busy}
+              disabled={busy || charterLocked}
               onChange={(patch) =>
                 void saveSettings({
                   houseRules: { ...lobby.houseRules, ...patch },
@@ -579,6 +647,9 @@ export function OnlineLobbyPage() {
         error={error}
         firebaseReady={auth.ready}
         firebaseConfigured={auth.configured}
+        myCharters={
+          auth.user && !auth.user.isAnonymous ? myCharters : []
+        }
       />
     </>
   );

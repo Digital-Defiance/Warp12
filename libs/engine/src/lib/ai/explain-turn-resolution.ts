@@ -128,7 +128,7 @@ export function explainTurnResolution(
     (round.hands[playerId]?.length ?? 0) === 1
   ) {
     lines.push(
-      'At impulse (one tile left) — you may play that last tile without announcing, press Drop to Impulse! to announce and Pass helm, or Pass without announcing (opponents may catch until the next captain Pass helm). Drawing while stuck returns you to warp.'
+      'At impulse (one tile left) — announce Drop to Impulse! and pass helm, or pass without announcing (opponents may catch until the next captain passes helm). You cannot chart while at impulse; play your last coordinate on a later turn after announcing, or draw from Uncharted Sectors to return to warp.'
     );
     return lines;
   }

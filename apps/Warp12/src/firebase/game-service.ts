@@ -13,6 +13,7 @@ import {
 } from 'warp12-engine';
 import {
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   onSnapshot,
@@ -56,6 +57,7 @@ import {
 } from './schema.js';
 import { stripUndefined } from './strip-undefined.js';
 import { allocateUniqueCallSign } from './display-name.js';
+import { WARP12_OFFICIAL_RULES_PROFILE_ID } from './rules-profile.js';
 
 function gameRef(gameId: string) {
   const db = getFirestoreDb();
@@ -100,6 +102,8 @@ export interface CreateLobbyOptions {
   rated?: boolean;
   /** True when the host is signed in with a durable (non-anonymous) account. */
   verified?: boolean;
+  charterId?: string;
+  rulesProfileId?: string;
 }
 
 export async function createLobby(
@@ -136,6 +140,13 @@ export async function createLobby(
         options.modules?.subspaceFractureScope ?? 'own-trail',
     },
     houseRules: options.houseRules,
+    ...(options.charterId
+      ? {
+          charterId: options.charterId,
+          rulesProfileId:
+            options.rulesProfileId ?? WARP12_OFFICIAL_RULES_PROFILE_ID,
+        }
+      : {}),
     captainIds: [hostId],
     captains,
     completedRounds: 0,
@@ -413,6 +424,21 @@ export async function updateLobbySettings(
       ...(settings.modules !== undefined ? { modules: settings.modules } : {}),
       ...(settings.houseRules !== undefined
         ? { houseRules: settings.houseRules }
+        : {}),
+      ...(settings.charterId !== undefined
+        ? settings.charterId
+          ? {
+              charterId: settings.charterId,
+              rulesProfileId:
+                settings.rulesProfileId ?? WARP12_OFFICIAL_RULES_PROFILE_ID,
+            }
+          : {
+              charterId: deleteField(),
+              rulesProfileId: deleteField(),
+            }
+        : {}),
+      ...(settings.rulesProfileId !== undefined && settings.charterId
+        ? { rulesProfileId: settings.rulesProfileId }
         : {}),
       maxPlayers,
       updatedAt: new Date().toISOString(),

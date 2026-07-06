@@ -21,6 +21,11 @@
 #   OMEGA_BENCH_GAMES  bench games per slice             (default 200)
 #   OMEGA_ELO_LOG      Elo log path (JSONL)              (default tools/nn/data/omega-elo-log.jsonl)
 #   OMEGA_PROMOTE_MARGIN  min aggregate win-rate gain to promote (default 0.0)
+#   OMEGA_BATCH           PyTorch batch size (default 512; M4 Max can use 1024+)
+#   OMEGA_SEARCH_ITERS    ISMCTS iters/decision during collection (default 0)
+#   OMEGA_WORKERS         parallel collection workers (default cores − 1)
+#   OMEGA_BENCH_PARALLEL  set 0 to disable parallel bench (default on)
+#   OMEGA_BENCH_WORKERS   bench worker count (defaults to OMEGA_WORKERS)
 #
 set -euo pipefail
 
@@ -29,6 +34,7 @@ export OMEGA_GAMES="${OMEGA_GAMES:-1500}"
 export OMEGA_PLAYERS="${OMEGA_PLAYERS:-2}"
 export OMEGA_OBJECTIVE="${OMEGA_OBJECTIVE:-points}"
 export OMEGA_EPOCHS="${OMEGA_EPOCHS:-4}"
+export OMEGA_BATCH="${OMEGA_BATCH:-512}"
 export OMEGA_BENCH_GAMES="${OMEGA_BENCH_GAMES:-200}"
 ELO_LOG="${OMEGA_ELO_LOG:-tools/nn/data/omega-elo-log.jsonl}"
 BASE_SEED="${OMEGA_SEED:-2026}"
@@ -42,6 +48,7 @@ mkdir -p "$(dirname "$ELO_LOG")" "$CANDIDATE_DIR"
 
 echo "Class Ω GATED training loop: ${ITERATIONS} iterations, ${OMEGA_GAMES} games/iter, ${OMEGA_PLAYERS}p ${OMEGA_OBJECTIVE}"
 echo "Champion: ${CHAMPION}   Elo log: ${ELO_LOG}   promote margin: ${PROMOTE_MARGIN}"
+echo "Train batch: ${OMEGA_BATCH}   search iters: ${OMEGA_SEARCH_ITERS:-0}   workers: ${OMEGA_WORKERS:-auto}"
 
 for ((i = 1; i <= ITERATIONS; i++)); do
   echo ""
@@ -80,9 +87,12 @@ iteration, bench_file, elo_log, score_file, margin = (
 text = open(bench_file).read()
 data = json.loads(text[text.index("{"):])
 results = data.get("results", [])
-agg_wins = sum(r["omegaWins"] for r in results)
-agg_games = sum(r["completed"] for r in results) or 1
-cand_score = agg_wins / agg_games
+
+# Promote on MEAN FAIR-SHARE RATIO (win-rate / (1/N)): 1.0 = parity with
+# Commander, >1 = beats Commander. This is the correct multi-player strength
+# signal — raw aggregate win rate under-weights the big tables (low fair share).
+ratios = [r["fairShareRatio"] for r in results if r.get("fairShareRatio") is not None]
+cand_score = sum(ratios) / len(ratios) if ratios else 0.0
 
 prev = None
 if os.path.exists(score_file):
@@ -99,21 +109,25 @@ summary = {
     "iteration": iteration,
     "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
     "objective": data.get("objective"),
-    "candidateAggregate": round(cand_score, 4),
-    "championAggregate": round(prev, 4) if prev is not None else None,
+    "metric": "mean_fair_share_ratio",
+    "candidateScore": round(cand_score, 4),
+    "championScore": round(prev, 4) if prev is not None else None,
     "decision": decision,
     "slices": [
         {"playerCount": r["playerCount"], "seat": r["omegaSeatId"],
-         "winRate": r["omegaWinRate"], "impliedEloGap": r["impliedEloGap"]}
+         "winRate": r["omegaWinRate"], "fairShareRatio": r["fairShareRatio"]}
         for r in results
     ],
 }
 with open(elo_log, "a") as h:
     h.write(json.dumps(summary) + "\n")
 
-best = max((s["impliedEloGap"] or -9999) for s in summary["slices"])
-print(f"[iter {iteration}] {decision}  candidate agg={cand_score:.3f} "
-      f"champion agg={prev if prev is not None else float('nan'):.3f}  best slice Elo {best:+.0f}")
+per_slice = " ".join(
+    f"{s['playerCount']}p={s['fairShareRatio']:.2f}" for s in summary["slices"]
+)
+print(f"[iter {iteration}] {decision}  candidate={cand_score:.3f} "
+      f"champion={prev if prev is not None else float('nan'):.3f} "
+      f"(mean fair-share ratio; 1.0=Commander)  [{per_slice}]")
 # Exit code 10 => promote (shell copies candidate over champion), 0 => reject.
 sys.exit(10 if promote else 0)
 PY

@@ -26,54 +26,88 @@ inference** — the first trained neural player for this game.
 | 2p points: reach parity with Commander | ✅ done (3 iterations, from scratch) — net archived `tools/nn/data/omega-2p-champion.json` |
 | Training stability (collapse fixed) | ✅ champion gating + per-round credit + advantage standardization |
 | Fleet (3–8p) via pure REINFORCE | ❌ stalled at ~random (imperfect-info value wall) |
-| Fleet via ISMCTS-distillation (Path B) | 🔄 **in progress** — the current run |
-| Class Ω beats Class II broadly (promotion bar) | ⬜ not yet |
+| Fleet via ISMCTS-distillation (Path B) | 🔄 **in progress** — beats Commander at 6p/8p, ~parity at 3p/4p |
+| Class Ω beats Class II *broadly* (promotion bar) | ⬜ not yet (strong at big tables, needs 3p/4p too) |
 | Wire Ω as a rated tier + into the client | ⬜ not started |
 | Explainable "Omega Advisor" tier | ⬜ designed, not built (see next-steps §"explainable tier") |
 
-**Latest numbers** (`tools/nn/data/omega-elo-log.jsonl`): fleet win rates still near
-random baselines (3p~0.31/rand 0.33, 4p~0.21/0.25, 6p~0.12/0.17, 8p~0.20/0.125) —
-this is iteration 1 baseline; the distillation lift shows over subsequent iterations.
+**Latest numbers** (`tools/nn/data/omega-elo-log.jsonl`): the Path B distillation
+champion already **beats Commander at large tables** — measured in `fairShareRatio`
+(winRate ÷ 1/N; 1.0 = Commander), it was ~1.2 at 4p and ~1.9 at 8p, ~parity at
+3p/4p. It is *not* failing — early framing that used raw win rate (where 0.25 at
+8p "looks" like losing) was misleading; see the parity gotcha below. The run
+warm-starts from this champion.
 
 ---
 
 ## Current run (background process)
 
+**M4 Max (16 cores / 64 GB) — quality-first recipe** (restart with this when the
+current loop stops):
+
+```bash
+OMEGA_ITERATIONS=30 \
+OMEGA_GAMES=500 \
+OMEGA_PLAYERS="2,3,4,5,6,7,8" \
+OMEGA_SEARCH_ITERS=320 \
+OMEGA_OBJECTIVE=points \
+OMEGA_EPOCHS=8 \
+OMEGA_BATCH=1024 \
+OMEGA_BENCH_GAMES=120 \
+OMEGA_BENCH_PLAYERS="3,4,6,8" \
+OMEGA_WORKERS=15 \
+OMEGA_ELO_LOG=tools/nn/data/omega-elo-log.jsonl \
+bash scripts/omega-train-loop.sh
 ```
-OMEGA_ITERATIONS=20 OMEGA_GAMES=500 OMEGA_PLAYERS="2,3,4,5,6,7,8" \
+
+| Lever | Setting | Why |
+|-------|---------|-----|
+| `OMEGA_WORKERS=15` | cores − 1 | saturates CPU during ISMCTS collection |
+| `OMEGA_SEARCH_ITERS=320` | 2× prior 160 | stronger distillation targets (quality > speed) |
+| `OMEGA_BATCH=1024` | was 64 | feeds MPS properly on unified memory |
+| Bench | parallel by default | `bench-omega-parallel.ts` shards games across workers (~15× faster gate step) |
+
+Previous run (160 search iters, batch 64, sequential bench):
+
+```bash
+OMEGA_ITERATIONS=30 OMEGA_GAMES=500 OMEGA_PLAYERS="2,3,4,5,6,7,8" \
 OMEGA_SEARCH_ITERS=160 OMEGA_OBJECTIVE=points OMEGA_EPOCHS=8 \
 OMEGA_BENCH_GAMES=120 OMEGA_BENCH_PLAYERS="3,4,6,8" \
 OMEGA_ELO_LOG=tools/nn/data/omega-elo-log.jsonl bash scripts/omega-train-loop.sh
 ```
 
+- **Warm-started** from the existing champion (loads `omega-v1.json` as `--init`).
+- **Gate metric = mean fair-share ratio** (see parity gotcha). Score baseline was
+  reset at the metric switch; the pre-switch raw-aggregate log is archived at
+  `tools/nn/data/omega-elo-log-rawagg-iters1-8.jsonl`.
 - **Champion (shipped net):** `apps/Warp12/public/models/omega-v1.json` (+ `omega-policy-v1.onnx`, `omega-value-v1.onnx`). Updated only when a candidate beats it (gating → monotonic).
 - **Approach:** each decision runs value-net-independent **ISMCTS with Commander-heuristic rollouts** (Path B) → sharp visit-count targets (~0.90 top-move share) → net distills them via cross-entropy. Commander is a *rollout simulator only*; the shipped net has no Commander at inference. This is NOT the Class I\* imitation trap (target = search visit distribution, not Commander's picks).
 
 ### Check progress
-```bash
-# Elo trajectory (one line per iteration, PROMOTE/REJECT + fleet win rates)
-cat tools/nn/data/omega-elo-log.jsonl | python3 -m json.tool  # or the pretty-printer below
-```
 ```python
+# Pretty-print the Elo log (fields: candidateScore/championScore = mean fair-share
+# ratio; per-slice fairShareRatio where 1.0 = Commander, >1 = beats Commander).
 import json
 for r in (json.loads(l) for l in open('tools/nn/data/omega-elo-log.jsonl') if l.strip()):
-    s={f"{x['playerCount']}p":x['winRate'] for x in r['slices']}
-    print(r['iteration'], r['decision'], 'agg', r['candidateAggregate'], s)
+    s={f"{x['playerCount']}p":round(x['fairShareRatio'],2) for x in r['slices']}
+    print(r['iteration'], r['decision'], 'score', r['candidateScore'], 'champ', r['championScore'], s)
 ```
 
 ### What "good" looks like
-Fleet slices climbing **above random baseline** (3p>0.33, 4p>0.25, 6p>0.17, 8p>0.125)
-and toward Commander-share, with steady PROMOTEs. Distillation targets are strong and
-net-independent, so expect steadier progress than the earlier REINFORCE grind — but it
-will plateau at ~"search strength" (that's expected; see "next levers").
+Per-slice `fairShareRatio` climbing **above 1.0** (beating Commander) across the
+fleet sizes, and the mean (`candidateScore`) rising, with steady PROMOTEs.
+Distillation targets are strong and net-independent, so expect steadier progress
+than the earlier REINFORCE grind — but it will plateau at ~"search strength"
+(that's expected; raise `OMEGA_SEARCH_ITERS` to lift the ceiling — see levers).
 
 ---
 
 ## Immediate next actions (in priority order)
 
 1. **Let the current Path B run finish** (or extend `OMEGA_ITERATIONS`). Watch the
-   fleet slices in the Elo log. If they climb above random and PROMOTEs accumulate,
-   Path B is working.
+   per-slice `fairShareRatio` in the Elo log. If they climb above **1.0** (beating
+   Commander) — especially the lagging 3p/4p — and PROMOTEs accumulate, Path B is
+   working.
 2. **If it plateaus below Class II:** raise `OMEGA_SEARCH_ITERS` (e.g. 240–320) for
    sharper/stronger targets, and/or accumulate data across iterations (a replay
    buffer — currently each iteration collects fresh and overwrites
@@ -155,6 +189,16 @@ championship tier → Path A flywheel → bucket specialists → exhibition matc
 - **Credit assignment matters most.** Labeling decisions by *final campaign winner*
   is near-noise; label by **per-round graded rank reward** (in `collect-omega-trajectories.ts`,
   `recordRoundRewards`/`rankRewards`). This was the single biggest unlock at 2p.
+- **Parity in N-player is 1/N, not 50%.** The bench sits 1 Omega vs (N−1)
+  Commanders; equal strength ⇒ Omega wins its fair share 1/N. Judge strength by
+  **`fairShareRatio` = winRate ÷ (1/N)** (1.0 = Commander, >1 = beats Commander),
+  NOT raw win rate. The 2p `impliedEloGap` formula is meaningless for N>2 (now
+  emitted only for 2p). The gate promotes on **mean fair-share ratio** across
+  slices (was raw aggregate win rate, which under-weighted the big tables). As of
+  this metric switch, the champion's baseline score was reset (old raw-agg log
+  archived as `omega-elo-log-rawagg-iters1-8.jsonl`); the current run warm-starts
+  from the existing champion net. At the switch the champion was already ~1.2–1.9
+  fair-share at 4p/8p — i.e. **already beating Commander at large tables.**
 - **Value-net-guided ISMCTS cold-starts to uniform targets** (weak value net can't
   concentrate). That's why we use heuristic rollouts (Path B) to bootstrap.
 - **REINFORCE is unstable here** — needs advantage standardization + champion gating.
@@ -175,6 +219,7 @@ championship tier → Path A flywheel → bucket specialists → exhibition matc
 | `libs/engine/src/lib/ai/collect-omega-trajectories.ts` | Self-play collector: per-round rewards, mixed tables, search targets |
 | `libs/engine/src/lib/ai/collect-omega-parallel.ts` + `collect-omega.worker.ts` | Parallel sharded collection |
 | `libs/engine/src/lib/ai/bench-omega.ts` | Ω vs Commander eval gate |
+| `libs/engine/src/lib/ai/bench-omega-parallel.ts` + `bench-omega.worker.ts` | Parallel sharded bench |
 | `tools/nn/train-omega.py` | PyTorch trainer (MPS, vectorized; CE for search groups, REINFORCE fallback) |
 | `tools/nn/collect-omega-trajectories.ts` / `bench-omega.ts` | CLI drivers |
 | `scripts/omega-train-loop.sh` | Champion-gated loop |

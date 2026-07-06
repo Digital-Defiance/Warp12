@@ -12,6 +12,7 @@ import { playerIdForAction } from 'warp12-react';
 import {
   buildAiRoster,
   createLocalGame,
+  createSeededRng,
 } from './create-local-game.js';
 import { defaultLocalGameConfig } from './local-game-config.js';
 import type { LocalGameConfig } from './local-game-config.js';
@@ -31,7 +32,11 @@ function roundAwaitingScore(state: GameState): boolean {
   );
 }
 
-function pickHumanMove(state: GameState, humanId: string): GameAction | null {
+function pickHumanMove(
+  state: GameState,
+  humanId: string,
+  rng: () => number
+): GameAction | null {
   const obs = observe(structuredClone(state), humanId);
   if (!obs || obs.round.phase !== 'playing') {
     return null;
@@ -39,7 +44,7 @@ function pickHumanMove(state: GameState, humanId: string): GameAction | null {
 
   const onTurn = obs.round.activePlayerId === humanId;
   const candidates = onTurn
-    ? warpCandidateGenerator(obs)
+    ? warpCandidateGenerator(obs, { captains: obs.captains, rng })
     : warpOffTurnCandidateGenerator(obs);
   const first = candidates[0];
   return first ? toGameAction(first, humanId) : null;
@@ -69,6 +74,7 @@ export async function simulateLocalAiMatch(input?: {
   let state = createLocalGame(config, seed);
   const roundReshuffle = createMatchRoundReshuffle(input?.reshuffleSeed ?? seed);
   const roster = buildAiRoster(config, seed);
+  const humanRng = createSeededRng(seed + 31_337);
   const actionLog: ActionLogEntry[] = [];
   let steps = 0;
 
@@ -115,7 +121,7 @@ export async function simulateLocalAiMatch(input?: {
     let source: ActionLogEntry['source'] = 'human';
 
     if (activeId === config.humanId) {
-      action = pickHumanMove(state, config.humanId);
+      action = pickHumanMove(state, config.humanId, humanRng);
     } else {
       source = 'ai';
       const ai = roster.get(activeId);

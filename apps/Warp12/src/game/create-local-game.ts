@@ -20,7 +20,8 @@ function seededRandom(seed: number): () => number {
   };
 }
 
-function mulberry32(seed: number): () => number {
+/** Seeded RNG for reproducible local games, AI, and verification replays. */
+export function createSeededRng(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
     a |= 0;
@@ -74,7 +75,7 @@ export function buildAiRosterFromConfigs(
 ): ReadonlyMap<string, WarpAiPlayer> {
   const roster = new Map<string, WarpAiPlayer>();
   for (const [index, ai] of aiCaptains.entries()) {
-    const rng = mulberry32(seed + (index + 1) * 997);
+    const rng = createSeededRng(seed + (index + 1) * 997);
     const skill = getWarpSkillProfile(ai.skill, objective, playerCount);
 
     roster.set(

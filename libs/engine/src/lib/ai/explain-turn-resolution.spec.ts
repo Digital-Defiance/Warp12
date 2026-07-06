@@ -234,7 +234,8 @@ describe('explainTurnResolution', () => {
 
     const lines = explainTurnResolution(state, 'a', { focus: 'drop-to-impulse' });
     expect(lines[0]).toContain('Drop to Impulse');
-    expect(lines.some((line) => line.includes('Pass helm'))).toBe(true);
+    expect(lines.some((line) => line.includes('pass helm'))).toBe(true);
     expect(lines.some((line) => line.includes('next captain'))).toBe(true);
+    expect(lines.some((line) => line.includes('cannot chart'))).toBe(true);
   });
 });

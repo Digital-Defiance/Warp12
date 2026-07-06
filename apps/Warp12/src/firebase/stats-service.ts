@@ -119,6 +119,11 @@ export interface OnlineHumanSelfReport {
   teiBefore: number | null;
   teiAfter: number | null;
   teiDelta: number | null;
+  charterId?: string;
+  charterName?: string;
+  charterTeiBefore?: number | null;
+  charterTeiAfter?: number | null;
+  charterTeiDelta?: number | null;
   /** When unrated, the server's reason code (e.g. `advisor_used`). */
   reason?: string;
 }
@@ -132,6 +137,10 @@ interface OnlineMatchCallableResult {
   teiBefore?: number | null;
   teiAfter?: number | null;
   teiDelta?: number | null;
+  charterId?: string;
+  charterTeiBefore?: number | null;
+  charterTeiAfter?: number | null;
+  charterTeiDelta?: number | null;
   alreadyApplied?: boolean;
 }
 
@@ -464,6 +473,14 @@ export async function reportOnlineMatch(
     teiBefore: result.teiBefore ?? null,
     teiAfter: result.teiAfter ?? null,
     teiDelta: result.teiDelta ?? null,
+    ...(result.charterId
+      ? {
+          charterId: result.charterId,
+          charterTeiBefore: result.charterTeiBefore ?? null,
+          charterTeiAfter: result.charterTeiAfter ?? null,
+          charterTeiDelta: result.charterTeiDelta ?? null,
+        }
+      : {}),
   };
 }
 

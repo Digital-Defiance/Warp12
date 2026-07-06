@@ -5,6 +5,8 @@ export function formatViolation(violation: string): string {
       return 'All Stop! is not required right now';
     case 'DROP_TO_IMPULSE_NOT_REQUIRED':
       return 'Drop to Impulse! is not required right now';
+    case 'DROP_TO_IMPULSE_CHART_BLOCKED':
+      return 'Announce Drop to Impulse! or pass helm before charting';
     case 'CATCH_DROP_TO_IMPULSE_NOT_ALLOWED':
       return 'You cannot catch Drop to Impulse right now';
     case 'RAISE_SHIELDS_NOT_ALLOWED':

@@ -583,14 +583,14 @@ describe('warpCandidateGenerator — Drop to Impulse', () => {
     ).toBe(false);
   });
 
-  it('offers declare, pass, and chart when at impulse with a playable last tile', () => {
+  it('offers declare and pass when at impulse with a playable last tile', () => {
     const round = makeRound({
       hands: { a: [N(5, 12)], b: [] },
       dropToImpulseCallPending: 'a',
       table: tableWithOwnTrailOpen(12),
     });
     const candidates = warpCandidateGenerator(impulseObs(round));
-    expect(candidates.some((action) => action.kind === 'chart')).toBe(true);
+    expect(candidates.some((action) => action.kind === 'chart')).toBe(false);
     expect(candidates.some((action) => action.kind === 'drop-to-impulse')).toBe(
       true
     );
@@ -671,7 +671,7 @@ describe('createWarpAiPlayer — Drop to Impulse & ceremonies', () => {
     expect(forgetRate).toBeGreaterThan(0.05);
   });
 
-  it('advanced charts the last tile at impulse when it wins the sector', () => {
+  it('advanced declares Drop to Impulse at impulse even when the last tile is playable', () => {
     const round = makeRound({
       hands: { a: [N(5, 7)], b: [] },
       dropToImpulseCallPending: 'a',
@@ -686,7 +686,7 @@ describe('createWarpAiPlayer — Drop to Impulse & ceremonies', () => {
       rate(
         player,
         impulseObs(round, 'a', 'go-out'),
-        (action) => action.kind === 'chart',
+        (action) => action.kind === 'drop-to-impulse',
         200
       )
     ).toBeGreaterThan(0.95);

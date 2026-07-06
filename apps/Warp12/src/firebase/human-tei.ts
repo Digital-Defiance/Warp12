@@ -109,6 +109,8 @@ export function onlineUnratedNotice(reason: string | undefined): string {
       return 'Unrated sector — this objective does not affect TEI.';
     case 'not_enough_humans':
       return 'Unrated sector — rated matches need at least two signed-in captains.';
+    case 'charter_mismatch':
+      return 'Unrated sector — sector settings do not match the crew charter (fleet size, objective, or rules).';
     default:
       return 'This sector was unrated.';
   }

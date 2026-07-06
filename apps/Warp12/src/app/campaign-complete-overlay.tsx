@@ -100,19 +100,58 @@ export function CampaignCompleteOverlay({
         </ul>
 
         {matchReport?.rated && matchReport.teiBefore !== null && matchReport.teiAfter !== null && (
-          <p className={styles.roundEndBody}>
-            TEI ({TEI_OBJECTIVE_LABEL[matchReport.objective]}):{' '}
-            <strong>
-              {matchReport.teiBefore} → {matchReport.teiAfter}
-            </strong>
-            {matchReport.teiDelta !== null && matchReport.teiDelta !== 0 && (
-              <span>
-                {' '}
-                ({matchReport.teiDelta > 0 ? '+' : ''}
-                {matchReport.teiDelta})
-              </span>
+          <>
+            {matchReport.charterId &&
+            matchReport.charterTeiBefore !== null &&
+            matchReport.charterTeiAfter !== null &&
+            matchReport.charterTeiBefore !== matchReport.teiBefore ? (
+              <>
+                <p className={styles.roundEndBody}>
+                  Global TEI ({TEI_OBJECTIVE_LABEL[matchReport.objective]}):{' '}
+                  <strong>
+                    {matchReport.teiBefore} → {matchReport.teiAfter}
+                  </strong>
+                  {matchReport.teiDelta !== null && matchReport.teiDelta !== 0 && (
+                    <span>
+                      {' '}
+                      ({matchReport.teiDelta > 0 ? '+' : ''}
+                      {matchReport.teiDelta})
+                    </span>
+                  )}
+                </p>
+                <p className={styles.roundEndBody}>
+                  Crew TEI:{' '}
+                  <strong>
+                    {matchReport.charterTeiBefore} → {matchReport.charterTeiAfter}
+                  </strong>
+                  {matchReport.charterTeiDelta !== null &&
+                    matchReport.charterTeiDelta !== undefined &&
+                    matchReport.charterTeiDelta !== 0 && (
+                      <span>
+                        {' '}
+                        ({matchReport.charterTeiDelta > 0 ? '+' : ''}
+                        {matchReport.charterTeiDelta})
+                      </span>
+                    )}
+                </p>
+              </>
+            ) : (
+              <p className={styles.roundEndBody}>
+                {matchReport.charterId ? 'Crew TEI' : 'TEI'} (
+                {TEI_OBJECTIVE_LABEL[matchReport.objective]}):{' '}
+                <strong>
+                  {matchReport.teiBefore} → {matchReport.teiAfter}
+                </strong>
+                {matchReport.teiDelta !== null && matchReport.teiDelta !== 0 && (
+                  <span>
+                    {' '}
+                    ({matchReport.teiDelta > 0 ? '+' : ''}
+                    {matchReport.teiDelta})
+                  </span>
+                )}
+              </p>
             )}
-          </p>
+          </>
         )}
 
         {eloMessage && <p className={styles.roundEndBody}>{eloMessage}</p>}

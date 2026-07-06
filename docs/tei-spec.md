@@ -88,6 +88,45 @@ Storage is idempotent per sector: a `gameId` recorded in `humanRatedGameIds` is 
 
 **Warp 12 v1.2 (2026):** Online sectors are auto-rated into the human pool. A completed sector is reported to the `reportOnlineMatch` Cloud Function, which re-derives the standings from the authoritative game document, re-verifies every seat, and applies §6.5 under **context B** (§10, P3). Eligibility (§4) requires two or more **verified** (non-anonymous) human captains, only Class II–IV AI at the table, and — per the unassisted rule (§4 E3) — that no captain consulted the tactical advisor (detected via the `games/{gameId}/presence` coach records). Advisor use by any single captain leaves the whole sector unrated.
 
+### 3.3 Group TEI — crew charters (Warp 12 v1.3 — implemented)
+
+Friend-group **crews** declare a **charter**: frozen `rulesProfileId`, objective `T`, fleet size `N`, and campaign length. Rated matches and online sectors that satisfy the charter update a **scoped** rating per `(p, charterId, T)` — independent of the global human pool.
+
+For each human captain `p`, charter `C`, and track `T`, maintain:
+
+```
+R_G(p, C, T)       — integer TEI (default 1000 before first rated match in bucket)
+N_G(p, C, T)       — unassisted rated matches in this crew bucket
+W_G(p, C, T)       — unassisted wins in this crew bucket
+```
+
+Storage shape (Firestore):
+
+```
+groupTei[charterId][T_key].unassistedTei
+groupTei[charterId][T_key].unassistedMatches
+groupTei[charterId][T_key].unassistedWins
+```
+
+where `T_key ∈ {goOut, points}`.
+
+Idempotency: `groupRatedIds` contains keys `${charterId}:${matchCode}` or `${charterId}:${gameId}`; a key present means that event was already applied for that charter.
+
+**Update rule:** Same §6.5 pairwise multiplayer pass as §3.2, reading opponent TEI from the **same crew bucket** `R_G(·, C, T)` for human opponents. AI anchors at the table use the same fixed reference TEI as context B (§10).
+
+**Eligibility extensions** (in addition to §4):
+
+| Rule | Description |
+|------|-------------|
+| **G1 Charter match** | Event carries `charterId` and metadata matching the charter (`rulesProfileId`, `T`, `N`, `campaignRounds`) |
+| **G2 Membership** | Every rated human uid ∈ `charter.memberUids` |
+| **G3 No double-write (default)** | Private crew events update `groupTei` only — not `humanTei` |
+| **G4 Global Official** | When `charterId = global-official`, apply §3.3 **and** §3.2 (both buckets receive the same pairwise delta against their respective prior ratings) |
+
+Clients MUST NOT write `groupTei` or `groupRatedIds` directly. Only trusted Cloud Functions apply updates after match approval or `reportOnlineMatch`.
+
+**Interoperability:** Third-party apps implementing Warp 12–compatible group TEI SHOULD use the same `charterId` string, `rulesProfileId`, and §6.5 math. See [crews-roadmap.md](./crews-roadmap.md).
+
 ---
 
 ## 4. Rated match eligibility
@@ -454,10 +493,12 @@ After update, publish new `R_H(p, points)` on leaderboard.
 
 | Version | Changes |
 |---------|---------|
+| **1.3** | Crew charter **group TEI** (§3.3): `groupTei[charterId]`, `groupRatedIds`, Global Official double-write (G4) |
+| **1.2** | Online human-pool auto-rating via `reportOnlineMatch` (§3.2 note) |
 | **1.1** | Frozen heuristic reference policies (§2.1); search premium Δ_search for Class I\* / Fleet Admiral (§6.4, §7.1.2); percentile-augmented leaderboard requirements (§9) |
 | **1.0** | Initial normative spec: dual tracks, reference AI buckets, human pairwise multiplayer, K-schedule, academy bands |
 
-Future versions MAY add: TrueSkill-style multi-player, draw handling for identical points campaigns, online human-pool Firestore schema.
+Future versions MAY add: TrueSkill-style multi-player, draw handling for identical points campaigns, season labels and soft reset for Global Official.
 
 ---
 

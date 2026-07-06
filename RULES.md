@@ -147,6 +147,19 @@ When a **double** (matching pips on both ends) is charted on any eligible route 
 - The captain who charted the double must **satisfy** it by playing another valid tile on that double **in the same turn sequence**, unless turn rules below apply. *(Standard cover: one matching tile on the double. Subspace Fracture: three stabilizers — Section VI.)*
 - **Going out:** An empty hand does **not** win the round while your chart left a double unsatisfied. Chart the cover (or final stabilizer) first; only then may an empty hand end the sector.
 - If you cannot satisfy it, draw from Uncharted Sectors; if you still cannot, deploy your Distress Beacon and pass Red Alert to the next captain.
+
+**Worked example — pass Red Alert after already drawing.** Captain A draws once from Uncharted Sectors, then charts a double they cannot cover. The pile still has tiles, but Captain A **does not draw again** — **one draw per turn**. They deploy their Distress Beacon and **pass Red Alert** to the next captain.
+
+**Worked example — empty hand without going out (tournament-style).** Four captains, points campaign, Red Alert only (no Subspace Fracture). Captain A's **last tile** is **12-12**. A charts it on Captain B's open Warp Trail but **does not cover** the double. A's hand is empty, but the round **does not** end — A was **not officially out**.
+
+Red Alert responsibility is on A. A cannot cover the double, so A **passes Red Alert** (drawing first if Uncharted Sectors still hold tiles and A has not drawn this turn; otherwise deploy beacon and pass). Responsibility moves to B, then C. Captain C **covers** the double with **11-12**. Red Alert clears and normal play resumes.
+
+Captain B still holds **one tile** and later charts it legally, emptying B's hand. **B wins the round** and scores **0** for that round. A's hand is still empty, but A is **not** the round winner.
+
+*If B had not gone out:* play would continue around the table. A is still **not** out of the sector. On A's later turns with **no legal charts** and the beacon up: if Uncharted Sectors are **empty**, A may **pass**; if tiles **remain**, A **must draw one** before passing (same stuck-with-no-play rule as everyone else) and re-enters the round with a tile in hand. The round ends when someone **legally** goes out or the sector is **blocked** (Section V).
+
+*Points campaign:* A may still win the **sector** on lowest cumulative penalty even when another captain wins this round — **round winner** and **sector winner** are different tallies (Section V).
+
 - While Red Alert is active, **no other routes** may be played until the double is satisfied.
 - **Dead double:** If every tile in the set containing that pip is already charted (all thirteen tiles showing that number in a double-twelve set), the double cannot be satisfied — Red Alert ends and normal play resumes.
 - Covering a double on another captain's open trail **does not** clear their Distress Beacon.
@@ -189,7 +202,7 @@ When Subspace Fracture is **off**, all doubles use **Red Alert only** (single co
 
 ### Winning the round
 
-The round ends when one captain charts their **last** coordinate (empty hand) **and** no Red Alert or Subspace Fracture on that chart still requires satisfaction. You **cannot** go out on an open double — cover it (or complete three stabilizers when Subspace Fracture applies) before the sector closes.
+The round ends when one captain charts their **last** coordinate (empty hand) **and** no Red Alert or Subspace Fracture on that chart still requires satisfaction. You **cannot** go out on an open double — cover it (or complete three stabilizers when Subspace Fracture applies) before the sector closes. See the worked example in **Section IV** (empty hand without going out).
 
 **All Stop!** When the house rule is **on** (default), a round-winning chart on the **Neutral Zone** — or any go-out while **All Stop! echo** is active — ends the sector immediately and the app **automatically** logs and announces **All Stop!** (sound + round log). No helm hold and no manual button.
 
@@ -197,7 +210,9 @@ Turn **All Stop! ceremony** off in game options for pure standard Mexican Train:
 
 **All Stop! echo** (Q-Flash Module Alpha): when active, **any** round-winning chart triggers the same auto ceremony when the house rule is on.
 
-**Drop to Impulse** *(house rule — off by default)*: when a captain charts down to **one** coordinate remaining, they are **at impulse** — their turn **continues**. They may **play that last tile** without announcing (including to go out). They may press **Drop to Impulse!** to announce and **pass helm**; announcing is optional until they pass. They are **not** required to announce before playing the last tile or before passing.
+**Drop to Impulse** *(house rule — off by default)*: when a captain charts down to **one** coordinate remaining, they are **at impulse** — their turn **continues**, but they **cannot chart again** on that turn. This matches standard Mexican Train **knock**: reaching one tile does not let you silently play that last coordinate.
+
+They must **Drop to Impulse!** (announce and **pass helm** with one tile still in hand) or **pass** without announcing and risk a **catch**. On a **later** turn they may chart their last coordinate under normal rules — including going out when the hand empties.
 
 If they **pass** without having announced, any other captain may **catch** the miss while the catch window is open. A successful catch forces the forgetful captain to draw from Uncharted Sectors (1 or 2 tiles per game setup, if any remain) — they **return to warp** (no longer at impulse). The window opens when they pass without announcing and **closes** when the **next** captain passes helm (if no one caught). This is separate from **All Stop!** ceremony.
 
@@ -296,7 +311,7 @@ Hosts may enable any combination before launch.
 | **Neutral Zone after all trails started** | The Neutral Zone cannot be started until **every** captain has at least one tile on their own Warp Trail. |
 | **Beacon clears on any play** | Any legal chart removes **your** Distress Beacon — not only a chart on your own trail. |
 | **Round starter plays two** | The round starter must chart **two tiles on their own Warp Trail** on their opening turn (Spacedock + two from hand). If the first tile is a double, the Red Alert cover counts as the second. If you cannot play the second tile, deploy your Distress Beacon — no extra draw. Cannot start the Neutral Zone or opponent trails until both are played. |
-| **Drop to Impulse** | At one coordinate left (**at impulse**), your turn continues. You may **play that last tile** without announcing. **Drop to Impulse!** announces and passes helm. Pass without announcing → opponents may **catch** (1 or 2 tile penalty per setup). Draw while stuck at impulse → **return to warp** (no announce needed). Catch window closes when the next captain passes helm. |
+| **Drop to Impulse** | At one coordinate left (**at impulse**), your turn continues but you **cannot chart** until you **Drop to Impulse!** (announce and pass helm) or **pass** without announcing (opponents may **catch** — 1 or 2 tile penalty per setup). Draw while stuck at impulse → **return to warp**. Catch window closes when the next captain passes helm. |
 | **Pass Red Alert without draw or beacon** | Only the captain who **charted the double** gets this break, and only while the alert is still in the **Caution** phase (before it has passed to anyone). If they cannot cover their own double, they may pass responsibility to the next captain **without drawing** from Uncharted Sectors and **without** deploying their Distress Beacon. Red Alert then proceeds normally: every other captain — and the original captain when it cycles back to them — must follow standard rules (draw when tiles remain, deploy the beacon on pass). |
 | **Manual shield control** | Replaces the automatic "shields rise when you chart your own trail" behavior with manual control, all **during** your turn (never between turns). **Open (Shields down):** you may open your own Warp Trail at any time, for any reason — even with legal plays in hand and even before you've started your trail. **Close (Shields up):** after you drop shields you must chart at least one tile on **your own** Warp Trail before you may raise them again (that own-trail chart may be this turn or a later one); charting your own trail does **not** auto-raise. **One shield change per turn** — a single open **or** a single close, never both and never repeated. Shield changes never pass helm on their own; adjust, then chart or **Pass**. Standard draw/marker rules still apply when you cannot chart (a forced marker after a failed draw ends your turn). |
 
@@ -377,10 +392,11 @@ Invoking the tactical advisor **during live play** marks the match as **assisted
 
 Local solo sectors against **AI officers** can report results to **[leaderboard.warp12.app](https://leaderboard.warp12.app)** when the client is signed in to Firebase. Team campaigns, unrated lobby modes, and builds without a working stats backend do not update the public boards.
 
-Warp 12 keeps two rating pools, each split into **Go-out** and **Points** tracks:
+Warp 12 keeps **three rating contexts**, each split into **Go-out** and **Points** tracks:
 
 - **Solo pool** — unassisted matches against reference AI officers (Class IV / III / II).
-- **Human pool** — online sectors played against other captains.
+- **Human pool** — online sectors and officiated matches **without** a crew charter (global `humanTei`).
+- **Crew charters** — friend-group ladders on [leaderboard.warp12.app/crews](https://leaderboard.warp12.app/crews); scoped **group TEI** per charter. See [Crews & charters](docs/crews-roadmap.md).
 
 The normative rating math (Elo update, reference bands, multi-captain human tables) is defined in **[docs/tei-spec.md](docs/tei-spec.md)** for third-party interoperability.
 
@@ -394,6 +410,18 @@ A completed online sector is rated into the **human pool** when it meets every c
 - **No captain consulted the tactical advisor.** Just as in solo play, invoking the in-game advisor during live turns makes a match *assisted* — and online, one assisted captain leaves the **whole** sector unrated. You are warned the moment you engage it.
 
 When the sector ends, every signed-in captain's TEI is updated with a single pairwise pass over the final standings (see the spec, §6.5 / §10). The server re-derives the result from the authoritative game record and re-checks each seat, so no captain can report a score they didn't earn. Ratings are applied once per sector.
+
+### Crews & charters (group TEI)
+
+A **crew** is a persistent friend group with a **charter** — a frozen contract: Official Warp 12 rules (`warp12-official-v1`), objective (Points or Go-out), fleet size (2–8), and campaign length. When a rated match or online sector is played **under a crew charter**, TEI updates go to that crew's ladder (`groupTei`), not the global human pool.
+
+- **Create / join** at [leaderboard.warp12.app/crews](https://leaderboard.warp12.app/crews). **Google sign-in required.** No shared crew passwords — invite links only (owner can rotate).
+- **Officiated nights:** the match official selects the crew when creating an `MT-` code. All checked-in captains must be crew members. Approval moves **crew TEI only**.
+- **Online sectors:** the host selects a crew in the lobby waiting room; fleet size, objective, and rules lock to the charter. Sector must match exactly or it stays unrated (`charter_mismatch`).
+- **Guests** at the table do not earn crew TEI (same as global human pool).
+- **Global Official** is a special open charter (`global-official`). Rated play under it updates **both** the Global Official crew ladder **and** global human-pool TEI.
+
+The [TEI calculator](https://leaderboard.warp12.app/calculator) can preview crew-ladder outcomes without saving anything. Full design: [docs/crews-roadmap.md](docs/crews-roadmap.md).
 
 ### Lexicon
 
@@ -461,6 +489,8 @@ Before your **first rated** match in each track, complete **Starfleet Academy pl
 Downloading a post-match advisor report or campaign analysis does **not** disqualify a match.
 
 **Human pool** — an online sector is rated when it clears the eligibility bar above (two or more signed-in captains, only Class IV / III / II AI, Points or Go-out, **and no captain used the advisor**). Any guest, experimental AI seat (Class I\* or Class Ω), or advisor consult leaves the whole sector unrated.
+
+**Crew charter** — same eligibility bar, plus: host attached a `charterId`; sector settings match the charter (fleet size, objective, campaign length, rules profile); every human captain is a signed-in **member** of that crew. Private crew matches update crew TEI only. **Global Official** also updates global human-pool TEI.
 
 > **Class Ω (experimental, forthcoming).** A self-play neural officer trained purely to win — no heuristic imitation. It is an **unrated experimental opponent** today; if it clears the promotion bar (beating Class II with statistical significance across player counts and both objectives) it will be added as a fixed reference band above Class II. Until then, a Class Ω seat leaves a sector unrated, exactly like Class I\*.
 
@@ -542,4 +572,6 @@ The host can opt out of rating at any time before launch by unchecking **Rated s
 | AI officers / tactical advisor | — | Section VII — digital only |
 | Solo TEI vs AI | — | Section VIII — leaderboard.warp12.app; unassisted matches only |
 | Online TEI (human pool) | — | Section VIII — auto-rated when all captains are signed in and any AI are Class II–IV |
+| Crew / charter TEI | — | Section VIII — group TEI via leaderboard crews + officiated or online rated sectors |
+| Global Official TEI | — | Section VIII — open charter; updates crew + global human pool |
 | Subspace messaging | — | Section IX — quick hails always; free-form/DMs in lobby, casual, and post-game only |

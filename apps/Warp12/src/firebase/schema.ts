@@ -44,6 +44,10 @@ export interface FirestoreGameDocument {
   maxPlayers: number;
   /** Denormalized uid list for security rules. */
   captainIds: string[];
+  /** Optional crew charter for rated group TEI. */
+  charterId?: string;
+  /** Frozen rules profile when playing under a charter. */
+  rulesProfileId?: string;
   captains: FirestoreCaptain[];
   completedRounds: number;
   round: FirestorePublicRound | null;
@@ -86,6 +90,10 @@ export interface OnlineLobbySettings {
     subspaceFractureScope: import('warp12-engine').SubspaceFractureScope;
   };
   houseRules?: HouseRulesConfig;
+  /** Host intent to play for TEI (default true). */
+  rated?: boolean;
+  charterId?: string;
+  rulesProfileId?: string;
 }
 
 export interface FirestorePublicRound {
