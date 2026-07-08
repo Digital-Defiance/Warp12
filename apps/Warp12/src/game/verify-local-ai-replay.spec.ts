@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { defaultLocalGameConfig } from './local-game-config.js';
 import { simulateLocalAiMatch } from './simulate-local-ai-match.js';
 import {
   extractHumanActions,
@@ -9,6 +10,25 @@ import {
 import { humanWonLocalMatch } from './local-match-stats.js';
 
 describe('verify-local-ai-replay', () => {
+  it('replays heads-up solo vs one AI (2 captains)', async () => {
+    const config = {
+      ...defaultLocalGameConfig('Test Captain', 2),
+      campaignRounds: 1,
+    };
+    const simulated = await simulateLocalAiMatch({ config, seed: 7_002_001 });
+
+    expect(simulated.finalState.phase).toBe('complete');
+    expect(simulated.config.playerCount).toBe(2);
+
+    const replay = await replayLocalAiHumanActions({
+      config: simulated.config,
+      seed: simulated.seed,
+      humanActions: extractHumanActions(simulated.config, simulated.actionLog),
+    });
+
+    expect(replay.ok).toBe(true);
+  }, 120_000);
+
   it('replays a simulated match from full action log', async () => {
     const simulated = await simulateLocalAiMatch({ seed: 7_001_001 });
 
@@ -113,6 +133,32 @@ describe('verify-local-ai-replay', () => {
     });
 
     expect(replay.ok).toBe(false);
+  }, 120_000);
+
+  it('replays go-out matches with tile-conservation invariants on every step', async () => {
+    const config = {
+      ...defaultLocalGameConfig('Test Captain', 6),
+      objective: 'go-out' as const,
+      campaignRounds: 1,
+    };
+    const simulated = await simulateLocalAiMatch({ config, seed: 7_006_001 });
+
+    expect(simulated.finalState.phase).toBe('complete');
+
+    const replay = replayLocalAiActionLog({
+      config: simulated.config,
+      seed: simulated.seed,
+      actionLog: simulated.actionLog,
+    });
+
+    expect(replay.ok).toBe(true);
+    if (!replay.ok) {
+      return;
+    }
+    expect(replay.finalState.objective).toBe('go-out');
+    expect(replay.humanWon).toBe(
+      humanWonLocalMatch(simulated.finalState, simulated.config.humanId)
+    );
   }, 120_000);
 
   it('rejects tampered human move sequences', async () => {

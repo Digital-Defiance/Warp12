@@ -1,27 +1,66 @@
+import type { RatedObjective } from './rated-match-schema.js';
+import {
+  WARP12_OFFICIAL_RULES_PROFILE_ID,
+  WARP12_OFFICIAL_V1_RULES_PROFILE_ID,
+} from './rules-profile.js';
+
+export type { RatedObjective } from './rated-match-schema.js';
+export { WARP12_OFFICIAL_RULES_PROFILE_ID } from './rules-profile.js';
+
 export const DEFAULT_UNASSISTED_TEI = 1000;
 
 export type AiSkillLevel = 'ensign' | 'lieutenant' | 'commander';
-export type RatedObjective = 'go-out' | 'points';
 
-export const AI_OPPONENT_TEI_POINTS: Record<AiSkillLevel, number> = {
+export const AI_OPPONENT_TEI_POINTS_V1: Record<AiSkillLevel, number> = {
   ensign: 1000,
   lieutenant: 1200,
   commander: 1400,
 };
 
-export const AI_OPPONENT_TEI_GO_OUT: Record<AiSkillLevel, number> = {
+export const AI_OPPONENT_TEI_GO_OUT_V1: Record<AiSkillLevel, number> = {
   ensign: 1000,
   lieutenant: 1250,
   commander: 1500,
 };
 
+export const AI_OPPONENT_TEI_POINTS_V2: Record<AiSkillLevel, number> = {
+  ensign: 1000,
+  lieutenant: 1200,
+  commander: 1520,
+};
+
+export const AI_OPPONENT_TEI_GO_OUT_V2: Record<AiSkillLevel, number> = {
+  ensign: 1000,
+  lieutenant: 1250,
+  commander: 1550,
+};
+
+export const AI_OPPONENT_TEI_POINTS = AI_OPPONENT_TEI_POINTS_V2;
+export const AI_OPPONENT_TEI_GO_OUT = AI_OPPONENT_TEI_GO_OUT_V2;
+
+export function opponentTeiTablesForRulesProfile(rulesProfileId: string): {
+  readonly points: Record<AiSkillLevel, number>;
+  readonly goOut: Record<AiSkillLevel, number>;
+} {
+  if (rulesProfileId === WARP12_OFFICIAL_V1_RULES_PROFILE_ID) {
+    return {
+      points: AI_OPPONENT_TEI_POINTS_V1,
+      goOut: AI_OPPONENT_TEI_GO_OUT_V1,
+    };
+  }
+  return {
+    points: AI_OPPONENT_TEI_POINTS_V2,
+    goOut: AI_OPPONENT_TEI_GO_OUT_V2,
+  };
+}
+
 export function opponentTeiForObjective(
   objective: RatedObjective,
-  skill: AiSkillLevel
+  skill: AiSkillLevel,
+  rulesProfileId: string = WARP12_OFFICIAL_RULES_PROFILE_ID
 ): number {
-  return objective === 'go-out'
-    ? AI_OPPONENT_TEI_GO_OUT[skill]
-    : AI_OPPONENT_TEI_POINTS[skill];
+  const tables = opponentTeiTablesForRulesProfile(rulesProfileId);
+  return objective === 'go-out' ? tables.goOut[skill] : tables.points[skill];
 }
 
 export function updateUnassistedTei(

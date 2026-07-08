@@ -1,33 +1,79 @@
 import type { AiSkillLevel } from './stats-schema.js';
 import type { RatedObjective } from './stats-schema.js';
+import {
+  WARP12_OFFICIAL_RULES_PROFILE_ID,
+  WARP12_OFFICIAL_V1_RULES_PROFILE_ID,
+} from './rules-profile.js';
 
 export const DEFAULT_UNASSISTED_TEI = 1000;
 
-/** Fixed opponent reference TEI for penalty mode (200-point steps). */
-export const AI_OPPONENT_TEI_POINTS: Record<AiSkillLevel, number> = {
+export const AI_OPPONENT_TEI_POINTS_V1: Record<AiSkillLevel, number> = {
   ensign: 1000,
   lieutenant: 1200,
   commander: 1400,
 };
 
-/** Wider steps for go-out — races are noisier; percentile handles display. */
-export const AI_OPPONENT_TEI_GO_OUT: Record<AiSkillLevel, number> = {
+export const AI_OPPONENT_TEI_GO_OUT_V1: Record<AiSkillLevel, number> = {
   ensign: 1000,
   lieutenant: 1250,
   commander: 1500,
 };
 
+export const AI_OPPONENT_TEI_POINTS_V2: Record<AiSkillLevel, number> = {
+  ensign: 1000,
+  lieutenant: 1200,
+  commander: 1520,
+};
+
+export const AI_OPPONENT_TEI_GO_OUT_V2: Record<AiSkillLevel, number> = {
+  ensign: 1000,
+  lieutenant: 1250,
+  commander: 1550,
+};
+
+/** Current default reference bands (v2). */
+export const AI_OPPONENT_TEI_POINTS = AI_OPPONENT_TEI_POINTS_V2;
+export const AI_OPPONENT_TEI_GO_OUT = AI_OPPONENT_TEI_GO_OUT_V2;
+
+export function opponentTeiTablesForRulesProfile(rulesProfileId: string): {
+  readonly points: Record<AiSkillLevel, number>;
+  readonly goOut: Record<AiSkillLevel, number>;
+} {
+  if (rulesProfileId === WARP12_OFFICIAL_V1_RULES_PROFILE_ID) {
+    return {
+      points: AI_OPPONENT_TEI_POINTS_V1,
+      goOut: AI_OPPONENT_TEI_GO_OUT_V1,
+    };
+  }
+  return {
+    points: AI_OPPONENT_TEI_POINTS_V2,
+    goOut: AI_OPPONENT_TEI_GO_OUT_V2,
+  };
+}
+
 export function opponentTeiForObjective(
   objective: RatedObjective,
-  skill: AiSkillLevel
+  skill: AiSkillLevel,
+  rulesProfileId: string = WARP12_OFFICIAL_RULES_PROFILE_ID
 ): number {
-  return objective === 'go-out'
-    ? AI_OPPONENT_TEI_GO_OUT[skill]
-    : AI_OPPONENT_TEI_POINTS[skill];
+  const tables = opponentTeiTablesForRulesProfile(rulesProfileId);
+  return objective === 'go-out' ? tables.goOut[skill] : tables.points[skill];
+}
+
+/**
+ * A TEI bucket is **provisional** until this many unassisted rated matches:
+ * below it, the rating swings on the highest K-factor (§6.2) and shouldn't be
+ * read as a settled skill number. Aligns with the first K-factor step.
+ */
+export const PROVISIONAL_TEI_MATCHES = 10;
+
+/** True when a bucket has at least one rated game but is still provisional. */
+export function isProvisionalTei(unassistedMatches: number): boolean {
+  return unassistedMatches > 0 && unassistedMatches < PROVISIONAL_TEI_MATCHES;
 }
 
 export function kFactor(unassistedMatchesPlayed: number): number {
-  if (unassistedMatchesPlayed < 10) {
+  if (unassistedMatchesPlayed < PROVISIONAL_TEI_MATCHES) {
     return 40;
   }
   if (unassistedMatchesPlayed < 30) {

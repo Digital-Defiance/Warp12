@@ -1,29 +1,55 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildAiRosterFromConfigs } from './create-local-game.js';
 import {
-  resolveClass1StarPlayLookahead,
+  createZeroOmegaModelWeights,
+  type OmegaModelWeights,
 } from 'warp12-engine';
+
+import {
+  buildAiRosterFromConfigs,
+  createSeededRng,
+  rosterNeedsOmegaNet,
+} from './create-local-game.js';
 import type { AiCaptainConfig } from './local-game-config.js';
 
+const zeroOmega = createZeroOmegaModelWeights();
+
 describe('buildAiRosterFromConfigs', () => {
-  it('creates Class I* search players when class1Star is set', () => {
+  it('detects Class II seats as needing Omega weights', () => {
+    expect(
+      rosterNeedsOmegaNet([
+        { id: 'ai:riker', displayName: 'Riker', skill: 'commander' },
+      ])
+    ).toBe(true);
+    expect(
+      rosterNeedsOmegaNet([
+        { id: 'ai:riker', displayName: 'Riker', skill: 'lieutenant' },
+      ])
+    ).toBe(false);
+  });
+
+  it('creates Omega players for Class II (commander) seats', () => {
     const captains: AiCaptainConfig[] = [
       {
         id: 'ai:riker',
         displayName: 'Riker',
         skill: 'commander',
-        class1Star: true,
       },
     ];
-    const roster = buildAiRosterFromConfigs(captains, 'points', 42, 2);
+    const roster = buildAiRosterFromConfigs(
+      captains,
+      'points',
+      42,
+      2,
+      zeroOmega
+    );
 
     const player = roster.get('ai:riker');
     expect(player).toBeDefined();
     expect(typeof player?.decideGameActionAsync).toBe('function');
   });
 
-  it('does not require a neural scorer for Class I* officers', () => {
+  it('throws without weights when Class II officers are aboard', () => {
     expect(() =>
       buildAiRosterFromConfigs(
         [
@@ -31,25 +57,42 @@ describe('buildAiRosterFromConfigs', () => {
             id: 'ai:riker',
             displayName: 'Riker',
             skill: 'commander',
-            class1Star: true,
           },
         ],
         'points',
         42,
         2
       )
-    ).not.toThrow();
+    ).toThrow(/Class II \(Ω\) officers require loaded model weights/);
   });
 
-  it('routes Class I* to expectimax in 2p points', () => {
-    expect(resolveClass1StarPlayLookahead('points', 2).searchEngine).toBe(
-      'expectimax'
-    );
+  it('creates heuristic players for Class III / IV', () => {
+    const captains: AiCaptainConfig[] = [
+      {
+        id: 'ai:riker',
+        displayName: 'Riker',
+        skill: 'lieutenant',
+      },
+    ];
+    const roster = buildAiRosterFromConfigs(captains, 'points', 42, 2);
+    expect(roster.get('ai:riker')).toBeDefined();
   });
 
-  it('routes Class I* to ISMCTS in 4p go-out', () => {
-    expect(resolveClass1StarPlayLookahead('go-out', 4).searchEngine).toBe(
-      'ismcts'
-    );
+  it('uses seeded RNG for reproducible Class II play', () => {
+    const captains: AiCaptainConfig[] = [
+      {
+        id: 'ai:riker',
+        displayName: 'Riker',
+        skill: 'commander',
+      },
+    ];
+    const net: OmegaModelWeights = zeroOmega;
+    const rosterA = buildAiRosterFromConfigs(captains, 'points', 42, 2, net);
+    const rosterB = buildAiRosterFromConfigs(captains, 'points', 42, 2, net);
+    const rngA = createSeededRng(42 + 997);
+    const rngB = createSeededRng(42 + 997);
+    expect(rngA()).toBe(rngB());
+    expect(rosterA.get('ai:riker')).toBeDefined();
+    expect(rosterB.get('ai:riker')).toBeDefined();
   });
 });

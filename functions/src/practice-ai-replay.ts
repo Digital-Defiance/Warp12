@@ -21,8 +21,10 @@ export interface SerializableLocalGameConfig {
     displayName: string;
     skill: WarpSkillLevel;
     class1Star?: boolean;
+    extendedThinking?: boolean;
     poolId?: string;
   }[];
+  rulesProfileId?: string;
 }
 
 export type LocalAiReplayResult =
@@ -81,11 +83,14 @@ function roundAwaitingScore(state: GameState): boolean {
 }
 
 function validateConfig(config: SerializableLocalGameConfig): string | null {
-  if (config.playerCount < 3 || config.playerCount > 8) {
+  if (config.playerCount < 2 || config.playerCount > 8) {
     return 'INVALID_PLAYER_COUNT';
   }
   if (config.aiCaptains.some((ai) => ai.class1Star)) {
     return 'CLASS1_STAR_NOT_VERIFIED';
+  }
+  if (config.aiCaptains.some((ai) => ai.extendedThinking)) {
+    return 'EXTENDED_THINKING_NOT_VERIFIED';
   }
   if (config.humanId.length === 0 || config.aiCaptains.length === 0) {
     return 'INVALID_CONFIG';
@@ -120,13 +125,28 @@ export async function replayLocalAiHumanActions(input: {
   const {
     applyAction,
     scoreRound,
+    createOmegaPlayer,
     createWarpAiPlayer,
     generateCoordinateSet,
     getWarpSkillProfile,
     resolveClass1StarPlayLookahead,
     shuffleCoordinates,
     startGame,
+    validateOmegaModelWeights,
   } = engine;
+
+  const { readFileSync } = await import('node:fs');
+  const { resolve } = await import('node:path');
+
+  function loadOmegaNet(objective: GameObjective) {
+    const file =
+      objective === 'go-out' ? 'omega-goout-v1.json' : 'omega-v1.json';
+    // Deployed next to the Functions package root (see prepare-functions-packages.sh).
+    const path = resolve(process.cwd(), 'models', file);
+    const raw = JSON.parse(readFileSync(path, 'utf8'));
+    validateOmegaModelWeights(raw);
+    return raw;
+  }
 
   const config = input.config;
   const shuffled = shuffleCoordinates(
@@ -153,6 +173,11 @@ export async function replayLocalAiHumanActions(input: {
     { shuffledCoordinates: shuffled, roundStarterId: config.humanId }
   );
 
+  const needsOmega = config.aiCaptains.some(
+    (ai) => ai.skill === 'commander'
+  );
+  const omegaNet = needsOmega ? loadOmegaNet(config.objective) : null;
+
   const roster = new Map<string, WarpAiPlayer>();
   for (const [index, ai] of config.aiCaptains.entries()) {
     const rng = mulberry32(input.seed + (index + 1) * 997);
@@ -161,24 +186,34 @@ export async function replayLocalAiHumanActions(input: {
       config.objective,
       config.playerCount
     );
-    roster.set(
-      ai.id,
-      ai.class1Star
-        ? createWarpAiPlayer({
-            skill,
-            objective: config.objective,
-            lookahead: resolveClass1StarPlayLookahead(
-              config.objective,
-              config.playerCount
-            ),
-            rng,
-          })
-        : createWarpAiPlayer({
-            skill,
-            objective: config.objective,
-            rng,
-          })
-    );
+    if (ai.class1Star) {
+      roster.set(
+        ai.id,
+        createWarpAiPlayer({
+          skill,
+          objective: config.objective,
+          lookahead: resolveClass1StarPlayLookahead(
+            config.objective,
+            config.playerCount
+          ),
+          rng,
+        })
+      );
+    } else if (ai.skill === 'commander') {
+      if (!omegaNet) {
+        return { ok: false, violation: 'OMEGA_WEIGHTS_MISSING', steps: 0 };
+      }
+      roster.set(ai.id, createOmegaPlayer({ net: omegaNet, rng }));
+    } else {
+      roster.set(
+        ai.id,
+        createWarpAiPlayer({
+          skill,
+          objective: config.objective,
+          rng,
+        })
+      );
+    }
   }
 
   const roundReshuffle = createMatchRoundReshuffle(input.seed);

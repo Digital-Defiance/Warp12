@@ -21,6 +21,7 @@ export type CharterHouseRulesView = {
   passRedAlertWithoutDraw: boolean;
   manualShieldControl: boolean;
   doubleZeroScore: 0 | 25 | 50;
+  largeFleetHandSize?: 10 | 11;
 };
 
 export interface PublicCharterView {

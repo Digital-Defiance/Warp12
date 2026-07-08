@@ -306,6 +306,7 @@ export ANDROID_HOME="$_sdk"
 export ANDROID_SDK_ROOT="$_sdk"
 ensure_android_ndk "$_sdk"
 bash "${ROOT}/scripts/ensure-tauri-cli-links.sh"
+bash "${ROOT}/scripts/inject-android-manifest.sh"
 echo "Syncing Android app icons..." >&2
 bash "${ROOT}/scripts/sync-android-icons.sh"
 write_keystore_properties

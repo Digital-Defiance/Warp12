@@ -29,7 +29,7 @@ function advisorReportHeader(
 
   const lines = [
     objectiveLine,
-    'Advisor engine: ISMCTS deep search (explainable heuristics for move reasons).',
+    'Advisor engine: Class II neural policy (Ω) with explainable heuristic reasons.',
     'Ratings compare each played move to other legal lines at that moment.',
   ];
 

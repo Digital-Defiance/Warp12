@@ -1,0 +1,95 @@
+{
+  "weights": "tools/nn/data/omega-goout-champion.json",
+  "objective": "go-out",
+  "gamesPerSlice": 100,
+  "results": [
+    {
+      "games": 100,
+      "completed": 100,
+      "objective": "go-out",
+      "playerCount": 2,
+      "omegaSeatId": "a",
+      "omegaWins": 58,
+      "omegaWinRate": 0.58,
+      "impliedEloGap": 56.0714812660147,
+      "fairShareRatio": 1.16
+    },
+    {
+      "games": 100,
+      "completed": 100,
+      "objective": "go-out",
+      "playerCount": 2,
+      "omegaSeatId": "b",
+      "omegaWins": 51,
+      "omegaWinRate": 0.51,
+      "impliedEloGap": 6.94963842776909,
+      "fairShareRatio": 1.02
+    },
+    {
+      "games": 100,
+      "completed": 100,
+      "objective": "go-out",
+      "playerCount": 3,
+      "omegaSeatId": "a",
+      "omegaWins": 29,
+      "omegaWinRate": 0.29,
+      "impliedEloGap": null,
+      "fairShareRatio": 0.8699999999999999
+    },
+    {
+      "games": 100,
+      "completed": 100,
+      "objective": "go-out",
+      "playerCount": 4,
+      "omegaSeatId": "a",
+      "omegaWins": 31,
+      "omegaWinRate": 0.31,
+      "impliedEloGap": null,
+      "fairShareRatio": 1.24
+    },
+    {
+      "games": 100,
+      "completed": 100,
+      "objective": "go-out",
+      "playerCount": 5,
+      "omegaSeatId": "a",
+      "omegaWins": 18,
+      "omegaWinRate": 0.18,
+      "impliedEloGap": null,
+      "fairShareRatio": 0.8999999999999999
+    },
+    {
+      "games": 100,
+      "completed": 100,
+      "objective": "go-out",
+      "playerCount": 6,
+      "omegaSeatId": "a",
+      "omegaWins": 18,
+      "omegaWinRate": 0.18,
+      "impliedEloGap": null,
+      "fairShareRatio": 1.08
+    },
+    {
+      "games": 100,
+      "completed": 100,
+      "objective": "go-out",
+      "playerCount": 7,
+      "omegaSeatId": "a",
+      "omegaWins": 17,
+      "omegaWinRate": 0.17,
+      "impliedEloGap": null,
+      "fairShareRatio": 1.1900000000000002
+    },
+    {
+      "games": 100,
+      "completed": 100,
+      "objective": "go-out",
+      "playerCount": 8,
+      "omegaSeatId": "a",
+      "omegaWins": 14,
+      "omegaWinRate": 0.14,
+      "impliedEloGap": null,
+      "fairShareRatio": 1.12
+    }
+  ]
+}

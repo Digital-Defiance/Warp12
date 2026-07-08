@@ -24,9 +24,7 @@ export function buildLocalRosterTei(
   const aiEntries = config.aiCaptains.map((ai) => ({
     captainId: ai.id,
     tei: opponentTeiForObjective(objective, ai.skill),
-    tacticalClass: formatAiOfficerTacticalClass(ai.skill, {
-      class1Star: ai.class1Star,
-    }),
+    tacticalClass: formatAiOfficerTacticalClass(ai.skill),
     reference: true as const,
   }));
 

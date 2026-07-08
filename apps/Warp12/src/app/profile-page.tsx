@@ -15,7 +15,11 @@ import {
   recentDecisionTrend,
   recentTeiTrend,
 } from '../firebase/match-history.js';
-import { opponentTeiForObjective } from '../firebase/stats-elo.js';
+import {
+  isProvisionalTei,
+  opponentTeiForObjective,
+  PROVISIONAL_TEI_MATCHES,
+} from '../firebase/stats-elo.js';
 import { displayPlayerObjectiveTei } from '../firebase/stats-service.js';
 import { displayHumanObjectiveTei, humanObjectiveTeiStats } from '../firebase/human-tei.js';
 import {
@@ -102,8 +106,63 @@ function formatMatchOpponentLabel(entry: MatchHistoryEntry): string {
     return 'Unknown opponent';
   }
   return formatAiOfficerTacticalClass(entry.opponentSkill, {
+    omega: entry.opponentOmega,
     class1Star: entry.opponentClass1Star,
   });
+}
+
+function RatingBadge({ matches }: { matches: number }) {
+  if (matches <= 0) {
+    return null;
+  }
+  if (isProvisionalTei(matches)) {
+    const label = `Provisional — settles after ${PROVISIONAL_TEI_MATCHES} rated games (${matches}/${PROVISIONAL_TEI_MATCHES})`;
+    return (
+      <span className={profileStyles.provisionalBadge} title={label}>
+        <img
+          src="/badge-sharp-duotone-light-full.svg"
+          alt=""
+          aria-hidden
+          className={profileStyles.badgeIcon}
+        />
+        Provisional {matches}/{PROVISIONAL_TEI_MATCHES}
+      </span>
+    );
+  }
+  return (
+    <span
+      className={profileStyles.establishedBadge}
+      title={`Established rating — ${matches} rated games (${PROVISIONAL_TEI_MATCHES}+)`}
+    >
+      <img
+        src="/badge-check-duotone-light-full.svg"
+        alt=""
+        aria-hidden
+        className={profileStyles.badgeIcon}
+      />
+      Established
+    </span>
+  );
+}
+
+function TeiCell({
+  tei,
+  matches,
+}: {
+  tei: number | null;
+  matches: number;
+}) {
+  if (tei == null) {
+    return <>—</>;
+  }
+  return (
+    <>
+      {tei}
+      {' · '}
+      {formatTacticalClass(teiToPlayerTacticalClass(tei), { short: true })}
+      <RatingBadge matches={matches} />
+    </>
+  );
 }
 
 function HumanTeiTable({
@@ -129,17 +188,7 @@ function HumanTeiTable({
         <tr>
           <td>Online human opponents</td>
           <td>
-            {tei != null ? (
-              <>
-                {tei}
-                {' · '}
-                {formatTacticalClass(teiToPlayerTacticalClass(tei), {
-                  short: true,
-                })}
-              </>
-            ) : (
-              '—'
-            )}
+            <TeiCell tei={tei} matches={track.unassistedMatches} />
           </td>
           <td>{track.unassistedMatches}</td>
         </tr>
@@ -182,17 +231,7 @@ function TeiTable({
                 : formatTacticalClass(aiSkillToTacticalClass(row.skill))}
             </td>
             <td>
-              {row.tei != null ? (
-                <>
-                  {row.tei}
-                  {' · '}
-                  {formatTacticalClass(teiToPlayerTacticalClass(row.tei), {
-                    short: true,
-                  })}
-                </>
-              ) : (
-                '—'
-              )}
+              <TeiCell tei={row.tei} matches={row.matches} />
             </td>
             <td>{formatTei(row.opponent, true)}</td>
             <td>{row.matches}</td>
@@ -264,6 +303,12 @@ export function ProfilePage() {
       <p className={styles.subtitle}>
         Tactical Efficiency Index — reference-AI tracks, human-opponent pool,
         decision-quality trends, and recent matches.
+      </p>
+      <p className={styles.hint}>
+        Ratings are <strong>Provisional</strong> for your first{' '}
+        {PROVISIONAL_TEI_MATCHES} rated games in a track (they swing more while
+        the system learns your strength), then become{' '}
+        <strong>Established</strong> and settle down.
       </p>
 
       {captainAvatarFieldset}

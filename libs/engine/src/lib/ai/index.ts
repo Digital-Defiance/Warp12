@@ -157,7 +157,9 @@ export type {
   OmegaSearchOptions,
   OmegaSearchVisit,
 } from './omega-search.js';
-export { createOmegaSearchModel, omegaSearchVisits } from './omega-search.js';
+export { createOmegaSearchModel, omegaActionPriors, omegaSearchVisits } from './omega-search.js';
+export type { CreateOmegaSearchPlayerOptions } from './omega-search-agent.js';
+export { createOmegaSearchPlayer } from './omega-search-agent.js';
 export type {
   CollectOmegaTrajectoriesOptions,
   CollectOmegaTrajectoriesResult,

@@ -74,6 +74,7 @@ export function serializePublicGame(state: GameState): FirestoreGameDocument {
       passRedAlertWithoutDraw: state.houseRules.passRedAlertWithoutDraw,
       manualShieldControl: state.houseRules.manualShieldControl,
       doubleZeroScore: state.houseRules.doubleZeroScore,
+      largeFleetHandSize: state.houseRules.largeFleetHandSize,
     },
     objective: state.objective,
     campaignRounds: state.campaignRounds,

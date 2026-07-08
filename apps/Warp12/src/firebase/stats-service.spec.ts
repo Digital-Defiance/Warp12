@@ -209,7 +209,7 @@ describe('isReplayableLocalAiMatch', () => {
     skill: 'lieutenant' as const,
     objective: 'go-out' as const,
     advisorUsed: false,
-    opponentClass1Star: false,
+    opponentOmega: false,
     seed: 42,
     config: {
       humanId: 'you',
@@ -259,13 +259,7 @@ describe('isReplayableLocalAiMatch', () => {
     ).toBe(false);
   });
 
-  it('rejects Class I* opponents before hitting the server', () => {
-    expect(
-      isReplayableLocalAiMatch({
-        ...base,
-        opponentClass1Star: true,
-      })
-    ).toBe(false);
+  it('rejects extended-thinking Class II opponents before hitting the server', () => {
     expect(
       isReplayableLocalAiMatch({
         ...base,
@@ -276,11 +270,31 @@ describe('isReplayableLocalAiMatch', () => {
               id: 'riker',
               displayName: 'Riker',
               skill: 'commander',
-              class1Star: true,
+              extendedThinking: true,
             },
           ],
         },
       })
     ).toBe(false);
+  });
+
+  it('allows rated greedy Class II (commander) opponents', () => {
+    expect(
+      isReplayableLocalAiMatch({
+        ...base,
+        opponentOmega: true,
+        config: {
+          ...base.config,
+          aiCaptains: [
+            {
+              id: 'riker',
+              displayName: 'Riker',
+              skill: 'commander',
+              omega: true,
+            },
+          ],
+        },
+      })
+    ).toBe(true);
   });
 });

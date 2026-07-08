@@ -7,6 +7,24 @@
   gap: 1.5rem;
 }
 
+.heroImage {
+  display: block;
+  width: min(100%, 420px);
+  max-height: 180px;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.phoneTagline {
+  margin: -0.5rem 0 0;
+  text-align: center;
+  font-family: var(--font-federation-wide, var(--font-federation, system-ui));
+  font-size: 0.92rem;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  color: #e2e8f0;
+}
+
 .hero {
   padding: 1.5rem;
   background:
@@ -35,7 +53,8 @@
 }
 
 .heroLead,
-.heroBody {
+.heroBody,
+.oathBody {
   font-family: var(--font-federation, system-ui);
   color: #cbd5e1;
   line-height: 1.65;
@@ -45,6 +64,10 @@
 
 .heroBody:last-of-type {
   margin-bottom: 1rem;
+}
+
+.heroLinks {
+  margin: 0;
 }
 
 .heroLink {
@@ -92,6 +115,46 @@
   }
 }
 
+.fold {
+  border: 1px solid #334155;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.88);
+  overflow: hidden;
+}
+
+.foldSummary {
+  padding: 0.85rem 1rem;
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7dd3fc;
+  cursor: pointer;
+  list-style: none;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &::before {
+    content: '▸ ';
+    color: #38bdf8;
+  }
+}
+
+.fold[open] .foldSummary::before {
+  content: '▾ ';
+}
+
+.foldBody {
+  padding: 0 1rem 1rem;
+  border-top: 1px solid rgba(51, 65, 85, 0.8);
+}
+
+.mission {
+  margin: 0;
+}
+
 .playHeading {
   font-family: var(--font-federation, system-ui);
   font-size: 0.78rem;
@@ -122,6 +185,7 @@
   border-radius: 10px;
   cursor: pointer;
   color: inherit;
+  width: 100%;
 
   h2 {
     font-family: var(--font-federation, system-ui);
@@ -142,4 +206,78 @@
   &:hover {
     border-color: #38bdf8;
   }
+}
+
+.footer {
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: #94a3b8;
+}
+
+.footerLink {
+  color: #38bdf8;
+  text-decoration: none;
+
+  &:hover {
+    color: #7dd3fc;
+  }
+}
+
+.footerNote {
+  margin: 0.75rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.page[data-layout-tier='phone'] {
+  gap: 0.75rem;
+
+  .heroImage {
+    display: none;
+  }
+
+  .phoneTagline {
+    margin-top: 0;
+  }
+
+  .card {
+    padding: 1rem 1.1rem;
+
+    h2 {
+      font-size: 0.92rem;
+    }
+
+    p {
+      font-size: 0.8rem;
+    }
+  }
+
+  .playRequirement {
+    font-size: 0.76rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .footer {
+    font-size: 0.72rem;
+  }
+
+  .footerNote {
+    font-size: 0.68rem;
+  }
+}
+
+.platformIcon {
+  height: 16px;
+  width: auto;
+  vertical-align: -0.15em;
+  /* black → target color via filter chain */
+  filter: brightness(0) saturate(100%) invert(88%) sepia(8%) saturate(427%)
+    hue-rotate(169deg) brightness(98%) contrast(92%);
+}
+
+.platformLink {
+  text-decoration: none;
+  color: #38bdf8;
 }

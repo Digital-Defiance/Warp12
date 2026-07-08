@@ -1,0 +1,965 @@
+Class Ω GATED training loop: 20 iterations, 500 games/iter, 3,4,6,8p go-out
+Champion: tools/nn/data/omega-goout-champion.json   Elo log: tools/nn/data/omega-elo-goout.jsonl   promote margin: 0.0
+Train batch: 1024   search iters: 480   workers: auto
+
+================ Omega iteration 1/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3777 rows (omega, go-out)
+  25/34 games, 3926 rows (omega, go-out)
+  25/34 games, 3803 rows (omega, go-out)
+  24/24 games, 3945 rows (omega, go-out)
+  25/34 games, 3865 rows (omega, go-out)
+  25/34 games, 3939 rows (omega, go-out)
+  25/34 games, 3872 rows (omega, go-out)
+  25/34 games, 3810 rows (omega, go-out)
+  25/34 games, 3857 rows (omega, go-out)
+  25/34 games, 4083 rows (omega, go-out)
+  25/34 games, 3905 rows (omega, go-out)
+  25/34 games, 4021 rows (omega, go-out)
+  25/34 games, 3938 rows (omega, go-out)
+  25/34 games, 4019 rows (omega, go-out)
+  25/34 games, 4228 rows (omega, go-out)
+  34/34 games, 5322 rows (omega, go-out)
+  34/34 games, 5455 rows (omega, go-out)
+  34/34 games, 5247 rows (omega, go-out)
+  34/34 games, 5302 rows (omega, go-out)
+  34/34 games, 5361 rows (omega, go-out)
+  34/34 games, 5379 rows (omega, go-out)
+  34/34 games, 5533 rows (omega, go-out)
+  34/34 games, 5422 rows (omega, go-out)
+  34/34 games, 5275 rows (omega, go-out)
+  34/34 games, 5420 rows (omega, go-out)
+  34/34 games, 5347 rows (omega, go-out)
+  34/34 games, 5595 rows (omega, go-out)
+  34/34 games, 5782 rows (omega, go-out)
+  34/34 games, 5644 rows (omega, go-out)
+Wrote 80029 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23405 (win=10546, loss=12859, search-target=23405) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4535 policy_top1=0.405
+epoch 2/8 policy=nan value=0.4118 policy_top1=0.414
+epoch 3/8 policy=nan value=0.3904 policy_top1=0.420
+epoch 4/8 policy=nan value=0.3723 policy_top1=0.428
+epoch 5/8 policy=nan value=0.3565 policy_top1=0.433
+epoch 6/8 policy=nan value=0.3421 policy_top1=0.438
+epoch 7/8 policy=nan value=0.3290 policy_top1=0.443
+epoch 8/8 policy=nan value=0.3159 policy_top1=0.448
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 1] PROMOTE  candidate=1.155 champion=1.084 (mean fair-share ratio; 1.0=Commander)  [3p=1.08 4p=0.90 6p=1.20 8p=1.44]
+  -> promoted candidate to champion
+
+================ Omega iteration 2/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3727 rows (omega, go-out)
+  25/34 games, 3950 rows (omega, go-out)
+  25/34 games, 3985 rows (omega, go-out)
+  25/34 games, 3897 rows (omega, go-out)
+  25/34 games, 4015 rows (omega, go-out)
+  25/34 games, 4064 rows (omega, go-out)
+  25/34 games, 3985 rows (omega, go-out)
+  25/34 games, 4210 rows (omega, go-out)
+  24/24 games, 3920 rows (omega, go-out)
+  25/34 games, 4194 rows (omega, go-out)
+  25/34 games, 3924 rows (omega, go-out)
+  25/34 games, 4074 rows (omega, go-out)
+  25/34 games, 4030 rows (omega, go-out)
+  25/34 games, 4162 rows (omega, go-out)
+  25/34 games, 4253 rows (omega, go-out)
+  34/34 games, 5492 rows (omega, go-out)
+  34/34 games, 5174 rows (omega, go-out)
+  34/34 games, 5312 rows (omega, go-out)
+  34/34 games, 5355 rows (omega, go-out)
+  34/34 games, 5675 rows (omega, go-out)
+  34/34 games, 5518 rows (omega, go-out)
+  34/34 games, 5626 rows (omega, go-out)
+  34/34 games, 5371 rows (omega, go-out)
+  34/34 games, 5532 rows (omega, go-out)
+  34/34 games, 5470 rows (omega, go-out)
+  34/34 games, 5573 rows (omega, go-out)
+  34/34 games, 5561 rows (omega, go-out)
+  34/34 games, 5579 rows (omega, go-out)
+  34/34 games, 5703 rows (omega, go-out)
+Wrote 80861 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23485 (win=10558, loss=12927, search-target=23485) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4410 policy_top1=0.413
+epoch 2/8 policy=nan value=0.4100 policy_top1=0.421
+epoch 3/8 policy=nan value=0.3909 policy_top1=0.430
+epoch 4/8 policy=nan value=0.3764 policy_top1=0.434
+epoch 5/8 policy=nan value=0.3629 policy_top1=0.443
+epoch 6/8 policy=nan value=0.3509 policy_top1=0.447
+epoch 7/8 policy=nan value=0.3399 policy_top1=0.455
+epoch 8/8 policy=nan value=0.3296 policy_top1=0.458
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 2] REJECT  candidate=1.140 champion=1.155 (mean fair-share ratio; 1.0=Commander)  [3p=1.05 4p=0.98 6p=1.17 8p=1.36]
+  -> kept champion (candidate rejected)
+
+================ Omega iteration 3/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3875 rows (omega, go-out)
+  25/34 games, 3848 rows (omega, go-out)
+  24/24 games, 3979 rows (omega, go-out)
+  25/34 games, 3909 rows (omega, go-out)
+  25/34 games, 3947 rows (omega, go-out)
+  25/34 games, 4060 rows (omega, go-out)
+  25/34 games, 4047 rows (omega, go-out)
+  25/34 games, 3952 rows (omega, go-out)
+  25/34 games, 4058 rows (omega, go-out)
+  25/34 games, 4131 rows (omega, go-out)
+  25/34 games, 4091 rows (omega, go-out)
+  25/34 games, 4364 rows (omega, go-out)
+  25/34 games, 4114 rows (omega, go-out)
+  25/34 games, 4211 rows (omega, go-out)
+  25/34 games, 4209 rows (omega, go-out)
+  34/34 games, 5145 rows (omega, go-out)
+  34/34 games, 5209 rows (omega, go-out)
+  34/34 games, 5447 rows (omega, go-out)
+  34/34 games, 5415 rows (omega, go-out)
+  34/34 games, 5505 rows (omega, go-out)
+  34/34 games, 5397 rows (omega, go-out)
+  34/34 games, 5394 rows (omega, go-out)
+  34/34 games, 5732 rows (omega, go-out)
+  34/34 games, 5713 rows (omega, go-out)
+  34/34 games, 5559 rows (omega, go-out)
+  34/34 games, 5539 rows (omega, go-out)
+  34/34 games, 5560 rows (omega, go-out)
+  34/34 games, 5625 rows (omega, go-out)
+  34/34 games, 5653 rows (omega, go-out)
+Wrote 80872 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23487 (win=10811, loss=12676, search-target=23487) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4331 policy_top1=0.409
+epoch 2/8 policy=nan value=0.4020 policy_top1=0.418
+epoch 3/8 policy=nan value=0.3840 policy_top1=0.426
+epoch 4/8 policy=nan value=0.3686 policy_top1=0.433
+epoch 5/8 policy=nan value=0.3544 policy_top1=0.438
+epoch 6/8 policy=nan value=0.3415 policy_top1=0.442
+epoch 7/8 policy=nan value=0.3300 policy_top1=0.450
+epoch 8/8 policy=nan value=0.3190 policy_top1=0.455
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 3] PROMOTE  candidate=1.157 champion=1.155 (mean fair-share ratio; 1.0=Commander)  [3p=1.02 4p=1.00 6p=1.41 8p=1.20]
+  -> promoted candidate to champion
+
+================ Omega iteration 4/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3794 rows (omega, go-out)
+  25/34 games, 3918 rows (omega, go-out)
+  24/24 games, 4023 rows (omega, go-out)
+  25/34 games, 3847 rows (omega, go-out)
+  25/34 games, 3944 rows (omega, go-out)
+  25/34 games, 3941 rows (omega, go-out)
+  25/34 games, 3921 rows (omega, go-out)
+  25/34 games, 4033 rows (omega, go-out)
+  25/34 games, 4064 rows (omega, go-out)
+  25/34 games, 4238 rows (omega, go-out)
+  25/34 games, 4062 rows (omega, go-out)
+  25/34 games, 4151 rows (omega, go-out)
+  25/34 games, 4188 rows (omega, go-out)
+  25/34 games, 3985 rows (omega, go-out)
+  25/34 games, 4465 rows (omega, go-out)
+  34/34 games, 5058 rows (omega, go-out)
+  34/34 games, 5357 rows (omega, go-out)
+  34/34 games, 5340 rows (omega, go-out)
+  34/34 games, 5387 rows (omega, go-out)
+  34/34 games, 5471 rows (omega, go-out)
+  34/34 games, 5636 rows (omega, go-out)
+  34/34 games, 5296 rows (omega, go-out)
+  34/34 games, 5581 rows (omega, go-out)
+  34/34 games, 5495 rows (omega, go-out)
+  34/34 games, 5438 rows (omega, go-out)
+  34/34 games, 5514 rows (omega, go-out)
+  34/34 games, 5672 rows (omega, go-out)
+  34/34 games, 5687 rows (omega, go-out)
+  34/34 games, 5941 rows (omega, go-out)
+Wrote 80896 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23437 (win=10640, loss=12797, search-target=23437) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4325 policy_top1=0.412
+epoch 2/8 policy=nan value=0.4035 policy_top1=0.423
+epoch 3/8 policy=nan value=0.3862 policy_top1=0.431
+epoch 4/8 policy=nan value=0.3712 policy_top1=0.439
+epoch 5/8 policy=nan value=0.3574 policy_top1=0.445
+epoch 6/8 policy=nan value=0.3449 policy_top1=0.450
+epoch 7/8 policy=nan value=0.3322 policy_top1=0.456
+epoch 8/8 policy=nan value=0.3209 policy_top1=0.461
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 4] REJECT  candidate=1.123 champion=1.157 (mean fair-share ratio; 1.0=Commander)  [3p=1.02 4p=1.00 6p=1.35 8p=1.12]
+  -> kept champion (candidate rejected)
+
+================ Omega iteration 5/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3794 rows (omega, go-out)
+  24/24 games, 4159 rows (omega, go-out)
+  25/34 games, 3878 rows (omega, go-out)
+  25/34 games, 4092 rows (omega, go-out)
+  25/34 games, 3922 rows (omega, go-out)
+  25/34 games, 4291 rows (omega, go-out)
+  25/34 games, 4102 rows (omega, go-out)
+  25/34 games, 3953 rows (omega, go-out)
+  25/34 games, 4032 rows (omega, go-out)
+  25/34 games, 3906 rows (omega, go-out)
+  25/34 games, 4073 rows (omega, go-out)
+  25/34 games, 4023 rows (omega, go-out)
+  25/34 games, 4346 rows (omega, go-out)
+  25/34 games, 4252 rows (omega, go-out)
+  25/34 games, 4290 rows (omega, go-out)
+  34/34 games, 5195 rows (omega, go-out)
+  34/34 games, 5323 rows (omega, go-out)
+  34/34 games, 5601 rows (omega, go-out)
+  34/34 games, 5407 rows (omega, go-out)
+  34/34 games, 5375 rows (omega, go-out)
+  34/34 games, 5752 rows (omega, go-out)
+  34/34 games, 5584 rows (omega, go-out)
+  34/34 games, 5561 rows (omega, go-out)
+  34/34 games, 5733 rows (omega, go-out)
+  34/34 games, 5490 rows (omega, go-out)
+  34/34 games, 5507 rows (omega, go-out)
+  34/34 games, 5361 rows (omega, go-out)
+  34/34 games, 5758 rows (omega, go-out)
+  34/34 games, 5838 rows (omega, go-out)
+Wrote 81644 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23692 (win=10717, loss=12975, search-target=23692) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4319 policy_top1=0.410
+epoch 2/8 policy=nan value=0.4031 policy_top1=0.422
+epoch 3/8 policy=nan value=0.3862 policy_top1=0.427
+epoch 4/8 policy=nan value=0.3728 policy_top1=0.434
+epoch 5/8 policy=nan value=0.3595 policy_top1=0.440
+epoch 6/8 policy=nan value=0.3473 policy_top1=0.446
+epoch 7/8 policy=nan value=0.3368 policy_top1=0.452
+epoch 8/8 policy=nan value=0.3266 policy_top1=0.455
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 5] REJECT  candidate=1.120 champion=1.157 (mean fair-share ratio; 1.0=Commander)  [3p=0.99 4p=1.16 6p=0.93 8p=1.40]
+  -> kept champion (candidate rejected)
+
+================ Omega iteration 6/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3894 rows (omega, go-out)
+  25/34 games, 3935 rows (omega, go-out)
+  25/34 games, 4077 rows (omega, go-out)
+  25/34 games, 4182 rows (omega, go-out)
+  25/34 games, 4106 rows (omega, go-out)
+  25/34 games, 4078 rows (omega, go-out)
+  25/34 games, 4000 rows (omega, go-out)
+  24/24 games, 3953 rows (omega, go-out)
+  25/34 games, 4347 rows (omega, go-out)
+  25/34 games, 4003 rows (omega, go-out)
+  25/34 games, 3917 rows (omega, go-out)
+  25/34 games, 3922 rows (omega, go-out)
+  25/34 games, 4125 rows (omega, go-out)
+  25/34 games, 4144 rows (omega, go-out)
+  25/34 games, 4270 rows (omega, go-out)
+  34/34 games, 5294 rows (omega, go-out)
+  34/34 games, 5250 rows (omega, go-out)
+  34/34 games, 5701 rows (omega, go-out)
+  34/34 games, 5556 rows (omega, go-out)
+  34/34 games, 5558 rows (omega, go-out)
+  34/34 games, 5555 rows (omega, go-out)
+  34/34 games, 5810 rows (omega, go-out)
+  34/34 games, 5622 rows (omega, go-out)
+  34/34 games, 5542 rows (omega, go-out)
+  34/34 games, 5570 rows (omega, go-out)
+  34/34 games, 5512 rows (omega, go-out)
+  34/34 games, 5407 rows (omega, go-out)
+  34/34 games, 5517 rows (omega, go-out)
+  34/34 games, 5658 rows (omega, go-out)
+Wrote 81505 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23582 (win=10535, loss=13047, search-target=23582) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4330 policy_top1=0.413
+epoch 2/8 policy=nan value=0.4030 policy_top1=0.422
+epoch 3/8 policy=nan value=0.3844 policy_top1=0.429
+epoch 4/8 policy=nan value=0.3698 policy_top1=0.435
+epoch 5/8 policy=nan value=0.3564 policy_top1=0.440
+epoch 6/8 policy=nan value=0.3446 policy_top1=0.446
+epoch 7/8 policy=nan value=0.3326 policy_top1=0.450
+epoch 8/8 policy=nan value=0.3224 policy_top1=0.453
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 6] REJECT  candidate=1.152 champion=1.157 (mean fair-share ratio; 1.0=Commander)  [3p=1.08 4p=0.96 6p=1.17 8p=1.40]
+  -> kept champion (candidate rejected)
+
+================ Omega iteration 7/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3892 rows (omega, go-out)
+  25/34 games, 3892 rows (omega, go-out)
+  25/34 games, 3843 rows (omega, go-out)
+  24/24 games, 3824 rows (omega, go-out)
+  25/34 games, 3821 rows (omega, go-out)
+  25/34 games, 3964 rows (omega, go-out)
+  25/34 games, 4063 rows (omega, go-out)
+  25/34 games, 4060 rows (omega, go-out)
+  25/34 games, 4233 rows (omega, go-out)
+  25/34 games, 4109 rows (omega, go-out)
+  25/34 games, 4104 rows (omega, go-out)
+  25/34 games, 4128 rows (omega, go-out)
+  25/34 games, 4153 rows (omega, go-out)
+  25/34 games, 4133 rows (omega, go-out)
+  25/34 games, 4182 rows (omega, go-out)
+  34/34 games, 5384 rows (omega, go-out)
+  34/34 games, 5373 rows (omega, go-out)
+  34/34 games, 5247 rows (omega, go-out)
+  34/34 games, 5212 rows (omega, go-out)
+  34/34 games, 5585 rows (omega, go-out)
+  34/34 games, 5486 rows (omega, go-out)
+  34/34 games, 5695 rows (omega, go-out)
+  34/34 games, 5540 rows (omega, go-out)
+  34/34 games, 5611 rows (omega, go-out)
+  34/34 games, 5626 rows (omega, go-out)
+  34/34 games, 5671 rows (omega, go-out)
+  34/34 games, 5579 rows (omega, go-out)
+  34/34 games, 5602 rows (omega, go-out)
+  34/34 games, 5631 rows (omega, go-out)
+Wrote 81066 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23531 (win=10677, loss=12854, search-target=23531) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4280 policy_top1=0.415
+epoch 2/8 policy=nan value=0.3976 policy_top1=0.424
+epoch 3/8 policy=nan value=0.3795 policy_top1=0.435
+epoch 4/8 policy=nan value=0.3648 policy_top1=0.441
+epoch 5/8 policy=nan value=0.3517 policy_top1=0.447
+epoch 6/8 policy=nan value=0.3390 policy_top1=0.452
+epoch 7/8 policy=nan value=0.3275 policy_top1=0.458
+epoch 8/8 policy=nan value=0.3167 policy_top1=0.464
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 7] REJECT  candidate=1.100 champion=1.157 (mean fair-share ratio; 1.0=Commander)  [3p=0.99 4p=1.08 6p=1.29 8p=1.04]
+  -> kept champion (candidate rejected)
+
+================ Omega iteration 8/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3768 rows (omega, go-out)
+  24/24 games, 3906 rows (omega, go-out)
+  25/34 games, 4153 rows (omega, go-out)
+  25/34 games, 4188 rows (omega, go-out)
+  25/34 games, 3977 rows (omega, go-out)
+  25/34 games, 4085 rows (omega, go-out)
+  25/34 games, 4007 rows (omega, go-out)
+  25/34 games, 3979 rows (omega, go-out)
+  25/34 games, 4087 rows (omega, go-out)
+  25/34 games, 3997 rows (omega, go-out)
+  25/34 games, 4092 rows (omega, go-out)
+  25/34 games, 4083 rows (omega, go-out)
+  25/34 games, 4059 rows (omega, go-out)
+  25/34 games, 4071 rows (omega, go-out)
+  25/34 games, 4088 rows (omega, go-out)
+  34/34 games, 5290 rows (omega, go-out)
+  34/34 games, 5602 rows (omega, go-out)
+  34/34 games, 5357 rows (omega, go-out)
+  34/34 games, 5658 rows (omega, go-out)
+  34/34 games, 5450 rows (omega, go-out)
+  34/34 games, 5594 rows (omega, go-out)
+  34/34 games, 5504 rows (omega, go-out)
+  34/34 games, 5457 rows (omega, go-out)
+  34/34 games, 5478 rows (omega, go-out)
+  34/34 games, 5582 rows (omega, go-out)
+  34/34 games, 5492 rows (omega, go-out)
+  34/34 games, 5553 rows (omega, go-out)
+  34/34 games, 5569 rows (omega, go-out)
+  34/34 games, 5647 rows (omega, go-out)
+Wrote 81139 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23491 (win=10386, loss=13105, search-target=23491) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4154 policy_top1=0.412
+epoch 2/8 policy=nan value=0.3852 policy_top1=0.423
+epoch 3/8 policy=nan value=0.3670 policy_top1=0.428
+epoch 4/8 policy=nan value=0.3519 policy_top1=0.436
+epoch 5/8 policy=nan value=0.3391 policy_top1=0.442
+epoch 6/8 policy=nan value=0.3273 policy_top1=0.447
+epoch 7/8 policy=nan value=0.3165 policy_top1=0.453
+epoch 8/8 policy=nan value=0.3059 policy_top1=0.458
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 8] REJECT  candidate=1.139 champion=1.157 (mean fair-share ratio; 1.0=Commander)  [3p=1.01 4p=0.96 6p=1.23 8p=1.36]
+  -> kept champion (candidate rejected)
+
+================ Omega iteration 9/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3810 rows (omega, go-out)
+  25/34 games, 3769 rows (omega, go-out)
+  25/34 games, 3975 rows (omega, go-out)
+  25/34 games, 3821 rows (omega, go-out)
+  25/34 games, 4206 rows (omega, go-out)
+  25/34 games, 3929 rows (omega, go-out)
+  25/34 games, 3988 rows (omega, go-out)
+  25/34 games, 4043 rows (omega, go-out)
+  25/34 games, 4108 rows (omega, go-out)
+  25/34 games, 3953 rows (omega, go-out)
+  24/24 games, 3995 rows (omega, go-out)
+  25/34 games, 3984 rows (omega, go-out)
+  25/34 games, 4092 rows (omega, go-out)
+  25/34 games, 4094 rows (omega, go-out)
+  25/34 games, 4072 rows (omega, go-out)
+  34/34 games, 5106 rows (omega, go-out)
+  34/34 games, 5115 rows (omega, go-out)
+  34/34 games, 5428 rows (omega, go-out)
+  34/34 games, 5337 rows (omega, go-out)
+  34/34 games, 5232 rows (omega, go-out)
+  34/34 games, 5679 rows (omega, go-out)
+  34/34 games, 5476 rows (omega, go-out)
+  34/34 games, 5422 rows (omega, go-out)
+  34/34 games, 5570 rows (omega, go-out)
+  34/34 games, 5360 rows (omega, go-out)
+  34/34 games, 5673 rows (omega, go-out)
+  34/34 games, 5642 rows (omega, go-out)
+  34/34 games, 5486 rows (omega, go-out)
+  34/34 games, 5686 rows (omega, go-out)
+Wrote 80207 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23473 (win=10423, loss=13050, search-target=23473) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4272 policy_top1=0.410
+epoch 2/8 policy=nan value=0.3970 policy_top1=0.421
+epoch 3/8 policy=nan value=0.3782 policy_top1=0.428
+epoch 4/8 policy=nan value=0.3638 policy_top1=0.435
+epoch 5/8 policy=nan value=0.3503 policy_top1=0.440
+epoch 6/8 policy=nan value=0.3382 policy_top1=0.447
+epoch 7/8 policy=nan value=0.3266 policy_top1=0.454
+epoch 8/8 policy=nan value=0.3162 policy_top1=0.458
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 9] REJECT  candidate=1.035 champion=1.157 (mean fair-share ratio; 1.0=Commander)  [3p=0.93 4p=0.84 6p=1.17 8p=1.20]
+  -> kept champion (candidate rejected)
+
+================ Omega iteration 10/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3836 rows (omega, go-out)
+  25/34 games, 3927 rows (omega, go-out)
+  25/34 games, 3926 rows (omega, go-out)
+  25/34 games, 3970 rows (omega, go-out)
+  25/34 games, 3865 rows (omega, go-out)
+  25/34 games, 3735 rows (omega, go-out)
+  24/24 games, 3909 rows (omega, go-out)
+  25/34 games, 4025 rows (omega, go-out)
+  25/34 games, 3945 rows (omega, go-out)
+  25/34 games, 4103 rows (omega, go-out)
+  25/34 games, 4273 rows (omega, go-out)
+  25/34 games, 4005 rows (omega, go-out)
+  25/34 games, 4129 rows (omega, go-out)
+  25/34 games, 4193 rows (omega, go-out)
+  25/34 games, 4157 rows (omega, go-out)
+  34/34 games, 5271 rows (omega, go-out)
+  34/34 games, 5250 rows (omega, go-out)
+  34/34 games, 5418 rows (omega, go-out)
+  34/34 games, 5234 rows (omega, go-out)
+  34/34 games, 5227 rows (omega, go-out)
+  34/34 games, 5436 rows (omega, go-out)
+  34/34 games, 5202 rows (omega, go-out)
+  34/34 games, 5566 rows (omega, go-out)
+  34/34 games, 5465 rows (omega, go-out)
+  34/34 games, 5621 rows (omega, go-out)
+  34/34 games, 5707 rows (omega, go-out)
+  34/34 games, 5479 rows (omega, go-out)
+  34/34 games, 5524 rows (omega, go-out)
+  34/34 games, 5709 rows (omega, go-out)
+Wrote 80018 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23320 (win=10624, loss=12696, search-target=23320) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4224 policy_top1=0.416
+epoch 2/8 policy=nan value=0.3920 policy_top1=0.427
+epoch 3/8 policy=nan value=0.3740 policy_top1=0.434
+epoch 4/8 policy=nan value=0.3595 policy_top1=0.439
+epoch 5/8 policy=nan value=0.3468 policy_top1=0.446
+epoch 6/8 policy=nan value=0.3351 policy_top1=0.451
+epoch 7/8 policy=nan value=0.3238 policy_top1=0.457
+epoch 8/8 policy=nan value=0.3138 policy_top1=0.464
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 10] REJECT  candidate=0.982 champion=1.157 (mean fair-share ratio; 1.0=Commander)  [3p=0.93 4p=1.02 6p=0.90 8p=1.08]
+  -> kept champion (candidate rejected)
+
+================ Omega iteration 11/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3692 rows (omega, go-out)
+  25/34 games, 3963 rows (omega, go-out)
+  25/34 games, 3829 rows (omega, go-out)
+  25/34 games, 4130 rows (omega, go-out)
+  25/34 games, 3848 rows (omega, go-out)
+  25/34 games, 4114 rows (omega, go-out)
+  24/24 games, 3954 rows (omega, go-out)
+  25/34 games, 3904 rows (omega, go-out)
+  25/34 games, 4174 rows (omega, go-out)
+  25/34 games, 4077 rows (omega, go-out)
+  25/34 games, 4131 rows (omega, go-out)
+  25/34 games, 4152 rows (omega, go-out)
+  25/34 games, 4203 rows (omega, go-out)
+  25/34 games, 4011 rows (omega, go-out)
+  25/34 games, 4286 rows (omega, go-out)
+  34/34 games, 5112 rows (omega, go-out)
+  34/34 games, 5378 rows (omega, go-out)
+  34/34 games, 5536 rows (omega, go-out)
+  34/34 games, 5383 rows (omega, go-out)
+  34/34 games, 5571 rows (omega, go-out)
+  34/34 games, 5557 rows (omega, go-out)
+  34/34 games, 5410 rows (omega, go-out)
+  34/34 games, 5430 rows (omega, go-out)
+  34/34 games, 5655 rows (omega, go-out)
+  34/34 games, 5602 rows (omega, go-out)
+  34/34 games, 5542 rows (omega, go-out)
+  34/34 games, 5565 rows (omega, go-out)
+  34/34 games, 5795 rows (omega, go-out)
+  34/34 games, 5777 rows (omega, go-out)
+Wrote 81267 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23534 (win=10752, loss=12782, search-target=23534) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4357 policy_top1=0.415
+epoch 2/8 policy=nan value=0.4041 policy_top1=0.427
+epoch 3/8 policy=nan value=0.3858 policy_top1=0.432
+epoch 4/8 policy=nan value=0.3719 policy_top1=0.438
+epoch 5/8 policy=nan value=0.3590 policy_top1=0.445
+epoch 6/8 policy=nan value=0.3476 policy_top1=0.450
+epoch 7/8 policy=nan value=0.3368 policy_top1=0.456
+epoch 8/8 policy=nan value=0.3253 policy_top1=0.462
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 11] PROMOTE  candidate=1.185 champion=1.157 (mean fair-share ratio; 1.0=Commander)  [3p=0.99 4p=1.04 6p=1.23 8p=1.48]
+  -> promoted candidate to champion
+
+================ Omega iteration 12/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3991 rows (omega, go-out)
+  24/24 games, 3823 rows (omega, go-out)
+  25/34 games, 3870 rows (omega, go-out)
+  25/34 games, 3993 rows (omega, go-out)
+  25/34 games, 4017 rows (omega, go-out)
+  25/34 games, 4073 rows (omega, go-out)
+  25/34 games, 3939 rows (omega, go-out)
+  25/34 games, 4079 rows (omega, go-out)
+  25/34 games, 4064 rows (omega, go-out)
+  25/34 games, 3982 rows (omega, go-out)
+  25/34 games, 4112 rows (omega, go-out)
+  25/34 games, 4042 rows (omega, go-out)
+  25/34 games, 4250 rows (omega, go-out)
+  25/34 games, 4278 rows (omega, go-out)
+  25/34 games, 4254 rows (omega, go-out)
+  34/34 games, 5518 rows (omega, go-out)
+  34/34 games, 5498 rows (omega, go-out)
+  34/34 games, 5562 rows (omega, go-out)
+  34/34 games, 5281 rows (omega, go-out)
+  34/34 games, 5471 rows (omega, go-out)
+  34/34 games, 5495 rows (omega, go-out)
+  34/34 games, 5387 rows (omega, go-out)
+  34/34 games, 5430 rows (omega, go-out)
+  34/34 games, 5525 rows (omega, go-out)
+  34/34 games, 5625 rows (omega, go-out)
+  34/34 games, 5392 rows (omega, go-out)
+  34/34 games, 5678 rows (omega, go-out)
+  34/34 games, 5664 rows (omega, go-out)
+  34/34 games, 5648 rows (omega, go-out)
+Wrote 80997 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23450 (win=10783, loss=12667, search-target=23450) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4217 policy_top1=0.411
+epoch 2/8 policy=nan value=0.3945 policy_top1=0.424
+epoch 3/8 policy=nan value=0.3777 policy_top1=0.431
+epoch 4/8 policy=nan value=0.3628 policy_top1=0.439
+epoch 5/8 policy=nan value=0.3490 policy_top1=0.443
+epoch 6/8 policy=nan value=0.3366 policy_top1=0.449
+epoch 7/8 policy=nan value=0.3256 policy_top1=0.455
+epoch 8/8 policy=nan value=0.3144 policy_top1=0.457
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 12] REJECT  candidate=0.989 champion=1.185 (mean fair-share ratio; 1.0=Commander)  [3p=0.92 4p=0.84 6p=0.96 8p=1.24]
+  -> kept champion (candidate rejected)
+
+================ Omega iteration 13/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3761 rows (omega, go-out)
+  25/34 games, 4034 rows (omega, go-out)
+  25/34 games, 4058 rows (omega, go-out)
+  25/34 games, 4028 rows (omega, go-out)
+  25/34 games, 4093 rows (omega, go-out)
+  25/34 games, 4099 rows (omega, go-out)
+  25/34 games, 3968 rows (omega, go-out)
+  25/34 games, 3962 rows (omega, go-out)
+  24/24 games, 3799 rows (omega, go-out)
+  25/34 games, 4028 rows (omega, go-out)
+  25/34 games, 4156 rows (omega, go-out)
+  25/34 games, 4341 rows (omega, go-out)
+  25/34 games, 4289 rows (omega, go-out)
+  25/34 games, 3999 rows (omega, go-out)
+  25/34 games, 4030 rows (omega, go-out)
+  34/34 games, 5183 rows (omega, go-out)
+  34/34 games, 5435 rows (omega, go-out)
+  34/34 games, 5463 rows (omega, go-out)
+  34/34 games, 5418 rows (omega, go-out)
+  34/34 games, 5457 rows (omega, go-out)
+  34/34 games, 5407 rows (omega, go-out)
+  34/34 games, 5517 rows (omega, go-out)
+  34/34 games, 5478 rows (omega, go-out)
+  34/34 games, 5464 rows (omega, go-out)
+  34/34 games, 5555 rows (omega, go-out)
+  34/34 games, 5426 rows (omega, go-out)
+  34/34 games, 5839 rows (omega, go-out)
+  34/34 games, 5787 rows (omega, go-out)
+  34/34 games, 5457 rows (omega, go-out)
+Wrote 80685 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23461 (win=10479, loss=12982, search-target=23461) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4279 policy_top1=0.418
+epoch 2/8 policy=nan value=0.4001 policy_top1=0.428
+epoch 3/8 policy=nan value=0.3828 policy_top1=0.433
+epoch 4/8 policy=nan value=0.3688 policy_top1=0.440
+epoch 5/8 policy=nan value=0.3559 policy_top1=0.443
+epoch 6/8 policy=nan value=0.3438 policy_top1=0.449
+epoch 7/8 policy=nan value=0.3320 policy_top1=0.454
+epoch 8/8 policy=nan value=0.3208 policy_top1=0.461
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 13] PROMOTE  candidate=1.190 champion=1.185 (mean fair-share ratio; 1.0=Commander)  [3p=0.93 4p=1.16 6p=1.47 8p=1.20]
+  -> promoted candidate to champion
+
+================ Omega iteration 14/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 4001 rows (omega, go-out)
+  25/34 games, 4035 rows (omega, go-out)
+  24/24 games, 3860 rows (omega, go-out)
+  25/34 games, 3987 rows (omega, go-out)
+  25/34 games, 3827 rows (omega, go-out)
+  25/34 games, 4066 rows (omega, go-out)
+  25/34 games, 4140 rows (omega, go-out)
+  25/34 games, 4128 rows (omega, go-out)
+  25/34 games, 3927 rows (omega, go-out)
+  25/34 games, 4149 rows (omega, go-out)
+  25/34 games, 4213 rows (omega, go-out)
+  25/34 games, 4151 rows (omega, go-out)
+  25/34 games, 4120 rows (omega, go-out)
+  25/34 games, 4159 rows (omega, go-out)
+  25/34 games, 4150 rows (omega, go-out)
+  34/34 games, 5331 rows (omega, go-out)
+  34/34 games, 5496 rows (omega, go-out)
+  34/34 games, 5444 rows (omega, go-out)
+  34/34 games, 5322 rows (omega, go-out)
+  34/34 games, 5515 rows (omega, go-out)
+  34/34 games, 5457 rows (omega, go-out)
+  34/34 games, 5563 rows (omega, go-out)
+  34/34 games, 5563 rows (omega, go-out)
+  34/34 games, 5642 rows (omega, go-out)
+  34/34 games, 5688 rows (omega, go-out)
+  34/34 games, 5502 rows (omega, go-out)
+  34/34 games, 5643 rows (omega, go-out)
+  34/34 games, 5805 rows (omega, go-out)
+  34/34 games, 5724 rows (omega, go-out)
+Wrote 81555 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23681 (win=10577, loss=13104, search-target=23681) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4225 policy_top1=0.416
+epoch 2/8 policy=nan value=0.3943 policy_top1=0.425
+epoch 3/8 policy=nan value=0.3792 policy_top1=0.432
+epoch 4/8 policy=nan value=0.3659 policy_top1=0.439
+epoch 5/8 policy=nan value=0.3541 policy_top1=0.445
+epoch 6/8 policy=nan value=0.3437 policy_top1=0.452
+epoch 7/8 policy=nan value=0.3320 policy_top1=0.455
+epoch 8/8 policy=nan value=0.3231 policy_top1=0.459
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 14] PROMOTE  candidate=1.225 champion=1.190 (mean fair-share ratio; 1.0=Commander)  [3p=1.14 4p=0.96 6p=1.44 8p=1.36]
+  -> promoted candidate to champion
+
+================ Omega iteration 15/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3750 rows (omega, go-out)
+  25/34 games, 3941 rows (omega, go-out)
+  25/34 games, 3781 rows (omega, go-out)
+  25/34 games, 3933 rows (omega, go-out)
+  25/34 games, 4179 rows (omega, go-out)
+  24/24 games, 3831 rows (omega, go-out)
+  25/34 games, 3803 rows (omega, go-out)
+  25/34 games, 4114 rows (omega, go-out)
+  25/34 games, 4043 rows (omega, go-out)
+  25/34 games, 3910 rows (omega, go-out)
+  25/34 games, 4039 rows (omega, go-out)
+  25/34 games, 3969 rows (omega, go-out)
+  25/34 games, 4080 rows (omega, go-out)
+  25/34 games, 4084 rows (omega, go-out)
+  25/34 games, 4275 rows (omega, go-out)
+  34/34 games, 5193 rows (omega, go-out)
+  34/34 games, 5365 rows (omega, go-out)
+  34/34 games, 5487 rows (omega, go-out)
+  34/34 games, 5657 rows (omega, go-out)
+  34/34 games, 5538 rows (omega, go-out)
+  34/34 games, 5333 rows (omega, go-out)
+  34/34 games, 5431 rows (omega, go-out)
+  34/34 games, 5380 rows (omega, go-out)
+  34/34 games, 5203 rows (omega, go-out)
+  34/34 games, 5412 rows (omega, go-out)
+  34/34 games, 5504 rows (omega, go-out)
+  34/34 games, 5574 rows (omega, go-out)
+  34/34 games, 5691 rows (omega, go-out)
+  34/34 games, 5498 rows (omega, go-out)
+Wrote 80097 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23415 (win=10447, loss=12968, search-target=23415) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4131 policy_top1=0.415
+epoch 2/8 policy=nan value=0.3864 policy_top1=0.422
+epoch 3/8 policy=nan value=0.3697 policy_top1=0.432
+epoch 4/8 policy=nan value=0.3563 policy_top1=0.437
+epoch 5/8 policy=nan value=0.3442 policy_top1=0.443
+epoch 6/8 policy=nan value=0.3327 policy_top1=0.450
+epoch 7/8 policy=nan value=0.3221 policy_top1=0.457
+epoch 8/8 policy=nan value=0.3119 policy_top1=0.463
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 15] REJECT  candidate=1.156 champion=1.225 (mean fair-share ratio; 1.0=Commander)  [3p=1.09 4p=0.90 6p=1.35 8p=1.28]
+  -> kept champion (candidate rejected)
+
+================ Omega iteration 16/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3989 rows (omega, go-out)
+  24/24 games, 3839 rows (omega, go-out)
+  25/34 games, 4195 rows (omega, go-out)
+  25/34 games, 3905 rows (omega, go-out)
+  25/34 games, 3931 rows (omega, go-out)
+  25/34 games, 3987 rows (omega, go-out)
+  25/34 games, 3997 rows (omega, go-out)
+  25/34 games, 3964 rows (omega, go-out)
+  25/34 games, 3851 rows (omega, go-out)
+  25/34 games, 3841 rows (omega, go-out)
+  25/34 games, 4098 rows (omega, go-out)
+  25/34 games, 4057 rows (omega, go-out)
+  25/34 games, 4393 rows (omega, go-out)
+  25/34 games, 4073 rows (omega, go-out)
+  25/34 games, 4285 rows (omega, go-out)
+  34/34 games, 5282 rows (omega, go-out)
+  34/34 games, 5290 rows (omega, go-out)
+  34/34 games, 5594 rows (omega, go-out)
+  34/34 games, 5462 rows (omega, go-out)
+  34/34 games, 5362 rows (omega, go-out)
+  34/34 games, 5322 rows (omega, go-out)
+  34/34 games, 5295 rows (omega, go-out)
+  34/34 games, 5494 rows (omega, go-out)
+  34/34 games, 5525 rows (omega, go-out)
+  34/34 games, 5337 rows (omega, go-out)
+  34/34 games, 5563 rows (omega, go-out)
+  34/34 games, 5881 rows (omega, go-out)
+  34/34 games, 5847 rows (omega, go-out)
+  34/34 games, 5517 rows (omega, go-out)
+Wrote 80610 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23539 (win=10586, loss=12953, search-target=23539) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4194 policy_top1=0.416
+epoch 2/8 policy=nan value=0.3923 policy_top1=0.427
+epoch 3/8 policy=nan value=0.3765 policy_top1=0.435
+epoch 4/8 policy=nan value=0.3627 policy_top1=0.442
+epoch 5/8 policy=nan value=0.3513 policy_top1=0.447
+epoch 6/8 policy=nan value=0.3407 policy_top1=0.454
+epoch 7/8 policy=nan value=0.3300 policy_top1=0.460
+epoch 8/8 policy=nan value=0.3194 policy_top1=0.466
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 16] REJECT  candidate=1.067 champion=1.225 (mean fair-share ratio; 1.0=Commander)  [3p=0.90 4p=1.02 6p=1.23 8p=1.12]
+  -> kept champion (candidate rejected)
+
+================ Omega iteration 17/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3856 rows (omega, go-out)
+  24/24 games, 3760 rows (omega, go-out)
+  25/34 games, 3855 rows (omega, go-out)
+  25/34 games, 4008 rows (omega, go-out)
+  25/34 games, 4079 rows (omega, go-out)
+  25/34 games, 4107 rows (omega, go-out)
+  25/34 games, 3892 rows (omega, go-out)
+  25/34 games, 3968 rows (omega, go-out)
+  25/34 games, 3887 rows (omega, go-out)
+  25/34 games, 4040 rows (omega, go-out)
+  25/34 games, 4015 rows (omega, go-out)
+  25/34 games, 4185 rows (omega, go-out)
+  25/34 games, 4124 rows (omega, go-out)
+  25/34 games, 4054 rows (omega, go-out)
+  25/34 games, 4361 rows (omega, go-out)
+  34/34 games, 5262 rows (omega, go-out)
+  34/34 games, 5192 rows (omega, go-out)
+  34/34 games, 5536 rows (omega, go-out)
+  34/34 games, 5605 rows (omega, go-out)
+  34/34 games, 5472 rows (omega, go-out)
+  34/34 games, 5465 rows (omega, go-out)
+  34/34 games, 5366 rows (omega, go-out)
+  34/34 games, 5393 rows (omega, go-out)
+  34/34 games, 5598 rows (omega, go-out)
+  34/34 games, 5612 rows (omega, go-out)
+  34/34 games, 5469 rows (omega, go-out)
+  34/34 games, 5605 rows (omega, go-out)
+  34/34 games, 5777 rows (omega, go-out)
+  34/34 games, 5438 rows (omega, go-out)
+Wrote 80550 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23519 (win=10498, loss=13021, search-target=23519) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4229 policy_top1=0.415
+epoch 2/8 policy=nan value=0.3959 policy_top1=0.427
+epoch 3/8 policy=nan value=0.3783 policy_top1=0.434
+epoch 4/8 policy=nan value=0.3629 policy_top1=0.439
+epoch 5/8 policy=nan value=0.3507 policy_top1=0.445
+epoch 6/8 policy=nan value=0.3386 policy_top1=0.450
+epoch 7/8 policy=nan value=0.3274 policy_top1=0.454
+epoch 8/8 policy=nan value=0.3160 policy_top1=0.461
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 17] REJECT  candidate=1.114 champion=1.225 (mean fair-share ratio; 1.0=Commander)  [3p=0.73 4p=1.22 6p=1.38 8p=1.12]
+  -> kept champion (candidate rejected)
+
+================ Omega iteration 18/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3998 rows (omega, go-out)
+  25/34 games, 3979 rows (omega, go-out)
+  25/34 games, 4037 rows (omega, go-out)
+  25/34 games, 4088 rows (omega, go-out)
+  25/34 games, 3829 rows (omega, go-out)
+  25/34 games, 4047 rows (omega, go-out)
+  25/34 games, 4103 rows (omega, go-out)
+  25/34 games, 4088 rows (omega, go-out)
+  25/34 games, 3907 rows (omega, go-out)
+  25/34 games, 4031 rows (omega, go-out)
+  25/34 games, 4087 rows (omega, go-out)
+  25/34 games, 4047 rows (omega, go-out)
+  24/24 games, 3951 rows (omega, go-out)
+  25/34 games, 4285 rows (omega, go-out)
+  25/34 games, 4131 rows (omega, go-out)
+  34/34 games, 5473 rows (omega, go-out)
+  34/34 games, 5354 rows (omega, go-out)
+  34/34 games, 5446 rows (omega, go-out)
+  34/34 games, 5258 rows (omega, go-out)
+  34/34 games, 5494 rows (omega, go-out)
+  34/34 games, 5218 rows (omega, go-out)
+  34/34 games, 5515 rows (omega, go-out)
+  34/34 games, 5548 rows (omega, go-out)
+  34/34 games, 5581 rows (omega, go-out)
+  34/34 games, 5480 rows (omega, go-out)
+  34/34 games, 5590 rows (omega, go-out)
+  34/34 games, 5497 rows (omega, go-out)
+  34/34 games, 5668 rows (omega, go-out)
+  34/34 games, 5673 rows (omega, go-out)
+Wrote 80746 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23607 (win=10464, loss=13143, search-target=23607) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4252 policy_top1=0.420
+epoch 2/8 policy=nan value=0.3988 policy_top1=0.430
+epoch 3/8 policy=nan value=0.3829 policy_top1=0.436
+epoch 4/8 policy=nan value=0.3700 policy_top1=0.443
+epoch 5/8 policy=nan value=0.3584 policy_top1=0.449
+epoch 6/8 policy=nan value=0.3476 policy_top1=0.453
+epoch 7/8 policy=nan value=0.3373 policy_top1=0.460
+epoch 8/8 policy=nan value=0.3273 policy_top1=0.463
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 18] REJECT  candidate=1.150 champion=1.225 (mean fair-share ratio; 1.0=Commander)  [3p=0.93 4p=0.96 6p=1.35 8p=1.36]
+  -> kept champion (candidate rejected)
+
+================ Omega iteration 19/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3937 rows (omega, go-out)
+  25/34 games, 4001 rows (omega, go-out)
+  25/34 games, 3730 rows (omega, go-out)
+  25/34 games, 3893 rows (omega, go-out)
+  24/24 games, 3842 rows (omega, go-out)
+  25/34 games, 4111 rows (omega, go-out)
+  25/34 games, 3913 rows (omega, go-out)
+  25/34 games, 4096 rows (omega, go-out)
+  25/34 games, 4144 rows (omega, go-out)
+  25/34 games, 4288 rows (omega, go-out)
+  25/34 games, 4130 rows (omega, go-out)
+  25/34 games, 4005 rows (omega, go-out)
+  25/34 games, 4143 rows (omega, go-out)
+  25/34 games, 4138 rows (omega, go-out)
+  25/34 games, 4456 rows (omega, go-out)
+  34/34 games, 5246 rows (omega, go-out)
+  34/34 games, 5400 rows (omega, go-out)
+  34/34 games, 5126 rows (omega, go-out)
+  34/34 games, 5649 rows (omega, go-out)
+  34/34 games, 5598 rows (omega, go-out)
+  34/34 games, 5692 rows (omega, go-out)
+  34/34 games, 5470 rows (omega, go-out)
+  34/34 games, 5456 rows (omega, go-out)
+  34/34 games, 5648 rows (omega, go-out)
+  34/34 games, 5814 rows (omega, go-out)
+  34/34 games, 5580 rows (omega, go-out)
+  34/34 games, 5869 rows (omega, go-out)
+  34/34 games, 5540 rows (omega, go-out)
+  34/34 games, 5449 rows (omega, go-out)
+Wrote 81379 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23533 (win=10585, loss=12948, search-target=23533) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4306 policy_top1=0.411
+epoch 2/8 policy=nan value=0.4023 policy_top1=0.424
+epoch 3/8 policy=nan value=0.3846 policy_top1=0.430
+epoch 4/8 policy=nan value=0.3703 policy_top1=0.434
+epoch 5/8 policy=nan value=0.3577 policy_top1=0.444
+epoch 6/8 policy=nan value=0.3458 policy_top1=0.449
+epoch 7/8 policy=nan value=0.3347 policy_top1=0.452
+epoch 8/8 policy=nan value=0.3231 policy_top1=0.458
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 19] REJECT  candidate=1.078 champion=1.225 (mean fair-share ratio; 1.0=Commander)  [3p=0.84 4p=0.90 6p=1.29 8p=1.28]
+  -> kept champion (candidate rejected)
+
+================ Omega iteration 20/20 ================
+Loaded Omega weights from tools/nn/data/omega-goout-champion.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,4,6,8], go-out, temperature=1, ISMCTS 480 iters/decision
+  25/34 games, 3847 rows (omega, go-out)
+  25/34 games, 3985 rows (omega, go-out)
+  24/24 games, 3819 rows (omega, go-out)
+  25/34 games, 3905 rows (omega, go-out)
+  25/34 games, 3879 rows (omega, go-out)
+  25/34 games, 3861 rows (omega, go-out)
+  25/34 games, 4034 rows (omega, go-out)
+  25/34 games, 4092 rows (omega, go-out)
+  25/34 games, 3900 rows (omega, go-out)
+  25/34 games, 3845 rows (omega, go-out)
+  25/34 games, 4154 rows (omega, go-out)
+  25/34 games, 4181 rows (omega, go-out)
+  25/34 games, 4152 rows (omega, go-out)
+  25/34 games, 3997 rows (omega, go-out)
+  25/34 games, 3902 rows (omega, go-out)
+  34/34 games, 5195 rows (omega, go-out)
+  34/34 games, 5251 rows (omega, go-out)
+  34/34 games, 5548 rows (omega, go-out)
+  34/34 games, 5512 rows (omega, go-out)
+  34/34 games, 5326 rows (omega, go-out)
+  34/34 games, 5334 rows (omega, go-out)
+  34/34 games, 5349 rows (omega, go-out)
+  34/34 games, 5502 rows (omega, go-out)
+  34/34 games, 5581 rows (omega, go-out)
+  34/34 games, 5615 rows (omega, go-out)
+  34/34 games, 5476 rows (omega, go-out)
+  34/34 games, 5450 rows (omega, go-out)
+  34/34 games, 5434 rows (omega, go-out)
+  34/34 games, 5704 rows (omega, go-out)
+Wrote 80096 rows from 500/500 games to /Volumes/Code/Warp12/tools/nn/data/omega-trajectories.jsonl
+Warm-started policy 3 layers, value 3 layers from tools/nn/data/omega-goout-champion.json
+Decision groups: 23391 (win=10585, loss=12806, search-target=23391) device=mps policy_hidden=[256, 256] value_hidden=[256, 128] value_coef=1.0 entropy_coef=0.05 adv_clip=3.0 grad_clip=1.0
+epoch 1/8 policy=nan value=0.4191 policy_top1=0.420
+epoch 2/8 policy=nan value=0.3918 policy_top1=0.430
+epoch 3/8 policy=nan value=0.3753 policy_top1=0.436
+epoch 4/8 policy=nan value=0.3615 policy_top1=0.442
+epoch 5/8 policy=nan value=0.3494 policy_top1=0.451
+epoch 6/8 policy=nan value=0.3386 policy_top1=0.453
+epoch 7/8 policy=nan value=0.3284 policy_top1=0.460
+epoch 8/8 policy=nan value=0.3182 policy_top1=0.466
+Wrote tools/nn/data/omega-goout-candidate/omega-policy-v1.onnx + omega-value-v1.onnx
+Wrote tools/nn/data/omega-goout-candidate/omega-v1.json
+[iter 20] REJECT  candidate=1.076 champion=1.225 (mean fair-share ratio; 1.0=Commander)  [3p=0.80 4p=0.88 6p=1.23 8p=1.40]
+  -> kept champion (candidate rejected)
+
+Done. Elo trajectory: tools/nn/data/omega-elo-goout.jsonl

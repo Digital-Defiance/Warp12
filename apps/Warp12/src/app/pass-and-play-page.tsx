@@ -16,9 +16,10 @@ import styles from './lobby.module.scss';
 import { CampaignRoundsField, ObjectivePicker } from './objective-picker';
 import { HouseRulesOptions } from './house-rules-options';
 import { DoubleZeroScoreField } from './double-zero-score-field';
+import { LargeFleetHandSizeField } from './large-fleet-hand-size-field';
 import { SubspaceFractureOptions } from './subspace-fracture-options';
 import { Warp12RulesPreset } from './warp12-rules-preset';
-import { buildAiRoster, createLocalGame } from '../game/create-local-game.js';
+import { buildAiRosterAsync, createLocalGame } from '../game/create-local-game.js';
 import {
   WARP12_OFFICIAL_CAMPAIGN_ROUNDS,
   WARP12_OFFICIAL_HOUSE_RULES,
@@ -72,6 +73,8 @@ export function PassAndPlayPage() {
   const [launchSession, setLaunchSession] = useState<PassAndPlayLaunchSession | null>(
     null
   );
+  const [launching, setLaunching] = useState(false);
+  const [launchError, setLaunchError] = useState<string | null>(null);
 
   const applyOfficialWarp12Rules = () => {
     setObjective(WARP12_OFFICIAL_OBJECTIVE);
@@ -113,13 +116,25 @@ export function PassAndPlayPage() {
     return createLocalGame(launchSession.config, launchSession.seed);
   }, [launchSession]);
 
-  const startSession = (config: LocalGameConfig, seed: number) => {
-    setLaunchSession({
-      config,
-      seed,
-      roster: buildAiRoster(config, seed),
-    });
-    setPhase('playing');
+  const startSession = async (config: LocalGameConfig, seed: number) => {
+    setLaunchError(null);
+    setLaunching(true);
+    try {
+      const roster = await buildAiRosterAsync(config, seed);
+      setLaunchSession({
+        config,
+        seed,
+        roster,
+      });
+      setPhase('playing');
+    } catch (error) {
+      console.error('[omega] pass-and-play roster failed', error);
+      setLaunchError(
+        'Could not load Class II officer weights — check your connection and try again.'
+      );
+    } finally {
+      setLaunching(false);
+    }
   };
 
   const launch = () => {
@@ -142,12 +157,12 @@ export function PassAndPlayPage() {
       houseRules,
       aiCaptains: buildAiCaptains(aiCount),
     };
-    startSession(next, drawMatchSeed());
+    void startSession(next, drawMatchSeed());
   };
 
   const rematch = () => {
     if (!launchSession) return;
-    startSession(launchSession.config, drawMatchSeed());
+    void startSession(launchSession.config, drawMatchSeed());
   };
 
   if (phase === 'playing' && game && launchSession) {
@@ -294,6 +309,14 @@ export function PassAndPlayPage() {
             setHouseRules((current) => ({ ...current, doubleZeroScore }))
           }
         />
+        {playerCount >= 7 && (
+          <LargeFleetHandSizeField
+            value={houseRules.largeFleetHandSize}
+            onChange={(largeFleetHandSize) =>
+              setHouseRules((current) => ({ ...current, largeFleetHandSize }))
+            }
+          />
+        )}
         <SubspaceFractureOptions
           enabled={subspaceFracture}
           scope={subspaceFractureScope}
@@ -309,8 +332,18 @@ export function PassAndPlayPage() {
       </fieldset>
 
       <div className={styles.actions}>
-        <button type="button" className={styles.primary} onClick={launch}>
-          Launch table
+        {launchError ? (
+          <p className={styles.hint} role="alert">
+            {launchError}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          className={styles.primary}
+          disabled={launching}
+          onClick={launch}
+        >
+          {launching ? 'Loading Class II…' : 'Launch table'}
         </button>
       </div>
     </section>

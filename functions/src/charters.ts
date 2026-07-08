@@ -6,6 +6,7 @@ import { hasRole, requireSignedIn, requireVerifiedUser, requireAdmin } from './a
 import {
   GLOBAL_OFFICIAL_PLAYER_COUNTS,
   WARP12_OFFICIAL_RULES_PROFILE_ID,
+  isSupportedOfficialRulesProfile,
   applyGroupTeiForPlayer,
   charterMatchesRatedEvent,
   generateCrewInviteToken,
@@ -306,7 +307,7 @@ export const createCharter = onCall(async (request) => {
   }
 
   const rulesProfileId = data.rulesProfileId ?? WARP12_OFFICIAL_RULES_PROFILE_ID;
-  if (rulesProfileId !== WARP12_OFFICIAL_RULES_PROFILE_ID) {
+  if (!isSupportedOfficialRulesProfile(rulesProfileId)) {
     throw new HttpsError(
       'invalid-argument',
       'Only Official Warp 12 rules are supported for crews today.'

@@ -1,0 +1,77 @@
+.rail {
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  z-index: 120;
+  transform: translateY(-50%);
+  pointer-events: none;
+  max-height: calc(100% - 88px);
+  overflow: hidden;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1.6rem 0.85rem 1.35rem;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 4px;
+  border-radius: 4px;
+  font-family: var(--font-federation);
+  font-size: 0.62rem;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  color: var(--warp-text, #e2e8f0);
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(51, 65, 85, 0.85);
+  backdrop-filter: blur(6px);
+
+  &[data-active='true'] {
+    border-color: rgba(56, 189, 248, 0.55);
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
+  }
+
+  &[data-state='open'] .glyph {
+    color: #fdba74;
+  }
+
+  &[data-state='neutral'] .glyph {
+    color: var(--warp-accent-warm, #fb923c);
+  }
+
+  &[data-state='red-alert'] .glyph {
+    color: var(--warp-danger, #f87171);
+  }
+
+  &[data-state='shields'] .glyph {
+    color: var(--warp-text-muted, #94a3b8);
+  }
+}
+
+.initials {
+  font-weight: 700;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glyph {
+  text-align: center;
+  font-size: 0.58rem;
+}
+
+.pip {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--warp-accent, #38bdf8);
+}

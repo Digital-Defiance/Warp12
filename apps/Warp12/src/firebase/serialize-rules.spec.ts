@@ -191,6 +191,7 @@ describe('serialize round rule fields', () => {
       passRedAlertWithoutDraw: true,
       manualShieldControl: true,
       doubleZeroScore: 25,
+      largeFleetHandSize: 11,
     });
     const state = {
       id: 'test',
@@ -223,6 +224,7 @@ describe('serialize round rule fields', () => {
       passRedAlertWithoutDraw: true,
       manualShieldControl: true,
       doubleZeroScore: 25,
+      largeFleetHandSize: 11,
     });
 
     const merged = mergeHandsIntoGame(doc, {});

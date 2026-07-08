@@ -1,210 +1,203 @@
 # Class Ω — Hand-off Status (READ FIRST)
 
 **For:** the next assistant/engineer (Cursor et al.) picking this up.
-**Date:** 2026-07-04.
+**Date:** 2026-07-08 (updated from 2026-07-07).
 **Deep design + roadmap:** [`omega-next-steps.md`](./omega-next-steps.md) (read after this).
+**TEI integration:** [`tei-spec.md`](./tei-spec.md) §2.2, §7.1.3.
 
 ---
 
 ## TL;DR
 
-We are training **Class Ω**, a self-play neural opponent for Warp 12 (double-twelve
-Mexican Train). Goal: an AI that plays the **fleet game (3–8 players)** stronger
-than the hand-tuned Commander (Class II) heuristic, with **no Commander at
-inference** — the first trained neural player for this game.
+**Class Ω is shipped as Class II.** Greedy `createOmegaPlayer` replaces the heuristic
+Commander officer for `skill: 'commander'` (local, pass-and-play, online host).
+Points + go-out use separate weight files under `apps/Warp12/public/models/`.
 
-**Right now** an automated training loop is running in the background. It is on the
-**Path B (ISMCTS-distillation)** approach. See "Current run" below to check on it.
+**Ω+** is **extended thinking** — the
+**same weights** with **Commander-free** PUCT search at inference (Omega policy
+prior + value leaves; seconds/move). Exhibition / hard mode, not a second
+training pipeline. Heuristic-leaf search remains a **training bootstrap** only
+(Path B). BENCHED: PUCT @ ~480 iters beats greedy Ω (~1.3× fair share on go-out 4p);
+deeper search currently **hurts** until Path A strengthens the value head.
+
+**Advisor:** a **hybrid neural–heuristic concept model** trained to agree with Ω’s
+picks and explain them in named terms (`WARP_HEURISTIC_IDS`). Target Ω’s
+decisions, **not** legacy Commander heuristics (avoid the Class I\* imitation trap).
+
+**TEI:** humans keep **two ratings** (points + go-out), not eight. Class II stays
+the σ=`commander` anchor **key**. **Next:** publish `warp12-official-v2` with
+**recalibrated** `REF_TEI(T, commander)` so ~50% win rate holds vs neural Class II —
+stored human TEI integers are not re-banded.
+
+**Online (Firebase):** AI runs on the **sector host’s client**, not Cloud Functions.
+Host proxies AI moves through Firestore; Ω weights load from Hosting static assets
+on the host device (`useHostAiRunner` → `buildAiRosterFromConfigsAsync`).
 
 ---
 
-## Where things stand (honest status)
+## Where things stand (honest status — 2026-07-08)
 
 | Milestone | Status |
 |-----------|--------|
-| Pipeline (collect → train → bench → gate loop) | ✅ built, working end-to-end |
-| 2p points: reach parity with Commander | ✅ done (3 iterations, from scratch) — net archived `tools/nn/data/omega-2p-champion.json` |
-| Training stability (collapse fixed) | ✅ champion gating + per-round credit + advantage standardization |
-| Fleet (3–8p) via pure REINFORCE | ❌ stalled at ~random (imperfect-info value wall) |
-| Fleet via ISMCTS-distillation (Path B) | 🔄 **in progress** — beats Commander at 6p/8p, ~parity at 3p/4p |
-| Class Ω beats Class II *broadly* (promotion bar) | ⬜ not yet (strong at big tables, needs 3p/4p too) |
-| Wire Ω as a rated tier + into the client | ⬜ not started |
-| Explainable "Omega Advisor" tier | ⬜ designed, not built (see next-steps §"explainable tier") |
+| Pipeline (collect → train → bench → gate loop) | ✅ built |
+| Points generalist champion | ✅ ships as `public/models/omega-v1.json` |
+| Go-out champion | ✅ ships as `public/models/omega-goout-v1.json` |
+| **Class II = greedy Ω** (local + online host + pass-and-play) | ✅ wired (`skill: 'commander'` → `createOmegaPlayer`) |
+| Practice-AI replay (Functions) loads Ω weights | ✅ staged under `functions/models/` |
+| Distilled explainable advisor | ⬜ designed, not built |
+| Ω+ PUCT (Commander-free) | ✅ code ready (`createOmegaSearchPlayer`, leaf=`puct`); UI exhibition toggle not shipped |
+| Path A value-head retraining | ⬜ next training lift for Ω+ that scales with search depth |
+| TEI `warp12-official-v2` REF_TEI recalibration | ⬜ still using heuristic Class II constants — **do soon** |
 
-**Latest numbers** (`tools/nn/data/omega-elo-log.jsonl`): the Path B distillation
-champion already **beats Commander at large tables** — measured in `fairShareRatio`
-(winRate ÷ 1/N; 1.0 = Commander), it was ~1.2 at 4p and ~1.9 at 8p, ~parity at
-3p/4p. It is *not* failing — early framing that used raw win rate (where 0.25 at
-8p "looks" like losing) was misleading; see the parity gotcha below. The run
-warm-starts from this champion.
+**TEI note:** Class II play is neural Ω. `warp12-official-v2` ships with
+`REF_TEI(T, commander)` = **1520 points / 1550 go-out** (tempered for 2–4p
+solo play after full 2–8p benches). Human stored TEI integers are not re-banded.
+
+**Latest numbers** (`tools/nn/data/omega-elo-log.jsonl`, Jul 5): champion mean
+fair-share **1.4188** (beats legacy Commander at large tables; ~1.0–1.2 at 3p/4p).
+Gate metric = mean `fairShareRatio` across bench slices (1.0 = parity with legacy
+Commander). **Do not trust “in progress / steady PROMOTEs”** — the run plateaued;
+use the log and file timestamps, not stale narrative.
+
+```python
+# Check the log
+import json
+for r in (json.loads(l) for l in open('tools/nn/data/omega-elo-log.jsonl') if l.strip()):
+    s={f"{x['playerCount']}p":round(x['fairShareRatio'],2) for x in r['slices']}
+    print(r['iteration'], r['decision'], r.get('candidateScore'), r.get('championScore'), s)
+```
 
 ---
 
-## Current run (background process)
+## Architecture (target — no Commander+, no 28 nets)
 
-**M4 Max (16 cores / 64 GB) — quality-first recipe** (restart with this when the
-current loop stops):
+```
+                    ┌─────────────────────────────────────┐
+                    │  Class II officer (replaces Commander) │
+                    │  σ = commander · rated default       │
+                    │  createOmegaPlayer — greedy Ω net      │
+                    └─────────────────────────────────────┘
+                                      │
+                    ┌─────────────────┴─────────────────┐
+                    ▼                                   ▼
+         ┌──────────────────────┐         ┌──────────────────────────┐
+         │  Ω+ extended thinking │         │  Tactical advisor         │
+         │  same Ω weights       │         │  concept-bottleneck net   │
+         │  + ISMCTS / PUCT      │         │  distilled to match Ω     │
+         │  seconds–min / move   │         │  explains in plain terms  │
+         │  unrated / exhibition │         │  (assisted = unrated)     │
+         └──────────────────────┘         └──────────────────────────┘
+```
+
+| Asset | Count | Notes |
+|-------|-------|-------|
+| Ω policy/value net | **1** (≤**2** if points/go-out won’t share) | Encoder sees objective, player count, hand size |
+| Advisor concept net | **1** | Trained on Ω labels + engine concept supervision |
+| Ω+ | **0** extra weights | Extended thinking = inference mode only |
+| Per-table-size nets | **0** unless forced | `playerCount` is already a feature |
+
+**Training north star:** promote when candidate beats **current Ω champion** on
+target slices — not “beat legacy Commander everywhere.” Commander heuristics remain
+useful only as **Path B rollout leaves** during bootstrap; drop them in Path A.
+
+---
+
+## Online play (Firebase)
+
+- AI officers (Class IV / III / II) already work online: host adds seats, picks skill,
+  host client runs `useHostAiRunner` → `buildAiRosterFromConfigs` → submits moves.
+- Firestore rules allow the **host** to read AI hands and proxy AI actions.
+- **Ω swap requires:** `useHostAiRunner` → `buildAiRosterFromConfigsAsync` so the
+  host preloads `omega-v1.json` once per sector (~5 MB from Hosting).
+- **Ω+ online:** same host-client constraint — long search blocks all players;
+  ship exhibition-only until host-transfer or server inference is explored.
+
+---
+
+## Current training recipe (when restarting)
 
 ```bash
 OMEGA_ITERATIONS=30 \
 OMEGA_GAMES=500 \
-OMEGA_PLAYERS="2,3,4,5,6,7,8" \
-OMEGA_SEARCH_ITERS=320 \
+OMEGA_PLAYERS="8" \
+OMEGA_SEARCH_ITERS=480 \
 OMEGA_OBJECTIVE=points \
 OMEGA_EPOCHS=8 \
 OMEGA_BATCH=1024 \
 OMEGA_BENCH_GAMES=120 \
-OMEGA_BENCH_PLAYERS="3,4,6,8" \
+OMEGA_BENCH_PLAYERS="8" \
 OMEGA_WORKERS=15 \
 OMEGA_ELO_LOG=tools/nn/data/omega-elo-log.jsonl \
 bash scripts/omega-train-loop.sh
 ```
 
-| Lever | Setting | Why |
-|-------|---------|-----|
-| `OMEGA_WORKERS=15` | cores − 1 | saturates CPU during ISMCTS collection |
-| `OMEGA_SEARCH_ITERS=320` | 2× prior 160 | stronger distillation targets (quality > speed) |
-| `OMEGA_BATCH=1024` | was 64 | feeds MPS properly on unified memory |
-| Bench | parallel by default | `bench-omega-parallel.ts` shards games across workers (~15× faster gate step) |
+Start **8p-only** until that slice is solid, then widen to 3–8p and add go-out.
+Raise `OMEGA_SEARCH_ITERS` before splitting into per-N specialists.
 
-Previous run (160 search iters, batch 64, sequential bench):
-
-```bash
-OMEGA_ITERATIONS=30 OMEGA_GAMES=500 OMEGA_PLAYERS="2,3,4,5,6,7,8" \
-OMEGA_SEARCH_ITERS=160 OMEGA_OBJECTIVE=points OMEGA_EPOCHS=8 \
-OMEGA_BENCH_GAMES=120 OMEGA_BENCH_PLAYERS="3,4,6,8" \
-OMEGA_ELO_LOG=tools/nn/data/omega-elo-log.jsonl bash scripts/omega-train-loop.sh
-```
-
-- **Warm-started** from the existing champion (loads `omega-v1.json` as `--init`).
-- **Gate metric = mean fair-share ratio** (see parity gotcha). Score baseline was
-  reset at the metric switch; the pre-switch raw-aggregate log is archived at
-  `tools/nn/data/omega-elo-log-rawagg-iters1-8.jsonl`.
-- **Champion (shipped net):** `apps/Warp12/public/models/omega-v1.json` (+ `omega-policy-v1.onnx`, `omega-value-v1.onnx`). Updated only when a candidate beats it (gating → monotonic).
-- **Approach:** each decision runs value-net-independent **ISMCTS with Commander-heuristic rollouts** (Path B) → sharp visit-count targets (~0.90 top-move share) → net distills them via cross-entropy. Commander is a *rollout simulator only*; the shipped net has no Commander at inference. This is NOT the Class I\* imitation trap (target = search visit distribution, not Commander's picks).
-
-### Check progress
-```python
-# Pretty-print the Elo log (fields: candidateScore/championScore = mean fair-share
-# ratio; per-slice fairShareRatio where 1.0 = Commander, >1 = beats Commander).
-import json
-for r in (json.loads(l) for l in open('tools/nn/data/omega-elo-log.jsonl') if l.strip()):
-    s={f"{x['playerCount']}p":round(x['fairShareRatio'],2) for x in r['slices']}
-    print(r['iteration'], r['decision'], 'score', r['candidateScore'], 'champ', r['championScore'], s)
-```
-
-### What "good" looks like
-Per-slice `fairShareRatio` climbing **above 1.0** (beating Commander) across the
-fleet sizes, and the mean (`candidateScore`) rising, with steady PROMOTEs.
-Distillation targets are strong and net-independent, so expect steadier progress
-than the earlier REINFORCE grind — but it will plateau at ~"search strength"
-(that's expected; raise `OMEGA_SEARCH_ITERS` to lift the ceiling — see levers).
+**Gate:** champion vs champion on chosen slices; require green `yarn test:engine`
+before promotion. Use `OMEGA_GATE_METRIC=weighted` with `OMEGA_GATE_WEIGHTS` when
+mean gate rejects candidates that fix weak slices (e.g. go-out 4p/5p). Set
+`OMEGA_GATE_REBASE=1` once when switching gate metric to re-bench the champion.
 
 ---
 
-## Immediate next actions (in priority order)
+## Promotion checklist (replace Class II, not add Ω tier)
 
-1. **Let the current Path B run finish** (or extend `OMEGA_ITERATIONS`). Watch the
-   per-slice `fairShareRatio` in the Elo log. If they climb above **1.0** (beating
-   Commander) — especially the lagging 3p/4p — and PROMOTEs accumulate, Path B is
-   working.
-2. **If it plateaus below Class II:** raise `OMEGA_SEARCH_ITERS` (e.g. 240–320) for
-   sharper/stronger targets, and/or accumulate data across iterations (a replay
-   buffer — currently each iteration collects fresh and overwrites
-   `tools/nn/data/omega-trajectories.jsonl`).
-3. **Once it beats Class II at fleet sizes:** run the promotion checklist below.
-4. **Then (optional) go pure (Path A):** once the value head is competent, switch
-   `omegaSearchVisits(..., { leaf: 'value' })` (see `omega-search.ts`) to drop
-   heuristic rollouts — the AlphaGo→AlphaZero graduation. Plumbing already supports it.
+1. **Bench** — candidate beats champion on agreed slices (8p first, then fleet + go-out).
+2. **Engine** — `yarn test:engine` green (conformance + fuzz + invariants).
+3. **Wire play** — `skill: 'commander'` → `createOmegaPlayer` in `buildAiRosterFromConfigs` (local, pass-and-play, **online host** via async roster).
+4. **TEI v2** — ship `warp12-official-v2`; recalibrate `REF_TEI(T, commander)` to ~50% win rate vs greedy Ω (expect ~1650–1700); human stored TEI unchanged.
+5. **Advisor v1** — post-hoc heuristic attribution on Ω picks (quick), then concept-bottleneck net trained on Ω agreement (real explanations).
+6. **Ω+** — `createOmegaSearchPlayer` + PUCT prior; exhibition / casual only until calibrated.
 
-### Promotion checklist (when Ω clears Class II broadly, ~+300 implied Elo)
-- Add an `omega` entry to `AI_OPPONENT_TEI_POINTS` / `AI_OPPONENT_TEI_GO_OUT` in `libs/tei-core/src/stats-elo.ts` (provisional ~1700 points).
-- Flip `apps/Warp12/src/game/local-ai-match-validation.ts`: stop rejecting Class Ω matches, rate them against the new anchor.
-- Wire `createOmegaPlayer` into the client game config as a selectable tier (mirror how `createClass1StarPlayer` is wired).
-- Update `RULES.md` / `docs/tei-spec.md` (currently Ω is reserved as experimental/unrated).
+**Do not** add a separate `REF_TEI(T, omega)` band if Ω *is* Class II. One anchor
+key, recalibrated constants, new rules profile version.
 
 ---
 
-## Maximum-strength program (north star: strongest MTD competitor ever)
+## Ω+ = extended thinking
 
-**Directive:** build the strongest Mexican Train player in the world, whatever it
-takes. **Inference budget approved: seconds up to ~1 minute per move.** That is a
-large budget and it reshapes the plan — the strongest player is the **net guiding
-search at inference**, not the bare distilled net.
+Same `omega-v1.json` weights. At each decision, run `omegaSearchVisits` with a
+real time/iteration budget (PUCT policy prior + value leaves when Path A is ready).
+Strongest practical player; slower. **Not** a separate training run or TEI tier.
 
-### The key insight
-A distilled net can only be as strong as the search targets it learned from — it
-caps at "search strength," then plateaus. That is ideal for a *fast rated tier*
-(instant moves) but is **not** the strongest possible player. AlphaGo beat Lee
-Sedol with MCTS+net, not the policy net alone. Two tiers:
-
-- **Rated / product tier** = fast distilled net (`createOmegaPlayer`). Milliseconds/move. What the current training run builds.
-- **Championship tier** = net-guided ISMCTS at play time, big budget (seconds–1 min/move). The monster for exhibition/Kasparov matches. Exceeds the bare net.
-
-With a ~1-minute budget we can also stand up a **strong search opponent right now**
-using `omegaSearchVisits(obs, net, { leaf:'heuristic', iterations: <thousands> })`
-(Commander-rollout ISMCTS scaled up — essentially Fleet Admiral with a much larger
-budget) as an interim champion while the net trains.
-
-### Strength levers, in priority order
-1. **Raise search-target quality** (ceiling lever for the distilled net):
-   `OMEGA_SEARCH_ITERS` 160 → 320+, tighter belief constraints. Stronger targets →
-   stronger net → stronger everything. Cheap, high impact.
-2. **Net-guided search at inference = the champion.** Add a **PUCT policy prior** to
-   `ismcts.ts` (currently plain UCT) so the policy net focuses the search and the
-   value net evaluates leaves. Run it with a large per-move budget (seconds–1 min).
-   This is the one meaningful piece of new search engineering left, and it is what
-   produces the strongest player. Wire a `createOmegaSearchPlayer` (a `WarpAiPlayer`
-   that returns the argmax-visit move from `omegaSearchVisits`) for live play.
-3. **AlphaZero flywheel (Path A).** Switch search leaf to the value net
-   (`leaf:'value'`) once the value head can concentrate → the net improves the
-   search that trains the net. No ceiling, no Commander. Prereq: a competent value head.
-4. **Hand-size-bucket specialists** (2–4 / 5–6 / 7–8 tiles), **fine-tuned from the
-   generalist** (not from scratch) — squeezes per-regime strength for both tiers.
-   Do this once the generalist clears Class II. Route by table size at inference.
-   Trigger: persistent per-slice interference (some fleet slices won't rise while
-   others do), not one noisy candidate.
-5. **Scale net + data** once signal quality is high (capacity is not the current
-   bottleneck — `policy_top1≈0.94`).
-
-### Execution order for whoever continues
-Generalist distillation (running) → confirm it lifts fleet play above random →
-crank search-target iters → add PUCT prior + `createOmegaSearchPlayer` for the
-championship tier → Path A flywheel → bucket specialists → exhibition match.
+Interim: scale up `omegaSearchVisits(..., { leaf:'heuristic', iterations: N })` while
+the value head matures. Ship as optional “extended thinking” in UI.
 
 ---
 
-## Gotchas / hard-won lessons (do not relearn these)
+## Advisor: hybrid neural–heuristic (distilled from Ω)
 
-- **macOS system bash is 3.2** — no empty-array expansion under `set -u`; the gate
-  script exits 10 to signal "promote" and is shielded with `set +e`. Don't "simplify"
-  those without testing on 3.2.
-- **`date +%s` is aliased** in this shell (prints a BrightDate error). Use bash
-  `SECONDS` for timing.
-- **ONNX export** uses the modern `dynamo=True` + `.save(external_data=False)` for a
-  single self-contained file (needs `onnxscript`, pinned in `tools/nn/requirements.txt`).
-  The `torchvision not installed` log lines are harmless (we export plain MLPs).
-- **ONNX is not the critical path** — `omega-v1.json` (TS fallback) is authoritative
-  for the agent and bench.
-- **Credit assignment matters most.** Labeling decisions by *final campaign winner*
-  is near-noise; label by **per-round graded rank reward** (in `collect-omega-trajectories.ts`,
-  `recordRoundRewards`/`rankRewards`). This was the single biggest unlock at 2p.
-- **Parity in N-player is 1/N, not 50%.** The bench sits 1 Omega vs (N−1)
-  Commanders; equal strength ⇒ Omega wins its fair share 1/N. Judge strength by
-  **`fairShareRatio` = winRate ÷ (1/N)** (1.0 = Commander, >1 = beats Commander),
-  NOT raw win rate. The 2p `impliedEloGap` formula is meaningless for N>2 (now
-  emitted only for 2p). The gate promotes on **mean fair-share ratio** across
-  slices (was raw aggregate win rate, which under-weighted the big tables). As of
-  this metric switch, the champion's baseline score was reset (old raw-agg log
-  archived as `omega-elo-log-rawagg-iters1-8.jsonl`); the current run warm-starts
-  from the existing champion net. At the switch the champion was already ~1.2–1.9
-  fair-share at 4p/8p — i.e. **already beating Commander at large tables.**
-- **Value-net-guided ISMCTS cold-starts to uniform targets** (weak value net can't
-  concentrate). That's why we use heuristic rollouts (Path B) to bootstrap.
-- **REINFORCE is unstable here** — needs advantage standardization + champion gating.
-  Cross-entropy against visit targets (Path B) is much more stable; prefer it.
-- **Don't add layers** — `policy_top1≈0.94` shows ample capacity; the bottleneck was
-  always signal quality, not model size.
+**Goal:** suggest the **same move Ω would play** (or close), explain **why** in
+named concepts — not imitate legacy Commander.
+
+| Phase | Approach |
+|-------|----------|
+| **A (ship first)** | Ω picks; `explainWarpAiAction` narrates heuristics on that move. Label: approximate rationale. |
+| **B (target)** | Concept layer (~20 named scalars from engine facts) → scoring head; train scoring on **Ω move labels**; concepts supervised from state. Real bottleneck explanations. |
+
+**Never** train the advisor target on Commander picks (Class I\* failure mode).
+
+---
+
+## Maximum-strength levers (priority)
+
+1. **Stronger distillation targets** — `OMEGA_SEARCH_ITERS` 320→480+; Path A value leaves when ready.
+2. **Ω+ at inference** — PUCT + `createOmegaSearchPlayer` (extended thinking).
+3. **8p-first champion loop** — then fleet + go-out in one generalist net.
+4. **Advisor distill** — concept net agrees with Ω on held-out states.
+5. **Hand-size bucket fine-tunes** — only if 3p/4p won’t rise after 1–4 (last resort).
+
+---
+
+## Gotchas (still true)
+
+- **Fair-share, not raw win rate** at N>2: `fairShareRatio = winRate ÷ (1/N)`.
+- **Per-round credit** for points campaigns — campaign-winner labels are noise.
+- **Path B** uses Commander only as rollout leaf; shipped net has no Commander at inference.
+- **macOS bash 3.2** — gate script `set +e` around promote exit 10.
+- **Docs drift** — trust `omega-elo-log.jsonl` + model file mtimes over narrative.
+- **Legacy Commander bench** — bootstrap metric only; not the training north star.
 
 ---
 
@@ -212,25 +205,22 @@ championship tier → Path A flywheel → bucket specialists → exhibition matc
 
 | Path | Role |
 |------|------|
-| `libs/engine/src/lib/ai/omega-net.ts` | Two-head policy/value MLP (forward, zero-init, validate) |
-| `libs/engine/src/lib/ai/omega-encoder.ts` | 303-dim policy + 195-dim state features |
-| `libs/engine/src/lib/ai/omega-agent.ts` | `createOmegaPlayer` — opaque `WarpAiPlayer` |
-| `libs/engine/src/lib/ai/omega-search.ts` | ISMCTS wrapper: `leaf:'heuristic'` (Path B) / `'value'` (Path A) |
-| `libs/engine/src/lib/ai/collect-omega-trajectories.ts` | Self-play collector: per-round rewards, mixed tables, search targets |
-| `libs/engine/src/lib/ai/collect-omega-parallel.ts` + `collect-omega.worker.ts` | Parallel sharded collection |
-| `libs/engine/src/lib/ai/bench-omega.ts` | Ω vs Commander eval gate |
-| `libs/engine/src/lib/ai/bench-omega-parallel.ts` + `bench-omega.worker.ts` | Parallel sharded bench |
-| `tools/nn/train-omega.py` | PyTorch trainer (MPS, vectorized; CE for search groups, REINFORCE fallback) |
-| `tools/nn/collect-omega-trajectories.ts` / `bench-omega.ts` | CLI drivers |
-| `scripts/omega-train-loop.sh` | Champion-gated loop |
-| `tools/nn/data/omega-elo-log.jsonl` | Progress log |
-| `tools/nn/data/omega-2p-champion.json` | Archived 2p specialist (parity w/ Commander) |
-| `package.json` | `omega:collect`/`train`/`bench`/`loop` scripts |
+| `libs/engine/src/lib/ai/omega-agent.ts` | `createOmegaPlayer` — fast Class II target |
+| `libs/engine/src/lib/ai/omega-search.ts` | Ω+ extended thinking (`omegaSearchVisits`) |
+| `libs/engine/src/lib/ai/explain-action.ts` | Heuristic explanations (advisor phase A) |
+| `libs/engine/src/lib/ai/heuristics.ts` | `WARP_HEURISTIC_IDS` — advisor concept vocabulary |
+| `libs/engine/src/lib/engine/mexican-train-conformance.spec.ts` | Engine verification (MT-Compliance) |
+| `libs/engine/src/lib/engine/random-play-harness.ts` | Fuzz + invariants |
+| `apps/Warp12/src/app/use-host-ai-runner.ts` | Online AI on host client (needs async Ω load) |
+| `tools/nn/data/omega-elo-log.jsonl` | Training progress (source of truth) |
+| `docs/tei-spec.md` | TEI + ladder extensibility + Class II replacement |
 
 ## Scripts
+
 ```bash
-yarn omega:collect     # one collection (honors OMEGA_* env)
-yarn omega:train       # train from scratch;  omega:train:warm = --init champion
-yarn omega:bench       # Ω vs Commander sweep (OMEGA_BENCH_PLAYERS)
-yarn omega:loop        # the gated collect→train→bench loop (scripts/omega-train-loop.sh)
+yarn test:engine          # gate before any promotion
+yarn omega:collect        # OMEGA_* env
+yarn omega:train:warm     # warm-start from champion
+yarn omega:bench          # vs legacy Commander (bootstrap metric only)
+yarn omega:loop           # scripts/omega-train-loop.sh
 ```

@@ -6,7 +6,7 @@ Canonical instructions for AI assistants (Kiro, Cursor, Copilot, Codex, etc.) wo
 
 ## 1. Product
 
-Warp 12 is a multiplayer, Star Trek-themed variant of standard **double-twelve Mexican Train dominoes**. It ships as a web app (warp12.app) and as a Tauri desktop/mobile app (macOS, iOS, Android). Rules are standard tournament Mexican Train reskinned with Starfleet terminology, plus opt-in modules.
+Warp 12 is a multiplayer, federation-themed variant of standard **double-twelve Mexican Train dominoes**. It ships as a web app (warp12.app) and as a Tauri desktop/mobile app (macOS, iOS, Android). Rules are standard tournament Mexican Train reskinned with Starfleet terminology, plus opt-in modules.
 
 - Games are **sectors/missions**; players are **Captains**; the host runs a **fleet** (3–8 captains).
 - Two objectives, chosen before launch:
@@ -41,7 +41,7 @@ There are **no tsconfig `paths`**. Resolution uses package `exports` with the cu
 Scripts call Vite/Vitest **directly** and avoid `nx run` orchestration (which can hang). Prefer these over `yarn nx run …`.
 
 **Build** (order matters — deps first):
-- `yarn build:all` → doubletwelve → engine → react → theme → bridge
+- `yarn build:all` → doubletwelve → engine → react → theme → bridge → **functions** (`tsc` + staged vendor for Cloud Functions)
 - Individual: `build:doubletwelve | build:engine | build:react | build:theme | build:bridge | build:leaderboard`
 - `build:all:hosting` adds the leaderboard SPA
 
@@ -77,7 +77,7 @@ apps/
 libs/
   engine/            warp12-engine — rules state machine, AI, advisor (published)
   react/             warp12-react  — RoundState→trains adapters, tactical coach, hand layout (published)
-  theme/             warp12-theme  — Star Trek domino skins (published)
+  theme/             warp12-theme  — federation domino skins (published)
   tei-core/          @warp12/tei-core — TEI/Elo core (private, src-only)
 vendor/
   DoubleTwelve/      git submodule, own Nx workspace — domino rendering (opaque dependency)

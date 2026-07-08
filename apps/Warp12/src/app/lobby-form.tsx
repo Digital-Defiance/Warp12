@@ -12,6 +12,7 @@ import {
 import { CampaignRoundsField, ObjectivePicker } from './objective-picker';
 import { HouseRulesOptions } from './house-rules-options';
 import { DoubleZeroScoreField } from './double-zero-score-field';
+import { LargeFleetHandSizeField } from './large-fleet-hand-size-field';
 import { SubspaceFractureOptions } from './subspace-fracture-options';
 import { Warp12RulesPreset } from './warp12-rules-preset';
 import styles from './lobby.module.scss';
@@ -244,6 +245,21 @@ export function LobbyForm({
             })
           }
         />
+        {(createOptions.maxPlayers ?? LOCAL_MAX_PLAYERS) >= 7 && (
+          <LargeFleetHandSizeField
+            value={createOptions.houseRules?.largeFleetHandSize}
+            disabled={baseDisabled || charterLocked}
+            onChange={(largeFleetHandSize) =>
+              onCreateOptionsChange({
+                ...createOptions,
+                houseRules: {
+                  ...createOptions.houseRules,
+                  largeFleetHandSize,
+                },
+              })
+            }
+          />
+        )}
         <SubspaceFractureOptions
           enabled={createOptions.modules?.subspaceFracture ?? false}
           scope={createOptions.modules?.subspaceFractureScope ?? 'own-trail'}

@@ -84,6 +84,51 @@
   }
 }
 
+.provisionalBadge,
+.establishedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  font-family: var(--font-federation);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.provisionalBadge {
+  border: 1px solid rgba(250, 204, 21, 0.5);
+  color: #fde68a;
+  background: rgba(250, 204, 21, 0.1);
+}
+
+.establishedBadge {
+  border: 1px solid rgba(52, 211, 153, 0.5);
+  color: #6ee7b7;
+  background: rgba(52, 211, 153, 0.1);
+}
+
+.badgeIcon {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.provisionalBadge .badgeIcon {
+  /* Amber tint to match the provisional pill. */
+  filter: invert(83%) sepia(41%) saturate(731%) hue-rotate(332deg)
+    brightness(102%) contrast(97%);
+}
+
+.establishedBadge .badgeIcon {
+  /* Emerald tint to match the established pill. */
+  filter: invert(78%) sepia(38%) saturate(561%) hue-rotate(102deg)
+    brightness(94%) contrast(89%);
+}
+
 .historyList {
   margin: 0;
   padding-left: 1.1rem;

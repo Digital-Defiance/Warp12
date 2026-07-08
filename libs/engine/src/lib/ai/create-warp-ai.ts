@@ -203,7 +203,7 @@ export function createWarpAiPlayer(
     }
     const rootState = observationToState(obs);
     if (lookahead.searchEngine === 'ismcts') {
-      return ismctsSearchActionValues(
+      return ismctsSearchActionValues<GameState, WarpAiAction>(
         rootState,
         searchModel,
         {

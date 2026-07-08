@@ -14,6 +14,8 @@ export interface CharterModulesConfig {
 
 export type CharterDropToImpulseCatchPenalty = 1 | 2;
 export type CharterDoubleZeroScore = 0 | 25 | 50;
+/** 7–8 captain hand size (10 = Warp 12 default; 11 = Galt/University Games). */
+export type CharterLargeFleetHandSize = 10 | 11;
 
 export interface CharterHouseRulesConfig {
   requireOwnTrailFirst: boolean;
@@ -26,6 +28,7 @@ export interface CharterHouseRulesConfig {
   passRedAlertWithoutDraw: boolean;
   manualShieldControl: boolean;
   doubleZeroScore: CharterDoubleZeroScore;
+  largeFleetHandSize: CharterLargeFleetHandSize;
 }
 
 /** Official Warp 12 bundle — matches apps/Warp12 warp12-preset defaults. */
@@ -47,6 +50,7 @@ export const OFFICIAL_CHARTER_HOUSE_RULES: CharterHouseRulesConfig = {
   passRedAlertWithoutDraw: false,
   manualShieldControl: false,
   doubleZeroScore: 0,
+  largeFleetHandSize: 10,
 };
 
 export type CharterModulesInput = Partial<CharterModulesConfig>;
@@ -114,6 +118,10 @@ export function resolveCharterHouseRules(
       input.doubleZeroScore === 50
         ? input.doubleZeroScore
         : OFFICIAL_CHARTER_HOUSE_RULES.doubleZeroScore,
+    largeFleetHandSize:
+      input.largeFleetHandSize === 11
+        ? 11
+        : OFFICIAL_CHARTER_HOUSE_RULES.largeFleetHandSize,
   };
 }
 
@@ -159,6 +167,7 @@ export function charterHouseRulesMatch(
     expected.allStopCeremony === actual.allStopCeremony &&
     expected.passRedAlertWithoutDraw === actual.passRedAlertWithoutDraw &&
     expected.manualShieldControl === actual.manualShieldControl &&
-    expected.doubleZeroScore === actual.doubleZeroScore
+    expected.doubleZeroScore === actual.doubleZeroScore &&
+    expected.largeFleetHandSize === actual.largeFleetHandSize
   );
 }

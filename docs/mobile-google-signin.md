@@ -125,8 +125,12 @@ scheme registration**.
 
 - **iOS** — in `src-tauri/Info.ios.plist`, replace `com.googleusercontent.apps.YOUR_IOS_CLIENT_ID`
   with your iOS client's reversed id.
-- **Android** — in `src-tauri/gen/android/app/src/main/AndroidManifest.xml`, replace
-  `com.googleusercontent.apps.YOUR_ANDROID_CLIENT_ID` with your Desktop client's reversed id.
+- **Android** — `yarn tauri:android:dev` / `yarn build:android` run
+  `scripts/inject-android-manifest.sh`, which reads `apps/Warp12/.env` and patches
+  `gen/android/app/src/main/AndroidManifest.xml` with the OAuth redirect scheme
+  (`VITE_GOOGLE_OAUTH_REDIRECT_SCHEME_ANDROID`, or the reversed
+  `VITE_GOOGLE_DESKTOP_CLIENT_ID` / `VITE_GOOGLE_ANDROID_CLIENT_ID`). Environment
+  variables override `.env` for CI.
 
 Both must match the reversed form of the corresponding client id (or your override env).
 

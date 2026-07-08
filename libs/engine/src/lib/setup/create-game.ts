@@ -1,4 +1,11 @@
-import { handSizeForPlayerCount, spacedockValueForRound, DEFAULT_CAMPAIGN_ROUNDS, clampCampaignRounds } from '../constants/setup.js';
+import {
+  handSizeForPlayerCount,
+  spacedockValueForRound,
+  DEFAULT_CAMPAIGN_ROUNDS,
+  DEFAULT_LARGE_FLEET_HAND_SIZE,
+  clampCampaignRounds,
+  type LargeFleetHandSize,
+} from '../constants/setup.js';
 import {
   coordinateKey,
   normalizeCoordinate,
@@ -65,6 +72,8 @@ export function dealRoundFromShuffled(input: {
   readonly captains: readonly Captain[];
   readonly turnOrder: readonly PlayerId[];
   readonly roundStarterId?: PlayerId;
+  /** 7–8 captain hand size (10 default, 11 = Galt/University). */
+  readonly largeFleetHandSize?: LargeFleetHandSize;
 }): RoundDealResult {
   const spacedockValue = spacedockValueForRound(input.roundNumber);
   const spacedockCoordinate = normalizeCoordinate(
@@ -84,7 +93,10 @@ export function dealRoundFromShuffled(input: {
   }
   pile.splice(spacedockIndex, 1);
 
-  const handSize = handSizeForPlayerCount(input.captains.length);
+  const handSize = handSizeForPlayerCount(
+    input.captains.length,
+    input.largeFleetHandSize ?? DEFAULT_LARGE_FLEET_HAND_SIZE
+  );
   const hands: Record<string, Coordinate[]> = {};
 
   for (const captain of input.captains) {
@@ -177,6 +189,7 @@ export function startGame(
     captains: lobby.captains,
     turnOrder,
     roundStarterId: deal.roundStarterId,
+    largeFleetHandSize: lobby.houseRules.largeFleetHandSize,
   });
 
   return {

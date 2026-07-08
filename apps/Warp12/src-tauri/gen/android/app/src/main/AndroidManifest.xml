@@ -13,7 +13,7 @@
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
             android:launchMode="singleTask"
-            android:screenOrientation="sensorLandscape"
+            android:screenOrientation="userPortrait"
             android:label="@string/main_activity_title"
             android:name=".MainActivity"
             android:exported="true">
@@ -32,7 +32,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="com.googleusercontent.apps.YOUR_ANDROID_CLIENT_ID" />
+                <data android:scheme="com.googleusercontent.apps.527330456110-u12uqgjhpuo905sp5iu8rhibr8npiubg" />
             </intent-filter>
         </activity>
 

@@ -5,10 +5,12 @@ import type { GameAction } from '../types/actions.js';
 import type { GameState } from '../types/game-state.js';
 import type { PlayerId } from '../types/player.js';
 import type { WarpAiAction } from './actions.js';
+import type { OmegaModelWeights } from './omega-net.js';
 import { advisorReplaySeed, hashStringSeed, mulberry32 } from './advisor-replay-rng.js';
 import { buildWarpContext } from './context.js';
 import { warpCandidateGenerator } from './candidate-generator.js';
 import { createWarpAiPlayer } from './create-warp-ai.js';
+import { createOmegaPlayer } from './omega-agent.js';
 import { explainWarpAiAction } from './explain-action.js';
 import { gameActionToWarpAi, warpAiActionKey } from './from-game-action.js';
 import { DEFAULT_WARP_HEURISTICS } from './heuristics.js';
@@ -57,6 +59,8 @@ export interface BuildAdvisorReportOptions {
    * RNG per turn so rebuilding a report from the same log is stable.
    */
   replayBaseSeed?: number;
+  /** Class II neural Ω for advisor picks when reviewing weak lines. */
+  omegaNet?: OmegaModelWeights;
 }
 
 export interface AdvisorReport {
@@ -68,6 +72,8 @@ export interface ReviewAdvisorMoveOptions {
   readonly names?: Readonly<Record<string, string>>;
   readonly maxReasons?: number;
   readonly replaySeed?: number;
+  /** Class II neural Ω for advisor picks (phase A — explain Ω line). */
+  readonly omegaNet?: OmegaModelWeights;
 }
 
 function cloneState(state: GameState): GameState {
@@ -156,11 +162,16 @@ function classifyMoveStrength(
 function advisorPickAtState(
   state: GameState,
   playerId: PlayerId,
-  rng: Rng
+  rng: Rng,
+  omegaNet?: OmegaModelWeights
 ): WarpAiAction | null {
   const obs = observe(state, playerId);
   if (!obs) {
     return null;
+  }
+
+  if (omegaNet) {
+    return createOmegaPlayer({ net: omegaNet, rng }).decide(obs);
   }
 
   const playerCount = obs.captains.length;
@@ -227,7 +238,7 @@ export function reviewAdvisorMove(
 
   const advisorPick =
     strength === 'blunder' || strength === 'weak'
-      ? advisorPickAtState(state, playerId, replayRng)
+      ? advisorPickAtState(state, playerId, replayRng, options?.omegaNet)
       : warpAiActionKey(best.action) === playedKey
         ? null
         : best.action;
@@ -294,6 +305,7 @@ export function buildAdvisorReport(
       names: options.names,
       maxReasons: options.maxReasons,
       replaySeed: advisorReplaySeed(replayBaseSeed, turnIndex, entry.playerId),
+      omegaNet: options.omegaNet,
     });
     if (review) {
       reviews.push({ ...review, turnIndex: turnIndex++ });

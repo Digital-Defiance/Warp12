@@ -1,12 +1,16 @@
 # Class Ω — Next Steps (ISMCTS + Beyond)
 
-Handoff document for any AI assistant continuing this work. Written 2026-07-04.
+**North star (2026-07):** read [`omega-handoff.md`](./omega-handoff.md) first for honest status and the target architecture. Ω **replaces** heuristic Class II (not “Commander+”). **Ω+** = extended thinking (same weights). **Advisor** = distilled explainable layer on Ω. **TEI** = two human ratings (points + go-out), not per table size. Training gates on **champion vs champion**, not legacy Commander everywhere.
+
+Handoff document for any AI assistant continuing this work. Written 2026-07-04; north star added 2026-07-07.
 
 ---
 
 ## Current state
 
-A pure self-play policy/value net ("Class Ω") is training via an automated loop:
+> **Status check (2026-07-07):** the Jul 5 run **plateaued** (25 straight REJECTs after champion 1.4188 mean fair-share; points-only). Shipped weights in `apps/Warp12/public/models/` may be newer than `omega-elo-log.jsonl`. See handoff for the authoritative snapshot.
+
+A pure self-play policy/value net ("Class Ω") trains via an automated loop:
 
 ```
 yarn omega:loop   # or: scripts/omega-train-loop.sh

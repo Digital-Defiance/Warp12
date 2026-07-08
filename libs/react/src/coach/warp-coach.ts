@@ -1,4 +1,5 @@
 import {
+  createOmegaPlayer,
   createWarpAiPlayer,
   explainTurnResolution,
   explainWarpAiAction,
@@ -9,6 +10,7 @@ import {
   type ChartRoute,
   type GameAction,
   type GameState,
+  type OmegaModelWeights,
   type PlayerId,
   type WarpAiAction,
 } from 'warp12-engine';
@@ -21,10 +23,16 @@ export interface CoachSuggestion {
   readonly reasons: readonly string[];
 }
 
+export interface CoachSuggestionOptions {
+  /** When set, the advisor follows Class II neural Ω (greedy policy). */
+  readonly omegaNet?: OmegaModelWeights;
+}
+
 export function getCoachSuggestion(
   state: GameState,
   playerId: PlayerId,
-  names: Readonly<Record<string, string>> = {}
+  names: Readonly<Record<string, string>> = {},
+  options?: CoachSuggestionOptions
 ): CoachSuggestion | null {
   const observation = observe(state, playerId);
   if (!observation) {
@@ -32,13 +40,13 @@ export function getCoachSuggestion(
   }
 
   const playerCount = observation.captains.length;
-  const coach = createWarpAiPlayer({
-    skill: getAdvisorSkillProfile(state.objective, playerCount),
-    objective: state.objective,
-    lookahead: resolveAdvisorLookahead(),
-  });
-
-  const action = coach.decide(observation);
+  const action = options?.omegaNet
+    ? createOmegaPlayer({ net: options.omegaNet }).decide(observation)
+    : createWarpAiPlayer({
+        skill: getAdvisorSkillProfile(state.objective, playerCount),
+        objective: state.objective,
+        lookahead: resolveAdvisorLookahead(),
+      }).decide(observation);
   const reasons = mergeCoachReasons(
     explainWarpAiAction(state, playerId, action, { names }),
     explainTurnResolution(state, playerId, { names, focus: action.kind })

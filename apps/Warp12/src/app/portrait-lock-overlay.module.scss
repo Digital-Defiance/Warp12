@@ -1,0 +1,65 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(5, 8, 22, 0.94);
+  backdrop-filter: blur(6px);
+}
+
+.card {
+  width: min(100%, 320px);
+  padding: 1.35rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  background: rgba(15, 23, 42, 0.98);
+  box-shadow:
+    0 0 0 1px rgba(56, 189, 248, 0.12),
+    0 16px 40px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+
+.icon {
+  display: inline-block;
+  font-size: 2.4rem;
+  line-height: 1;
+  margin-bottom: 0.65rem;
+  animation: portraitNudge 2.4s ease-in-out infinite;
+}
+
+.title {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-federation-wide, var(--font-federation));
+  font-size: 1.05rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--warp-accent, #38bdf8);
+}
+
+.body {
+  margin: 0;
+  font-family: var(--font-federation);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--warp-text-muted, #94a3b8);
+}
+
+@keyframes portraitNudge {
+  0%,
+  100% {
+    transform: rotate(90deg);
+  }
+  50% {
+    transform: rotate(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon {
+    animation: none;
+    transform: rotate(90deg);
+  }
+}

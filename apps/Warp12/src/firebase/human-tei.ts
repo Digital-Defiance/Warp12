@@ -46,12 +46,12 @@ export interface OnlineRatingEligibility {
 type EligibilityCaptain = Pick<
   FirestoreCaptain,
   'id' | 'isAi' | 'skill' | 'verified'
-> & { class1Star?: boolean };
+> & { class1Star?: boolean; omega?: boolean };
 
 /**
  * Whether a completed/lobby online sector qualifies for human-pool TEI under
  * context B: two or more verified humans, and any AI seats are Class II–IV
- * anchors (no Class I* / neural opponents). Mirrors the authoritative server
+ * anchors (no Class Ω / Class I* / other neural opponents). Mirrors the authoritative server
  * gate in `functions/src/report-online-match.ts`; the lobby uses it to warn
  * captains before launch.
  */
@@ -104,7 +104,7 @@ export function onlineUnratedNotice(reason: string | undefined): string {
     case 'unrated_participant':
       return 'Unrated sector — a captain played as a guest. Sign in with an account to earn TEI.';
     case 'unrated_ai':
-      return 'Unrated sector — a Class I* officer was aboard. TEI is rated only against Class II–IV AI.';
+      return 'Unrated sector — an experimental Class I* officer was aboard. TEI is rated only against Class II–IV AI.';
     case 'objective_not_rated':
       return 'Unrated sector — this objective does not affect TEI.';
     case 'not_enough_humans':
@@ -140,7 +140,7 @@ export function onlineRatingWarning(
       } playing as a guest. Sign in with an account to earn TEI.`;
     }
     case 'unrated_ai':
-      return 'Unrated match — a Class I* officer is aboard. TEI is only rated against Class II–IV AI.';
+      return 'Unrated match — a Class Ω or other experimental officer is aboard. TEI is only rated against Class II–IV AI.';
     default:
       return 'This match will be unrated.';
   }

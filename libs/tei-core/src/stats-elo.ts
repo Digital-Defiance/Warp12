@@ -1,29 +1,71 @@
 import type { RatedObjective } from './rated-match-schema.js';
+import {
+  WARP12_OFFICIAL_RULES_PROFILE_ID,
+  WARP12_OFFICIAL_V1_RULES_PROFILE_ID,
+} from './rules-profile.js';
 
 export type { RatedObjective } from './rated-match-schema.js';
 export type AiSkillLevel = 'ensign' | 'lieutenant' | 'commander';
 
 export const DEFAULT_UNASSISTED_TEI = 1000;
 
-export const AI_OPPONENT_TEI_POINTS: Record<AiSkillLevel, number> = {
+/** Heuristic Class II anchors (`warp12-official-v1`). */
+export const AI_OPPONENT_TEI_POINTS_V1: Record<AiSkillLevel, number> = {
   ensign: 1000,
   lieutenant: 1200,
   commander: 1400,
 };
 
-export const AI_OPPONENT_TEI_GO_OUT: Record<AiSkillLevel, number> = {
+export const AI_OPPONENT_TEI_GO_OUT_V1: Record<AiSkillLevel, number> = {
   ensign: 1000,
   lieutenant: 1250,
   commander: 1500,
 };
 
+/**
+ * Neural Class II (Ω) anchors (`warp12-official-v2`).
+ * Calibrated 2026-07 from full 2–8p bench vs legacy Commander, tempered for
+ * typical 2–4p solo play (points mean ~1.38× fleet-wide; go-out ~1.14×).
+ */
+export const AI_OPPONENT_TEI_POINTS_V2: Record<AiSkillLevel, number> = {
+  ensign: 1000,
+  lieutenant: 1200,
+  commander: 1520,
+};
+
+export const AI_OPPONENT_TEI_GO_OUT_V2: Record<AiSkillLevel, number> = {
+  ensign: 1000,
+  lieutenant: 1250,
+  commander: 1550,
+};
+
+/** Current default reference bands (v2). */
+export const AI_OPPONENT_TEI_POINTS = AI_OPPONENT_TEI_POINTS_V2;
+export const AI_OPPONENT_TEI_GO_OUT = AI_OPPONENT_TEI_GO_OUT_V2;
+
+export function opponentTeiTablesForRulesProfile(rulesProfileId: string): {
+  readonly points: Record<AiSkillLevel, number>;
+  readonly goOut: Record<AiSkillLevel, number>;
+} {
+  if (rulesProfileId === WARP12_OFFICIAL_V1_RULES_PROFILE_ID) {
+    return {
+      points: AI_OPPONENT_TEI_POINTS_V1,
+      goOut: AI_OPPONENT_TEI_GO_OUT_V1,
+    };
+  }
+  return {
+    points: AI_OPPONENT_TEI_POINTS_V2,
+    goOut: AI_OPPONENT_TEI_GO_OUT_V2,
+  };
+}
+
 export function opponentTeiForObjective(
   objective: RatedObjective,
-  skill: AiSkillLevel
+  skill: AiSkillLevel,
+  rulesProfileId: string = WARP12_OFFICIAL_RULES_PROFILE_ID
 ): number {
-  return objective === 'go-out'
-    ? AI_OPPONENT_TEI_GO_OUT[skill]
-    : AI_OPPONENT_TEI_POINTS[skill];
+  const tables = opponentTeiTablesForRulesProfile(rulesProfileId);
+  return objective === 'go-out' ? tables.goOut[skill] : tables.points[skill];
 }
 
 export function kFactor(unassistedMatchesPlayed: number): number {

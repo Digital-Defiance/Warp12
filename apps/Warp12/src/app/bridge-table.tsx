@@ -25,6 +25,7 @@ import {
   type LegalMove,
   type RoundState,
   type WarpAiPlayer,
+  type OmegaModelWeights,
 } from 'warp12-engine';
 import { resolveHelmControls } from '../game/helm-controls.js';
 import { DominoHub, DoubleTwelve, DominoThemeProvider } from 'doubletwelve';
@@ -95,6 +96,7 @@ import {
   extractHumanActions,
 } from '../game/verify-local-ai-replay.js';
 import { ratedMatchCheckInUrl } from '../firebase/auth-actions.js';
+import { preloadOmegaWeights } from '../ai/load-omega-weights.js';
 import { useFirebaseAuth } from '../firebase/use-firebase-auth.js';
 import { usePlayerStats } from '../firebase/use-player-stats.js';
 import {
@@ -137,6 +139,10 @@ import {
   warpPalette,
 } from 'warp12-theme';
 import { useBridgeFocus, useTableSession } from './bridge-focus-context';
+import { EdgeTailRail } from './edge-tail-rail';
+import { isCompactLayoutTier, shouldNudgePortraitForSummary } from './layout-tier';
+import { useLayoutTier, useLayoutTierState } from './layout-tier-context';
+import { PortraitLockOverlay } from './portrait-lock-overlay';
 import { useBridgeHeaderActionRegistration } from './bridge-header-actions-context';
 import { useGameAudio } from './game-audio-context';
 import { FloatingCoachPanel } from './floating-coach-panel';
@@ -167,6 +173,10 @@ import { buildCaptainNameColors } from './game-log-display';
 
 const TABLE_WIDTH = 1200;
 const TABLE_HEIGHT = 800;
+const HAND_TILE_WIDTH = 36;
+const HAND_TILE_HEIGHT = 72;
+const HAND_TILE_WIDTH_COMPACT = 24;
+const HAND_TILE_HEIGHT_COMPACT = 48;
 const HUB_SLOTS = 8;
 
 function canShowInHandPenalty(
@@ -330,6 +340,9 @@ export function BridgeTable({
   onCoachSignal,
   commsControl,
 }: BridgeTableProps) {
+  const layoutTier = useLayoutTier();
+  const { orientation } = useLayoutTierState();
+  const compactLayout = isCompactLayoutTier(layoutTier);
   const isOnline = mode === 'online';
   const isLocalPassAndPlay =
     mode === 'local' && !!localConfig && isPassAndPlay(localConfig);
@@ -406,6 +419,32 @@ export function BridgeTable({
   const game = isOnline ? (externalGame ?? localGame) : localGame;
   const gameRef = useRef(game);
   gameRef.current = game;
+
+  const [advisorOmegaNet, setAdvisorOmegaNet] = useState<OmegaModelWeights | null>(
+    null
+  );
+  useEffect(() => {
+    let cancelled = false;
+    void preloadOmegaWeights(game.objective, { allowZeroFallback: true })
+      .then((net) => {
+        if (!cancelled) {
+          setAdvisorOmegaNet(net);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAdvisorOmegaNet(null);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [game.objective]);
+
+  const coachSuggestionOptions = useMemo(
+    () => (advisorOmegaNet ? { omegaNet: advisorOmegaNet } : undefined),
+    [advisorOmegaNet]
+  );
 
   useEffect(() => {
     advisorUsedThisMatchRef.current = false;
@@ -661,7 +700,9 @@ export function BridgeTable({
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [gameLogDialogOpen, setGameLogDialogOpen] = useState(false);
-  const [logMode, setLogMode] = useState<LogVisibilityMode>('all');
+  const [logMode, setLogMode] = useState<LogVisibilityMode>(() =>
+    compactLayout ? 'off' : 'all'
+  );
   const cycleLogMode = useCallback(
     () =>
       setLogMode((mode) =>
@@ -669,6 +710,13 @@ export function BridgeTable({
       ),
     []
   );
+  const handleLogControl = useCallback(() => {
+    if (compactLayout) {
+      setGameLogDialogOpen(true);
+      return;
+    }
+    cycleLogMode();
+  }, [compactLayout, cycleLogMode]);
   const [roundLogDownloadBusy, setRoundLogDownloadBusy] = useState(false);
   const [rematchConfirmOpen, setRematchConfirmOpen] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
@@ -728,8 +776,15 @@ export function BridgeTable({
     [holographicTiles, tileBg, pipPreset]
   );
   const tileSurface = WARP_TILE_SURFACE[tileBg];
-  const { focus: bridgeFocus, toggleFocus } = useBridgeFocus();
+  const { focus: bridgeFocus, setFocus: setBridgeFocus, toggleFocus } =
+    useBridgeFocus();
+  const immersiveLayout = bridgeFocus || compactLayout;
   useTableSession();
+  useEffect(() => {
+    if (compactLayout) {
+      setBridgeFocus(true);
+    }
+  }, [compactLayout, setBridgeFocus]);
   const { registerActions, clearActions } = useBridgeHeaderActionRegistration();
   const { muted: soundsMuted, toggleMuted: toggleSoundsMuted } = useGameAudio();
 
@@ -953,12 +1008,16 @@ export function BridgeTable({
   }, [activePlayerId]);
   const dropToImpulsePending =
     !!round &&
+    round.phase === 'playing' &&
+    game.phase === 'active' &&
     game.houseRules.dropToImpulseCall &&
     round.dropToImpulseCallPending === handOwnerId &&
     (round.hands[handOwnerId]?.length ?? 0) === 1;
   const dropToImpulseCatchTarget = round?.dropToImpulseCatchable ?? null;
   const canCatchDropToImpulse =
     !!round &&
+    round.phase === 'playing' &&
+    game.phase === 'active' &&
     game.houseRules.dropToImpulseCall &&
     dropToImpulseCatchTarget != null &&
     dropToImpulseCatchTarget !== handOwnerId &&
@@ -1012,7 +1071,9 @@ export function BridgeTable({
     pointerDraggingKey,
     pointerDropTargetKey,
     shouldIgnoreClick,
-  } = useHandLayout(game.id, handOwnerId, visibleHand);
+  } = useHandLayout(game.id, handOwnerId, visibleHand, {
+    horizontalScroll: compactLayout && orientation === 'portrait',
+  });
   const activeDraggingKey = pointerDraggingKey;
   const activeDropTargetKey = pointerDropTargetKey;
   const legalMoves =
@@ -1162,7 +1223,12 @@ export function BridgeTable({
       return;
     }
 
-    const suggestion = getCoachSuggestion(game, handOwnerId, names);
+    const suggestion = getCoachSuggestion(
+      game,
+      handOwnerId,
+      names,
+      coachSuggestionOptions
+    );
     if (!suggestion) {
       setCoachSuggestion(null);
       setLastMessage('Advisor unavailable this turn');
@@ -1174,6 +1240,7 @@ export function BridgeTable({
     advisorEngageNeedsConfirm,
     applyCoachSuggestion,
     coachAvailable,
+    coachSuggestionOptions,
     game,
     handOwnerId,
     teachingMode,
@@ -1562,7 +1629,12 @@ export function BridgeTable({
 
     setCoachBusy(true);
     try {
-      const suggestion = getCoachSuggestion(game, handOwnerId, names);
+      const suggestion = getCoachSuggestion(
+      game,
+      handOwnerId,
+      names,
+      coachSuggestionOptions
+    );
       if (!suggestion) {
         setLastMessage('Advisor unavailable this turn');
         return;
@@ -1576,6 +1648,7 @@ export function BridgeTable({
     applyCoachSuggestion,
     coachAvailable,
     coachBusy,
+    coachSuggestionOptions,
     game,
     handOwnerId,
     round,
@@ -1737,13 +1810,14 @@ export function BridgeTable({
       return buildAdvisorReport({
         roundStartState,
         entries,
+        ...(advisorOmegaNet ? { omegaNet: advisorOmegaNet } : {}),
         ...(includeAllCaptains
           ? { includeAllPlayers: true }
           : { focusPlayerIds: focusPlayerIdsForAdvisor }),
         names,
       });
     },
-    [advisorIncludeAllCaptains, focusPlayerIdsForAdvisor, names]
+    [advisorIncludeAllCaptains, advisorOmegaNet, focusPlayerIdsForAdvisor, names]
   );
 
   const buildCampaignAdvisorReports = useCallback(
@@ -1753,13 +1827,14 @@ export function BridgeTable({
         report: buildAdvisorReport({
           roundStartState: snapshot.roundStartState,
           entries: snapshot.entries,
+          ...(advisorOmegaNet ? { omegaNet: advisorOmegaNet } : {}),
           ...(includeAllCaptains
             ? { includeAllPlayers: true }
             : { focusPlayerIds: focusPlayerIdsForAdvisor }),
           names,
         }),
       })),
-    [focusPlayerIdsForAdvisor, names]
+    [advisorOmegaNet, focusPlayerIdsForAdvisor, names]
   );
 
   const downloadCampaignAdvisorReport = useCallback(
@@ -1786,6 +1861,7 @@ export function BridgeTable({
       const report = buildAdvisorReport({
         roundStartState: snapshot.roundStartState,
         entries: snapshot.entries,
+        ...(advisorOmegaNet ? { omegaNet: advisorOmegaNet } : {}),
         focusPlayerIds: focusPlayerIdsForAdvisor,
         names,
       });
@@ -1794,7 +1870,7 @@ export function BridgeTable({
     campaignAdvisorReviewsRef.current = reviews;
     setCampaignPerformance(summarizeAdvisorPerformance(reviews));
     setCampaignRoundCount(campaignRoundSnapshotsRef.current.length);
-  }, [focusPlayerIdsForAdvisor, names]);
+  }, [advisorOmegaNet, focusPlayerIdsForAdvisor, names]);
 
   const appendRoundAdvisorReviews = useCallback(() => {
     const roundStartState = roundStartStateRef.current;
@@ -2107,18 +2183,65 @@ export function BridgeTable({
         (trail) => trail.distressBeacon.active
       ).length
     : 0;
+  const portraitSummaryNudge =
+    shouldNudgePortraitForSummary(layoutTier, orientation) &&
+    ((roundAwaitingScore && roundEndSummaryOpen) ||
+      (game.phase === 'complete' && campaignCompleteOpen));
+
+  const handSortButtons = (
+    <>
+      <button
+        type="button"
+        className={styles.handSortBtn}
+        onClick={() => applySort('pips-desc')}
+      >
+        Heaviest
+      </button>
+      <button
+        type="button"
+        className={styles.handSortBtn}
+        onClick={() => applySort('pips-asc')}
+      >
+        Lightest
+      </button>
+      <button
+        type="button"
+        className={styles.handSortBtn}
+        onClick={() => applySort('low-first')}
+      >
+        Low pip
+      </button>
+      <button
+        type="button"
+        className={styles.handSortBtn}
+        onClick={() => applySort('doubles-first')}
+      >
+        Doubles
+      </button>
+      <button
+        type="button"
+        className={styles.handSortBtn}
+        onClick={() => applySort('best-train', trainConnectValue)}
+        disabled={trainConnectValue === undefined}
+      >
+        Best train
+      </button>
+    </>
+  );
 
   return (
     <DominoThemeProvider theme={dominoTheme}>
       <div
         className={styles.bridgeLayout}
-        data-focus={bridgeFocus ? 'true' : 'false'}
+        data-focus={immersiveLayout ? 'true' : 'false'}
+        data-layout-tier={layoutTier}
+        data-orientation={orientation}
       >
       <div
         ref={bridgeSurfaceRef}
         className={styles.bridge}
         style={{
-          ...(bridgeFocus
+          ...(immersiveLayout
             ? {}
             : {
                 width: `${TABLE_WIDTH}px`,
@@ -2138,7 +2261,7 @@ export function BridgeTable({
           ['--warp-danger' as string]: warpPalette.danger,
         }}
       >
-        {logMode !== 'off' && (
+        {logMode !== 'off' && !compactLayout && (
           <GameLogTicker
             lines={tickerLogLines}
             clickable={gameLogReviewable}
@@ -2349,6 +2472,7 @@ export function BridgeTable({
           <QActiveOrb game={game} names={names} />
         </div>
 
+        {!compactLayout && (
         <SectorStatusHud
           containerRef={bridgeSurfaceRef}
           game={game}
@@ -2379,6 +2503,7 @@ export function BridgeTable({
           redAlertSummary={sectorRedAlertRow?.summary ?? ''}
           redAlertTone={sectorRedAlertRow?.tone ?? 'alert'}
         />
+        )}
 
         {coachSuggestion && (
           <FloatingCoachPanel
@@ -2396,7 +2521,18 @@ export function BridgeTable({
           />
         )}
 
-        {captainTailsHud && round && (
+        {captainTailsHud && round && compactLayout && (
+          <EdgeTailRail
+            round={round}
+            trailSpokes={trailSpokes}
+            activePlayerId={activePlayerId}
+            display={captainTailsDisplay}
+            tacticalClassAbbrevByCaptain={captainTacticalClassAbbrevById}
+            tacticalClassLabelByCaptain={captainTacticalClassLabelById}
+          />
+        )}
+
+        {captainTailsHud && round && !compactLayout && (
           <CaptainTailsHud
             containerRef={bridgeSurfaceRef}
             round={round}
@@ -2415,17 +2551,22 @@ export function BridgeTable({
           contentRef={tableContentRef}
           autoFollowAction={autoFollowAction}
           actionFocus={actionFocus}
-          focusControl={{
-            active: bridgeFocus,
-            onToggle: toggleFocus,
-          }}
+          compactLayout={compactLayout}
+          focusControl={
+            compactLayout
+              ? undefined
+              : {
+                  active: bridgeFocus,
+                  onToggle: toggleFocus,
+                }
+          }
           soundControl={{
             muted: soundsMuted,
             onToggle: toggleSoundsMuted,
           }}
           logControl={{
             mode: logMode,
-            onCycle: cycleLogMode,
+            onCycle: handleLogControl,
           }}
           commsControl={commsControl}
         >
@@ -2462,7 +2603,7 @@ export function BridgeTable({
           )}
         </TableViewport>
 
-        {roundAwaitingScore && round && roundEndSummaryOpen && (
+        {roundAwaitingScore && round && roundEndSummaryOpen && !portraitSummaryNudge && (
           <div
             className={styles.roundEndOverlay}
             role="dialog"
@@ -2629,7 +2770,7 @@ export function BridgeTable({
         )}
 
         <CampaignCompleteOverlay
-          open={game.phase === 'complete' && campaignCompleteOpen}
+          open={game.phase === 'complete' && campaignCompleteOpen && !portraitSummaryNudge}
           game={game}
           names={names}
           humanId={isVsAi ? humanId : viewerId}
@@ -2661,16 +2802,36 @@ export function BridgeTable({
       </div>
 
       <section className={styles.commandPanel} data-my-turn={isMyTurn}>
+        <div className={styles.commandPanelBody}>
         <header className={styles.commandHeader}>
-          <h2 className={styles.commandTitle}>
-            {game.phase === 'complete'
-              ? `${sectorWinnerName(game, names)} wins the sector`
-              : roundAwaitingScore && round
-                ? round.roundBlocked
-                  ? `Round ${round.roundNumber} blocked`
-                  : `${names[round.roundWinnerId ?? ''] ?? 'Captain'} wins round ${round.roundNumber}`
-                : `${names[handOwnerId] ?? 'Captain'}'s coordinates`}
-          </h2>
+          {compactLayout ? (
+            <div className={styles.commandHeaderStart}>
+              <h2 className={styles.commandTitle}>
+                {game.phase === 'complete'
+                  ? `${sectorWinnerName(game, names)} wins the sector`
+                  : roundAwaitingScore && round
+                    ? round.roundBlocked
+                      ? `Round ${round.roundNumber} blocked`
+                      : `${names[round.roundWinnerId ?? ''] ?? 'Captain'} wins round ${round.roundNumber}`
+                    : `${names[handOwnerId] ?? 'Captain'}'s coordinates`}
+              </h2>
+              {showOwnHand ? (
+                <div className={styles.handSortRow} aria-label="Sort hand">
+                  {handSortButtons}
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <h2 className={styles.commandTitle}>
+              {game.phase === 'complete'
+                ? `${sectorWinnerName(game, names)} wins the sector`
+                : roundAwaitingScore && round
+                  ? round.roundBlocked
+                    ? `Round ${round.roundNumber} blocked`
+                    : `${names[round.roundWinnerId ?? ''] ?? 'Captain'} wins round ${round.roundNumber}`
+                  : `${names[handOwnerId] ?? 'Captain'}'s coordinates`}
+            </h2>
+          )}
           <span className={styles.handCount}>
             {showOwnHand
               ? `${visibleHand.length} in hand`
@@ -2743,50 +2904,17 @@ export function BridgeTable({
 
         {showOwnHand ? (
           <div className={styles.handSection}>
-            <div className={styles.handToolbar}>
-              <span className={styles.handHint}>
-                {isMyTurn
-                  ? 'Drag to arrange · Click to flip · Shift/Option-click playable tiles'
-                  : 'Drag to arrange · Click to flip — stand by for helm'}
-              </span>
-              <button
-                type="button"
-                className={styles.handSortBtn}
-                onClick={() => applySort('pips-desc')}
-              >
-                Heaviest
-              </button>
-              <button
-                type="button"
-                className={styles.handSortBtn}
-                onClick={() => applySort('pips-asc')}
-              >
-                Lightest
-              </button>
-              <button
-                type="button"
-                className={styles.handSortBtn}
-                onClick={() => applySort('low-first')}
-              >
-                Low pip
-              </button>
-              <button
-                type="button"
-                className={styles.handSortBtn}
-                onClick={() => applySort('doubles-first')}
-              >
-                Doubles
-              </button>
-              <button
-                type="button"
-                className={styles.handSortBtn}
-                onClick={() => applySort('best-train', trainConnectValue)}
-                disabled={trainConnectValue === undefined}
-              >
-                Best train
-              </button>
-            </div>
-            <div className={styles.hand}>
+            {!compactLayout && (
+              <div className={styles.handToolbar}>
+                <span className={styles.handHint}>
+                  {isMyTurn
+                    ? 'Drag to arrange · Click to flip · Shift/Option-click playable tiles'
+                    : 'Drag to arrange · Click to flip — stand by for helm'}
+                </span>
+                {handSortButtons}
+              </div>
+            )}
+            <div className={styles.hand} data-scrollable={compactLayout ? 'true' : undefined}>
               {orderedHand.map((coordinate) => {
                 const key = coordinateKey(coordinate);
                 const flipped = isFlipped(key);
@@ -2826,8 +2954,8 @@ export function BridgeTable({
                     <DoubleTwelve
                       value1={top}
                       value2={bottom}
-                      width={36}
-                      height={72}
+                      width={compactLayout ? HAND_TILE_WIDTH_COMPACT : HAND_TILE_WIDTH}
+                      height={compactLayout ? HAND_TILE_HEIGHT_COMPACT : HAND_TILE_HEIGHT}
                       backgroundColor={tileSurface.fill}
                       borderColor={tileSurface.border}
                       pipColors={WARP_PIP_COLORS}
@@ -2838,7 +2966,11 @@ export function BridgeTable({
             </div>
           </div>
         ) : null}
+        </div>
 
+        {(dropToImpulsePending && isMyTurn && (!isOnline || !syncPending)) ||
+        (canCatchDropToImpulse && (!isOnline || !syncPending)) ? (
+          <div className={styles.commandActions}>
         {dropToImpulsePending && isMyTurn && (!isOnline || !syncPending) && (
           <>
             <button
@@ -2886,6 +3018,8 @@ export function BridgeTable({
             Catch Drop to Impulse!
           </button>
         )}
+          </div>
+        ) : null}
 
         {game.phase === 'complete' && (
           <div className={styles.roundEnd}>
@@ -2984,6 +3118,12 @@ export function BridgeTable({
           )
         )}
       </section>
+
+      <PortraitLockOverlay
+        active={portraitSummaryNudge}
+        title="Rotate for the summary"
+        body="Turn your device upright to review round results and continue."
+      />
     </div>
     </DominoThemeProvider>
   );

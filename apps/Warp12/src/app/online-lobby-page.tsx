@@ -34,6 +34,7 @@ import {
 import { CampaignRoundsField, ObjectivePicker, ObjectiveSummary } from './objective-picker';
 import { HouseRulesOptions } from './house-rules-options';
 import { DoubleZeroScoreField } from './double-zero-score-field';
+import { LargeFleetHandSizeField } from './large-fleet-hand-size-field';
 import { SubspaceFractureOptions } from './subspace-fracture-options';
 import { Warp12RulesPreset } from './warp12-rules-preset';
 import { isAiCaptain } from '../game/ai-captain.js';
@@ -555,6 +556,17 @@ export function OnlineLobbyPage() {
                 })
               }
             />
+            {maxPlayers >= 7 ? (
+              <LargeFleetHandSizeField
+                value={lobby.houseRules?.largeFleetHandSize}
+                disabled={busy || charterLocked}
+                onChange={(largeFleetHandSize) =>
+                  void saveSettings({
+                    houseRules: { ...lobby.houseRules, largeFleetHandSize },
+                  })
+                }
+              />
+            ) : null}
             <SubspaceFractureOptions
               enabled={lobby.modules.subspaceFracture ?? false}
               scope={lobby.modules.subspaceFractureScope ?? 'own-trail'}

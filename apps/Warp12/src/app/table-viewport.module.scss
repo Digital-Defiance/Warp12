@@ -114,3 +114,10 @@
 .viewportContent {
   position: relative;
 }
+
+.viewportControls[data-compact='true'] {
+  .viewportBtn:nth-child(1),
+  .viewportBtn:nth-child(2) {
+    display: none;
+  }
+}

@@ -1,5 +1,6 @@
 import {
   applyAction,
+  checkRoundInvariants,
   scoreRound,
   type GameAction,
   type GameState,
@@ -8,7 +9,7 @@ import {
 import type { ActionLogEntry } from 'warp12-react';
 
 import {
-  buildAiRoster,
+  buildAiRosterAsync,
   createLocalGame,
 } from './create-local-game.js';
 import type { LocalGameConfig } from './local-game-config.js';
@@ -42,6 +43,21 @@ export type LocalAiReplayResult =
     };
 
 const MAX_REPLAY_STEPS = 50_000;
+
+function invariantViolationAfterStep(
+  state: GameState
+): string | null {
+  const round = state.round;
+  if (!round) {
+    return null;
+  }
+  const violations = checkRoundInvariants(state, round);
+  if (violations.length === 0) {
+    return null;
+  }
+  const first = violations[0];
+  return `INVARIANT_${first.kind}: ${first.detail}`;
+}
 
 /** Same stream self-play uses so inter-round shuffles are reproducible. */
 export function createMatchRoundReshuffle(seed: number): () => number {
@@ -119,6 +135,15 @@ export function replayLocalAiActionLog(
       };
     }
     state = result.state;
+    const invariantViolation = invariantViolationAfterStep(state);
+    if (invariantViolation) {
+      return {
+        ok: false,
+        violation: invariantViolation,
+        steps,
+        partialState: state,
+      };
+    }
   }
 
   return {
@@ -171,7 +196,7 @@ export async function replayLocalAiHumanActions(
   }
 
   let state = createLocalGame(payload.config, payload.seed);
-  const roster = buildAiRoster(payload.config, payload.seed);
+  const roster = await buildAiRosterAsync(payload.config, payload.seed);
   const roundReshuffle = createMatchRoundReshuffle(payload.seed);
   const humanQueue = [...humanActions];
   let steps = 0;
@@ -189,6 +214,10 @@ export async function replayLocalAiHumanActions(
         return { ok: false, violation: result.violation, steps, partialState: state };
       }
       state = result.state;
+      const scoreInvariant = invariantViolationAfterStep(state);
+      if (scoreInvariant) {
+        return { ok: false, violation: scoreInvariant, steps, partialState: state };
+      }
       continue;
     }
 
@@ -220,6 +249,10 @@ export async function replayLocalAiHumanActions(
         return { ok: false, violation: result.violation, steps, partialState: state };
       }
       state = result.state;
+      const humanInvariant = invariantViolationAfterStep(state);
+      if (humanInvariant) {
+        return { ok: false, violation: humanInvariant, steps, partialState: state };
+      }
       continue;
     }
 
@@ -248,6 +281,10 @@ export async function replayLocalAiHumanActions(
       return { ok: false, violation: result.violation, steps, partialState: state };
     }
     state = result.state;
+    const aiInvariant = invariantViolationAfterStep(state);
+    if (aiInvariant) {
+      return { ok: false, violation: aiInvariant, steps, partialState: state };
+    }
   }
 
   if (state.phase !== 'complete') {
