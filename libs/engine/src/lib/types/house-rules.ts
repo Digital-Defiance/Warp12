@@ -1,3 +1,10 @@
+import {
+  DEFAULT_LARGE_FLEET_HAND_SIZE,
+  type LargeFleetHandSize,
+} from '../constants/setup.js';
+
+export type { LargeFleetHandSize } from '../constants/setup.js';
+
 /** Tiles drawn when an opponent catches a missed Drop to Impulse announce. */
 export type DropToImpulseCatchPenalty = 1 | 2;
 
@@ -26,6 +33,8 @@ export interface HouseRules {
   readonly manualShieldControl: boolean;
   /** Points a double-blank (0-0) scores when caught in hand (50 = tournament standard). */
   readonly doubleZeroScore: DoubleZeroScore;
+  /** Hand size for 7–8 captains (10 = Warp 12 default; 11 = Galt/University). */
+  readonly largeFleetHandSize: LargeFleetHandSize;
 }
 
 export interface HouseRulesConfig {
@@ -39,6 +48,7 @@ export interface HouseRulesConfig {
   passRedAlertWithoutDraw?: boolean;
   manualShieldControl?: boolean;
   doubleZeroScore?: DoubleZeroScore;
+  largeFleetHandSize?: LargeFleetHandSize;
 }
 
 export const DEFAULT_HOUSE_RULES: HouseRules = {
@@ -52,11 +62,19 @@ export const DEFAULT_HOUSE_RULES: HouseRules = {
   passRedAlertWithoutDraw: false,
   manualShieldControl: false,
   doubleZeroScore: 50,
+  largeFleetHandSize: DEFAULT_LARGE_FLEET_HAND_SIZE,
 };
 
 /** Normalize an arbitrary value to a supported double-zero score (default 50). */
 function resolveDoubleZeroScore(value: DoubleZeroScore | undefined): DoubleZeroScore {
   return value === 0 || value === 25 ? value : 50;
+}
+
+/** Normalize the large-fleet hand size (only 11 opts out of the default 10). */
+function resolveLargeFleetHandSize(
+  value: LargeFleetHandSize | undefined
+): LargeFleetHandSize {
+  return value === 11 ? 11 : DEFAULT_LARGE_FLEET_HAND_SIZE;
 }
 
 export function resolveHouseRules(
@@ -74,5 +92,6 @@ export function resolveHouseRules(
     passRedAlertWithoutDraw: config.passRedAlertWithoutDraw ?? false,
     manualShieldControl: config.manualShieldControl ?? false,
     doubleZeroScore: resolveDoubleZeroScore(config.doubleZeroScore),
+    largeFleetHandSize: resolveLargeFleetHandSize(config.largeFleetHandSize),
   };
 }

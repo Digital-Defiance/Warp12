@@ -1,5 +1,6 @@
 import type { GameObjective } from '../types/objective.js';
 import { CLASS1_STAR_DISPLAY_NAME } from './class1-star-constants.js';
+import { OMEGA_DISPLAY_NAME, OMEGA_SHORT_DISPLAY_NAME } from './omega-constants.js';
 import type { WarpSkillLevel } from './skill.js';
 
 /** Engine AI profile keys — map to Tactical Class IV / III / II in all player-facing UI. */
@@ -44,11 +45,14 @@ export function formatTacticalClass(
   return `Class ${tacticalClass}`;
 }
 
-/** Player-facing label for an AI officer (Class IV–II or experimental Class I*). */
+/** Player-facing label for an AI officer (Class IV–II or experimental neural tiers). */
 export function formatAiOfficerTacticalClass(
   skill: WarpSkillLevel,
-  options?: { short?: boolean; class1Star?: boolean }
+  options?: { short?: boolean; class1Star?: boolean; omega?: boolean }
 ): string {
+  if (options?.omega) {
+    return options.short ? OMEGA_SHORT_DISPLAY_NAME : OMEGA_DISPLAY_NAME;
+  }
   if (options?.class1Star) {
     return options.short ? 'Cls I*' : CLASS1_STAR_DISPLAY_NAME;
   }
@@ -118,12 +122,12 @@ export const ACADEMY_TEI_BANDS: Record<
   points: {
     ensign: { min: 400, max: 1050, default: 1000 },
     lieutenant: { min: 1050, max: 1300, default: 1200 },
-    commander: { min: 1300, max: 1800, default: 1400 },
+    commander: { min: 1420, max: 1700, default: 1520 },
   },
   'go-out': {
     ensign: { min: 400, max: 1125, default: 1000 },
     lieutenant: { min: 1125, max: 1375, default: 1250 },
-    commander: { min: 1375, max: 1800, default: 1500 },
+    commander: { min: 1450, max: 1700, default: 1550 },
   },
 };
 

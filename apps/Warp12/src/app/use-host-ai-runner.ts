@@ -10,10 +10,10 @@ import {
 } from '../game/ai-captain.js';
 import type { ActionLogEntry } from 'warp12-react';
 import { playerIdForAction } from 'warp12-react';
-import { buildAiRosterFromConfigs } from '../game/create-local-game.js';
+import { buildAiRosterFromConfigsAsync } from '../game/create-local-game.js';
 import type { AiCaptainConfig } from '../game/local-game-config.js';
 import { mergeAiHandsIntoGame } from '../game/merge-ai-hands.js';
-import { formatViolation } from 'warp12-engine';
+import { formatViolation, type WarpAiPlayer } from 'warp12-engine';
 import type { FirestoreCaptain } from '../firebase/schema.js';
 
 function violationMessage(violation: string): string {
@@ -62,29 +62,51 @@ export function useHostAiRunner(options: {
   );
 
   const objective = options.game?.objective ?? 'points';
-  const roster = useMemo(() => {
+  const [roster, setRoster] = useState<ReadonlyMap<
+    string,
+    WarpAiPlayer
+  > | null>(null);
+  const rosterRef = useRef(roster);
+  rosterRef.current = roster;
+
+  useEffect(() => {
     if (!options.enabled || aiCaptains.length === 0) {
-      return null;
+      setRoster(null);
+      return;
     }
+    let cancelled = false;
     const tableSize =
       options.game?.captains.length ?? options.sectorCaptains.length;
-    return buildAiRosterFromConfigs(
+    void buildAiRosterFromConfigsAsync(
       aiCaptains,
       objective,
       onlineAiSeed(options.code),
       tableSize
-    );
+    )
+      .then((next) => {
+        if (!cancelled) setRoster(next);
+      })
+      .catch((error) => {
+        console.error('[omega] host AI roster failed', error);
+        if (!cancelled) {
+          setRoster(null);
+          options.onError(
+            'Could not load Class II (Ω) weights for AI officers. Check the host connection and try again.'
+          );
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [
     aiCaptains,
     objective,
     options.code,
     options.enabled,
     options.game?.captains.length,
+    options.onError,
     options.sectorCaptains.length,
   ]);
-
-  const rosterRef = useRef(roster);
-  rosterRef.current = roster;
 
   const activePlayerId = options.game?.round?.activePlayerId;
   const roundPhase = options.game?.round?.phase;

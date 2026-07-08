@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   AI_OPPONENT_TEI_POINTS,
+  opponentTeiForObjective,
   DEFAULT_UNASSISTED_TEI,
   expectedEloScore,
+  isProvisionalTei,
+  PROVISIONAL_TEI_MATCHES,
   rankCompetition,
   updateTeiHeadToHead,
   updateTeiMultiplayerPairwise,
@@ -26,6 +29,15 @@ describe('stats-elo', () => {
     expect(next).toBeGreaterThan(DEFAULT_UNASSISTED_TEI);
   });
 
+  it('uses v2 Class II commander anchor by default', () => {
+    expect(AI_OPPONENT_TEI_POINTS.commander).toBe(1520);
+    expect(opponentTeiForObjective('points', 'commander')).toBe(1520);
+    expect(opponentTeiForObjective('go-out', 'commander')).toBe(1550);
+    expect(opponentTeiForObjective('points', 'commander', 'warp12-official-v1')).toBe(
+      1400
+    );
+  });
+
   it('lowers TEI after losing to a lower-rated opponent', () => {
     const next = updateUnassistedTei(
       DEFAULT_UNASSISTED_TEI,
@@ -35,12 +47,24 @@ describe('stats-elo', () => {
     );
     expect(next).toBeLessThan(DEFAULT_UNASSISTED_TEI);
   });
+
+  it('flags a bucket as provisional only between 1 and the threshold', () => {
+    expect(isProvisionalTei(0)).toBe(false);
+    expect(isProvisionalTei(1)).toBe(true);
+    expect(isProvisionalTei(PROVISIONAL_TEI_MATCHES - 1)).toBe(true);
+    expect(isProvisionalTei(PROVISIONAL_TEI_MATCHES)).toBe(false);
+    expect(isProvisionalTei(PROVISIONAL_TEI_MATCHES + 5)).toBe(false);
+  });
 });
 
 describe('TEI spec conformance vectors', () => {
-  it('§8.2 head-to-head reference updates', () => {
+  it('§8.2 head-to-head reference updates (v1 profile)', () => {
     expect(updateTeiScore(1000, 1400, 1, 32)).toBe(1029);
     expect(updateTeiScore(1000, 1000, 0, 32)).toBe(984);
+  });
+
+  it('§8.2 head-to-head reference updates (v2 Class II Ω)', () => {
+    expect(updateTeiScore(1000, 1520, 1, 32)).toBe(1030);
   });
 
   it('§8.3 three-player pairwise update', () => {

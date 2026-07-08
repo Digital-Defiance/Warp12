@@ -6,6 +6,7 @@ export * from './charter-schema.js';
 export type {
   CharterHouseRulesConfig,
   CharterHouseRulesInput,
+  CharterLargeFleetHandSize,
   CharterModulesConfig,
   CharterModulesInput,
 } from './charter-lobby-config.js';

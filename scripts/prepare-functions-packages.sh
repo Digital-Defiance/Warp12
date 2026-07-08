@@ -4,13 +4,14 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENDOR="$ROOT/functions/vendor"
+MODELS="$ROOT/functions/models"
 
 cd "$ROOT"
 yarn build:doubletwelve
 yarn build:engine
 
 rm -rf "$VENDOR"
-mkdir -p "$VENDOR"
+mkdir -p "$VENDOR" "$MODELS"
 
 node "$ROOT/scripts/stage-functions-vendor.mjs" \
   "$ROOT/vendor/DoubleTwelve" \
@@ -20,4 +21,9 @@ node "$ROOT/scripts/stage-functions-vendor.mjs" \
   "$ROOT/libs/engine" \
   "$VENDOR/warp12-engine"
 
+# Class II (Ω) weights — required for practice-AI replay verification.
+cp "$ROOT/apps/Warp12/public/models/omega-v1.json" "$MODELS/omega-v1.json"
+cp "$ROOT/apps/Warp12/public/models/omega-goout-v1.json" "$MODELS/omega-goout-v1.json"
+
 echo "Staged functions vendor packages in functions/vendor/"
+echo "Staged Omega weights in functions/models/"

@@ -19,16 +19,16 @@ export function classifyLocalAiMatchSkill(
   );
 }
 
-/** Skill bucket plus Class I* flag for Firestore match history (`opponentClass1Star`). */
+/**
+ * Skill bucket for match reporting. Class II is neural Ω; `opponentOmega` stays
+ * false so historical profile rows keep the experimental meaning if present.
+ */
 export function classifyLocalAiMatchOpponent(
   aiCaptains: readonly AiCaptainConfig[]
-): { skill: WarpSkillLevel; opponentClass1Star: boolean } {
-  const skill = classifyLocalAiMatchSkill(aiCaptains);
-  const topTier = aiCaptains.filter((captain) => captain.skill === skill);
+): { skill: WarpSkillLevel; opponentOmega: boolean } {
   return {
-    skill,
-    opponentClass1Star:
-      topTier.length > 0 && topTier.every((captain) => captain.class1Star === true),
+    skill: classifyLocalAiMatchSkill(aiCaptains),
+    opponentOmega: false,
   };
 }
 

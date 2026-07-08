@@ -214,6 +214,63 @@ describe('useHandLayout', () => {
     ]);
   });
 
+  it('defers reorder when horizontal scroll mode and swipe is mostly horizontal', () => {
+    const gameId = 'scroll-hand';
+    const hand = [tile(0, 1), tile(2, 3), tile(4, 5)];
+
+    const { result } = renderHook(() =>
+      useHandLayout(gameId, 'human:0', hand, { horizontalScroll: true })
+    );
+
+    const captureTarget = {
+      setPointerCapture: vi.fn(),
+      releasePointerCapture: vi.fn(),
+      hasPointerCapture: vi.fn(() => false),
+    };
+
+    act(() => {
+      result.current.onHandTilePointerDown('0-1', {
+        button: 0,
+        pointerId: 1,
+        pointerType: 'touch',
+        clientX: 10,
+        clientY: 10,
+        nativeEvent: { pointerType: 'touch' },
+        currentTarget: captureTarget,
+      } as never);
+    });
+
+    expect(captureTarget.setPointerCapture).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.onHandTilePointerMove({
+        pointerId: 1,
+        pointerType: 'touch',
+        clientX: 50,
+        clientY: 12,
+        nativeEvent: { pointerType: 'touch' },
+      } as never);
+    });
+
+    act(() => {
+      result.current.onHandTilePointerUp('0-1', {
+        pointerId: 1,
+        pointerType: 'touch',
+        clientX: 50,
+        clientY: 12,
+        nativeEvent: { pointerType: 'touch' },
+        currentTarget: captureTarget,
+      } as never);
+    });
+
+    expect(result.current.orderedHand.map(coordinateKey)).toEqual([
+      coordinateKey(tile(0, 1)),
+      coordinateKey(tile(2, 3)),
+      coordinateKey(tile(4, 5)),
+    ]);
+    expect(result.current.shouldIgnoreClick()).toBe(false);
+  });
+
   it('treats a mouse click (no movement) as a non-drag so click-to-flip works', () => {
     const gameId = 'mouse-click';
     const hand = [tile(0, 1), tile(2, 3)];

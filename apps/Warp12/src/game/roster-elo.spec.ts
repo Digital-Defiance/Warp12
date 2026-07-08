@@ -71,7 +71,7 @@ describe('buildLocalRosterTei', () => {
             id: 'riker',
             displayName: 'Riker',
             skill: 'commander',
-            class1Star: true,
+            omega: true,
           },
         ],
       },
@@ -79,6 +79,6 @@ describe('buildLocalRosterTei', () => {
       'points'
     );
 
-    expect(roster[1]?.tacticalClass).toBe('Class I*');
+    expect(roster[1]?.tacticalClass).toMatch(/Class II/);
   });
 });

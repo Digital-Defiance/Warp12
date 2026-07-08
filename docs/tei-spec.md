@@ -1,8 +1,8 @@
 # TEI Specification (Tactical Effectiveness Index)
 
-**Version:** 1.1  
+**Version:** 1.4 (v2 rules profile + neural Class II — 2026-07)  
 **Status:** Normative — interoperable definition for Warp 12 and third-party Mexican Train platforms  
-**Reference implementation:** `apps/Warp12/src/firebase/stats-elo.ts`, `functions/src/tei/stats-elo.ts` (Warp 12 v1.1)
+**Reference implementation:** `apps/Warp12/src/firebase/stats-elo.ts`, `functions/src/tei/stats-elo.ts` (Warp 12 v1.4)
 
 ---
 
@@ -46,12 +46,28 @@ Third parties MAY implement this spec to:
 Reference TEI bands (§7.1) are calibrated against **reference policies only**.
 
 1. **Heuristic-only execution.** Each σ MUST be implemented as the baseline greedy loop: `warpCandidateGenerator` (or equivalent) → heuristic scoring → skill-shaped selection. Class IV–II self-play calibration, paper benchmarks, and anchor spacing assume this stack.
-2. **Search is not an anchor.** Expectimax, ISMCTS, Fleet Admiral benches, and Class I\* residual models MAY be stronger than σ = `commander` heuristics; they MUST NOT retroactively change `REF_TEI(T, σ)`.
-   - **Class Ω (self-play neural, experimental).** A standalone policy/value network trained purely from self-play outcomes — no heuristic imitation, no Commander target. It is **not** a reference band in v1.1: matches against it are unrated (§4), exactly like Class I\*. If it clears the promotion bar (§9.5 of the paper: demonstrably above Class II with statistical significance across player counts and both objectives), a future spec version MAY add a fixed `REF_TEI(T, omega)` anchor (provisional target ~1700 points) — as a **new** band, never by moving Class IV–II constants.
+2. **Search is not an anchor.** Expectimax, ISMCTS, Fleet Admiral benches, and Class I\* residual models MAY be stronger than σ = `commander` heuristics; they MUST NOT retroactively change `REF_TEI(T, σ)` without a new `rulesProfileId` (§2.2).
+   - **Class Ω neural policy (v1.4, shipped).** Warp 12 **replaced** the σ = `commander` **implementation** with a self-play neural policy (`createOmegaPlayer`) while keeping the same anchor **key** and player-facing **Class II** label. Ship `warp12-official-v2` with **recalibrated** `REF_TEI(T, commander)` = **1520 points / 1550 go-out** (tempered for typical 2–4p solo play after a full 2–8p bench). Stored human TEI integers are **not** re-banded.
+   - **Ω+ extended thinking.** Same Ω weights with net-guided ISMCTS at inference (seconds–minute per move). Exhibition / casual / hard mode — **not** a separate anchor or training pipeline. If ever rated, apply Δ_search (§7.1.2) or exclude from rated sectors.
 3. **Search is a rated modifier.** When a human plays an unassisted rated match against a **search-enabled** local opponent, the opponent rating used in §6.4 is `REF_TEI(T, σ) + Δ_search` — not the raw anchor alone.
-4. **Advisor is never rated.** Tactical advisor / coach suggestions disqualify the match (§4 E3) regardless of opponent policy.
+4. **Advisor is never rated.** Tactical advisor / coach suggestions disqualify the match (§4 E3) regardless of opponent policy. The advisor MAY be a hybrid neural–heuristic model distilled to agree with Ω while explaining in named concepts (§7.1.3).
 
 Implementations that ship search-enabled practice opponents without applying Δ_search will **deflate** human TEI (wins count as upsets vs an under-rated opponent). Warp 12 v1.1 normatively requires the premium where search is enabled.
+
+### 2.2 Ladder extensibility (planned v1.4)
+
+TEI is **TEI-first**: stored ratings are integers; display **Tactical Class** and Roman numerals are **views**, not source of truth.
+
+| Principle | Rule |
+|-----------|------|
+| **Human identity** | Two primary ratings per captain: `humanTei.points` and `humanTei.goOut`. **Not** split by table size (2–8). All rated sectors update the same pool. |
+| **Anchor keys** | σ ∈ {`ensign`, `lieutenant`, `commander`, …} — stable engine identifiers. Add weaker tiers (e.g. `recruit`) or recalibrate constants via a new `rulesProfileId`; do not renumber stored human TEI. |
+| **Display class** | Human Class I–IV derived from TEI thresholds (§7.2). AI Class IV–II map to σ. Extensions below IV use plain names (e.g. **Cadet**), not “Class V”. |
+| **Crew charters** | Scoped `groupTei[charterId]` per frozen contract (includes fleet size). Social layer on top of global pool — not eight human ratings. |
+| **Provisional** | Buckets with `0 < N < 10` unassisted matches SHOULD show a provisional badge; K = 40 (§6.2). |
+| **Rules profile** | `warp12-official-v1` = heuristic Class II at REF_TEI 1400/1500 (legacy crews). `warp12-official-v2` = neural Class II (Ω) at REF_TEI **1520 / 1550**. |
+
+**Training north star (non-normative):** Ω training SHOULD gate on **champion vs champion**, not legacy heuristic Commander parity. Commander heuristics remain a bootstrap rollout leaf only (Path B distillation).
 
 ---
 
@@ -87,6 +103,8 @@ Storage is idempotent per sector: a `gameId` recorded in `humanRatedGameIds` is 
 **Warp 12 v1.1 (2026):** Human-pool TEI for offline play uses officiated `ratedMatches` on the leaderboard — see [rated-matches.md](./rated-matches.md).
 
 **Warp 12 v1.2 (2026):** Online sectors are auto-rated into the human pool. A completed sector is reported to the `reportOnlineMatch` Cloud Function, which re-derives the standings from the authoritative game document, re-verifies every seat, and applies §6.5 under **context B** (§10, P3). Eligibility (§4) requires two or more **verified** (non-anonymous) human captains, only Class II–IV AI at the table, and — per the unassisted rule (§4 E3) — that no captain consulted the tactical advisor (detected via the `games/{gameId}/presence` coach records). Advisor use by any single captain leaves the whole sector unrated.
+
+**Human pool scope (normative):** `R_H(p, T)` is **one rating per track**, aggregated across all fleet sizes (2–8). Table size is recorded in match history for analysis but does **not** fork `humanTei` buckets.
 
 ### 3.3 Group TEI — crew charters (Warp 12 v1.3 — implemented)
 
@@ -271,15 +289,13 @@ After the first rated match (`N > 0`), `R_stored` MUST be used; academy seed is 
 |-----------|-------|--------------|--------------|
 | `ensign` | IV | **1000** | **1000** |
 | `lieutenant` | III | **1200** | **1250** |
-| `commander` | II | **1400** | **1500** |
+| `commander` | II | **1520** (`v2`) / 1400 (`v1`) | **1550** (`v2`) / 1500 (`v1`) |
 
 ```typescript
-REF_TEI.points.ensign      = 1000
-REF_TEI.points.lieutenant  = 1200
-REF_TEI.points.commander   = 1400
-REF_TEI.go-out.ensign      = 1000
-REF_TEI.go-out.lieutenant  = 1250
-REF_TEI.go-out.commander   = 1500
+REF_TEI_V2.points.commander   = 1520
+REF_TEI_V2.go-out.commander   = 1550
+REF_TEI_V1.points.commander   = 1400   // legacy crews only
+REF_TEI_V1.go-out.commander   = 1500
 ```
 
 These values are calibrated so a captain near `R ≈ REF_TEI(T, σ)` wins ~50% vs that AI tier over many matches **under the reference policy (§2.1)**.
@@ -324,6 +340,16 @@ function opponentTeiForRatedMatch(
 
 **Conformance:** Implementations MUST apply Δ_search > 0 whenever rated play uses deep search; storing `opponentClass1Star: true` alone is insufficient for v1.1 conformance.
 
+### 7.1.3 Class II neural replacement & advisor (planned v1.4)
+
+**Play (σ = `commander`, Class II):** Warp 12 replaces the heuristic Commander stack with a self-play neural policy (Ω). One generalist net (encoder already conditions on objective, player count, and hand size). Rated default = greedy inference (`createOmegaPlayer`, ms/move). Online sectors run AI on the **host client** (Firebase sync only); the host preloads model weights from static hosting.
+
+**Ω+ extended thinking:** Same Ω weights; net-guided ISMCTS at inference with a per-move time/iteration budget. Strongest practical mode; slower. Default: **unrated** exhibition / casual. Not a second TEI anchor.
+
+**Tactical advisor:** Hybrid neural–heuristic model trained to **agree with Ω’s move** and explain via named game concepts (`WARP_HEURISTIC_IDS`). Training target MUST be Ω (or Ω+ search distribution), **not** legacy Commander picks (Class I\* imitation failure). Advisor use remains §4 E3 ineligible for rated play.
+
+**Asset count (normative intent):** ≤2 Ω weight files (points / go-out if needed) + ≤1 advisor concept net. Not per-table-size net zoos.
+
 ### 7.2 Human Tactical Class (display only)
 
 From human-pool or primary display TEI on a track:
@@ -335,7 +361,7 @@ From human-pool or primary display TEI on a track:
 | `1350 ≤ R < 1450` | II — Veteran / Sharp |
 | `R ≥ 1450` | I — Elite / Master |
 
-AI opponent **Class I\*** is experimental search tier — **not** a reference TEI band. **Class Ω** is the self-play neural opponent (when promoted, reference ~1700).
+AI opponent **Class I\*** is experimental search tier — **not** a reference TEI band. Under v1.4, **Class II play** becomes the Ω neural policy (same σ=`commander` anchor key; recalibrated REF_TEI in `warp12-official-v2`). Ω+ is extended thinking, not a display class.
 
 ### 7.3 Academy placement bands (starting TEI clamp)
 
@@ -493,6 +519,7 @@ After update, publish new `R_H(p, points)` on leaderboard.
 
 | Version | Changes |
 |---------|---------|
+| **1.4 (planned)** | Class II neural replacement (§2.1, §7.1.3): Ω replaces σ=`commander` implementation; `warp12-official-v2` recalibrates REF_TEI; ladder extensibility (§2.2); human pool not split by fleet size; Ω+ extended thinking; advisor distilled from Ω |
 | **1.3** | Crew charter **group TEI** (§3.3): `groupTei[charterId]`, `groupRatedIds`, Global Official double-write (G4) |
 | **1.2** | Online human-pool auto-rating via `reportOnlineMatch` (§3.2 note) |
 | **1.1** | Frozen heuristic reference policies (§2.1); search premium Δ_search for Class I\* / Fleet Admiral (§6.4, §7.1.2); percentile-augmented leaderboard requirements (§9) |

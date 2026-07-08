@@ -8,6 +8,8 @@ import {
 import { ismctsSearchActionValues } from './ismcts.js';
 import { createWarpSearchModel, observationToState } from './search-model.js';
 import { warpAiActionKey } from './from-game-action.js';
+import type { WarpAiAction } from './actions.js';
+import type { GameState } from '../types/game-state.js';
 import { makeRound, N, obsFor } from './test-fixtures.js';
 import type { WarpAiObservation } from './observation.js';
 
@@ -45,7 +47,7 @@ describe('ismctsSearchActionValues', () => {
   it('returns scored legal actions within time budget', () => {
     const round = makeRound({ hands: { a: [N(5, 12)], b: [N(1, 1)] } });
     const model = createWarpSearchModel('go-out');
-    const scored = ismctsSearchActionValues(
+    const scored = ismctsSearchActionValues<GameState, WarpAiAction>(
       observationToState(obsFor(round)),
       model,
       {
@@ -78,7 +80,7 @@ describe('ismctsSearchActionValues', () => {
     const model = createWarpSearchModel(state.objective);
 
     expect(() =>
-      ismctsSearchActionValues(
+      ismctsSearchActionValues<GameState, WarpAiAction>(
         observationToState(obs),
         model,
         {

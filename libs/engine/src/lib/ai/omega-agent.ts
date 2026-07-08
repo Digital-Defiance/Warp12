@@ -113,7 +113,7 @@ export function createOmegaPlayer(
   };
 
   const decide = (obs: WarpAiObservation): WarpAiAction => {
-    const candidates = warpCandidateGenerator(obs);
+    const candidates = warpCandidateGenerator(obs, { rng });
     if (candidates.length === 0) {
       return fallbackAction(obs);
     }

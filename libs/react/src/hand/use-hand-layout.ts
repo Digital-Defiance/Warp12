@@ -18,6 +18,14 @@ import {
 
 const POINTER_DRAG_THRESHOLD_PX = 6;
 
+export interface HandLayoutOptions {
+  /**
+   * Hand scrolls horizontally (phone). Horizontal swipes scroll; only vertical
+   * drags reorder. Pointer capture is deferred so the scroll container can pan.
+   */
+  horizontalScroll?: boolean;
+}
+
 function shouldUsePointerDrag(
   _event: Pick<PointerEvent, 'pointerType'>
 ): boolean {
@@ -27,11 +35,17 @@ function shouldUsePointerDrag(
   return true;
 }
 
+function isScrollIntent(dx: number, dy: number): boolean {
+  return Math.abs(dx) >= Math.abs(dy);
+}
+
 export function useHandLayout(
   gameId: string,
   playerId: string,
-  hand: readonly Coordinate[]
+  hand: readonly Coordinate[],
+  options: HandLayoutOptions = {}
 ) {
+  const horizontalScroll = options.horizontalScroll === true;
   const handSignature = useMemo(
     () => hand.map(coordinateKey).sort().join('|'),
     [hand]
@@ -61,6 +75,7 @@ export function useHandLayout(
     startX: number;
     startY: number;
     active: boolean;
+    captureTarget: HTMLButtonElement | null;
   } | null>(null);
 
   useEffect(() => {
@@ -137,10 +152,13 @@ export function useHandLayout(
         startX: event.clientX,
         startY: event.clientY,
         active: false,
+        captureTarget: event.currentTarget,
       };
-      event.currentTarget.setPointerCapture(event.pointerId);
+      if (!horizontalScroll) {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
     },
-    []
+    [horizontalScroll]
   );
 
   const onHandTilePointerMove = useCallback(
@@ -158,7 +176,12 @@ export function useHandLayout(
         if (Math.hypot(dx, dy) < POINTER_DRAG_THRESHOLD_PX) {
           return;
         }
+        if (horizontalScroll && isScrollIntent(dx, dy)) {
+          pointerDragRef.current = null;
+          return;
+        }
         drag.active = true;
+        drag.captureTarget?.setPointerCapture(drag.pointerId);
         dragKeyRef.current = drag.key;
         didDragRef.current = true;
         setPointerDraggingKey(drag.key);
@@ -171,7 +194,7 @@ export function useHandLayout(
         targetKey && targetKey !== drag.key ? targetKey : null
       );
     },
-    []
+    [horizontalScroll]
   );
 
   const onHandTilePointerUp = useCallback(

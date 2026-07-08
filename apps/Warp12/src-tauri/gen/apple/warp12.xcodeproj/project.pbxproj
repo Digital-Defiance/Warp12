@@ -298,7 +298,7 @@
 				PROVISIONING_PROFILE_SPECIFIER = "Warp 12 App Store";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Warp 12 App Store";
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = 2;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;
 			};
 			name = debug;
@@ -335,7 +335,7 @@
 				PROVISIONING_PROFILE_SPECIFIER = "Warp 12 App Store";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Warp 12 App Store";
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = 2;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;
 			};
 			name = release;

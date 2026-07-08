@@ -29,7 +29,7 @@ warp-12/
 | ----- | ------- | -------------- |
 | **Engine** | `warp12-engine` | Deterministic state machine: turns, scoring, Distress Beacon, Subspace Fracture, Warp AI, advisor explanations |
 | **React adapters** | `warp12-react` | `RoundState` → trains, tactical coach, hand layout hooks |
-| **Theme** | `warp12-theme` | Star Trek domino tile presets for DoubleTwelve |
+| **Theme** | `warp12-theme` | federation domino tile presets for DoubleTwelve |
 | **Rendering** | `doubletwelve` | React domino components, train layout, chicken-foot geometry, pip theming |
 | **Client** | `@warp12/Warp12` | Space-themed UI, Firebase Auth + Firestore sync |
 | **Multiplayer** | Firebase (`warp-12`) | Auth, game documents, action log, private hands |

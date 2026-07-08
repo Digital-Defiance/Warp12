@@ -54,6 +54,9 @@ export {
   GLOBAL_OFFICIAL_CHARTER_ID,
   GLOBAL_OFFICIAL_SLUG,
   WARP12_OFFICIAL_RULES_PROFILE_ID,
+  WARP12_OFFICIAL_V1_RULES_PROFILE_ID,
+  WARP12_OFFICIAL_V2_RULES_PROFILE_ID,
+  isSupportedOfficialRulesProfile,
   charterSummaryLine,
   rulesProfileLabel,
 } from './rules-profile';

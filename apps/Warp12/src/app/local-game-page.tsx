@@ -1,8 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import {
-  CLASS1_STAR_DISPLAY_NAME,
   DEFAULT_CAMPAIGN_ROUNDS,
   DEFAULT_GAME_OBJECTIVE,
   DEFAULT_SUBSPACE_FRACTURE_SCOPE,
@@ -25,12 +24,14 @@ import styles from './lobby.module.scss';
 import { CampaignRoundsField, ObjectivePicker } from './objective-picker';
 import { HouseRulesOptions } from './house-rules-options';
 import { DoubleZeroScoreField } from './double-zero-score-field';
+import { LargeFleetHandSizeField } from './large-fleet-hand-size-field';
 import { SubspaceFractureOptions } from './subspace-fracture-options';
 import { Warp12RulesPreset } from './warp12-rules-preset';
 import {
-  buildAiRoster,
+  buildAiRosterAsync,
   createLocalGame,
 } from '../game/create-local-game.js';
+import { preloadOmegaWeights } from '../ai/load-omega-weights.js';
 import {
   WARP12_OFFICIAL_CAMPAIGN_ROUNDS,
   WARP12_OFFICIAL_HOUSE_RULES,
@@ -49,12 +50,13 @@ import {
 import { drawMatchSeed } from '../game/match-seed.js';
 import { classifyLocalAiMatchSkill } from '../game/local-match-stats.js';
 import { opponentTeiForObjective } from '../firebase/stats-elo.js';
+import { WARP12_OFFICIAL_RULES_PROFILE_ID } from '../firebase/rules-profile.js';
 import type { RatedObjective } from '../firebase/stats-schema.js';
 import { usePlayerStats } from '../firebase/use-player-stats.js';
 
 type SetupPhase = 'configure' | 'playing';
 
-export type AiOfficerTier = WarpSkillLevel | 'class1-star';
+type AiOfficerTier = WarpSkillLevel;
 
 interface LocalLaunchSession {
   readonly config: LocalGameConfig;
@@ -64,14 +66,14 @@ interface LocalLaunchSession {
 
 function applyAiTierOverrides(
   aiCaptains: readonly AiCaptainConfig[],
-  tiers: Record<string, AiOfficerTier>
+  tiers: Record<string, AiOfficerTier>,
+  extendedThinking: Record<string, boolean>
 ): AiCaptainConfig[] {
   return aiCaptains.map((ai) => {
     const tier = tiers[ai.id] ?? ai.skill;
-    if (tier === 'class1-star') {
-      return { ...ai, skill: 'commander', class1Star: true };
-    }
-    return { ...ai, skill: tier, class1Star: false };
+    const thinking =
+      tier === 'commander' ? extendedThinking[ai.id] === true : false;
+    return { ...ai, skill: tier, omega: false, extendedThinking: thinking };
   });
 }
 
@@ -81,11 +83,12 @@ function ratedObjective(objective: GameObjective): RatedObjective | null {
 
 function skillOptionLabel(
   skill: WarpSkillLevel,
-  objective: RatedObjective
+  objective: RatedObjective,
+  rulesProfileId: string
 ): string {
   return formatAiSkillRatedLabel(
     skill,
-    opponentTeiForObjective(objective, skill)
+    opponentTeiForObjective(objective, skill, rulesProfileId)
   );
 }
 
@@ -112,8 +115,18 @@ export function LocalGamePage() {
     ...WARP12_OFFICIAL_HOUSE_RULES,
   });
   const [aiTiers, setAiTiers] = useState<Record<string, AiOfficerTier>>({});
+  const [extendedThinkingByAi, setExtendedThinkingByAi] = useState<
+    Record<string, boolean>
+  >({});
   const [academySaving, setAcademySaving] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
+  const [launching, setLaunching] = useState(false);
+
+  useEffect(() => {
+    void preloadOmegaWeights(objective).catch(() => {
+      /* Preload is best-effort; launch fails hard if weights are missing. */
+    });
+  }, [objective]);
 
   const applyOfficialWarp12Rules = () => {
     setObjective(WARP12_OFFICIAL_OBJECTIVE);
@@ -138,9 +151,10 @@ export function LocalGamePage() {
     [playerCount]
   );
   const aiCount = aiCaptains.length;
+  const rulesProfileId = WARP12_OFFICIAL_RULES_PROFILE_ID;
   const configuredAiCaptains = useMemo(
-    () => applyAiTierOverrides(aiCaptains, aiTiers),
-    [aiCaptains, aiTiers]
+    () => applyAiTierOverrides(aiCaptains, aiTiers, extendedThinkingByAi),
+    [aiCaptains, aiTiers, extendedThinkingByAi]
   );
   const matchSkill = useMemo(
     () => classifyLocalAiMatchSkill(configuredAiCaptains),
@@ -157,14 +171,25 @@ export function LocalGamePage() {
     return createLocalGame(launchSession.config, launchSession.seed);
   }, [launchSession]);
 
-  const startSession = (config: LocalGameConfig, seed: number) => {
+  const startSession = async (config: LocalGameConfig, seed: number) => {
     setLaunchError(null);
-    setLaunchSession({
-      config,
-      seed,
-      roster: buildAiRoster(config, seed),
-    });
-    setPhase('playing');
+    setLaunching(true);
+    try {
+      const roster = await buildAiRosterAsync(config, seed);
+      setLaunchSession({
+        config,
+        seed,
+        roster,
+      });
+      setPhase('playing');
+    } catch (error) {
+      console.error('[omega] failed to load roster', error);
+      setLaunchError(
+        'Could not load Class II officer weights — check your connection and try again.'
+      );
+    } finally {
+      setLaunching(false);
+    }
   };
 
   const launch = () => {
@@ -184,7 +209,12 @@ export function LocalGamePage() {
         subspaceFractureScope,
       },
       houseRules,
-      aiCaptains: applyAiTierOverrides(buildAiCaptains(count - 1), aiTiers),
+      aiCaptains: applyAiTierOverrides(
+        buildAiCaptains(count - 1),
+        aiTiers,
+        extendedThinkingByAi
+      ),
+      rulesProfileId,
     };
     void startSession(next, drawMatchSeed());
   };
@@ -303,6 +333,14 @@ export function LocalGamePage() {
             setHouseRules((current) => ({ ...current, doubleZeroScore }))
           }
         />
+        {clampLocalPlayerCount(playerCount) >= 7 && (
+          <LargeFleetHandSizeField
+            value={houseRules.largeFleetHandSize}
+            onChange={(largeFleetHandSize) =>
+              setHouseRules((current) => ({ ...current, largeFleetHandSize }))
+            }
+          />
+        )}
         <SubspaceFractureOptions
           enabled={subspaceFracture}
           scope={subspaceFractureScope}
@@ -344,7 +382,11 @@ export function LocalGamePage() {
               Your TEI vs {formatTacticalClass(aiSkillToTacticalClass(matchSkill))}{' '}
               officers: <strong>{playerTei}</strong>
               {' · '}
-              reference {formatTei(opponentTeiForObjective(rated, matchSkill), true)}
+              reference{' '}
+              {formatTei(
+                opponentTeiForObjective(rated, matchSkill, rulesProfileId),
+                true
+              )}
             </p>
           ) : (
             <p className={styles.hint}>
@@ -363,35 +405,38 @@ export function LocalGamePage() {
         <legend>
           AI officers ({aiCaptains.length})
         </legend>
-        {aiCaptains.map((ai) => (
+        {aiCaptains.map((ai) => {
+          const tier = aiTiers[ai.id] ?? ai.skill;
+          return (
           <div key={ai.id} className={styles.aiRow}>
             <span className={styles.aiName}>{ai.displayName}</span>
             <select
               aria-label={`${ai.displayName} tactical class`}
-              value={
-                aiTiers[ai.id] ??
-                (ai.class1Star ? 'class1-star' : ai.skill)
-              }
-              onChange={(e) =>
+              value={tier}
+              onChange={(e) => {
+                const nextTier = e.target.value as AiOfficerTier;
                 setAiTiers((current) => ({
                   ...current,
-                  [ai.id]: e.target.value as AiOfficerTier,
-                }))
-              }
+                  [ai.id]: nextTier,
+                }));
+                if (nextTier !== 'commander') {
+                  setExtendedThinkingByAi((current) => ({
+                    ...current,
+                    [ai.id]: false,
+                  }));
+                }
+              }}
             >
               {rated ? (
                 <>
                   <option value="ensign">
-                    {skillOptionLabel('ensign', rated)}
+                    {skillOptionLabel('ensign', rated, rulesProfileId)}
                   </option>
                   <option value="lieutenant">
-                    {skillOptionLabel('lieutenant', rated)}
+                    {skillOptionLabel('lieutenant', rated, rulesProfileId)}
                   </option>
                   <option value="commander">
-                    {skillOptionLabel('commander', rated)}
-                  </option>
-                  <option value="class1-star">
-                    {CLASS1_STAR_DISPLAY_NAME} (experimental)
+                    {skillOptionLabel('commander', rated, rulesProfileId)}
                   </option>
                 </>
               ) : (
@@ -405,14 +450,27 @@ export function LocalGamePage() {
                   <option value="commander">
                     {formatAiSkillUnratedLabel('commander')}
                   </option>
-                  <option value="class1-star">
-                    {CLASS1_STAR_DISPLAY_NAME} (experimental)
-                  </option>
                 </>
               )}
             </select>
+            {tier === 'commander' ? (
+              <label className={styles.checkboxRow}>
+                <input
+                  type="checkbox"
+                  checked={extendedThinkingByAi[ai.id] === true}
+                  onChange={(e) =>
+                    setExtendedThinkingByAi((current) => ({
+                      ...current,
+                      [ai.id]: e.target.checked,
+                    }))
+                  }
+                />
+                <span>Extended thinking (unrated)</span>
+              </label>
+            ) : null}
           </div>
-        ))}
+        );
+        })}
       </fieldset>
 
       <div className={styles.actions}>
@@ -421,8 +479,13 @@ export function LocalGamePage() {
             {launchError}
           </p>
         ) : null}
-        <button type="button" className={styles.primary} onClick={launch}>
-          Launch simulation
+        <button
+          type="button"
+          className={styles.primary}
+          disabled={launching}
+          onClick={launch}
+        >
+          {launching ? 'Loading Class II…' : 'Launch simulation'}
         </button>
       </div>
     </section>

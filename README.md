@@ -2,7 +2,7 @@
 
 **A Double-Twelve Domino Variant**
 
-Warp 12 is a multiplayer, Star Trek-themed variant of standard Mexican Train (double-twelve) dominoes. This repository contains the game engine, client UI, domino rendering library, and Firebase-backed multiplayer infrastructure in a TypeScript Nx monorepo.
+Warp 12 is a multiplayer, federation-themed variant of standard Mexican Train (double-twelve) dominoes. This repository contains the game engine, client UI, domino rendering library, and Firebase-backed multiplayer infrastructure in a TypeScript Nx monorepo.
 
 Online sectors include **subspace messaging** — quick-phrase hails (always available, even during rated play) plus free-form text and DMs (lobby, casual, and post-game). Rated sectors restrict comms to hails to prevent collusion. See [Subspace messaging in RULES.md](RULES.md#ix-subspace-messaging-digital--online-sectors).
 
@@ -31,7 +31,7 @@ warp-12/
 |-------|---------|----------------|
 | **Engine** | `warp12-engine` | Deterministic state machine: turns, scoring, Distress Beacon, Subspace Fracture, Warp AI, advisor explanations |
 | **React adapters** | `warp12-react` | `RoundState` → trains, tactical coach, hand layout hooks |
-| **Theme** | `warp12-theme` | Star Trek domino tile presets for DoubleTwelve |
+| **Theme** | `warp12-theme` | federation domino tile presets for DoubleTwelve |
 | **Rendering** | `doubletwelve` | React domino components, train layout, chicken-foot geometry, pip theming |
 | **Client** | `@warp12/Warp12` | Space-themed UI, Firebase Auth + Firestore sync (private app) |
 | **Multiplayer** | Firebase (`warp-12`) | Auth, game documents, action log, private hands |
@@ -231,28 +231,28 @@ See [RULES.md](./RULES.md) for the full Navigational Operations Manual — Space
 
 Warp 12 ships with offline AI captains and a human-facing **tactical coach**, both built on the same `warp12-engine` decision stack and validated with self-play calibration.
 
-### Captain AI (`createWarpAiPlayer`)
+### Captain AI
 
-Each AI officer runs entirely inside the rules engine — Distress Beacons, Red Alerts, Subspace Fractures, the Neutral Zone, house rules, and modules are all honored. Decisions use [DoubleTwelve](https://www.npmjs.com/package/doubletwelve)'s model-agnostic policy layer on top of Warp-specific heuristics (dump heavy pips, own-trail pressure, Red Alert safety, Q-Continuum timing, go-out vs points objective, and more).
+| Tier | Engine | Rated? |
+|------|--------|--------|
+| **Class IV / III** | Heuristic `createWarpAiPlayer` | Yes |
+| **Class II** | Neural **Ω** (`createOmegaPlayer`, greedy policy) | Yes — `warp12-official-v2` anchors |
+| **Extended thinking (Ω+)** | Same Ω weights + net-guided search (`createOmegaSearchPlayer`) | **No** — local exhibition only |
+| **Class I\*** | Heuristic + search/residual research | No |
 
-| Setting | What it does |
-|---------|----------------|
-| **Tactical Class** (IV / III / II) | Controls blunder rate, heuristic weights, and **intrinsic search depth** for that simulation tier. Class IV officers make more mistakes; Class II play tighter heuristics. Lookahead is baked into the tier profile (not a separate toggle) so leaderboard TEI stays consistent. |
+Class IV–III officers use DoubleTwelve heuristics on the real engine (Distress Beacons, Red Alert, modules, house rules). **Class II is Ω** — a self-play neural policy, not a separate lobby tier. Optional **extended thinking** on Class II in local simulation runs Ω+ search; those matches do not update TEI.
 
-**Class II go-out** uses depth-2 forward search at **2 players only**; at 3+ the race is too chaotic for search to help, so those tables use greedy sprint heuristics instead. **Points** captains stay greedy at all table sizes. Search simulates candidate moves through the real engine with sampled hidden hands — it **does not see your tiles**. Detail: [RULES.md §VII](./RULES.md#vii-ai-officers--tactical-advisor-digital).
-
-Self-play suites in `libs/engine` verify skill ordering, symmetric seating fairness, and 4-player focus matchups. Run the calibration report:
+Self-play suites verify skill ordering and fairness. Heuristic tier calibration:
 
 ```bash
-yarn calibrate:ai-tei          # 200 games per matchup + multi-table focus matrix
-AI_CALIBRATION_GAMES=500 yarn calibrate:ai-tei   # longer run for tighter estimates
-yarn calibrate:ai-tei-dti      # same report plus Drop to Impulse catch sanity pass
-yarn optimize:ai-weights       # coordinate search on go-out heuristic weights
+yarn calibrate:ai-tei          # Class IV–III vs legacy heuristic Class II bands
 ```
+
+Ω promotion gates: `yarn omega:bench` (champion vs legacy Commander).
 
 ### Tactical coach (`warp12-react`)
 
-The in-game **tactical advisor** reuses the same AI stack at Class II with lookahead always on. It suggests a move plus plain-language reasons (`explainWarpAiAction`, turn-resolution hints) so humans can see *why* a line is strong — not just what to play.
+The **tactical advisor** follows Class II **Ω** (greedy policy) when weights are loaded, then explains the line with plain-language heuristic reasons (`explainWarpAiAction`, turn-resolution hints). Assisted matches never move TEI.
 
 ### Leaderboard TEI (unassisted matches)
 
@@ -267,12 +267,14 @@ Each track also splits by AI tactical class (`localAi` Class IV / III / II profi
 
 **Starfleet Academy:** before the first rated match in each track, captains pick Class IV / III / II and a starting TEI within that class’s band (saved once per track — go-out and points are independent).
 
-**Fixed reference TEI** (unassisted matches only):
+**Fixed reference TEI** (`warp12-official-v2`, unassisted matches only):
 
-| Track | Class IV | Class III | Class II |
-|-------|----------|-----------|----------|
-| Points | ~TEI 1000 | ~TEI 1200 | ~TEI 1400 |
-| Go-out | ~TEI 1000 | ~TEI 1250 | ~TEI 1500 |
+| Track | Class IV | Class III | Class II (Ω) |
+|-------|----------|-----------|--------------|
+| Points | ~TEI 1000 | ~TEI 1200 | ~TEI 1520 |
+| Go-out | ~TEI 1000 | ~TEI 1250 | ~TEI 1550 |
+
+Legacy crews pinned to `warp12-official-v1` keep Class II at 1400 / 1500. Stored human TEI integers are **not** re-banded — only the opponent rating in the update formula changes for new play.
 
 Go-out uses wider spacing because race outcomes are noisier; the leaderboard also shows **percentile** (Top X%) within each board so rank is meaningful even when raw TEI gaps compress.
 
@@ -280,11 +282,11 @@ Your TEI updates with a standard Elo formula; K-factor starts at **40** for the 
 
 **Advisor disqualification:** if you used the tactical advisor during the match, the win still counts in general stats, but **TEI does not move** — only unassisted matches are rated. Assisted wins are tracked separately (`advisorMatches` / `advisorWins`).
 
-Calibration self-play (`yarn calibrate:ai-tei`) compares tier-vs-tier win rates to those fixed TEI reference bands. Points tiers align closely (~76–91% per 200-point step). Go-out ordering is stable but gaps are compressed by race variance; table-size tweaks live in `getWarpSkillProfile(..., playerCount, tableRole)`.
+Calibration: heuristic tiers via `yarn calibrate:ai-tei`; Class II Ω via champion fair-share benches (`tools/nn/data/omega-champion-score.txt`). Go-out compresses skill gaps — percentile boards help.
 
-### Class I* — experimental neural officer
+### Class I* — experimental research tier
 
-**Class I\*** (local games only, labeled experimental) is our first hybrid AI: Class II heuristics plus a small learned **residual** scored by a 303-feature MLP. Final pick is `argmax(heuristic + α·residual)`. The **tactical coach never uses the model** — only `scoreWithHeuristics` and explainable reasons.
+**Class I\*** (local only) is a separate research track: heuristics + expectimax/ISMCTS and optional learned residuals — **not** the shipped Class II Ω officer. The tactical advisor does **not** use Class I\*; it follows Ω.
 
 | Piece | Location |
 |-------|----------|

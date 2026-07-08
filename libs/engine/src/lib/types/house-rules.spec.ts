@@ -64,4 +64,18 @@ describe('resolveHouseRules', () => {
       resolveHouseRules({ doubleZeroScore: 99 as 0 | 25 | 50 }).doubleZeroScore
     ).toBe(50);
   });
+
+  it('defaults large-fleet (7–8) hand size to 10 and honors an opt-in 11', () => {
+    expect(resolveHouseRules().largeFleetHandSize).toBe(10);
+    expect(resolveHouseRules({ largeFleetHandSize: 11 }).largeFleetHandSize).toBe(
+      11
+    );
+    expect(resolveHouseRules({ largeFleetHandSize: 10 }).largeFleetHandSize).toBe(
+      10
+    );
+    // Any unsupported value normalizes back to the default 10.
+    expect(
+      resolveHouseRules({ largeFleetHandSize: 15 as 10 | 11 }).largeFleetHandSize
+    ).toBe(10);
+  });
 });

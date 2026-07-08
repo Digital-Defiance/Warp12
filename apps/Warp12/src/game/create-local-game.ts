@@ -1,15 +1,18 @@
 import {
+  createOmegaPlayer,
+  createOmegaSearchPlayer,
   createWarpAiPlayer,
   generateCoordinateSet,
   getWarpSkillProfile,
-  resolveClass1StarPlayLookahead,
   shuffleCoordinates,
   startGame,
   type GameObjective,
   type GameState,
+  type OmegaModelWeights,
   type WarpAiPlayer,
 } from 'warp12-engine';
 
+import { preloadOmegaWeights } from '../ai/load-omega-weights.js';
 import type { AiCaptainConfig, LocalGameConfig } from './local-game-config.js';
 
 function seededRandom(seed: number): () => number {
@@ -67,41 +70,94 @@ export function createLocalGame(
   );
 }
 
+function usesOmegaNet(ai: AiCaptainConfig): boolean {
+  return ai.skill === 'commander' || ai.omega === true;
+}
+
+function usesOmegaSearch(ai: AiCaptainConfig): boolean {
+  return usesOmegaNet(ai) && ai.extendedThinking === true;
+}
+
+/** Class II (commander) — and legacy `omega: true` — load neural Ω weights. */
+export function rosterNeedsOmegaNet(
+  aiCaptains: readonly AiCaptainConfig[]
+): boolean {
+  return aiCaptains.some((ai) => usesOmegaNet(ai));
+}
+
 export function buildAiRosterFromConfigs(
   aiCaptains: readonly AiCaptainConfig[],
   objective: GameObjective,
   seed: number,
-  playerCount = aiCaptains.length + 1
+  playerCount = aiCaptains.length + 1,
+  omegaNet?: OmegaModelWeights
 ): ReadonlyMap<string, WarpAiPlayer> {
+  if (rosterNeedsOmegaNet(aiCaptains) && !omegaNet) {
+    throw new Error(
+      'Class II (Ω) officers require loaded model weights — call buildAiRosterFromConfigsAsync.'
+    );
+  }
+
   const roster = new Map<string, WarpAiPlayer>();
   for (const [index, ai] of aiCaptains.entries()) {
     const rng = createSeededRng(seed + (index + 1) * 997);
     const skill = getWarpSkillProfile(ai.skill, objective, playerCount);
+    const useOmega = usesOmegaNet(ai);
+    const useSearch = usesOmegaSearch(ai);
 
     roster.set(
       ai.id,
-      ai.class1Star
-        ? createWarpAiPlayer({
-            skill,
-            objective,
-            lookahead: resolveClass1StarPlayLookahead(objective, playerCount),
-            rng,
-          })
-        : createWarpAiPlayer({
-            skill,
-            objective,
-            rng,
-          })
+      useSearch
+        ? createOmegaSearchPlayer({ net: omegaNet!, rng })
+        : useOmega
+          ? createOmegaPlayer({ net: omegaNet!, rng })
+          : createWarpAiPlayer({
+              skill,
+              objective,
+              rng,
+            })
     );
   }
   return roster;
 }
 
+export async function buildAiRosterFromConfigsAsync(
+  aiCaptains: readonly AiCaptainConfig[],
+  objective: GameObjective,
+  seed: number,
+  playerCount = aiCaptains.length + 1
+): Promise<ReadonlyMap<string, WarpAiPlayer>> {
+  const omegaNet = rosterNeedsOmegaNet(aiCaptains)
+    ? await preloadOmegaWeights(objective)
+    : undefined;
+  return buildAiRosterFromConfigs(
+    aiCaptains,
+    objective,
+    seed,
+    playerCount,
+    omegaNet
+  );
+}
+
 export function buildAiRoster(
   config: LocalGameConfig,
-  seed: number
+  seed: number,
+  omegaNet?: OmegaModelWeights
 ): ReadonlyMap<string, WarpAiPlayer> {
   return buildAiRosterFromConfigs(
+    config.aiCaptains,
+    config.objective,
+    seed,
+    config.playerCount,
+    omegaNet
+  );
+}
+
+export async function buildAiRosterAsync(
+  config: LocalGameConfig,
+  seed: number
+): Promise<ReadonlyMap<string, WarpAiPlayer>> {
+  return buildAiRosterFromConfigsAsync(
     config.aiCaptains,
     config.objective,
     seed,

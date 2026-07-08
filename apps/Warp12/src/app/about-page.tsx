@@ -18,7 +18,7 @@ export function AboutPage() {
       <div className={styles.body}>
         <section className={styles.section}>
           <p className={styles.lead}>
-            <strong>Warp 12</strong> is a Star Trek–themed double-twelve domino game built
+            <strong>Warp 12</strong> is a federation–themed double-twelve domino game built
             on standard Mexican Train bones: Spacedock, warp trails, the Neutral Zone,
             distress beacons, doubles and red alert, and optional house rules. Under the
             chrome is a deterministic rules engine, calibrated AI officers, and a
@@ -95,11 +95,11 @@ export function AboutPage() {
               edge cases and house variants abound. Report bugs; do not assume infallibility.
             </li>
             <li>
-              <strong>Not “strongest AI on Earth.”</strong> Class II officers are
-              heuristic agents with calibrated tiers — not Deep Blue, not solved
-              dominoes. Our experimental Class I* adds a neural residual on top;
-              early results show it can mimic Commander but has not yet beaten
-              Class II in go-out self-play.
+              <strong>Not “strongest AI on Earth.”</strong> Class II officers run a
+              calibrated neural policy (Ω) — strong tournament-style play, not
+              solved dominoes. Optional <strong>extended thinking</strong> (Ω+)
+              adds search for exhibition matches. Experimental Class I* remains
+              a separate local research tier.
             </li>
             <li>
               <strong>Not stronger than closed apps we cannot audit.</strong> We
@@ -144,11 +144,21 @@ export function AboutPage() {
                 </tr>
                 <tr>
                   <td>AI tiers (Class IV–II)</td>
-                  <td>Self-play calibrated; human validation pending</td>
+                  <td>
+                    Class IV–III heuristics; Class II = neural Ω (greedy).
+                    TEI anchors recalibrated in v2 (1520 pts / 1550 go-out).
+                  </td>
+                </tr>
+                <tr>
+                  <td>Extended thinking (Ω+)</td>
+                  <td>
+                    Optional on Class II in local play — search-backed, unrated
+                    exhibition
+                  </td>
                 </tr>
                 <tr>
                   <td>Class I* (experimental)</td>
-                  <td>Heuristic + neural residual; local opponent only; not TEI-rated</td>
+                  <td>Heuristic + search/residual research tier; not TEI-rated</td>
                 </tr>
                 <tr>
                   <td>Go-out vs points</td>
@@ -164,39 +174,43 @@ export function AboutPage() {
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Class I* — search without hiding the coach</h2>
+          <h2 className={styles.sectionTitle}>Class II — neural officers (Ω)</h2>
           <p className={styles.p}>
-            <strong>Class I*</strong> is our experimental “Deep Q” step for local
-            play: the same Class II heuristics and explainable coach, but the AI
-            opponent runs <strong>deep belief-state search</strong> before it commits
-            to a move — expectimax in heads-up games, ISMCTS at three or more captains.
-            Pick Class I* in a local game to face that deeper thinker. It stays labeled
-            experimental because we are still measuring whether search beats Class II
-            with statistical confidence — not just whether it feels different.
+            <strong>Class II</strong> is the rated strong AI tier. Under the hood it
+            runs <strong>Ω</strong> — a self-play neural policy trained on the real
+            engine (Distress Beacons, Red Alert, modules, both objectives). Players
+            still see “Class II” in the lobby; there is no separate “pick Omega”
+            switch for rated play.
           </p>
           <p className={styles.p}>
-            One design choice we keep: move <strong>explanations</strong> stay on the
-            explainable heuristic stack — plain-language reasons you can read at the
-            table. The optional advisor deep-think path can run ISMCTS on a short time
-            budget; search chooses the line, heuristics describe why it makes sense.
+            <strong>Extended thinking (Ω+)</strong> is optional in local simulation:
+            same weights, but the officer runs net-guided search before committing.
+            It is labeled <strong>unrated exhibition</strong> — harder practice, not
+            a second ladder tier.
           </p>
           <p className={styles.p}>
-            <strong>What the numbers say so far (2026):</strong> a neural net (browser
-            ONNX) learned to imitate Commander but stayed near <strong>50%</strong> win
-            rate vs Class II in 2p — within noise. ISMCTS also flatlined at ~51% in 2p
-            points (1,000 games). Fixed-depth expectimax did better (~64% vs Commander
-            in 2p points). At four players go-out, ISMCTS outperformed greedy Commander
-            seats (~31% vs ~23% sector wins). We route the right engine to each lobby
-            setting. Results land in the{' '}
+            The <strong>tactical advisor</strong> now follows Ω’s greedy pick and
+            explains it in plain language (heuristic reasons you can read at the
+            table). Advisor use still disqualifies a match from TEI — only
+            unassisted play is rated.
+          </p>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Class I* — research tier</h2>
+          <p className={styles.p}>
+            <strong>Class I*</strong> is our experimental search/residual track for
+            local play: expectimax or ISMCTS on top of heuristics, plus optional
+            learned residuals. It is <strong>not</strong> the same as Class II Ω and
+            is <strong>not</strong> on the TEI ladder. Early benches showed imitation
+            nets near 50% vs legacy Commander — useful R&amp;D, not a promotion
+            candidate yet.
+          </p>
+          <p className={styles.p}>
+            Results land in the{' '}
             <Link to="/paper/log">calibration log</Link> and{' '}
             <Link to="/paper">research outline</Link> — including negative results.
-          </p>
-          <p className={styles.p}>
-            Class I* is <strong>not</strong> on the leaderboard TEI ladder yet. When — and
-            only when — it beats Class II with statistical confidence, we will talk about
-            promoting it toward a reference officer. Until then it is R&amp;D you can opt
-            into at the local table. <strong>Class I</strong> on TEI remains the
-            human prestige band — we do not reuse that name for AI until the bar is cleared.
+            <strong>Class I</strong> on TEI remains the human prestige band.
           </p>
         </section>
 
@@ -215,8 +229,8 @@ export function AboutPage() {
           <ul className={styles.list}>
             <li>
               <strong>Calibration feedback.</strong> Fixed reference bands (~TEI 1000 /
-              1200 / 1400 points; wider for go-out) tell us whether Class IV–II AI
-              ordering matches design intent.
+              1200 / 1520 points; wider for go-out with Class II at ~1550) tell us
+              whether Class IV–II ordering matches design intent.
             </li>
             <li>
               <strong>Honest variance.</strong> Go-out compresses skill gaps — we
@@ -257,9 +271,9 @@ export function AboutPage() {
               it.
             </li>
             <li>
-              <strong>Stronger officers.</strong> Class I* hybrid learning (in progress),
-              ISMCTS-backed coach, maybe one day belief-state play — without sacrificing
-              explainability for casual tables.
+              <strong>Stronger officers.</strong> Class II ships as neural Ω; Ω+
+              extended thinking for exhibition; Class I* research continues on the
+              side — without sacrificing explainability for casual tables.
             </li>
             <li>
               <strong>Honest ML.</strong> Document when neural nets imitate without

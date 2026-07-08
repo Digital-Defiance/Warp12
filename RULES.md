@@ -76,7 +76,9 @@ Setup matches standard double-twelve Mexican Train:
    | --- | --- |
    | 2–4 | 15 |
    | 5–6 | 12 |
-   | 7–8 | 10 |
+   | 7–8 | 10 *(default; host may set 11 — see below)* |
+
+   > **Large fleet hand size (7–8 captains).** This is the one setup value where widely published rule sets genuinely disagree: Masters of Games and most modern/commercial sets deal **10**, while Galt (1994) and University Games deal **11**. Warp 12 defaults to **10** (it leaves a healthier Uncharted Sectors pile — 10 tiles at 8 captains versus only 2 at 11) and lets the host opt into **11** on the setup screen. It has no effect below 7 captains.
 
 4. **Place Spacedock** in the center.
 5. **Uncharted Sectors** — all remaining tiles face down.
@@ -364,7 +366,7 @@ Everyone at the table is a **Captain** (seat role). **Tactical Class** is profic
 | --- | --- |
 | **Class IV** | Provisional / new profile — more blunders, lighter heuristics |
 | **Class III** | Competent / standard |
-| **Class II** | Veteran / sharp — tighter heuristics and deeper search where enabled |
+| **Class II** | Veteran / sharp — self-play neural policy (Ω): greedy inference, ms/move. Same Class II / σ=`commander` label — not a separate “Commander+” tier. |
 
 Controls how often the officer blunders and how sharply it prefers high-scoring lines. All classes still obey the same legal-move and rules-engine constraints.
 
@@ -382,9 +384,17 @@ Lookahead is **imperfect-information search** — not clairvoyance. It is slower
 
 ### Tactical advisor
 
-The tactical advisor always uses the **Class II** simulation profile with **Lookahead** enabled. It suggests one move plus plain-language reasons so humans can see *why* a line is strong, not only what to play.
+The tactical advisor suggests one move plus plain-language reasons so humans can see *why* a line is strong, not only what to play.
+
+**Today:** it uses the **Class II** simulation profile with **Lookahead** enabled (heuristic stack).
+
+**Planned:** a hybrid neural–heuristic model **distilled from Ω** — trained to agree with the Class II neural officer's picks and explain them in named game concepts. It does **not** imitate legacy Commander heuristics. Assisted play remains unrated (below).
 
 Invoking the tactical advisor **during live play** marks the match as **assisted** for rating purposes (Section VIII). Post-match advisor reports and campaign downloads do **not** affect whether a match is rated.
+
+### Ω+ extended thinking *(planned, exhibition)*
+
+The same Ω neural weights can run with **extended thinking** — Commander-free PUCT search (Omega policy prior + value leaves) with a per-move iteration budget. Stronger than greedy Class II play when the value head is competent; slower. Intended for exhibition / casual hard mode, not as a separate rated anchor.
 
 ---
 
@@ -405,7 +415,7 @@ The normative rating math (Elo update, reference bands, multi-captain human tabl
 A completed online sector is rated into the **human pool** when it meets every condition below; otherwise it plays out normally but changes no ratings. The lobby shows a live **rated / unrated** banner so the fleet knows before launch.
 
 - **Two or more captains are signed in with an account.** Guests (anonymous sign-in) can play, but a guest at the table makes the whole sector unrated — a rating that can't persist across devices isn't a rating.
-- **Every AI officer is Class IV / III / II.** These have fixed reference strength and serve as rating **anchors**: finishing above or below them moves your TEI, which keeps online results on the same scale as solo play. An experimental officer (**Class I\*** or **Class Ω**) makes the sector unrated.
+- **Every AI officer is Class IV / III / II.** These have fixed reference strength and serve as rating **anchors**: finishing above or below them moves your TEI, which keeps online results on the same scale as solo play. An experimental **Class I\*** search officer makes the sector unrated. (Class II is a neural policy — still rated, same σ=`commander` anchor.)
 - **The objective is Points or Go-out.** Other modes are unrated.
 - **No captain consulted the tactical advisor.** Just as in solo play, invoking the in-game advisor during live turns makes a match *assisted* — and online, one assisted captain leaves the **whole** sector unrated. You are warned the moment you engage it.
 
@@ -488,11 +498,11 @@ Before your **first rated** match in each track, complete **Starfleet Academy pl
 
 Downloading a post-match advisor report or campaign analysis does **not** disqualify a match.
 
-**Human pool** — an online sector is rated when it clears the eligibility bar above (two or more signed-in captains, only Class IV / III / II AI, Points or Go-out, **and no captain used the advisor**). Any guest, experimental AI seat (Class I\* or Class Ω), or advisor consult leaves the whole sector unrated.
+**Human pool** — an online sector is rated when it clears the eligibility bar above (two or more signed-in captains, only Class IV / III / II AI, Points or Go-out, **and no captain used the advisor**). Any guest, experimental Class I\* seat, or advisor consult leaves the whole sector unrated.
 
 **Crew charter** — same eligibility bar, plus: host attached a `charterId`; sector settings match the charter (fleet size, objective, campaign length, rules profile); every human captain is a signed-in **member** of that crew. Private crew matches update crew TEI only. **Global Official** also updates global human-pool TEI.
 
-> **Class Ω (experimental, forthcoming).** A self-play neural officer trained purely to win — no heuristic imitation. It is an **unrated experimental opponent** today; if it clears the promotion bar (beating Class II with statistical significance across player counts and both objectives) it will be added as a fixed reference band above Class II. Until then, a Class Ω seat leaves a sector unrated, exactly like Class I\*.
+> **Class II is neural Ω.** Greedy `createOmegaPlayer` is the Class II officer (local, online host, pass-and-play). TEI still uses σ=`commander`; publish `warp12-official-v2` when recalibrated `REF_TEI` ships. Ω+ extended thinking (PUCT) is unrated exhibition. See [docs/omega-handoff.md](docs/omega-handoff.md) and [docs/tei-spec.md](docs/tei-spec.md) §7.1.3.
 
 ### After the sector
 

@@ -1,6 +1,6 @@
 # warp12-theme
 
-Star Trek–styled domino theme presets for [DoubleTwelve](https://www.npmjs.com/package/doubletwelve).
+Federation–styled domino theme presets for [DoubleTwelve](https://www.npmjs.com/package/doubletwelve).
 
 Published on npm as **`warp12-theme`**.
 

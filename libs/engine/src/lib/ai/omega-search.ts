@@ -7,8 +7,13 @@ import type { WarpAiAction } from './actions.js';
 import { buildWarpContext } from './context.js';
 import { warpAiActionKey } from './from-game-action.js';
 import { ismctsSearchActionValues } from './ismcts.js';
-import { encodeOmegaStateFeatures } from './omega-encoder.js';
-import { forwardOmegaValue, type OmegaModelWeights } from './omega-net.js';
+import { encodeOmegaPolicyFeatures, encodeOmegaStateFeatures } from './omega-encoder.js';
+import {
+  forwardOmegaPolicyLogit,
+  forwardOmegaValue,
+  softmax,
+  type OmegaModelWeights,
+} from './omega-net.js';
 import { observe, type WarpAiObservation } from './observation.js';
 import {
   createWarpSearchModel,
@@ -41,7 +46,6 @@ function terminalRankReward(
       : handPips(round.hands[id] ?? [], state.modules, round.roundNumber);
 
   const mine = score(perspective);
-  // Competition rank: how many seats strictly better (lower score) + tie handling.
   let better = 0;
   let ties = 0;
   for (const id of ids) {
@@ -49,15 +53,13 @@ function terminalRankReward(
     if (s < mine) better++;
     else if (s === mine && id !== perspective) ties++;
   }
-  const avgRank = better + 1 + ties / 2; // 1-based, tie-averaged
+  const avgRank = better + 1 + ties / 2;
   return 1 - (2 * (avgRank - 1)) / (n - 1);
 }
 
 /**
- * A {@link SearchModel} whose leaf evaluation is the **Omega value head** rather
- * than Commander-heuristic rollouts — keeping the search Commander-free. Terminal
- * (scored-round) leaves use the exact per-round rank reward; interior leaves use
- * the learned value estimate from `perspective`'s observation.
+ * SearchModel with Omega value-head leaves — Commander-free evaluation.
+ * Terminal (ended-round) leaves use exact per-round rank reward.
  */
 export function createOmegaSearchModel(
   objective: GameObjective,
@@ -87,22 +89,23 @@ export interface OmegaSearchOptions {
   readonly iterations: number;
   readonly rng: Rng;
   readonly maxBranch?: number;
+  /** PUCT / UCT exploration constant. Defaults to 1.5 for PUCT, √2 for UCT. */
   readonly explorationConstant?: number;
   readonly useBeliefConstraints?: boolean;
   /** Wall-clock cap; defaults high so `iterations` is the real limit. */
   readonly timeBudgetMs?: number;
   /**
-   * Leaf signal:
-   * - `'heuristic'` (default): Commander-ordered rollouts + heuristic leaf eval.
-   *   Produces sharp, informative visit targets even before the net is strong —
-   *   the net distills *search-improved* play (which can exceed greedy Commander),
-   *   not Commander's raw picks. Commander is a rollout simulator only; it never
-   *   appears at inference.
-   * - `'value'`: value-net leaf eval, no rollout (pure, Commander-free). Requires
-   *   an already-competent value head to concentrate — use once bootstrapped.
+   * Leaf / expansion mode:
+   * - `'puct'` (default): Omega policy prior + Omega value leaves — Commander-free.
+   *   Strength that can improve with more iterations once the value head is competent.
+   * - `'heuristic'`: Commander-ordered rollouts + classic UCT. Training bootstrap only;
+   *   not the product path for Ω+.
+   * - `'value'`: Omega value leaves with classic UCT (no policy prior). A/B only.
    */
-  readonly leaf?: 'heuristic' | 'value';
-  /** Rollout depth for heuristic leaf mode (default 24). */
+  readonly leaf?: 'puct' | 'heuristic' | 'value';
+  /** Softmax temperature for the policy prior (default 1). */
+  readonly priorTemperature?: number;
+  /** Rollout depth for heuristic leaf mode (default 24). Ignored by puct/value. */
   readonly rolloutDepth?: number;
 }
 
@@ -113,27 +116,53 @@ export interface OmegaSearchVisit {
 }
 
 /**
- * Run value-net-guided ISMCTS from an observation and return per-candidate visit
- * counts — the AlphaZero-style improved policy target. `rolloutDepth: 0` means
- * each simulation evaluates the leaf directly with the value head (no rollout,
- * no heuristics).
+ * Omega policy priors P(a|s) for a state / action list — used as PUCT priors.
+ * Uses the active seat's observation of `state` (determinized worlds included).
+ */
+export function omegaActionPriors(
+  state: GameState,
+  actions: readonly WarpAiAction[],
+  net: OmegaModelWeights,
+  temperature = 1
+): number[] {
+  if (actions.length === 0) return [];
+  const round = state.round;
+  if (!round) {
+    return Array.from({ length: actions.length }, () => 1 / actions.length);
+  }
+  const obs = observe(state, round.activePlayerId);
+  if (!obs) {
+    return Array.from({ length: actions.length }, () => 1 / actions.length);
+  }
+  const ctx = buildWarpContext(obs, STILL_RNG);
+  const logits = actions.map((action) =>
+    forwardOmegaPolicyLogit(encodeOmegaPolicyFeatures(ctx, action), net)
+  );
+  return [...softmax(logits, temperature)];
+}
+
+/**
+ * Run search from an observation and return per-candidate visit counts.
+ *
+ * Default (`leaf: 'puct'`) is Commander-free: Omega policy prior + value leaves.
+ * Heuristic leaf remains available for training bootstrap / A/B.
  */
 export function omegaSearchVisits(
   obs: WarpAiObservation,
   net: OmegaModelWeights,
   options: OmegaSearchOptions
 ): OmegaSearchVisit[] {
-  const leaf = options.leaf ?? 'heuristic';
+  const leaf = options.leaf ?? 'puct';
   const modelOptions: WarpSearchModelOptions = {
     useBeliefConstraints: options.useBeliefConstraints ?? true,
   };
-  // Heuristic mode uses the base (Commander-heuristic) search model with real
-  // rollouts; value mode swaps the leaf evaluator to the Omega value head.
   const model =
-    leaf === 'value'
-      ? createOmegaSearchModel(obs.objective, net, modelOptions)
-      : createWarpSearchModel(obs.objective, modelOptions);
-  const scored = ismctsSearchActionValues(
+    leaf === 'heuristic'
+      ? createWarpSearchModel(obs.objective, modelOptions)
+      : createOmegaSearchModel(obs.objective, net, modelOptions);
+
+  const usePuct = leaf === 'puct';
+  const scored = ismctsSearchActionValues<GameState, WarpAiAction>(
     observationToState(obs),
     model,
     {
@@ -143,8 +172,20 @@ export function omegaSearchVisits(
       timeBudgetMs: options.timeBudgetMs ?? 60_000,
       maxBranch: options.maxBranch ?? 8,
       explorationConstant: options.explorationConstant,
-      rolloutDepth: leaf === 'value' ? 0 : (options.rolloutDepth ?? 24),
-      rolloutPolicy: 'heuristic',
+      rolloutDepth:
+        leaf === 'heuristic' ? (options.rolloutDepth ?? 24) : 0,
+      rolloutPolicy: leaf === 'heuristic' ? 'heuristic' : 'prior',
+      ...(usePuct
+        ? {
+            actionPrior: (state, actions) =>
+              omegaActionPriors(
+                state as GameState,
+                actions,
+                net,
+                options.priorTemperature ?? 1
+              ),
+          }
+        : {}),
     },
     warpAiActionKey
   );

@@ -39,7 +39,6 @@ export function buildCaptainTacticalClassAbbrevById(options: {
     for (const ai of options.localConfig.aiCaptains) {
       classes[ai.id] = formatAiOfficerTacticalClass(ai.skill, {
         short: true,
-        class1Star: ai.class1Star,
       });
     }
   }
@@ -74,9 +73,7 @@ export function buildCaptainTacticalClassLabelById(options: {
 
   if (options.localConfig) {
     for (const ai of options.localConfig.aiCaptains) {
-      classes[ai.id] = formatAiOfficerTacticalClass(ai.skill, {
-        class1Star: ai.class1Star,
-      });
+      classes[ai.id] = formatAiOfficerTacticalClass(ai.skill);
     }
   }
 

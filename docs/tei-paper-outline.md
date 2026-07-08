@@ -10,7 +10,7 @@
 
 ## Abstract (draft)
 
-Mexican Train dominoes is commonly played under two incompatible victory conditions: **points** (lowest pip total when the round ends) and **go-out** (first player to empty their hand). We describe Warp 12’s **Tactical Effectiveness Index (TEI)** — a dual-track Elo-style rating anchored to fixed AI reference tiers — and the **self-play calibration pipeline** used to validate Class IV–II AI officers against those bands. Agents combine interpretable heuristics, optional determinized lookahead, and a rules-faithful engine (Distress Beacons, Red Alert, Neutral Zone, modules, house rules). Empirical calibration shows that **skill ordering is stable and aligns with reference TEI spacing under points**, while **go-out compresses implied skill gaps** due to race variance — especially in heads-up Class III vs Class II matchups and at higher table sizes. We argue for **percentile-augmented leaderboards**, **objective-specific search depth**, and **runtime house-rule gating** instead of per-variant weight matrices. We also report results from **Class I\***, an experimental hybrid officer, and a **multi-engine Fleet Admiral** stack. Large-scale benches show that 2-player points ISMCTS flatlines at parity (~51%), motivating the mapping of specific search backends to the right lobby settings. Finally, we report on **Class Ω**, a standalone self-play neural policy that has achieved 2-player parity via per-round credit assignment, but required a pivot to ISMCTS-distillation to overcome the imperfect-information wall in multi-player fleet modes.  
+Mexican Train dominoes is commonly played under two incompatible victory conditions: **points** (lowest pip total when the round ends) and **go-out** (first player to empty their hand). We describe Warp 12’s **Tactical Effectiveness Index (TEI)** — a dual-track Elo-style rating anchored to fixed AI reference tiers — and the **self-play calibration pipeline** used to validate Class IV–II AI officers against those bands. Agents combine interpretable heuristics, optional determinized lookahead, and a rules-faithful engine (Distress Beacons, Red Alert, Neutral Zone, modules, house rules). Empirical calibration shows that **skill ordering is stable and aligns with reference TEI spacing under points**, while **go-out compresses implied skill gaps** due to race variance — especially in heads-up Class III vs Class II matchups and at higher table sizes. We argue for **percentile-augmented leaderboards**, **objective-specific search depth**, and **runtime house-rule gating** instead of per-variant weight matrices. We also report results from **Class I\***, an experimental hybrid officer, and a **multi-engine Fleet Admiral** stack. Large-scale benches show that 2-player points ISMCTS flatlines at parity (~51%), motivating the mapping of specific search backends to the right lobby settings. Finally, we report on **Class Ω**, a standalone self-play neural policy that **ships as Class II**: it reaches ~parity with legacy Commander in heads-up, pulls ahead in large fleets, and forces a lesson about TEI — **fleet-mean fair-share must not be translated naively into REF_TEI** when most rated solo play is 2–4 captains.  
 
 ---
 
@@ -30,16 +30,17 @@ Mexican Train dominoes is commonly played under two incompatible victory conditi
 5. **Product constraints as design** — advisor disqualification, baked-in lookahead tiers, percentile boards.  
 6. **Class I\* residual learning (experimental)** — hybrid heuristic + MLP; documented imitation ceiling, points clone, and Deep Q regret pass.  
 7. **Multi-engine Fleet Admiral** — expectimax for 2p points, ISMCTS for 3p+ go-out; Commander heuristics for advisor only.  
-8. **Class Ω standalone self-play** — A pure self-play neural opponent that reached 2-player parity via per-round credit assignment, currently utilizing ISMCTS-distillation (Path B) for fleet-size scaling.
+8. **Class Ω as rated Class II** — Pure self-play neural policy replaces heuristic Commander under the same σ=`commander` TEI key; Ω+ (search) stays unrated exhibition; TEI anchors tempered for typical solo table sizes.
+9. **Fair-share → REF_TEI hazard** — Fleet-weighted Ω vs Commander fair-share (points ~1.38×, go-out ~1.14×) overstates heads-up strength; naive Elo translation produced anchors that would deflate the ladder.
 
 ### 1.3 Warp 12 terminology map
 | Player-facing | Internal / engine |
 |---------------|-------------------|
 | Captain (seat) | `PlayerId` |
 | TEI | Elo-style rating displayed to humans |
-| Tactical Class IV–II | `ensign` / `lieutenant` / `commander` skill presets |
-| Class I* (experimental) | Class II heuristics + search backend + optional learned residual |
-| Class Ω (experimental) | Standalone self-play policy/value net — no heuristics, no Commander target, no search at inference |
+| Tactical Class IV–II | `ensign` / `lieutenant` / `commander` — **Class II = Ω** (neural, greedy) |
+| Class I* (experimental) | Heuristic + search backend + optional learned residual — research only |
+| Class Ω / Ω+ | Shipped as **Class II** (Ω greedy, rated); Ω+ = extended search (unrated exhibition) |
 | Fleet Admiral (bench) | Deep-search opponent preset — not a TEI tier |
 | Class I (human) | Prestige band on leaderboard (TEI ≥ 1450) — not an AI opponent tier |
 
@@ -331,7 +332,23 @@ pick = argmax policy   (greedy at play; temperature-sampled during self-play)
   - Instead of raw self-play sampling, each decision during training runs value-net-independent ISMCTS with Commander-heuristic rollouts.  
   - This generates a sharp visit-count distribution (approximately 0.90 top-move share).  
   - The policy head is trained to match this search distribution via cross-entropy, rather than REINFORCE on the sampled move.  
-  - **Crucial Distinction:** Commander is only used as a rollout simulator to generate the search target. The shipped inference network runs purely on its own without Commander, avoiding the Class I* imitation trap since the target is the *search visit distribution*, not the Commander's specific picks.  
+  - **Crucial Distinction:** Commander is only used as a rollout simulator to generate the search target. The shipped inference network runs purely on its own without Commander, avoiding the Class I* imitation trap since the target is the *search visit distribution*, not the Commander's specific picks.
+
+#### Product ship (2026-07) — Class II = Ω
+
+Ω **replaces** heuristic Commander for the player-facing Class II tier (local, online host, pass-and-play). Same TEI bucket (`commander`); no separate “Ω” lobby tier.
+
+| Mode | Bench vs legacy Commander (200g/slice, 2026-07 sign-off) | Product |
+|------|----------------------------------------------------------|---------|
+| Points 2p | ~1.02–1.06× fair share (~parity) | Rated greedy Ω |
+| Points 4–8p | ~1.24–1.72× | Strength concentrates in large fleets |
+| Go-out 2p | seat A ~1.01×, seat B ~0.86× (race variance) | Not a reason to keep two Class II stacks |
+| Go-out 3–8p | mean pull to ~1.14× overall | Rated greedy Ω |
+| Ω+ (PUCT @ ~480) | Stronger exhibition; same weights | **Unrated** checkbox |
+
+**TEI recalibration:** ship `warp12-official-v2`. Class II REF_TEI **1520 points / 1550 go-out** (from heuristic **1400 / 1500**). Early draft anchors **1680 / 1650** were rejected after sign-off benches — they over-read large-fleet fair-share while typical solo rated play is 2–4p.
+
+**Advisor (phase A):** coach pick follows greedy Ω; explanations remain heuristic (`explainWarpAiAction`). Assisted play stays unrated.
 
 ---
 
@@ -340,12 +357,14 @@ pick = argmax policy   (greedy at play; temperature-sampled during self-play)
 **Normative spec:** [tei-spec.md](./tei-spec.md) — formal definition, human multiplayer updates, conformance vectors.
 
 ### 5.1 Reference bands
-Fixed opponent TEI for unassisted matches:
+Fixed opponent TEI for unassisted matches. **v1** = heuristic Class II; **v2** = neural Class II (Ω). New rated play defaults to v2; legacy crews may pin v1. Human stored TEI integers are **not** re-banded when anchors change.
 
-| Track | Class IV | Class III | Class II |
-|-------|----------|-----------|----------|
-| Points | ~1000 | ~1200 | ~1400 |
-| Go-out | ~1000 | ~1250 | ~1500 |
+| Track | Class IV | Class III | Class II (v1 heuristic) | Class II (v2 Ω) |
+|-------|----------|-----------|-------------------------|-----------------|
+| Points | ~1000 | ~1200 | ~1400 | **~1520** |
+| Go-out | ~1000 | ~1250 | ~1500 | **~1550** |
+
+**Calibration rule of thumb:** set Class II REF near where a captain of that TEI wins ~50% **in the table sizes you actually rate** (Warp 12 solo local play is mostly 2–4). Fleet-mean fair-share against legacy Commander is a promotion metric, not a direct Elo Δ.
 
 ### 5.2 Update rule
 - Standard Elo expected score + K-factor schedule (40 → 32 → 24 by experience).
@@ -440,10 +459,12 @@ Paste output from `yarn calibrate:ai-tei`. Example structure:
 - **Expectimax:** 64.4% points 2p, 55.8% go-out 2p vs Commander (500g each).  
 - **ISMCTS (1,500 games):** 51.1% combined in 2p points (dead heat); 31.2% sector wins in 4p go-out vs ~22–23% per greedy Commander seat.  
 
-**Class Ω (Self-Play):**
+**Class Ω (Self-Play → Class II):**
 
-- **2-Player Parity:** Utilizing per-round credit assignment, Class Ω successfully reached parity with Commander in 2-player points mode within 3 iterations from scratch (specialist network archived).  
-- **Fleet Baseline & Distillation:** Early iterations in fleet environments hovered near random baselines (e.g., 4-player win rate of ~0.21 vs 0.25 random). An automated loop running Path B (ISMCTS-distillation) is currently active, with the distillation lift expected to show in subsequent iterations.  
+- **2-Player:** Points ~parity with legacy Commander; go-out seat-symmetric noise (one soft seat is not a shipping blocker).
+- **Fleet (3–8p):** Points fair-share rises with table size (peak ~1.7× at 7–8p); go-out milder (~1.0–1.5× by slice). Overall means ~**1.38×** points / ~**1.14×** go-out at 200g/slice.
+- **Ship decision:** replace Class II with greedy Ω; temper REF_TEI to **1520 / 1550**; keep Ω+ and Class I* off the rated ladder.
+- **Lesson:** `fairShare × n` win rates at large N inflate mean strength vs what heads-up TEI players feel.  
 
 ---
 
@@ -456,12 +477,17 @@ Paste output from `yarn calibrate:ai-tei`. Example structure:
 - **House rules** mostly reshape legality — heuristics gated at runtime suffice for DTI.
 - **Commander heuristics are a ceiling in 2p points** — ISMCTS parity is confirmation, not failure; expectimax extracts the residual edge via explicit tree search.
 - **Search value is mode-dependent** — expectimax for 2p, ISMCTS for multi-player chaos (§4.6).
+- **Neural Class II can replace heuristics without a second lobby tier** — keep σ=`commander`, update `rulesProfileId` + REF_TEI.
+- **Fair-share ≠ Elo bump** — translating fleet-mean Ω/Commander ratio with `400 log10(fs)` overstates anchors when most rated matches are 2–4p; temper for the rating context you ship.
+- **Imitation nets (Class I\*) plateau at the teacher;** Ω succeeds by targeting search visit distributions (Path B), not Commander picks.
 
 ### 8.2 Design recommendations
 - Never merge points and go-out TEI.
 - Show percentile on go-out boards.
-- Don’t expose lookahead as a rating-affecting toggle.
+- Don’t expose lookahead / Ω+ as a rating-affecting toggle without Δ_search or marking unrated.
 - Retune weights selectively (popular hosted configs), not full combinatorial grid.
+- Recalibrate REF_TEI when Class II **implementation** changes; do not rewrite stored human ratings.
+- Prefer one strong rated tier over “Commander + Omega + Class I*” confusion.
 
 ### 8.3 Limitations
 - Heuristic agents, not equilibrium solvers.
@@ -500,15 +526,16 @@ A reasonable definition for Mexican Train:
 
 ### 9.3 Gap from current Warp 12 stack
 
-| Layer | Today (Class II) | Class I* / Fleet Admiral (2026) | Deep Q class |
-|-------|------------------|----------------------------------|-----------------|
-| Policy | Weighted heuristics + blunder model | Heuristic + optional learned residual (experimental) | Learned policy or CFR blueprint |
-| Search | Depth-2 determinized lookahead (2p go-out only) | **Multi-engine:** expectimax 2p, ISMCTS 3p+ | Continual re-planning + belief particles |
-| Belief state | Random consistent hand samples | Belief constraints in search | Bayesian / particle beliefs over opponent hands + pile |
-| Training | ~150–200 game calibration + small coordinate search | 1000-game trajectories + MLP (imitation → regret RL); 1500-game parallel search bench | Millions–billions of self-play trajectories |
-| Multi-player | Greedy tier heuristics + focus tests | ISMCTS ~31% at 4p go-out vs ~23% per greedy seat | Equilibrium approximation (e.g. NFSP, PSRO) |
-| Compute | Laptop minutes; optimizer uses worker threads | **Parallel bench** (~1,400% CPU, M4 Max); single-threaded collect/train | GPU cluster weeks/months |
-| Verification | Self-play tier ordering | **Expectimax 64% 2p points; ISMCTS 51% 2p / 31% 4p go-out** | Human champion matches + ablation studies |
+| Layer | Today (Class II = Ω) | Class I* / Fleet Admiral | Deep Q class |
+|-------|----------------------|--------------------------|--------------|
+| Policy | Greedy neural Ω (points + go-out weights) | Heuristic + optional residual / search | Learned policy or CFR blueprint |
+| Search | Optional Ω+ PUCT (unrated exhibition) | **Multi-engine:** expectimax 2p, ISMCTS 3p+ | Continual re-planning + belief particles |
+| Belief state | Ω features + training-time Path B search | Belief constraints in search | Bayesian / particle beliefs |
+| Training | Self-play + Path B distillation; champion gates | 1000-game trajectories + MLP (imitation → regret) | Millions–billions of self-play trajectories |
+| Multi-player | Ω fair-share rises with fleet size (points) | ISMCTS ~31% at 4p go-out vs ~23% greedy | Equilibrium approximation (e.g. NFSP, PSRO) |
+| TEI | `warp12-official-v2` Class II @ 1520 / 1550 | Experimental / Δ_search if ever rated | New rules profile + human study |
+| Compute | Browser fetch of JSON/ONNX; greedy ms/move | Parallel bench on M4 Max | GPU cluster weeks/months |
+| Verification | Full 2–8p Ω vs Commander benches | Expectimax 64% 2p points; ISMCTS 51% 2p | Human champion matches + ablations |
 
 **Rough effort:** not a feature sprint — a **multi-year research program** with specialized team (engine + ML + domain expert + UX).
 
@@ -525,12 +552,12 @@ A reasonable definition for Mexican Train:
 - **Result (2026-06-30):** Expectimax wins 2p; ISMCTS wins multi-player go-out per-seat rate; neither replaces Commander for advisor UI.
 - **Deliverable:** Multi-engine Class I* play routing (§4.6), not a single “ISMCTS everywhere” tier.
 
-#### Phase 2 — Learned value / policy (1–2 years) — **in progress (Class Ω)**
+#### Phase 2 — Learned value / policy (1–2 years) — **Ω Class II shipped; Path A next**
 
-- Collect self-play dataset from heuristic agents.  
-- Train policy/value net on `(public state, action features) → residual`.  
-- **Transition to Pure Self-Play:** Overcome the imperfect-information wall via Path B ISMCTS-distillation cross-entropy training.  
-- **Graduate to Path A (Pure Value-Guided Search):** Once the value network is competent enough to concentrate visits (value loss < 0.5), transition to Path A by dropping heuristic rollouts entirely. Leaf evaluations will strictly utilize the pure value-head during ISMCTS, completing the AlphaGo-to-AlphaZero progression.  
+- Collect self-play dataset; Path B ISMCTS-distillation for fleet scaling.
+- **Shipped:** greedy Ω as Class II; separate points / go-out weight files; TEI v2 anchors.
+- **Graduate to Path A:** strengthen value head so PUCT / value leaves improve with search budget (Ω+ currently does not scale cleanly with more iterations).
+- **Advisor phase B:** concept-bottleneck net trained to agree with Ω (not Commander).  
 
 #### Phase 3 — Multi-player equilibrium (research frontier)
 - 3+ players: optimize for **utility / placement** not pure win rate.
@@ -558,19 +585,19 @@ Deep Q depth trades away explainability, build cost, and mobile feasibility.
 
 - ### 9.6 The Explainability Problem & Omega Advisor
 
-  Because Class Ω operates as a standalone policy/value network, its decisions are opaque matrices rather than legible heuristics. While the current UI gracefully handles this by strictly separating the explainable Advisor (Commander heuristics) from the opaque opponent, there remains a product desire for an Advisor as strong as Omega.  
+  Ω decisions are opaque logits. **Phase A (shipped):** advisor **picks** from greedy Ω, **explains** with the legacy heuristic stack (`explainWarpAiAction`) — better target than Class I* “imitate Commander,” still not a full concept-bottleneck.
 
-  To avoid repeating the Class I* imitation trap—where an explainable model merely clones Commander—we propose a **Concept-Bottleneck Network**.  
+  **Phase B (proposed):** a **Concept-Bottleneck Network** —
 
-  - **The Architecture:** The network forces an intermediate layer to output predictions for ~20 named game concepts (e.g., pip-dump potential, hand flexibility).  
-  - **The Ground Truth:** This concept layer is supervised by facts derived directly from the engine state, independent of heuristic weights.  
-  - **The Output:** A final scoring head makes decisions based on Omega-distilled targets. This ensures the UI can deliver genuine text explanations ("hand-flexibility 0.85 → this pick") that reflect actual information bottlenecks rather than post-hoc rationalizations.  
+  - Intermediate layer predicts ~20 named game concepts (engine-derived ground truth).
+  - Final head trained to agree with Ω (or Ω+ search distribution), not Commander picks.
+  - UI can surface genuine concept scores instead of post-hoc rationalizations.  
 
 ---
 
 ## 10. Conclusion
 
-TEI and self-play calibration provide a **practical, honest skill ladder** for a game too messy for classical solving. Points and go-out should be treated as **two calibration targets** on one engine. **Class I\*** and Fleet Admiral benches show that **no single algorithm wins every mode**: Commander heuristics are near-optimal in 2p points (ISMCTS ~51%), expectimax extracts a ~64% edge there via explicit tree search, and ISMCTS outperforms greedy seats in 4p go-out (~31% vs ~23%). The right product move is **multi-engine routing**, not more heuristic knobs. Superhuman Mexican Train remains a **research program** (belief-state search + learning + human validation), not required for an excellent commercial experience.
+TEI and self-play calibration provide a **practical, honest skill ladder** for a game too messy for classical solving. Points and go-out should be treated as **two calibration targets** on one engine. **Class I\*** and Fleet Admiral benches show that **no single algorithm wins every mode**: Commander heuristics are near-optimal in 2p points (ISMCTS ~51%), expectimax extracts a ~64% edge there via explicit tree search, and ISMCTS outperforms greedy seats in 4p go-out (~31% vs ~23%). **Class Ω** shows that a pure self-play net can **replace** heuristic Class II without a fourth lobby tier — but **promotion benches and TEI anchors are different jobs**: fleet fair-share can look large while heads-up play stays near parity; REF_TEI must follow the tables you rate. The right product move is **one neural Class II, tempered anchors, unrated search as hard mode**, not more named tiers. Superhuman Mexican Train remains a **research program** (belief-state search + Path A value + human validation), not required for an excellent commercial experience.
 
 ---
 
@@ -597,7 +624,10 @@ TEI and self-play calibration provide a **practical, honest skill ladder** for a
 | Class I* policy | `libs/engine/src/lib/ai/class1-star-policy.ts` |
 | Class I* features | `libs/engine/src/lib/ai/feature-encoder.ts` |
 | Class I* training | `tools/nn/` (`collect`, `train.py`, `bench`) |
-| Human TEI update | `Warp12-leaderboard/src/firebase/stats-elo.ts` |
+| Class Ω agent / search | `libs/engine/src/lib/ai/omega-agent.ts`, `omega-search-agent.ts`, `omega-search.ts` |
+| Ω collect / bench | `collect-omega-trajectories.ts`, `bench-omega.ts`, `tools/nn/` |
+| Human TEI update | `apps/Warp12/src/firebase/stats-elo.ts`, `libs/tei-core/src/stats-elo.ts` |
+| Rules profile / anchors | `warp12-official-v1` / `v2` in `rules-profile.ts` |
 | Rules spec | `RULES.md` |
 
 ## Appendix C — Target venues

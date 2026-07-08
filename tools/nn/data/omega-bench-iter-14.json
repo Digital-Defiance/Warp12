@@ -1,51 +1,95 @@
 {
-  "weights": "tools/nn/data/omega-candidate/omega-v1.json",
-  "objective": "points",
-  "gamesPerSlice": 120,
+  "weights": "tools/nn/data/omega-goout-candidate/omega-v1.json",
+  "objective": "go-out",
+  "gamesPerSlice": 100,
   "results": [
     {
-      "games": 120,
-      "completed": 120,
-      "objective": "points",
+      "games": 100,
+      "completed": 100,
+      "objective": "go-out",
+      "playerCount": 2,
+      "omegaSeatId": "a",
+      "omegaWins": 51,
+      "omegaWinRate": 0.51,
+      "impliedEloGap": 6.94963842776909,
+      "fairShareRatio": 1.02
+    },
+    {
+      "games": 100,
+      "completed": 100,
+      "objective": "go-out",
+      "playerCount": 2,
+      "omegaSeatId": "b",
+      "omegaWins": 53,
+      "omegaWinRate": 0.53,
+      "impliedEloGap": 20.87120466602866,
+      "fairShareRatio": 1.06
+    },
+    {
+      "games": 100,
+      "completed": 100,
+      "objective": "go-out",
       "playerCount": 3,
       "omegaSeatId": "a",
-      "omegaWins": 40,
-      "omegaWinRate": 0.3333333333333333,
+      "omegaWins": 32,
+      "omegaWinRate": 0.32,
       "impliedEloGap": null,
-      "fairShareRatio": 1
+      "fairShareRatio": 0.96
     },
     {
-      "games": 120,
-      "completed": 120,
-      "objective": "points",
+      "games": 100,
+      "completed": 100,
+      "objective": "go-out",
       "playerCount": 4,
       "omegaSeatId": "a",
-      "omegaWins": 30,
-      "omegaWinRate": 0.25,
+      "omegaWins": 20,
+      "omegaWinRate": 0.2,
       "impliedEloGap": null,
-      "fairShareRatio": 1
+      "fairShareRatio": 0.8
     },
     {
-      "games": 120,
-      "completed": 120,
-      "objective": "points",
+      "games": 100,
+      "completed": 100,
+      "objective": "go-out",
+      "playerCount": 5,
+      "omegaSeatId": "a",
+      "omegaWins": 13,
+      "omegaWinRate": 0.13,
+      "impliedEloGap": null,
+      "fairShareRatio": 0.65
+    },
+    {
+      "games": 100,
+      "completed": 100,
+      "objective": "go-out",
       "playerCount": 6,
       "omegaSeatId": "a",
-      "omegaWins": 35,
-      "omegaWinRate": 0.2916666666666667,
+      "omegaWins": 23,
+      "omegaWinRate": 0.23,
       "impliedEloGap": null,
-      "fairShareRatio": 1.75
+      "fairShareRatio": 1.3800000000000001
     },
     {
-      "games": 120,
-      "completed": 120,
-      "objective": "points",
+      "games": 100,
+      "completed": 100,
+      "objective": "go-out",
+      "playerCount": 7,
+      "omegaSeatId": "a",
+      "omegaWins": 16,
+      "omegaWinRate": 0.16,
+      "impliedEloGap": null,
+      "fairShareRatio": 1.12
+    },
+    {
+      "games": 100,
+      "completed": 100,
+      "objective": "go-out",
       "playerCount": 8,
       "omegaSeatId": "a",
-      "omegaWins": 27,
-      "omegaWinRate": 0.225,
+      "omegaWins": 13,
+      "omegaWinRate": 0.13,
       "impliedEloGap": null,
-      "fairShareRatio": 1.8
+      "fairShareRatio": 1.04
     }
   ]
 }

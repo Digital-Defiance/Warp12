@@ -35,6 +35,7 @@ import {
   resolveEffectivePlayerTei,
   updateUnassistedTei,
 } from './stats-elo.js';
+import { WARP12_OFFICIAL_RULES_PROFILE_ID } from './rules-profile.js';
 import {
   appendMatchHistory,
   type MatchHistoryEntry,
@@ -53,6 +54,12 @@ import {
 } from './stats-schema.js';
 
 const PLAYER_STATS = 'playerStats';
+
+function localRulesProfileId(
+  config: ReportLocalAiMatchInput['config']
+): string {
+  return config.rulesProfileId ?? WARP12_OFFICIAL_RULES_PROFILE_ID;
+}
 
 /** Firestore rejects explicit `undefined` in documents. */
 export function stripUndefinedFieldsForFirestore<T extends Record<string, unknown>>(
@@ -78,6 +85,7 @@ export interface ReportLocalAiMatchInput {
   uid: string;
   displayName: string;
   skill: WarpSkillLevel;
+  opponentOmega?: boolean;
   opponentClass1Star?: boolean;
   objective: RatedObjective;
   advisorUsed: boolean;
@@ -210,7 +218,11 @@ export function previewLocalAiMatchReport(
   );
   const teiAfter = updateUnassistedTei(
     teiBefore,
-    opponentTeiForObjective(input.objective, input.skill),
+    opponentTeiForObjective(
+      input.objective,
+      input.skill,
+      localRulesProfileId(input.config)
+    ),
     won ? 1 : 0,
     kFactor(prior.unassistedMatches)
   );
@@ -337,6 +349,7 @@ async function uploadLocalAiMatch(
   >('reportPracticeAiMatch', {
     displayName: input.displayName,
     skill: input.skill,
+    opponentOmega: input.opponentOmega,
     opponentClass1Star: input.opponentClass1Star,
     objective: input.objective,
     advisorUsed: input.advisorUsed,

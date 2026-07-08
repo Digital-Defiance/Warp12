@@ -151,6 +151,9 @@
   transition:
     border-color 0.25s ease,
     box-shadow 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 
   // Light the border blue while it is this captain's turn (local + online).
   &[data-my-turn='true'] {
@@ -172,6 +175,23 @@
   align-items: baseline;
   justify-content: space-between;
   margin-bottom: 0.75rem;
+}
+
+.commandPanelBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.commandActions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 0.35rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid rgba(51, 65, 85, 0.85);
+  background: var(--warp-panel, rgba(15, 23, 42, 0.85));
 }
 
 .commandTitle {
@@ -343,7 +363,7 @@
 
 .allStopBtn,
 .roundEnd {
-  margin-top: 1rem;
+  margin-top: 0;
 }
 
 .allStopBtn {
@@ -356,6 +376,7 @@
   border: 1px solid var(--warp-accent-warm, #fbbf24);
   border-radius: 4px;
   cursor: pointer;
+  font-size: 0.75rem;
 }
 
 .roundEnd {
@@ -368,18 +389,29 @@
 }
 
 .roundEndOverlay {
-  position: absolute;
+  // Pinned to the viewport (not the clipped .bridge box) so the full card and
+  // its action buttons are always reachable, even on short mobile screens.
+  position: fixed;
   inset: 0;
   z-index: 180;
   display: grid;
   place-items: center;
   padding: 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: rgba(5, 8, 22, 0.72);
   backdrop-filter: blur(4px);
 }
 
 .roundEndCard {
   width: min(420px, 100%);
+  // Never exceed the viewport; scroll internally when content is taller than
+  // the screen (e.g. campaign summary + TEI notice + advisor buttons on mobile).
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 1.25rem 1.5rem;
   border-radius: 10px;
   border: 1px solid rgba(56, 189, 248, 0.45);
@@ -560,4 +592,187 @@
   50% {
     box-shadow: 0 0 20px rgba(251, 191, 36, 0.6);
   }
+}
+
+.bridgeLayout[data-layout-tier='phone'] {
+  gap: 0.45rem;
+  min-height: 0;
+
+  &[data-focus='true'] {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+
+    .bridge {
+      flex: 1 1 0;
+      min-height: 0;
+      width: 100%;
+      max-width: none;
+      aspect-ratio: unset;
+    }
+
+    .commandPanel {
+      flex: 0 1 auto;
+      max-height: 46%;
+      min-height: 0;
+      padding: 0.5rem 0.55rem;
+      overflow: hidden;
+    }
+
+    .commandPanelBody {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
+    .commandActions {
+      .allStopBtn,
+      .controlBtn {
+        font-size: 0.62rem;
+        padding: 6px 8px;
+        letter-spacing: 0.04em;
+      }
+    }
+
+    .commandHeader {
+      flex-wrap: wrap;
+      align-items: flex-start;
+      margin-bottom: 0.35rem;
+      gap: 0.35rem;
+    }
+
+    .commandHeaderStart {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35rem 0.45rem;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    .handSortRow {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 3px;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      -webkit-overflow-scrolling: touch;
+      max-width: 100%;
+    }
+
+    .commandTitle {
+      font-size: 0.76rem;
+      letter-spacing: 0.06em;
+    }
+
+    .handCount {
+      font-size: 0.65rem;
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+
+    .handSection {
+      margin-top: 0;
+    }
+
+    .handSortBtn {
+      flex: 0 0 auto;
+      font-size: 0.58rem;
+      padding: 3px 5px;
+      letter-spacing: 0.03em;
+    }
+
+    .hand {
+      flex-wrap: nowrap;
+      gap: 3px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      overscroll-behavior-x: contain;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x;
+      padding: 0 6px 2px;
+      scroll-padding-inline: 6px;
+    }
+
+    .handTile {
+      flex: 0 0 auto;
+      padding: 2px;
+      border-width: 1.5px;
+      border-radius: 4px;
+      touch-action: pan-x;
+    }
+
+    .captainScores {
+      display: none;
+    }
+
+    .scoreLegend {
+      display: none;
+    }
+  }
+}
+
+.bridgeLayout[data-layout-tier='phone'][data-orientation='landscape'] {
+  &[data-focus='true'] {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0.35rem;
+
+    .bridge {
+      flex: 1 1 58%;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .commandPanel {
+      flex: 0 0 clamp(188px, 38%, 272px);
+      width: clamp(188px, 38%, 272px);
+      max-width: 272px;
+      max-height: none;
+      height: auto;
+      align-self: stretch;
+    }
+
+    .commandPanelBody {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .handSection {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .handToolbar {
+      flex-shrink: 0;
+    }
+
+    .hand {
+      flex: 1 1 auto;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior-y: contain;
+      touch-action: pan-y;
+      padding: 0 2px 2px;
+    }
+
+    .handTile {
+      touch-action: manipulation;
+    }
+  }
+}
+
+.bridgeLayout[data-layout-tier='phone'] .controls {
+  max-width: calc(100% - 52px);
+}
+
+.bridgeLayout[data-layout-tier='phone'] .controlsRow .controlBtn {
+  font-size: 0.62rem;
+  padding: 6px 8px;
 }

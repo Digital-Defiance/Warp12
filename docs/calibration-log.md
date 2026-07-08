@@ -5,7 +5,24 @@ Goal: **honest self-improvement** — measure, tune, document, repeat.
 
 ---
 
-## 2026-06-29 — `yarn calibrate:ai-tei-dti` (200 games / matchup)
+## 2026-07-08 — Class II Ω ship + `warp12-official-v2` TEI recalibration
+
+**Product:** Class II (`commander`) now runs greedy Ω in play. Extended thinking (Ω+, local only) is unrated exhibition. Tactical advisor follows Ω picks with heuristic explanations.
+
+**Champion benches vs legacy Commander (fair-share, 2–8p, 200g):**
+- Points: mean **~1.38×** (2p ~parity; strength at 4–8p)
+- Go-out: mean **~1.14×** (2–4p ~parity; soft seat-B 2p; strength mid-fleet)
+
+**Anchors chosen for typical solo tables (2–4p), not fleet-mean Elo translation:**
+- Points Class II REF_TEI **1400 → 1520**
+- Go-out Class II REF_TEI **1500 → 1550**
+(Earlier draft 1680/1650 over-read large-fleet fair-share and would have deflated the ladder.)
+
+**Rules profile:** `warp12-official-v2` for new rated play; `warp12-official-v1` pinned on existing crews. Human stored TEI **not** migrated.
+
+**Takeaway:** One rated strong tier (Class II = Ω). Search premium reserved for Ω+ exhibition, not the anchor ladder.
+
+---
 
 **Points (default rules)**  
 - Symmetric seating ~50/50 ✓  

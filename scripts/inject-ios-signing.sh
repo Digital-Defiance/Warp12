@@ -81,7 +81,7 @@ def target_config(config_id, name):
 \t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "{profile_spec}";
 \t\t\t\t"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "{profile_spec}";
 \t\t\t\tSDKROOT = iphoneos;
-\t\t\t\tTARGETED_DEVICE_FAMILY = 2;
+\t\t\t\tTARGETED_DEVICE_FAMILY = "1,2";
 \t\t\t\tVALID_ARCHS = arm64;
 \t\t\t}};
 \t\t\tname = {name};

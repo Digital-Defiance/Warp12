@@ -46,6 +46,24 @@ describe('charter lobby matching', () => {
     ).toBe(false);
   });
 
+  it('rejects large-fleet hand-size drift', () => {
+    expect(
+      charterHouseRulesMatch(charter, {
+        ...OFFICIAL_CHARTER_HOUSE_RULES,
+        largeFleetHandSize: 11,
+      })
+    ).toBe(false);
+  });
+
+  it('defaults an unset large-fleet hand size to 10 (matches official)', () => {
+    expect(
+      charterHouseRulesMatch(charter, {
+        ...OFFICIAL_CHARTER_HOUSE_RULES,
+        largeFleetHandSize: undefined,
+      })
+    ).toBe(true);
+  });
+
   it('defaults missing charter fields to official Warp 12', () => {
     expect(
       charterMatchesRatedEvent(

@@ -21,4 +21,13 @@ describe('formatAiOfficerTacticalClass', () => {
       })
     ).toBe('Cls I*');
   });
+
+  it('shows Class Ω when omega is set', () => {
+    expect(formatAiOfficerTacticalClass('commander', { omega: true })).toBe(
+      'Class Ω'
+    );
+    expect(
+      formatAiOfficerTacticalClass('commander', { short: true, omega: true })
+    ).toBe('Cls Ω');
+  });
 });

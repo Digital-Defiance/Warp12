@@ -6,7 +6,7 @@ import {
 } from './captain-tactical-class.js';
 
 describe('captain-tactical-class', () => {
-  it('shows Class I* for class1Star officers', () => {
+  it('shows Class II for commander officers (neural Ω)', () => {
     const localConfig = {
       humanId: 'you',
       humanName: 'Picard',
@@ -20,17 +20,16 @@ describe('captain-tactical-class', () => {
           id: 'riker',
           displayName: 'Riker',
           skill: 'commander' as const,
-          class1Star: true,
         },
       ],
     };
 
     expect(
       buildCaptainTacticalClassAbbrevById({ localConfig }).riker
-    ).toBe('Cls I*');
+    ).toBe('Cls II');
     expect(
       buildCaptainTacticalClassLabelById({ localConfig }).riker
-    ).toBe('Class I*');
+    ).toMatch(/Class II/);
   });
 
   it('shows the human captain tactical class from solo TEI', () => {
@@ -47,7 +46,6 @@ describe('captain-tactical-class', () => {
           id: 'riker',
           displayName: 'Riker',
           skill: 'commander' as const,
-          class1Star: true,
         },
       ],
     };

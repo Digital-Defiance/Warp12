@@ -8,6 +8,7 @@ import {
   opponentTeiForObjective,
   resolveEffectivePlayerTei,
   updateUnassistedTei,
+  WARP12_OFFICIAL_RULES_PROFILE_ID,
   type AiSkillLevel,
 } from './tei/stats-elo';
 import { objectiveTeiKey, type RatedObjective } from './tei/rated-match-schema';
@@ -163,7 +164,11 @@ export const reportPracticeAiMatch = onCall(
       );
       teiAfter = updateUnassistedTei(
         teiBefore,
-        opponentTeiForObjective(data.objective, data.skill),
+        opponentTeiForObjective(
+          data.objective,
+          data.skill,
+          data.config.rulesProfileId ?? WARP12_OFFICIAL_RULES_PROFILE_ID
+        ),
         won ? 1 : 0,
         kFactor(prior.unassistedMatches)
       );

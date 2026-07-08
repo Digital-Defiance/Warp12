@@ -5,6 +5,8 @@ import type {
   WarpSkillLevel,
 } from 'warp12-engine';
 
+import { WARP12_OFFICIAL_RULES_PROFILE_ID } from '../firebase/rules-profile.js';
+
 import {
   WARP12_OFFICIAL_CAMPAIGN_ROUNDS,
   WARP12_OFFICIAL_HOUSE_RULES,
@@ -25,8 +27,13 @@ export interface AiCaptainConfig {
   readonly id: string;
   readonly displayName: string;
   readonly skill: WarpSkillLevel;
-  /** Experimental Class I* — ISMCTS search opponent (not TEI reference). */
-  readonly class1Star?: boolean;
+  /**
+   * @deprecated Class II (`commander`) is neural Ω. Kept as a synonym for older
+   * saved configs; prefer `skill: 'commander'` alone.
+   */
+  readonly omega?: boolean;
+  /** Class II only — net-guided ISMCTS (Ω+). Unrated exhibition; not for TEI. */
+  readonly extendedThinking?: boolean;
   /** Officer pool slot when the captain was created from {@link AI_OFFICER_POOL}. */
   readonly poolId?: string;
 }
@@ -57,6 +64,8 @@ export interface LocalGameConfig {
   readonly modules: GameModuleConfig;
   readonly houseRules?: HouseRulesConfig;
   readonly aiCaptains: readonly AiCaptainConfig[];
+  /** Frozen TEI anchor set — defaults to `warp12-official-v2`. */
+  readonly rulesProfileId?: string;
 }
 
 /** Named AI officers drawn in order when the fleet grows. */
@@ -86,9 +95,15 @@ export function isPassAndPlay(config: LocalGameConfig): boolean {
   return config.humanCaptains.length >= 2;
 }
 
+export function localMatchHasExtendedThinking(
+  aiCaptains: readonly AiCaptainConfig[]
+): boolean {
+  return aiCaptains.some((ai) => ai.extendedThinking === true);
+}
+
 /** Solo vs-AI local matches may report TEI when signed in and unassisted. */
 export function isRatedLocalGame(config: LocalGameConfig): boolean {
-  return !isPassAndPlay(config);
+  return !isPassAndPlay(config) && !localMatchHasExtendedThinking(config.aiCaptains);
 }
 
 export function buildHumanCaptains(
@@ -132,5 +147,6 @@ export function defaultLocalGameConfig(
     modules: { ...WARP12_OFFICIAL_MODULES },
     houseRules: { ...WARP12_OFFICIAL_HOUSE_RULES },
     aiCaptains: buildAiCaptains(count - 1),
+    rulesProfileId: WARP12_OFFICIAL_RULES_PROFILE_ID,
   };
 }

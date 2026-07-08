@@ -1,38 +1,24 @@
 import { describe, expect, it } from 'vitest';
 
-import { CLASS1_STAR_DISPLAY_NAME } from 'warp12-engine';
-
 import { tableOpponentLabelForAdvisor } from './advisor-report-meta.js';
 import type { LocalGameConfig } from './local-game-config.js';
+import { defaultLocalGameConfig } from './local-game-config.js';
 
 describe('tableOpponentLabelForAdvisor', () => {
-  const base: LocalGameConfig = {
-    humanId: 'you',
-    humanName: 'Picard',
-    humanCaptains: [{ id: 'you', displayName: 'Picard' }],
-    playerCount: 4,
-    objective: 'points',
-    campaignRounds: 3,
-    modules: {},
-    aiCaptains: [
-      { id: 'a', displayName: 'Riker', skill: 'commander', class1Star: true },
-      { id: 'b', displayName: 'Troi', skill: 'commander', class1Star: true },
-    ],
-  };
+  const base = defaultLocalGameConfig('Picard', 3);
 
-  it('labels an all Class I* roster', () => {
-    expect(tableOpponentLabelForAdvisor(base)).toContain(CLASS1_STAR_DISPLAY_NAME);
+  it('labels Class II when the top seat is commander', () => {
+    expect(tableOpponentLabelForAdvisor(base)).toMatch(/Class II|Cls II/);
   });
 
-  it('labels mixed rosters', () => {
-    expect(
-      tableOpponentLabelForAdvisor({
-        ...base,
-        aiCaptains: [
-          { id: 'a', displayName: 'Riker', skill: 'commander', class1Star: true },
-          { id: 'b', displayName: 'Troi', skill: 'commander' },
-        ],
-      })
-    ).toContain('mixed');
+  it('labels Class III for lieutenant-only fleets', () => {
+    const config: LocalGameConfig = {
+      ...base,
+      aiCaptains: base.aiCaptains.map((ai) => ({
+        ...ai,
+        skill: 'lieutenant' as const,
+      })),
+    };
+    expect(tableOpponentLabelForAdvisor(config)).toMatch(/Class III|Cls III/);
   });
 });

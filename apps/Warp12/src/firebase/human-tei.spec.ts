@@ -155,7 +155,26 @@ describe('onlineMatchRatingEligibility', () => {
     );
   });
 
-  it('is unrated when a Class I* AI is aboard', () => {
+  it('rates sectors that include Class II (neural Ω) AI', () => {
+    const captains = [
+      verifiedHuman('u1'),
+      verifiedHuman('u2'),
+      {
+        id: 'ai:riker',
+        displayName: 'Riker',
+        pointsScore: 0,
+        joinedAt: '',
+        isAi: true,
+        skill: 'commander',
+      },
+    ] as FirestoreCaptain[];
+    expect(onlineMatchRatingEligibility(captains, 'points')).toEqual({
+      rated: true,
+      unratedCaptainIds: [],
+    });
+  });
+
+  it('is unrated when a legacy Class I* AI is aboard', () => {
     const captains = [
       verifiedHuman('u1'),
       verifiedHuman('u2'),

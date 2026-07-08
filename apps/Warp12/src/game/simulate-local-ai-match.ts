@@ -10,7 +10,7 @@ import type { ActionLogEntry } from 'warp12-react';
 import { playerIdForAction } from 'warp12-react';
 
 import {
-  buildAiRoster,
+  buildAiRosterAsync,
   createLocalGame,
   createSeededRng,
 } from './create-local-game.js';
@@ -73,7 +73,7 @@ export async function simulateLocalAiMatch(input?: {
   const seed = input?.seed ?? 42_424_242;
   let state = createLocalGame(config, seed);
   const roundReshuffle = createMatchRoundReshuffle(input?.reshuffleSeed ?? seed);
-  const roster = buildAiRoster(config, seed);
+  const roster = await buildAiRosterAsync(config, seed);
   const humanRng = createSeededRng(seed + 31_337);
   const actionLog: ActionLogEntry[] = [];
   let steps = 0;

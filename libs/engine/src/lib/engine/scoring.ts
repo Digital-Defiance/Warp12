@@ -184,6 +184,7 @@ export function scoreRound(
     captains,
     shuffledCoordinates: shuffled,
     turnOrder: round.turnOrder,
+    largeFleetHandSize: state.houseRules.largeFleetHandSize,
   });
   const nextRound = createRoundStateFromDeal(nextDeal);
 

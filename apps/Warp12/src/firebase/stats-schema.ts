@@ -11,7 +11,9 @@ export interface MatchHistoryEntry {
   readonly objective: RatedObjective;
   /** Present for reference-AI matches; omitted for human-opponent pool. */
   readonly opponentSkill?: WarpSkillLevel;
-  /** True when top-tier AI opponents were Class I* (experimental search). */
+  /** True when top-tier AI opponents were Class Ω (experimental neural policy). */
+  readonly opponentOmega?: boolean;
+  /** Legacy — Class I* search opponents in older match history. */
   readonly opponentClass1Star?: boolean;
   /** `human` = online human-opponent pool; omitted = reference AI bucket. */
   readonly opponentContext?: 'human' | 'reference';

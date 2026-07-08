@@ -14,6 +14,7 @@ import {
   useBridgeHeaderStatus,
 } from './bridge-header-status-context';
 import { GameAudioProvider } from './game-audio-context';
+import { LayoutTierProvider, useLayoutTier, useLayoutTierState } from './layout-tier-context';
 import { preservesGameSession } from './game-route';
 import { AboutPage } from './about-page';
 import { LocalGamePage } from './local-game-page';
@@ -33,6 +34,8 @@ import { Warp12Logo } from './Warp12Logo';
 function AppShell() {
   const auth = useFirebaseAuth();
   useOfflineMatchSync(auth.user?.uid);
+  const layoutTier = useLayoutTier();
+  const { orientation } = useLayoutTierState();
   const { focus, tableSessionActive } = useBridgeFocus();
   const layoutFocus = focus && tableSessionActive;
   const { actions: headerActions, invokeAction } = useBridgeHeaderActions();
@@ -45,6 +48,8 @@ function AppShell() {
   return (
     <div
       className={`${styles.shell} ${layoutFocus ? styles.shellFocus : ''}`}
+      data-layout-tier={layoutTier}
+      data-orientation={orientation}
       style={{
         ['--warp-void' as string]: '#050816',
         ['--warp-text' as string]: '#e2e8f0',
@@ -114,9 +119,14 @@ function AppShell() {
               <Link to="/about" className={styles.navLink}>
                 About
               </Link>
-              <Link to="https://docs.warp12.app/tei-paper-outline.html" className={styles.navLink}>
-                Research
-              </Link>
+              {layoutTier !== 'phone' && (
+                <Link
+                  to="https://docs.warp12.app/tei-paper-outline.html"
+                  className={styles.navLink}
+                >
+                  Research
+                </Link>
+              )}
               <Link to="/rules" className={styles.navLink}>
                 Manual
               </Link>
@@ -158,15 +168,17 @@ function AppShell() {
 
 export function App() {
   return (
-    <GameAudioProvider>
-      <BridgeFocusProvider>
-        <BridgeHeaderActionsProvider>
-          <BridgeHeaderStatusProvider>
-            <AppShell />
-          </BridgeHeaderStatusProvider>
-        </BridgeHeaderActionsProvider>
-      </BridgeFocusProvider>
-    </GameAudioProvider>
+    <LayoutTierProvider>
+      <GameAudioProvider>
+        <BridgeFocusProvider>
+          <BridgeHeaderActionsProvider>
+            <BridgeHeaderStatusProvider>
+              <AppShell />
+            </BridgeHeaderStatusProvider>
+          </BridgeHeaderActionsProvider>
+        </BridgeFocusProvider>
+      </GameAudioProvider>
+    </LayoutTierProvider>
   );
 }
 

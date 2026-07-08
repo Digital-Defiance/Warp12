@@ -26,6 +26,17 @@
 #   OMEGA_WORKERS         parallel collection workers (default cores − 1)
 #   OMEGA_BENCH_PARALLEL  set 0 to disable parallel bench (default on)
 #   OMEGA_BENCH_WORKERS   bench worker count (defaults to OMEGA_WORKERS)
+#   OMEGA_BENCH_PLAYERS   bench/gate table sizes, e.g. "3,4,6,8" (default 2,3,4)
+#   OMEGA_CHAMPION        champion json (init + promote target)
+#                         (default apps/Warp12/public/models/omega-v1.json)
+#   OMEGA_MODEL_OUT_DIR   dir to copy promoted ONNX into (default app public models)
+#   OMEGA_CANDIDATE_DIR   scratch dir for candidate weights
+#   OMEGA_CHAMPION_SCORE  champion score baseline file (per-objective runs)
+#   OMEGA_GATE_METRIC     mean (default) | weighted — promotion score
+#   OMEGA_GATE_WEIGHTS    weighted gate, e.g. "4:3,5:3" (unsliced N default 1)
+#   OMEGA_GATE_FLOOR_SLICES  require min fair-share on slices, e.g. "4,5"
+#   OMEGA_GATE_FLOOR      min fair-share on floor slices (default 1.0)
+#   OMEGA_GATE_REBASE     set 1 to bench champion and seed gate score before loop
 #
 set -euo pipefail
 
@@ -40,15 +51,27 @@ ELO_LOG="${OMEGA_ELO_LOG:-tools/nn/data/omega-elo-log.jsonl}"
 BASE_SEED="${OMEGA_SEED:-2026}"
 PROMOTE_MARGIN="${OMEGA_PROMOTE_MARGIN:-0.0}"
 
-CHAMPION="apps/Warp12/public/models/omega-v1.json"
-CANDIDATE_DIR="tools/nn/data/omega-candidate"
-CHAMPION_SCORE_FILE="tools/nn/data/omega-champion-score.txt"
+CHAMPION="${OMEGA_CHAMPION:-apps/Warp12/public/models/omega-v1.json}"
+MODEL_OUT_DIR="${OMEGA_MODEL_OUT_DIR:-apps/Warp12/public/models}"
+CANDIDATE_DIR="${OMEGA_CANDIDATE_DIR:-tools/nn/data/omega-candidate}"
+CHAMPION_SCORE_FILE="${OMEGA_CHAMPION_SCORE:-tools/nn/data/omega-champion-score.txt}"
+GATE_METRIC="${OMEGA_GATE_METRIC:-mean}"
 
 mkdir -p "$(dirname "$ELO_LOG")" "$CANDIDATE_DIR"
 
 echo "Class Ω GATED training loop: ${ITERATIONS} iterations, ${OMEGA_GAMES} games/iter, ${OMEGA_PLAYERS}p ${OMEGA_OBJECTIVE}"
 echo "Champion: ${CHAMPION}   Elo log: ${ELO_LOG}   promote margin: ${PROMOTE_MARGIN}"
 echo "Train batch: ${OMEGA_BATCH}   search iters: ${OMEGA_SEARCH_ITERS:-0}   workers: ${OMEGA_WORKERS:-auto}"
+echo "Gate metric: ${GATE_METRIC}${OMEGA_GATE_WEIGHTS:+  weights=${OMEGA_GATE_WEIGHTS}}${OMEGA_GATE_FLOOR_SLICES:+  floor=${OMEGA_GATE_FLOOR_SLICES}@${OMEGA_GATE_FLOOR:-1.0}}"
+
+if [ "${OMEGA_GATE_REBASE:-0}" = "1" ]; then
+  echo ""
+  echo "Rebasing gate score from current champion..."
+  REBASE_BENCH="tools/nn/data/omega-gate-rebase-bench.json"
+  OMEGA_WEIGHTS="$CHAMPION" yarn omega:bench > "$REBASE_BENCH"
+  tools/nn/.venv/bin/python tools/nn/omega-promote-gate.py \
+    0 "$REBASE_BENCH" "$ELO_LOG" "$CHAMPION_SCORE_FILE" 0 --seed
+fi
 
 for ((i = 1; i <= ITERATIONS; i++)); do
   echo ""
@@ -75,69 +98,20 @@ for ((i = 1; i <= ITERATIONS; i++)); do
   BENCH_FILE="tools/nn/data/omega-bench-iter-${i}.json"
   OMEGA_WEIGHTS="$CANDIDATE_DIR/omega-v1.json" yarn omega:bench > "$BENCH_FILE"
 
-  # 4. Gate: promote candidate only if aggregate win rate beats the champion.
+  # 4. Gate: promote candidate only if gate score beats the champion.
   # Shield from `set -e`: the gate script exits 10 to signal "promote", which
   # would otherwise abort the loop before gate_rc is captured.
   set +e
-  tools/nn/.venv/bin/python - "$i" "$BENCH_FILE" "$ELO_LOG" "$CHAMPION_SCORE_FILE" "$PROMOTE_MARGIN" <<'PY'
-import json, sys, time, os, pathlib
-iteration, bench_file, elo_log, score_file, margin = (
-    int(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4], float(sys.argv[5])
-)
-text = open(bench_file).read()
-data = json.loads(text[text.index("{"):])
-results = data.get("results", [])
-
-# Promote on MEAN FAIR-SHARE RATIO (win-rate / (1/N)): 1.0 = parity with
-# Commander, >1 = beats Commander. This is the correct multi-player strength
-# signal — raw aggregate win rate under-weights the big tables (low fair share).
-ratios = [r["fairShareRatio"] for r in results if r.get("fairShareRatio") is not None]
-cand_score = sum(ratios) / len(ratios) if ratios else 0.0
-
-prev = None
-if os.path.exists(score_file):
-    prev = float(open(score_file).read().strip() or "nan")
-    if prev != prev:  # nan
-        prev = None
-
-promote = prev is None or cand_score > prev + margin
-decision = "PROMOTE" if promote else "REJECT"
-if promote:
-    open(score_file, "w").write(f"{cand_score}")
-
-summary = {
-    "iteration": iteration,
-    "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
-    "objective": data.get("objective"),
-    "metric": "mean_fair_share_ratio",
-    "candidateScore": round(cand_score, 4),
-    "championScore": round(prev, 4) if prev is not None else None,
-    "decision": decision,
-    "slices": [
-        {"playerCount": r["playerCount"], "seat": r["omegaSeatId"],
-         "winRate": r["omegaWinRate"], "fairShareRatio": r["fairShareRatio"]}
-        for r in results
-    ],
-}
-with open(elo_log, "a") as h:
-    h.write(json.dumps(summary) + "\n")
-
-per_slice = " ".join(
-    f"{s['playerCount']}p={s['fairShareRatio']:.2f}" for s in summary["slices"]
-)
-print(f"[iter {iteration}] {decision}  candidate={cand_score:.3f} "
-      f"champion={prev if prev is not None else float('nan'):.3f} "
-      f"(mean fair-share ratio; 1.0=Commander)  [{per_slice}]")
-# Exit code 10 => promote (shell copies candidate over champion), 0 => reject.
-sys.exit(10 if promote else 0)
-PY
+  tools/nn/.venv/bin/python tools/nn/omega-promote-gate.py \
+    "$i" "$BENCH_FILE" "$ELO_LOG" "$CHAMPION_SCORE_FILE" "$PROMOTE_MARGIN"
   gate_rc=$?
   set -e
 
   if [ "$gate_rc" -eq 10 ]; then
+    mkdir -p "$MODEL_OUT_DIR"
     cp "$CANDIDATE_DIR/omega-v1.json" "$CHAMPION"
-    [ -f "$CANDIDATE_DIR/omega-policy-v1.onnx" ] && cp "$CANDIDATE_DIR/omega-policy-v1.onnx" "apps/Warp12/public/models/" || true
-    [ -f "$CANDIDATE_DIR/omega-value-v1.onnx" ] && cp "$CANDIDATE_DIR/omega-value-v1.onnx" "apps/Warp12/public/models/" || true
+    [ -f "$CANDIDATE_DIR/omega-policy-v1.onnx" ] && cp "$CANDIDATE_DIR/omega-policy-v1.onnx" "$MODEL_OUT_DIR/" || true
+    [ -f "$CANDIDATE_DIR/omega-value-v1.onnx" ] && cp "$CANDIDATE_DIR/omega-value-v1.onnx" "$MODEL_OUT_DIR/" || true
     echo "  -> promoted candidate to champion"
   elif [ "$gate_rc" -eq 0 ]; then
     echo "  -> kept champion (candidate rejected)"

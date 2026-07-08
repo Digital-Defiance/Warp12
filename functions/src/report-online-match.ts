@@ -18,6 +18,7 @@ import {
   groupRatedClaimId,
   humanObjectiveTeiStats,
   startingTeiForObjective,
+  WARP12_OFFICIAL_RULES_PROFILE_ID,
   type PlayerStatsDocument,
 } from './tei';
 import {
@@ -306,7 +307,11 @@ export const reportOnlineMatch = onCall(
       ...ais.map((a) => ({
         playerId: a.id,
         rank: ranks.get(a.id) ?? game.captains.length,
-        tei: opponentTeiForObjective(objective, aiSkill(a)),
+        tei: opponentTeiForObjective(
+          objective,
+          aiSkill(a),
+          game.rulesProfileId ?? WARP12_OFFICIAL_RULES_PROFILE_ID
+        ),
         unassistedMatches: 0,
       })),
     ];

@@ -1,7 +1,7 @@
 import type { GameAction } from 'warp12-engine';
 
 import type { LocalGameConfig } from './local-game-config.js';
-import { isPassAndPlay } from './local-game-config.js';
+import { isPassAndPlay, localMatchHasExtendedThinking } from './local-game-config.js';
 import type { RatedObjective } from '../firebase/stats-schema.js';
 import type { WarpSkillLevel } from 'warp12-engine';
 
@@ -9,7 +9,7 @@ export interface LocalAiMatchValidationInput {
   skill: WarpSkillLevel;
   objective: RatedObjective;
   advisorUsed?: boolean;
-  opponentClass1Star?: boolean;
+  opponentOmega?: boolean;
   seed?: number;
   config?: LocalGameConfig;
   humanActions?: readonly GameAction[];
@@ -25,8 +25,8 @@ export type LocalAiMatchRejectReason =
   | 'invalid_skill'
   | 'invalid_objective'
   | 'missing_advisor_used'
-  | 'class1_star_opponent'
   | 'pass_and_play'
+  | 'extended_thinking'
   | 'missing_seed'
   | 'missing_config'
   | 'missing_human_actions'
@@ -49,12 +49,6 @@ export function getLocalAiMatchRejectReason(
   if (typeof input.advisorUsed !== 'boolean') {
     return 'missing_advisor_used';
   }
-  if (
-    input.opponentClass1Star === true ||
-    input.config?.aiCaptains?.some((ai) => ai.class1Star)
-  ) {
-    return 'class1_star_opponent';
-  }
   if (typeof input.seed !== 'number' || !Number.isFinite(input.seed)) {
     return 'missing_seed';
   }
@@ -63,6 +57,9 @@ export function getLocalAiMatchRejectReason(
   }
   if (isPassAndPlay(input.config as LocalGameConfig)) {
     return 'pass_and_play';
+  }
+  if (localMatchHasExtendedThinking((input.config as LocalGameConfig).aiCaptains)) {
+    return 'extended_thinking';
   }
   if (!Array.isArray(input.humanActions)) {
     return 'missing_human_actions';
@@ -83,10 +80,10 @@ export function localAiMatchRejectNotice(
   reason: LocalAiMatchRejectReason
 ): string {
   switch (reason) {
-    case 'class1_star_opponent':
-      return 'Class I* is experimental — TEI is not tracked for those matches yet.';
     case 'pass_and_play':
       return 'Pass-and-play matches are unrated — TEI is not tracked.';
+    case 'extended_thinking':
+      return 'Extended-thinking Class II officers are exhibition mode — TEI is not tracked.';
     case 'missing_advisor_used':
     case 'missing_seed':
     case 'missing_config':

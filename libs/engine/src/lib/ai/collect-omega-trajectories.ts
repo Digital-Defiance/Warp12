@@ -386,6 +386,9 @@ export function collectOmegaTrajectoriesToSink(
             rng: decideRng,
             maxBranch: searchMaxBranch,
             useBeliefConstraints: true,
+            // Path B bootstrap: Commander rollouts as search leaf. Product Ω+
+            // uses leaf:'puct' (policy prior + value) — keep these separate.
+            leaf: 'heuristic',
           });
           const byKey = new Map<string, number>();
           for (const v of visits) byKey.set(warpAiActionKey(v.action), v.visits);

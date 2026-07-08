@@ -9,8 +9,7 @@ python3 <<'PY'
 import json
 import os
 
-#p = "tools/nn/data/omega-elo-log.jsonl"
-p = "tools/nn/data/omega-elo-log-run2-480.jsonl"
+p = os.environ.get("OMEGA_ELO_LOG", "tools/nn/data/omega-elo-log.jsonl")
 if os.path.exists(p) and os.path.getsize(p) > 0:
     rows = [json.loads(line) for line in open(p, encoding="utf-8") if line.strip()]
     for r in rows:
@@ -18,13 +17,18 @@ if os.path.exists(p) and os.path.getsize(p) > 0:
             f"{x['playerCount']}p": round(x["fairShareRatio"], 2)
             for x in r["slices"]
         }
+        metric = r.get("metric", "mean")
+        mean_fs = r.get("meanFairShare")
+        extra = f" mean={mean_fs}" if mean_fs is not None else ""
         print(
             r["iteration"],
             r["decision"],
+            metric,
             "score",
             r["candidateScore"],
             "champ",
             r["championScore"],
+            extra,
             s,
         )
     print(
