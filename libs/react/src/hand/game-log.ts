@@ -1,47 +1,21 @@
 import {
+  hasRedAlertPassed,
   isDouble,
   isPipExhausted,
   isRedAlertBlocking,
   isTrueRedAlert,
-  nextActivePlayerId,
   type ChartRoute,
   type Coordinate,
   type GameAction,
   type GameState,
-  type QFlashEffectKind,
+  type FlashEffectKind,
   type RoundState,
 } from 'warp12-engine';
 
 import { NEUTRAL_ZONE_SLOT } from '../adapters/game-to-trains.js';
 
-/** True once someone has passed Red Alert on the active double. */
 function wasRedAlertPassed(round: RoundState): boolean {
-  const redAlert = round.table.redAlert;
-  if (!redAlert?.active || !isTrueRedAlert(round)) {
-    return false;
-  }
-
-  // Authoritative once the engine records the first pass; the beacon heuristic
-  // below is a fallback for legacy states (and free passes that leave no beacon).
-  if (redAlert.passed === true) {
-    return true;
-  }
-
-  const responsible = redAlert.responsiblePlayerId;
-  if (!responsible) {
-    return false;
-  }
-
-  for (const [playerId, trail] of Object.entries(round.table.warpTrails)) {
-    if (!trail.distressBeacon.active || playerId === responsible) {
-      continue;
-    }
-    if (nextActivePlayerId(round, playerId) === responsible) {
-      return true;
-    }
-  }
-
-  return false;
+  return hasRedAlertPassed(round.table.redAlert);
 }
 
 export type GameLogKind = GameAction['type'] | 'ROUND_STARTED' | 'ROUND_RATINGS';
@@ -51,7 +25,7 @@ export type GameLogEffect =
   | 'caution-cleared'
   | 'red-alert-opened'
   | 'red-alert-cleared'
-  | 'q-flash-pending'
+  | 'continuum-flash-pending'
   | 'subspace-fracture-opened'
   | 'subspace-fracture-cleared'
   | 'beacon-deployed'
@@ -83,7 +57,7 @@ export interface GameLogEntry {
   readonly trainId?: number;
   readonly coordinate?: Coordinate;
   readonly route?: GameLogRoute;
-  readonly qFlashEffect?: QFlashEffectKind;
+  readonly flashEffect?: FlashEffectKind;
   readonly winnerId?: string | null;
   readonly nextCaptainId?: string;
   readonly targetCaptainId?: string;
@@ -224,10 +198,10 @@ function effectsPhrase(effects: readonly GameLogEffect[]): string {
   for (const effect of effects) {
     switch (effect) {
       case 'caution-opened':
-        parts.push('causing a Caution Status');
+        parts.push('raising Yellow alert');
         break;
       case 'caution-cleared':
-        parts.push('clearing the Caution Status');
+        parts.push('clearing Yellow alert');
         break;
       case 'red-alert-opened':
         parts.push('causing a Red Alert');
@@ -235,8 +209,8 @@ function effectsPhrase(effects: readonly GameLogEffect[]): string {
       case 'red-alert-cleared':
         parts.push('clearing the Red Alert');
         break;
-      case 'q-flash-pending':
-        parts.push('causing a Q-Flash');
+      case 'continuum-flash-pending':
+        parts.push('causing a Continuum Flash');
         break;
       case 'subspace-fracture-opened':
         parts.push('opening Subspace Fracture');
@@ -343,9 +317,9 @@ export function formatGameLogLine(
     }
     case 'RAISE_SHIELDS':
       return `${prefix} raised shields${effectsPhrase(entry.effects)}`;
-    case 'INVOKE_Q_FLASH':
-      return `${prefix} invoked Q-Flash · ${entry.qFlashEffect?.replaceAll('-', ' ') ?? 'effect'}${effectsPhrase(entry.effects)}`;
-    case 'RESOLVE_Q_GAMBLE':
+    case 'INVOKE_CONTINUUM_FLASH':
+      return `${prefix} invoked Continuum Flash · ${entry.flashEffect?.replaceAll('-', ' ') ?? 'effect'}${effectsPhrase(entry.effects)}`;
+    case 'RESOLVE_CONTINUUM_WAGER':
       return `${prefix} resolved Q-Gamble${effectsPhrase(entry.effects)}`;
     case 'END_ROUND': {
       if (entry.effects.includes('round-blocked')) {
@@ -430,8 +404,8 @@ function chartEffects(
 
   if (playedDeadDouble) {
     effects.push('dead-double');
-    if (!before.qPendingInvoker && after.qPendingInvoker) {
-      effects.push('q-flash-pending');
+    if (!before.continuumPendingInvoker && after.continuumPendingInvoker) {
+      effects.push('continuum-flash-pending');
     }
     return effects;
   }
@@ -457,8 +431,8 @@ function chartEffects(
     }
   }
 
-  if (!before.qPendingInvoker && after.qPendingInvoker) {
-    effects.push('q-flash-pending');
+  if (!before.continuumPendingInvoker && after.continuumPendingInvoker) {
+    effects.push('continuum-flash-pending');
   }
 
   if (!beforeFracture?.active && afterFracture?.active) {
@@ -633,15 +607,15 @@ export function buildGameLogEntry(
         targetCaptainId: action.targetPlayerId,
         effects: catchDropToImpulseEffects(afterRound),
       };
-    case 'INVOKE_Q_FLASH':
+    case 'INVOKE_CONTINUUM_FLASH':
       return {
         at,
         kind: action.type,
         captainId: action.playerId,
-        qFlashEffect: action.effect,
+        flashEffect: action.effect,
         effects: [],
       };
-    case 'RESOLVE_Q_GAMBLE':
+    case 'RESOLVE_CONTINUUM_WAGER':
       return {
         at,
         kind: action.type,

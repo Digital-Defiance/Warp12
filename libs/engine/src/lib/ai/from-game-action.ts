@@ -28,9 +28,9 @@ export function warpAiActionKey(action: WarpAiAction): string {
       )}`;
     case 'catch-drop-to-impulse':
       return `catch-dti:${action.targetPlayerId}`;
-    case 'invoke-q-flash':
-      return `q-flash:${action.effect}`;
-    case 'resolve-q-gamble':
+    case 'invoke-continuum-flash':
+      return `continuum-flash:${action.effect}`;
+    case 'resolve-continuum-wager':
       return `q-gamble:${action.keepIndex}`;
     default:
       return action.kind;
@@ -70,10 +70,10 @@ export function gameActionToWarpAi(
         kind: 'catch-drop-to-impulse',
         targetPlayerId: action.targetPlayerId,
       };
-    case 'INVOKE_Q_FLASH':
-      return { kind: 'invoke-q-flash', effect: action.effect };
-    case 'RESOLVE_Q_GAMBLE':
-      return { kind: 'resolve-q-gamble', keepIndex: action.keepIndex };
+    case 'INVOKE_CONTINUUM_FLASH':
+      return { kind: 'invoke-continuum-flash', effect: action.effect };
+    case 'RESOLVE_CONTINUUM_WAGER':
+      return { kind: 'resolve-continuum-wager', keepIndex: action.keepIndex };
     case 'END_ROUND':
       return null;
   }

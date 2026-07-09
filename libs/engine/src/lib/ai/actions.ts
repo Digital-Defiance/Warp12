@@ -1,6 +1,6 @@
 import type { GameAction, LegalMove } from '../types/actions.js';
 import type { PlayerId } from '../types/player.js';
-import type { QFlashEffectKind } from '../types/q-continuum.js';
+import type { FlashEffectKind } from '../types/continuum.js';
 
 /**
  * The AI's action space, mirroring the moves a captain can declare. `chart`
@@ -18,8 +18,8 @@ export type WarpAiAction =
   | { readonly kind: 'raise-shields' }
   | { readonly kind: 'drop-to-impulse' }
   | { readonly kind: 'catch-drop-to-impulse'; readonly targetPlayerId: PlayerId }
-  | { readonly kind: 'invoke-q-flash'; readonly effect: QFlashEffectKind }
-  | { readonly kind: 'resolve-q-gamble'; readonly keepIndex: 0 | 1 };
+  | { readonly kind: 'invoke-continuum-flash'; readonly effect: FlashEffectKind }
+  | { readonly kind: 'resolve-continuum-wager'; readonly keepIndex: 0 | 1 };
 
 /** Lowers an AI action into the engine {@link GameAction} for `applyAction`. */
 export function toGameAction(
@@ -54,11 +54,11 @@ export function toGameAction(
         challengerId: playerId,
         targetPlayerId: action.targetPlayerId,
       };
-    case 'invoke-q-flash':
-      return { type: 'INVOKE_Q_FLASH', playerId, effect: action.effect };
-    case 'resolve-q-gamble':
+    case 'invoke-continuum-flash':
+      return { type: 'INVOKE_CONTINUUM_FLASH', playerId, effect: action.effect };
+    case 'resolve-continuum-wager':
       return {
-        type: 'RESOLVE_Q_GAMBLE',
+        type: 'RESOLVE_CONTINUUM_WAGER',
         playerId,
         keepIndex: action.keepIndex,
       };

@@ -3,7 +3,7 @@
  *
  * Drives full Warp 12 games by choosing uniformly at random among **every**
  * legal action for the active captain (charts, draw, beacon, pass, Red Alert
- * pass, Q-Flash, Q-gamble, Drop to Impulse announce/catch, manual shields).
+ * pass, Continuum Flash, Q-gamble, Drop to Impulse announce/catch, manual shields).
  * After every applied action it asserts a battery of invariants that must hold
  * for any correct rules engine — most importantly **tile conservation**: the 91
  * coordinates of a double-twelve set are never created, destroyed, or
@@ -35,7 +35,7 @@ import {
   generateCoordinateSet,
   shuffleCoordinates,
 } from '../domino/coordinates.js';
-import { getAvailableQFlashEffects } from '../types/q-continuum.js';
+import { getAvailableFlashEffects } from '../types/continuum.js';
 import { resolveHouseRules } from '../types/house-rules.js';
 import type { HouseRules, HouseRulesConfig } from '../types/house-rules.js';
 import type { GameModuleConfig } from '../types/modules.js';
@@ -66,21 +66,21 @@ export function enumerateLegalActions(
   const playerId = round.activePlayerId;
   const actions: GameAction[] = [];
 
-  // Q-Flash resolution takes priority — the invoker must pick an effect.
-  if (round.qPendingInvoker === playerId) {
-    for (const effect of getAvailableQFlashEffects(
+  // Continuum Flash resolution takes priority — the invoker must pick an effect.
+  if (round.continuumPendingInvoker === playerId) {
+    for (const effect of getAvailableFlashEffects(
       round,
       state.modules,
       state.captains
     )) {
-      actions.push({ type: 'INVOKE_Q_FLASH', playerId, effect });
+      actions.push({ type: 'INVOKE_CONTINUUM_FLASH', playerId, effect });
     }
     return actions;
   }
 
-  if (round.qGamblePending?.playerId === playerId) {
-    actions.push({ type: 'RESOLVE_Q_GAMBLE', playerId, keepIndex: 0 });
-    actions.push({ type: 'RESOLVE_Q_GAMBLE', playerId, keepIndex: 1 });
+  if (round.continuumWagerPending?.playerId === playerId) {
+    actions.push({ type: 'RESOLVE_CONTINUUM_WAGER', playerId, keepIndex: 0 });
+    actions.push({ type: 'RESOLVE_CONTINUUM_WAGER', playerId, keepIndex: 1 });
     return actions;
   }
 

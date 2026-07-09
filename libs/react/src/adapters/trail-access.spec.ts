@@ -7,6 +7,8 @@ import {
   formatRedAlertStatus,
   formatSectorRedAlertRow,
   isRedAlertFresh,
+  shouldIlluminateBridgeRedAlert,
+  shouldIlluminateBridgeYellowAlert,
   openTrailCaptainNames,
 } from './trail-access';
 import { NEUTRAL_ZONE_SLOT } from './game-to-trains';
@@ -209,12 +211,39 @@ describe('formatSectorRedAlertRow', () => {
     },
   } as RoundState;
 
-  it('shows caution when a double is first charted', () => {
+  it('shows yellow alert when a double is first charted', () => {
+    expect(isRedAlertFresh(roundBase)).toBe(true);
+    expect(shouldIlluminateBridgeYellowAlert(roundBase)).toBe(true);
+    expect(shouldIlluminateBridgeRedAlert(roundBase)).toBe(false);
     expect(formatSectorRedAlertRow(roundBase, names)).toEqual({
-      label: 'Caution',
+      label: 'Yellow alert',
       summary: 'A double has been played — 6:6',
-      tone: 'caution',
+      tone: 'yellow',
     });
+  });
+
+  it('stays yellow alert when unrelated distress beacons are still up', () => {
+    const cautionWithBeacons: RoundState = {
+      ...roundBase,
+      activePlayerId: 'alpha',
+      table: {
+        ...roundBase.table,
+        warpTrails: {
+          ...roundBase.table.warpTrails,
+          beta: {
+            ...roundBase.table.warpTrails.beta,
+            distressBeacon: { active: true },
+          },
+        },
+      },
+    };
+
+    expect(isRedAlertFresh(cautionWithBeacons)).toBe(true);
+    expect(shouldIlluminateBridgeYellowAlert(cautionWithBeacons)).toBe(true);
+    expect(shouldIlluminateBridgeRedAlert(cautionWithBeacons)).toBe(false);
+    expect(formatSectorRedAlertRow(cautionWithBeacons, names)?.label).toBe(
+      'Yellow alert'
+    );
   });
 
   it('shows red alert after someone passes', () => {
@@ -232,11 +261,14 @@ describe('formatSectorRedAlertRow', () => {
         redAlert: {
           ...roundBase.table.redAlert!,
           responsiblePlayerId: 'beta',
+          passed: true,
         },
       },
     };
 
     expect(isRedAlertFresh(passed)).toBe(false);
+    expect(shouldIlluminateBridgeYellowAlert(passed)).toBe(false);
+    expect(shouldIlluminateBridgeRedAlert(passed)).toBe(true);
     expect(formatSectorRedAlertRow(passed, names)).toEqual({
       label: 'Red alert',
       summary: 'Alpha · 6:6 · Beta must cover',
@@ -246,7 +278,7 @@ describe('formatSectorRedAlertRow', () => {
 
   it('shows red alert after a free pass even though no beacon was deployed', () => {
     // Pass Red Alert without draw/beacon (mayhem) leaves no Distress Beacon,
-    // so the beacon heuristic alone would still read "Caution". The explicit
+    // so unrelated beacons alone would still read Yellow alert. The explicit
     // `passed` flag keeps the status correct.
     const freePassed: RoundState = {
       ...roundBase,

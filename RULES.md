@@ -1,6 +1,6 @@
 # WARP 12: Navigational Operations Manual
 
-*A double-twelve Mexican Train variant, with Starfleet terminology.*
+*A double-twelve Mexican Train variant, with federation terminology.*
 
 ### A note on "official" rules
 
@@ -58,7 +58,7 @@ Fleet command chooses one objective before the sector opens:
 | Boneyard | **Uncharted Sectors** |
 | — | **Red Alert** — a double must be satisfied before normal play continues (cover tile, or stabilizers when Subspace Fracture applies) |
 | — | **Subspace Fracture** — optional chicken-foot protocol on doubles (scope: Own Trail, All Captains, or All Doubles) |
-| — | **Q-Flash** — optional Module Alpha anomaly on 0-0 |
+| — | **Continuum Flash** — optional Module Alpha anomaly on 0-0 |
 | — | **All Stop!** — ceremony required after some round-winning charts (Neutral Zone, or any go-out when All Stop! echo is active) |
 | — | **Drop to Impulse** — optional house-rule announce when one coordinate remains (uno / knock) |
 
@@ -91,7 +91,7 @@ Setup matches standard double-twelve Mexican Train:
 
 ## III. Standard gameplay
 
-Play proceeds clockwise. Each turn, unless a special protocol applies (Red Alert, Subspace Fracture, Q-Flash resolution), a captain does **one** of the following:
+Play proceeds clockwise. Each turn, unless a special protocol applies (Red Alert, Subspace Fracture, Continuum Flash resolution), a captain does **one** of the following:
 
 1. **Chart** one legal coordinate, if any exist.
 2. **Draw** one tile from Uncharted Sectors, then follow the draw rules below.
@@ -138,7 +138,7 @@ If you cannot satisfy an active Red Alert after drawing (or with an empty pile),
 
 When **Subspace Fracture** is active (Section VI), “satisfy” means **stabilizers** — not a separate cover tile. Pass Red Alert only when you cannot add the next stabilizer.
 
-*(Opt-in exception — Section VI **Pass Red Alert without draw or beacon**: the captain who **charted** the double may pass it on immediately, without drawing or deploying a beacon, but only during the **Caution** phase. Once the alert has passed once, standard rules resume for everyone, including that captain when it comes back around.)*
+*(Opt-in exception — Section VI **Pass Red Alert without draw or beacon**: the captain who **charted** the double may pass it on immediately, without drawing or deploying a beacon, but only during **Yellow alert**. Once the alert has passed once, standard rules resume for everyone, including that captain when it comes back around.)*
 
 ---
 
@@ -168,11 +168,11 @@ Captain B still holds **one tile** and later charts it legally, emptying B's han
 
 **One double at a time.** Warp 12 resolves doubles one at a time: chart a double, satisfy it (cover tile, or three stabilizers under Subspace Fracture), and your turn ends. Because a cover must match the double's pip and no other double shares that pip, a cover is always a non-double — you never chain into a fresh Red Alert, and you do not play multiple doubles in a single turn. (Some casual house rules let a captain lay several doubles in one turn as long as the last is covered by a non-double; Warp 12 follows the tournament-style single-double resolution instead.)
 
-### Caution and Red Alert *(digital status)*
+### Yellow alert and Red Alert *(digital status)*
 
 The rules engine treats every uncovered double as **Red Alert** — the same protocol throughout. On the bridge display and in the sector log, you will see two **status labels** for the same alert:
 
-- **Caution** — the double was just charted; the responsible captain has **not** yet passed Red Alert to someone else.
+- **Yellow alert** — the double was just charted; the responsible captain has **not** yet passed Red Alert to someone else.
 - **Red Alert** — responsibility has passed at least once (typically after a Distress Beacon deploy and pass). The double still must be satisfied.
 
 This is presentation only. Gameplay, sounds, and scoring follow the Red Alert rules above in both phases.
@@ -210,7 +210,7 @@ The round ends when one captain charts their **last** coordinate (empty hand) **
 
 Turn **All Stop! ceremony** off in game options for pure standard Mexican Train: Neutral Zone go-outs end the round silently, with no announcement.
 
-**All Stop! echo** (Q-Flash Module Alpha): when active, **any** round-winning chart triggers the same auto ceremony when the house rule is on.
+**All Stop! echo** (Continuum Flash Module Alpha): when active, **any** round-winning chart triggers the same auto ceremony when the house rule is on.
 
 **Drop to Impulse** *(house rule — off by default)*: when a captain charts down to **one** coordinate remaining, they are **at impulse** — their turn **continues**, but they **cannot chart again** on that turn. This matches standard Mexican Train **knock**: reaching one tile does not let you silently play that last coordinate.
 
@@ -228,7 +228,7 @@ If Uncharted Sectors are empty and **no captain** can make a legal chart (after 
 
 When a round ends with a winner, every **other** captain totals pip values in hand and adds that to their campaign score. The round winner scores **0** for that round.
 
-**Double-blank (0-0):** a double-blank caught in hand scores by the **Double-blank score** setting — **50** (tournament standard, the default for hand-built rule sets), **25**, or **0** (pips). The **Official Warp 12 rules** preset uses **0** so the 0-0 stays safe to hold as the Q-Continuum trigger (Module Alpha). This is independent of the Salamander Penalty, which only affects **12-12**.
+**Double-blank (0-0):** a double-blank caught in hand scores by the **Double-blank score** setting — **50** (tournament standard, the default for hand-built rule sets), **25**, or **0** (pips). The **Official Warp 12 rules** preset uses **0** so the 0-0 stays safe to hold as the Continuum trigger (Module Alpha). This is independent of the Salamander Penalty, which only affects **12-12**.
 
 **Next round:** Spacedock steps down one double (12-12 → 11-11 → … → 0-0). After round 13, lowest cumulative points total wins.
 
@@ -266,7 +266,7 @@ In the app, choose **Official Warp 12 rules** on the setup screen (or accept the
 
 | Setting | Official Warp 12 preset |
 | --- | --- |
-| **Module Alpha — Q-Continuum** | **On** |
+| **Module Alpha — Continuum** | **On** |
 | **Module Beta — Salamander Penalty** | **On** |
 | **Drop to Impulse** | **On** — **1-tile catch** when opponents catch a missed announce |
 | **All Stop! ceremony** | **On** — auto log/sound after Neutral Zone wins and All Stop! echo go-outs |
@@ -301,7 +301,7 @@ When a double in scope is charted, **Subspace Fracture** and **Red Alert** open 
 
 When Subspace Fracture is **off**, doubles use **Red Alert only** (one cover tile on the double).
 
-**Fracture immunity** (Q-Flash Module Alpha): the next double on your own trail opens Red Alert but **does not** open Subspace Fracture (regardless of scope).
+**Fracture immunity** (Continuum Flash Module Alpha): the next double on your own trail opens Red Alert but **does not** open Subspace Fracture (regardless of scope).
 
 ### House rules *(Deluxe-style — off in Official Warp 12 preset)*
 
@@ -314,14 +314,14 @@ Hosts may enable any combination before launch.
 | **Beacon clears on any play** | Any legal chart removes **your** Distress Beacon — not only a chart on your own trail. |
 | **Round starter plays two** | The round starter must chart **two tiles on their own Warp Trail** on their opening turn (Spacedock + two from hand). If the first tile is a double, the Red Alert cover counts as the second. If you cannot play the second tile, deploy your Distress Beacon — no extra draw. Cannot start the Neutral Zone or opponent trails until both are played. |
 | **Drop to Impulse** | At one coordinate left (**at impulse**), your turn continues but you **cannot chart** until you **Drop to Impulse!** (announce and pass helm) or **pass** without announcing (opponents may **catch** — 1 or 2 tile penalty per setup). Draw while stuck at impulse → **return to warp**. Catch window closes when the next captain passes helm. |
-| **Pass Red Alert without draw or beacon** | Only the captain who **charted the double** gets this break, and only while the alert is still in the **Caution** phase (before it has passed to anyone). If they cannot cover their own double, they may pass responsibility to the next captain **without drawing** from Uncharted Sectors and **without** deploying their Distress Beacon. Red Alert then proceeds normally: every other captain — and the original captain when it cycles back to them — must follow standard rules (draw when tiles remain, deploy the beacon on pass). |
+| **Pass Red Alert without draw or beacon** | Only the captain who **charted the double** gets this break, and only while the alert is still in **Yellow alert** (before it has passed to anyone). If they cannot cover their own double, they may pass responsibility to the next captain **without drawing** from Uncharted Sectors and **without** deploying their Distress Beacon. Red Alert then proceeds normally: every other captain — and the original captain when it cycles back to them — must follow standard rules (draw when tiles remain, deploy the beacon on pass). |
 | **Manual shield control** | Replaces the automatic "shields rise when you chart your own trail" behavior with manual control, all **during** your turn (never between turns). **Open (Shields down):** you may open your own Warp Trail at any time, for any reason — even with legal plays in hand and even before you've started your trail. **Close (Shields up):** after you drop shields you must chart at least one tile on **your own** Warp Trail before you may raise them again (that own-trail chart may be this turn or a later one); charting your own trail does **not** auto-raise. **One shield change per turn** — a single open **or** a single close, never both and never repeated. Shield changes never pass helm on their own; adjust, then chart or **Pass**. Standard draw/marker rules still apply when you cannot chart (a forced marker after a failed draw ends your turn). |
 
-### Module Alpha — The Q-Continuum *(on in Official Warp 12 preset)*
+### Module Alpha — The Continuum *(on in Official Warp 12 preset)*
 
-When **enabled**, charting **0-0 on your own Warp Trail** triggers a **Q-Flash** before helm passes. That captain immediately chooses **one** directive for the rest of the round (cleared when the sector scores):
+When **enabled**, charting **0-0 on your own Warp Trail** triggers a **Continuum Flash** before helm passes. That captain immediately chooses **one** directive for the rest of the round (cleared when the sector scores):
 
-| Q-Flash | Effect |
+| Continuum Flash | Effect |
 | --- | --- |
 | **Reverse turn order** | Helm passes counter-clockwise for the rest of the round. |
 | **Skip lowest points** | The captain with the lowest campaign points score skips their next turn. |
@@ -333,13 +333,13 @@ When **enabled**, charting **0-0 on your own Warp Trail** triggers a **Q-Flash**
 | **All Stop! echo** | Any captain going out this round must call All Stop! before the sector closes. |
 | **Q's gamble** | Draw two tiles from Uncharted Sectors — keep one, return the other face-down. |
 
-0-0 charted on the Neutral Zone or an opponent's trail does **not** trigger Q-Flash. A winning 0-0 on your own trail still requires Q-Flash resolution before the sector can close.
+0-0 charted on the Neutral Zone or an opponent's trail does **not** trigger Continuum Flash. A winning 0-0 on your own trail still requires Continuum Flash resolution before the sector can close.
 
 ### Module Beta — The Salamander Penalty *(on in Official Warp 12 preset)*
 
 If a round ends and a captain holds **12-12** in hand, that tile scores **double its pips — 48** (its normal both-ends value is 24). Round 1 never applies (12-12 is Spacedock). From round 2 onward, 12-12 is in circulation.
 
-With **Salamander swap** (Q-Continuum, Module Alpha), the **entire 48-point penalty** transfers to the highest-points captain instead — the 12-12 holder pays **nothing** for that tile, and the leader eats the full 48.
+With **Salamander swap** (Continuum, Module Alpha), the **entire 48-point penalty** transfers to the highest-points captain instead — the 12-12 holder pays **nothing** for that tile, and the leader eats the full 48.
 
 ---
 
@@ -400,13 +400,13 @@ The same Ω neural weights can run with **extended thinking** — Commander-free
 
 ## VIII. TEI & leaderboard *(digital)*
 
-Local solo sectors against **AI officers** can report results to **[leaderboard.warp12.app](https://leaderboard.warp12.app)** when the client is signed in to Firebase. Team campaigns, unrated lobby modes, and builds without a working stats backend do not update the public boards.
+Local solo sectors against **AI officers** can report results to **[iwdf.org](https://iwdf.org)** when the client is signed in to Firebase. Team campaigns, unrated lobby modes, and builds without a working stats backend do not update the public boards.
 
 Warp 12 keeps **three rating contexts**, each split into **Go-out** and **Points** tracks:
 
 - **Solo pool** — unassisted matches against reference AI officers (Class IV / III / II).
 - **Human pool** — online sectors and officiated matches **without** a crew charter (global `humanTei`).
-- **Crew charters** — friend-group ladders on [leaderboard.warp12.app/crews](https://leaderboard.warp12.app/crews); scoped **group TEI** per charter. See [Crews & charters](docs/crews-roadmap.md).
+- **Crew charters** — friend-group ladders on [iwdf.org/crews](https://iwdf.org/crews); scoped **group TEI** per charter. See [Crews & charters](docs/crews-roadmap.md).
 
 The normative rating math (Elo update, reference bands, multi-captain human tables) is defined in **[docs/tei-spec.md](docs/tei-spec.md)** for third-party interoperability.
 
@@ -425,13 +425,13 @@ When the sector ends, every signed-in captain's TEI is updated with a single pai
 
 A **crew** is a persistent friend group with a **charter** — a frozen contract: Official Warp 12 rules (`warp12-official-v1`), objective (Points or Go-out), fleet size (2–8), and campaign length. When a rated match or online sector is played **under a crew charter**, TEI updates go to that crew's ladder (`groupTei`), not the global human pool.
 
-- **Create / join** at [leaderboard.warp12.app/crews](https://leaderboard.warp12.app/crews). **Google sign-in required.** No shared crew passwords — invite links only (owner can rotate).
+- **Create / join** at [iwdf.org/crews](https://iwdf.org/crews). **Google sign-in required.** No shared crew passwords — invite links only (owner can rotate).
 - **Officiated nights:** the match official selects the crew when creating an `MT-` code. All checked-in captains must be crew members. Approval moves **crew TEI only**.
 - **Online sectors:** the host selects a crew in the lobby waiting room; fleet size, objective, and rules lock to the charter. Sector must match exactly or it stays unrated (`charter_mismatch`).
 - **Guests** at the table do not earn crew TEI (same as global human pool).
 - **Global Official** is a special open charter (`global-official`). Rated play under it updates **both** the Global Official crew ladder **and** global human-pool TEI.
 
-The [TEI calculator](https://leaderboard.warp12.app/calculator) can preview crew-ladder outcomes without saving anything. Full design: [docs/crews-roadmap.md](docs/crews-roadmap.md).
+The [TEI calculator](https://iwdf.org/calculator) can preview crew-ladder outcomes without saving anything. Full design: [docs/crews-roadmap.md](docs/crews-roadmap.md).
 
 ### Lexicon
 
@@ -452,7 +452,7 @@ Your solo TEI is **not** one number — the app keeps separate ratings for each 
 
 Each track is further split by opponent profile: **Class IV**, **Class III**, and **Class II**. Beating Class II officers does not move your Class IV bucket.
 
-### Starfleet Academy placement
+### Federation Academy placement
 
 Before your first rated match in each track, the app asks for a **tactical classification** separately for **go-out** and **points**. Choose **Class IV**, **Class III**, or **Class II** on each track (with a short self-description), then fine-tune a **starting TEI** within that class’s band. You might place as Class II for go-out and Class IV for points. Each track is saved **once**; after you save placement for a track — or after your first unassisted rated match in that track — its starting TEI field locks. **Class I** is not selectable at onboarding — it is earned.
 
@@ -487,7 +487,7 @@ Early games swing more; veterans stabilize.
 
 ### Starting TEI *(Academy)*
 
-Before your **first rated** match in each track, complete **Starfleet Academy placement** for that track: pick Class IV, Class III, or Class II, then save a starting TEI within that class’s band. Tracks are independent — strong at go-out but new to points campaigns is fine. If you skip placement and play unassisted, the first match in that track’s bucket begins from **TEI 1000**.
+Before your **first rated** match in each track, complete **Federation Academy placement** for that track: pick Class IV, Class III, or Class II, then save a starting TEI within that class’s band. Tracks are independent — strong at go-out but new to points campaigns is fine. If you skip placement and play unassisted, the first match in that track’s bucket begins from **TEI 1000**.
 
 ### What counts as rated
 
@@ -559,7 +559,7 @@ The host can opt out of rating at any time before launch by unchecking **Rated s
 
 ## Quick reference — standard vs Warp 12 extras
 
-**Official Warp 12 rules** (recommended preset) — see **Section VI** — enables Q-Continuum, Salamander, Drop to Impulse (1-tile catch), and All Stop! ceremony on standard **Sections I–V** gameplay.
+**Official Warp 12 rules** (recommended preset) — see **Section VI** — enables Continuum, Salamander, Drop to Impulse (1-tile catch), and All Stop! ceremony on standard **Sections I–V** gameplay.
 
 | Rule | Standard Mexican Train | Warp 12 |
 | --- | --- | --- |
@@ -573,14 +573,14 @@ The host can opt out of rating at any time before launch by unchecking **Rated s
 | NZ after all trails | Optional Deluxe variant | House rule — opt-in |
 | Beacon clears on any play | Optional Deluxe variant | House rule — opt-in |
 | Round starter plays two | Optional Deluxe variant | House rule — opt-in |
-| 0-0 anomaly | — | Q-Continuum — Official Warp 12 preset |
+| 0-0 anomaly | — | Continuum — Official Warp 12 preset |
 | 12-12 Salamander Penalty | — | Salamander — Official Warp 12 preset |
 | NZ win announcement | — | All Stop! ceremony — Official Warp 12 preset |
 | One tile left announce | — | Drop to Impulse — Official Warp 12 preset (1-tile catch) |
-| Double-blank (0-0) score | 50 (tournament standard) | Setup option 50 / 25 / 0 — Official Warp 12 preset uses 0 (Q-Continuum trigger) |
+| Double-blank (0-0) score | 50 (tournament standard) | Setup option 50 / 25 / 0 — Official Warp 12 preset uses 0 (Continuum trigger) |
 | Blocked boneyard | Round ends, all score | Blocked sector — same |
 | AI officers / tactical advisor | — | Section VII — digital only |
-| Solo TEI vs AI | — | Section VIII — leaderboard.warp12.app; unassisted matches only |
+| Solo TEI vs AI | — | Section VIII — iwdf.org; unassisted matches only |
 | Online TEI (human pool) | — | Section VIII — auto-rated when all captains are signed in and any AI are Class II–IV |
 | Crew / charter TEI | — | Section VIII — group TEI via leaderboard crews + officiated or online rated sectors |
 | Global Official TEI | — | Section VIII — open charter; updates crew + global human pool |

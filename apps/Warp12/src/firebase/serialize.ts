@@ -1,7 +1,7 @@
 import type {
   GameAction,
   GameState,
-  QFlashEffectKind,
+  FlashEffectKind,
   RoundState,
 } from 'warp12-engine';
 import { resolveHouseRules } from 'warp12-engine';
@@ -58,7 +58,7 @@ export function serializePublicGame(state: GameState): FirestoreGameDocument {
     createdAt: now,
     updatedAt: now,
     modules: {
-      qContinuum: state.modules.qContinuum.enabled,
+      continuum: state.modules.continuum.enabled,
       salamanderPenalty: state.modules.salamanderPenalty.enabled,
       subspaceFracture: state.modules.subspaceFracture.enabled,
       subspaceFractureScope: state.modules.subspaceFracture.scope,
@@ -88,23 +88,23 @@ export function serializePublicGame(state: GameState): FirestoreGameDocument {
     })),
     completedRounds: state.completedRounds,
     round: state.round ? serializePublicRound(state.round) : null,
-    qFlash: state.modules.qContinuum.activeFlash
+    flash: state.modules.continuum.activeFlash
       ? {
-          invokedBy: state.modules.qContinuum.activeFlash.invokedBy,
+          invokedBy: state.modules.continuum.activeFlash.invokedBy,
           effect: {
-            kind: state.modules.qContinuum.activeFlash.effect.kind,
-            ...(state.modules.qContinuum.activeFlash.effect.targetPlayerId
+            kind: state.modules.continuum.activeFlash.effect.kind,
+            ...(state.modules.continuum.activeFlash.effect.targetPlayerId
               ? {
                   targetPlayerId:
-                    state.modules.qContinuum.activeFlash.effect.targetPlayerId,
+                    state.modules.continuum.activeFlash.effect.targetPlayerId,
                 }
               : {}),
-            ...(state.modules.qContinuum.activeFlash.effect.peek
+            ...(state.modules.continuum.activeFlash.effect.peek
               ? {
                   peek: {
-                    index: state.modules.qContinuum.activeFlash.effect.peek.index,
+                    index: state.modules.continuum.activeFlash.effect.peek.index,
                     coordinate: toFirestoreCoordinate(
-                      state.modules.qContinuum.activeFlash.effect.peek.coordinate
+                      state.modules.continuum.activeFlash.effect.peek.coordinate
                     ),
                   },
                 }
@@ -139,33 +139,33 @@ function serializePublicRound(round: RoundState): FirestorePublicRound {
         }
       : null,
     pendingRoundWin: round.pendingRoundWin ?? null,
-    qPendingInvoker: round.qPendingInvoker ?? null,
-    qEffects: round.qEffects
+    continuumPendingInvoker: round.continuumPendingInvoker ?? null,
+    continuumEffects: round.continuumEffects
       ? {
-          reverseTurnOrder: round.qEffects.reverseTurnOrder,
-          temporalInversion: round.qEffects.temporalInversion,
-          openAllTrails: round.qEffects.openAllTrails,
-          suppressNextFracture: round.qEffects.suppressNextFracture,
-          skipNextTurnFor: [...round.qEffects.skipNextTurnFor],
-          peekedSector: round.qEffects.peekedSector
+          reverseTurnOrder: round.continuumEffects.reverseTurnOrder,
+          temporalInversion: round.continuumEffects.temporalInversion,
+          openAllTrails: round.continuumEffects.openAllTrails,
+          suppressNextFracture: round.continuumEffects.suppressNextFracture,
+          skipNextTurnFor: [...round.continuumEffects.skipNextTurnFor],
+          peekedSector: round.continuumEffects.peekedSector
             ? {
-                index: round.qEffects.peekedSector.index,
+                index: round.continuumEffects.peekedSector.index,
                 coordinate: toFirestoreCoordinate(
-                  round.qEffects.peekedSector.coordinate
+                  round.continuumEffects.peekedSector.coordinate
                 ),
-                visibleTo: round.qEffects.peekedSector.visibleTo,
+                visibleTo: round.continuumEffects.peekedSector.visibleTo,
               }
             : null,
-          salamanderSwap: round.qEffects.salamanderSwap,
-          allStopEcho: round.qEffects.allStopEcho,
+          salamanderSwap: round.continuumEffects.salamanderSwap,
+          allStopEcho: round.continuumEffects.allStopEcho,
         }
       : null,
-    qGamblePending: round.qGamblePending
+    continuumWagerPending: round.continuumWagerPending
       ? {
-          playerId: round.qGamblePending.playerId,
+          playerId: round.continuumWagerPending.playerId,
           options: [
-            toFirestoreCoordinate(round.qGamblePending.options[0]),
-            toFirestoreCoordinate(round.qGamblePending.options[1]),
+            toFirestoreCoordinate(round.continuumWagerPending.options[0]),
+            toFirestoreCoordinate(round.continuumWagerPending.options[1]),
           ],
         }
       : null,
@@ -264,33 +264,33 @@ export function mergeHandsIntoGame(
         allStopRequired: doc.round.allStopRequired,
         allStopDeclared: doc.round.allStopDeclared,
         roundWinnerId: doc.round.roundWinnerId ?? null,
-        qPendingInvoker: doc.round.qPendingInvoker ?? null,
-        qEffects: doc.round.qEffects
+        continuumPendingInvoker: doc.round.continuumPendingInvoker ?? null,
+        continuumEffects: doc.round.continuumEffects
           ? {
-              reverseTurnOrder: doc.round.qEffects.reverseTurnOrder,
-              temporalInversion: doc.round.qEffects.temporalInversion,
-              openAllTrails: doc.round.qEffects.openAllTrails,
-              suppressNextFracture: doc.round.qEffects.suppressNextFracture,
-              skipNextTurnFor: [...doc.round.qEffects.skipNextTurnFor],
-              peekedSector: doc.round.qEffects.peekedSector
+              reverseTurnOrder: doc.round.continuumEffects.reverseTurnOrder,
+              temporalInversion: doc.round.continuumEffects.temporalInversion,
+              openAllTrails: doc.round.continuumEffects.openAllTrails,
+              suppressNextFracture: doc.round.continuumEffects.suppressNextFracture,
+              skipNextTurnFor: [...doc.round.continuumEffects.skipNextTurnFor],
+              peekedSector: doc.round.continuumEffects.peekedSector
                 ? {
-                    index: doc.round.qEffects.peekedSector.index,
+                    index: doc.round.continuumEffects.peekedSector.index,
                     coordinate: fromFirestoreCoordinate(
-                      doc.round.qEffects.peekedSector.coordinate
+                      doc.round.continuumEffects.peekedSector.coordinate
                     ),
-                    visibleTo: doc.round.qEffects.peekedSector.visibleTo,
+                    visibleTo: doc.round.continuumEffects.peekedSector.visibleTo,
                   }
                 : null,
-              salamanderSwap: doc.round.qEffects.salamanderSwap,
-              allStopEcho: doc.round.qEffects.allStopEcho,
+              salamanderSwap: doc.round.continuumEffects.salamanderSwap,
+              allStopEcho: doc.round.continuumEffects.allStopEcho,
             }
           : null,
-        qGamblePending: doc.round.qGamblePending
+        continuumWagerPending: doc.round.continuumWagerPending
           ? {
-              playerId: doc.round.qGamblePending.playerId,
+              playerId: doc.round.continuumWagerPending.playerId,
               options: [
-                fromFirestoreCoordinate(doc.round.qGamblePending.options[0]),
-                fromFirestoreCoordinate(doc.round.qGamblePending.options[1]),
+                fromFirestoreCoordinate(doc.round.continuumWagerPending.options[0]),
+                fromFirestoreCoordinate(doc.round.continuumWagerPending.options[1]),
               ],
             }
           : null,
@@ -372,22 +372,22 @@ export function mergeHandsIntoGame(
     round,
     completedRounds: doc.completedRounds,
     modules: {
-      qContinuum: {
-        enabled: doc.modules.qContinuum,
-        activeFlash: doc.qFlash?.effect
+      continuum: {
+        enabled: doc.modules.continuum,
+        activeFlash: doc.flash?.effect
           ? {
-              invokedBy: doc.qFlash.invokedBy,
+              invokedBy: doc.flash.invokedBy,
               effect: {
-                kind: doc.qFlash.effect.kind as QFlashEffectKind,
-                ...(doc.qFlash.effect.targetPlayerId
-                  ? { targetPlayerId: doc.qFlash.effect.targetPlayerId }
+                kind: doc.flash.effect.kind as FlashEffectKind,
+                ...(doc.flash.effect.targetPlayerId
+                  ? { targetPlayerId: doc.flash.effect.targetPlayerId }
                   : {}),
-                ...(doc.qFlash.effect.peek
+                ...(doc.flash.effect.peek
                   ? {
                       peek: {
-                        index: doc.qFlash.effect.peek.index,
+                        index: doc.flash.effect.peek.index,
                         coordinate: fromFirestoreCoordinate(
-                          doc.qFlash.effect.peek.coordinate
+                          doc.flash.effect.peek.coordinate
                         ),
                       },
                     }

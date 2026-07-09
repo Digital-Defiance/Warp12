@@ -10,13 +10,13 @@ import {
   neutralZoneOpenValue,
   trailOpenValue,
 } from '../table/table-state.js';
-import { resolveRoundWinAllStop } from './q-continuum.js';
+import { resolveRoundWinAllStop } from './continuum.js';
 import { getLegalMoves } from './legal-moves.js';
 import { resolveDeadRedAlert } from './dead-red-alert.js';
 
 /** Captains who can still helm — skipped captains are sidelined for this cycle. */
 function captainsEligibleToResolve(round: RoundState): readonly string[] {
-  const skipped = new Set(round.qEffects?.skipNextTurnFor ?? []);
+  const skipped = new Set(round.continuumEffects?.skipNextTurnFor ?? []);
   return round.turnOrder.filter((playerId) => !skipped.has(playerId));
 }
 
@@ -68,7 +68,7 @@ export function isRoundBlocked(
   if (round.unchartedSectors.length > 0) {
     return false;
   }
-  if (round.qPendingInvoker || round.qGamblePending) {
+  if (round.continuumPendingInvoker || round.continuumWagerPending) {
     return false;
   }
 

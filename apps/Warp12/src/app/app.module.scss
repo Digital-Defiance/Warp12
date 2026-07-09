@@ -6,6 +6,26 @@
   color: var(--warp-text);
 }
 
+.iwdfLink {
+  font-family: var(--font-federation-wide, system-ui);
+  font-size: 0.78rem;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color:#38bdf8;
+  text-decoration: none;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--warp-accent, #38bdf8);
+    border-color: rgba(56, 189, 248, 0.35);
+  }
+}
+
 .header {
   display: flex;
   align-items: center;

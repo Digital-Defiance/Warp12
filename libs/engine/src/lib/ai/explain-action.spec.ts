@@ -126,7 +126,7 @@ describe('explainWarpAiAction', () => {
         activePlayerId: 'a',
         allStopRequired: true,
         roundWinnerId: 'a',
-        qEffects: {
+        continuumEffects: {
           reverseTurnOrder: false,
           temporalInversion: false,
           openAllTrails: false,

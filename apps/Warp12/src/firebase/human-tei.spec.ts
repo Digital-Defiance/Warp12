@@ -24,7 +24,7 @@ function completePointsGame(
     campaignRounds: 4,
     completedRounds: 4,
     modules: {
-      qContinuum: false,
+      continuum: false,
       salamanderPenalty: true,
       subspaceFracture: false,
       subspaceFractureScope: 'own-trail',

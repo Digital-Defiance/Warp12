@@ -9,7 +9,7 @@ import type { QFlash } from '../types/modules.js';
 import { subspaceFractureAppliesToDouble } from '../types/modules.js';
 import type { SubspaceFractureScope } from '../types/subspace-fracture-scope.js';
 import type { HouseRules } from '../types/house-rules.js';
-import type { QFlashEffectKind } from '../types/q-continuum.js';
+import type { FlashEffectKind } from '../types/continuum.js';
 import type { WarpTrail } from '../types/trails.js';
 import {
   handContains,
@@ -42,7 +42,7 @@ import {
   resolveQGamble,
   trailsOpenToOthers,
   resolveRoundWinAllStop,
-} from './q-continuum.js';
+} from './continuum.js';
 import {
   getLegalMoves,
   isLegalMove,
@@ -421,7 +421,7 @@ function applyChartToRoute(
     route.playerId === playerId;
 
   if (playedZeroZero) {
-    nextRound = { ...nextRound, qPendingInvoker: playerId };
+    nextRound = { ...nextRound, continuumPendingInvoker: playerId };
   }
 
   const winnerHand = nextRound.hands[playerId] ?? [];
@@ -443,7 +443,7 @@ function applyChartToRoute(
     );
   }
 
-  if (nextRound.qPendingInvoker || nextRound.qGamblePending) {
+  if (nextRound.continuumPendingInvoker || nextRound.continuumWagerPending) {
     if (emptyHandWin && !blocksRoundWin(nextRound, playerId) && !openingIncomplete) {
       nextRound = {
         ...nextRound,
@@ -598,7 +598,7 @@ function resolveRoundStarterOpeningTurn(
 }
 
 function advanceTurn(round: RoundState, houseRules: HouseRules): RoundState {
-  if (round.qPendingInvoker || round.qGamblePending) {
+  if (round.continuumPendingInvoker || round.continuumWagerPending) {
     return round;
   }
 
@@ -687,7 +687,7 @@ function handlePassRedAlert(
   options?: { afterDraw?: boolean }
 ): ActionResult {
   // The free pass (no draw, no beacon) only applies to the captain who charted
-  // the double, while the alert is still in the Caution phase. Once it has been
+  // the double, while the alert is still in Yellow alert. Once it has been
   // passed once, standard draw/beacon rules apply to everyone.
   const freePass =
     state.houseRules.passRedAlertWithoutDraw &&
@@ -709,7 +709,7 @@ function handlePassRedAlert(
 
   const redAlert = round.table.redAlert!;
 
-  const { nextId: nextResponsible, qEffects } = advanceToNextPlayer(
+  const { nextId: nextResponsible, continuumEffects } = advanceToNextPlayer(
     round,
     playerId
   );
@@ -721,7 +721,7 @@ function handlePassRedAlert(
       passed: true,
     },
   });
-  nextRound = { ...nextRound, qEffects };
+  nextRound = { ...nextRound, continuumEffects };
 
   if (!freePass) {
     nextRound = {
@@ -775,11 +775,11 @@ function handleDeployBeacon(
   }
 
   const trail = round.table.warpTrails[playerId];
-  let qEffects = round.qEffects;
+  let continuumEffects = round.continuumEffects;
   let redAlert = round.table.redAlert;
   if (redAlert?.responsiblePlayerId === playerId) {
     const advanced = advanceToNextPlayer(round, playerId);
-    qEffects = advanced.qEffects;
+    continuumEffects = advanced.continuumEffects;
     redAlert = {
       ...redAlert,
       responsiblePlayerId: advanced.nextId,
@@ -794,7 +794,7 @@ function handleDeployBeacon(
     },
     redAlert,
   });
-  nextRound = { ...nextRound, qEffects };
+  nextRound = { ...nextRound, continuumEffects };
 
   // A forced marker (stuck after drawing) always ends the turn. Under manual
   // shield control a *voluntary* open keeps the turn open for the rest of your
@@ -926,8 +926,8 @@ function qResolutionBlocksAction(
   playerId: string
 ): boolean {
   return (
-    round.qPendingInvoker === playerId ||
-    round.qGamblePending?.playerId === playerId
+    round.continuumPendingInvoker === playerId ||
+    round.continuumWagerPending?.playerId === playerId
   );
 }
 
@@ -935,19 +935,19 @@ function handleQFlash(
   state: GameState,
   round: RoundState,
   playerId: string,
-  effectKind: QFlashEffectKind
+  effectKind: FlashEffectKind
 ): ActionResult {
-  if (!state.modules.qContinuum.enabled) {
+  if (!state.modules.continuum.enabled) {
     return fail('INVALID_ROUTE');
   }
 
-  if (round.qPendingInvoker !== playerId) {
-    return fail('Q_FLASH_NOT_PENDING');
+  if (round.continuumPendingInvoker !== playerId) {
+    return fail('CONTINUUM_FLASH_NOT_PENDING');
   }
 
   const effect = buildQFlashEffect(effectKind, state, round, playerId);
   if (!effect) {
-    return fail('Q_FLASH_UNAVAILABLE');
+    return fail('CONTINUUM_FLASH_UNAVAILABLE');
   }
 
   const { round: afterEffect } = applyQFlashEffect(round, effect, playerId);
@@ -958,8 +958,8 @@ function handleQFlash(
     ...state,
     modules: {
       ...state.modules,
-      qContinuum: {
-        ...state.modules.qContinuum,
+      continuum: {
+        ...state.modules.continuum,
         activeFlash: flash,
       },
     },
@@ -971,7 +971,7 @@ function handleQFlash(
   }
 
   if (
-    !nextRound.qGamblePending &&
+    !nextRound.continuumWagerPending &&
     !isRedAlertBlocking(nextRound.table.redAlert, playerId) &&
     !isNavigationHaltedByFracture(
       nextRound.table.subspaceFracture,
@@ -991,12 +991,12 @@ function handleQGamble(
   playerId: string,
   keepIndex: 0 | 1
 ): ActionResult {
-  if (!state.modules.qContinuum.enabled) {
+  if (!state.modules.continuum.enabled) {
     return fail('INVALID_ROUTE');
   }
 
-  if (round.qGamblePending?.playerId !== playerId) {
-    return fail('Q_GAMBLE_NOT_PENDING');
+  if (round.continuumWagerPending?.playerId !== playerId) {
+    return fail('CONTINUUM_WAGER_NOT_PENDING');
   }
 
   let nextRound = finalizeRoundWinAfterQ(resolveQGamble(round, playerId, keepIndex), state.houseRules);
@@ -1064,7 +1064,7 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
       }
 
       if (qResolutionBlocksAction(round, action.playerId)) {
-        return fail('Q_FLASH_NOT_PENDING');
+        return fail('CONTINUUM_FLASH_NOT_PENDING');
       }
 
       if (
@@ -1130,7 +1130,7 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
             enabled: state.modules.subspaceFracture.enabled,
             scope: state.modules.subspaceFracture.scope,
           },
-          qContinuumEnabled: state.modules.qContinuum.enabled,
+          qContinuumEnabled: state.modules.continuum.enabled,
           houseRules: state.houseRules,
         });
       } catch {
@@ -1146,7 +1146,7 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
         return fail(turnCheck);
       }
       if (qResolutionBlocksAction(round, action.playerId)) {
-        return fail('Q_FLASH_NOT_PENDING');
+        return fail('CONTINUUM_FLASH_NOT_PENDING');
       }
       if (!canDrawFromUncharted(round, action.playerId, state.houseRules)) {
         return fail('DRAW_NOT_ALLOWED');
@@ -1160,7 +1160,7 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
         return fail(turnCheck);
       }
       if (qResolutionBlocksAction(round, action.playerId)) {
-        return fail('Q_FLASH_NOT_PENDING');
+        return fail('CONTINUUM_FLASH_NOT_PENDING');
       }
       return handlePassRedAlert(state, round, action.playerId);
     }
@@ -1171,7 +1171,7 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
         return fail(turnCheck);
       }
       if (qResolutionBlocksAction(round, action.playerId)) {
-        return fail('Q_FLASH_NOT_PENDING');
+        return fail('CONTINUUM_FLASH_NOT_PENDING');
       }
       return handlePassTurn(state, round, action.playerId);
     }
@@ -1182,7 +1182,7 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
         return fail(turnCheck);
       }
       if (qResolutionBlocksAction(round, action.playerId)) {
-        return fail('Q_FLASH_NOT_PENDING');
+        return fail('CONTINUUM_FLASH_NOT_PENDING');
       }
       return handleDeployBeacon(state, round, action.playerId);
     }
@@ -1217,12 +1217,12 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
         return fail(turnCheck);
       }
       if (qResolutionBlocksAction(round, action.playerId)) {
-        return fail('Q_FLASH_NOT_PENDING');
+        return fail('CONTINUUM_FLASH_NOT_PENDING');
       }
       return handleRaiseShields(state, round, action.playerId);
     }
 
-    case 'INVOKE_Q_FLASH': {
+    case 'INVOKE_CONTINUUM_FLASH': {
       const turnCheck = requirePlayerTurn(round, action.playerId);
       if (turnCheck !== true) {
         return fail(turnCheck);
@@ -1230,7 +1230,7 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
       return handleQFlash(state, round, action.playerId, action.effect);
     }
 
-    case 'RESOLVE_Q_GAMBLE': {
+    case 'RESOLVE_CONTINUUM_WAGER': {
       const turnCheck = requirePlayerTurn(round, action.playerId);
       if (turnCheck !== true) {
         return fail(turnCheck);

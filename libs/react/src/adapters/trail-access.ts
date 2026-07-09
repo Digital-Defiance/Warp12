@@ -1,4 +1,5 @@
 import {
+  hasRedAlertPassed,
   isTrueRedAlert,
   trailsOpenToOthers,
   trailOpenValue,
@@ -118,36 +119,29 @@ export function formatRedAlertStatus(
   return `${trailOwner} · ${tile} · ${responsible} must cover`;
 }
 
-/** True while the double is newly charted and no one has passed Red Alert yet. */
+/** True during Yellow alert — engine `redAlert.passed` is not yet set. */
 export function isRedAlertFresh(round: RoundState): boolean {
   const redAlert = round.table.redAlert;
-  if (!redAlert?.active || !isTrueRedAlert(round)) {
-    return false;
-  }
+  return isTrueRedAlert(round) && !hasRedAlertPassed(redAlert);
+}
 
-  // Authoritative once the engine records the first pass. The beacon heuristic
-  // below is a fallback for legacy states without the flag (and covers a free
-  // pass that leaves no beacon behind).
-  if (redAlert.passed === true) {
-    return false;
-  }
+/** Bridge emergency lighting — amber Yellow alert before the first pass. */
+export function shouldIlluminateBridgeYellowAlert(round: RoundState): boolean {
+  return isRedAlertFresh(round);
+}
 
-  const responsible = redAlert.responsiblePlayerId;
-  for (const [playerId, trail] of Object.entries(round.table.warpTrails)) {
-    if (trail.distressBeacon.active && playerId !== responsible) {
-      return false;
-    }
-  }
-  return true;
+/** Bridge emergency lighting — full Red alert after pass. */
+export function shouldIlluminateBridgeRedAlert(round: RoundState): boolean {
+  return isTrueRedAlert(round) && !isRedAlertFresh(round);
 }
 
 export interface SectorRedAlertRow {
   readonly label: string;
   readonly summary: string;
-  readonly tone: 'caution' | 'alert';
+  readonly tone: 'yellow' | 'alert';
 }
 
-/** Sector status row for an active Red Alert (Caution on first chart, Red alert after pass). */
+/** Sector status row for an active Red Alert (Yellow alert on first chart, Red alert after pass). */
 export function formatSectorRedAlertRow(
   round: RoundState,
   names: Readonly<Record<string, string>>
@@ -160,9 +154,9 @@ export function formatSectorRedAlertRow(
   if (isRedAlertFresh(round)) {
     const { low, high } = redAlert.anchor.coordinate;
     return {
-      label: 'Caution',
+      label: 'Yellow alert',
       summary: `A double has been played — ${low}:${high}`,
-      tone: 'caution',
+      tone: 'yellow',
     };
   }
 

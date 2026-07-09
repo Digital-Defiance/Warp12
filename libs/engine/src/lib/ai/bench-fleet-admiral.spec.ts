@@ -52,9 +52,9 @@ describe('belief-constraints', () => {
       allStopRequired: false,
       allStopDeclared: false,
       roundWinnerId: null,
-      qPendingInvoker: null,
-      qEffects: null,
-      qGamblePending: null,
+      continuumPendingInvoker: null,
+      continuumEffects: null,
+      continuumWagerPending: null,
       mandatoryPlay: {
         playerId: 'a',
         coordinate: normalizeCoordinate(5, 5),

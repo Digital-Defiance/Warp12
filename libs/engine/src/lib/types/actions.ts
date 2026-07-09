@@ -1,7 +1,7 @@
 import type { Coordinate } from './coordinate.js';
 import type { PlayerId } from './player.js';
 
-import type { QFlashEffectKind } from './q-continuum.js';
+import type { FlashEffectKind } from './continuum.js';
 
 /** Route a coordinate may be charted onto. */
 export type ChartRoute =
@@ -30,8 +30,8 @@ export type GameAction =
     }
   /** Manual shield control: close your warp trail (house rule). */
   | { type: 'RAISE_SHIELDS'; playerId: PlayerId }
-  | { type: 'INVOKE_Q_FLASH'; playerId: PlayerId; effect: QFlashEffectKind }
-  | { type: 'RESOLVE_Q_GAMBLE'; playerId: PlayerId; keepIndex: 0 | 1 }
+  | { type: 'INVOKE_CONTINUUM_FLASH'; playerId: PlayerId; effect: FlashEffectKind }
+  | { type: 'RESOLVE_CONTINUUM_WAGER'; playerId: PlayerId; keepIndex: 0 | 1 }
   | { type: 'END_ROUND'; winnerId: PlayerId | null };
 
 export type ActionResult =
@@ -54,9 +54,9 @@ export type ActionViolation =
   | 'DROP_TO_IMPULSE_CHART_BLOCKED'
   | 'CATCH_DROP_TO_IMPULSE_NOT_ALLOWED'
   | 'RED_ALERT_NOT_ACTIVE'
-  | 'Q_FLASH_NOT_PENDING'
-  | 'Q_GAMBLE_NOT_PENDING'
-  | 'Q_FLASH_UNAVAILABLE'
+  | 'CONTINUUM_FLASH_NOT_PENDING'
+  | 'CONTINUUM_WAGER_NOT_PENDING'
+  | 'CONTINUUM_FLASH_UNAVAILABLE'
   | 'BEACON_NOT_ALLOWED'
   | 'BEACON_ALREADY_ACTIVE'
   | 'MUST_DRAW_FIRST'

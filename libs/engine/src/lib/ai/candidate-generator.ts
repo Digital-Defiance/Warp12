@@ -9,7 +9,7 @@ import { isRedAlertBlocking } from '../types/anomalies.js';
 import { getLegalMoves } from '../engine/legal-moves.js';
 import type { WarpAiAction } from './actions.js';
 import type { WarpAiObservation } from './observation.js';
-import { chooseQFlashEffect, chooseQGambleKeepIndex } from './q-flash.js';
+import { chooseQFlashEffect, chooseQGambleKeepIndex } from './flash.js';
 
 function catchDropToImpulseCandidate(
   round: WarpAiObservation['round'],
@@ -97,7 +97,7 @@ export function warpOffTurnCandidateGenerator(
  * (Distress Beacon access, Red Alert cover, Subspace Fracture stabilization) to
  * the engine's {@link getLegalMoves}. Precedence:
  *
- * 1. Q-Flash / Q's gamble resolution when pending.
+ * 1. Continuum Flash / Continuum Wager resolution when pending.
  * 2. Catch a missed Drop to Impulse when the window is open.
  * 3. Any legal chart move → chart candidates (canonical "play if you can"), plus
  *    Drop to Impulse declare and pass when pending at one tile (no chart while pending).
@@ -115,19 +115,19 @@ export function warpCandidateGenerator(
 ): WarpAiAction[] {
   const { round, playerId, houseRules } = obs;
 
-  if (round.qPendingInvoker === playerId) {
+  if (round.continuumPendingInvoker === playerId) {
     return [
       {
-        kind: 'invoke-q-flash',
+        kind: 'invoke-continuum-flash',
         effect: chooseQFlashEffect(obs, obs.captains, { rng: options?.rng }),
       },
     ];
   }
 
-  if (round.qGamblePending?.playerId === playerId) {
+  if (round.continuumWagerPending?.playerId === playerId) {
     return [
       {
-        kind: 'resolve-q-gamble',
+        kind: 'resolve-continuum-wager',
         keepIndex: chooseQGambleKeepIndex(obs, { rng: options?.rng }),
       },
     ];

@@ -29,7 +29,7 @@ describe('lobbyOptionsFromCharter', () => {
     const crew = sampleCrew({
       modules: {
         salamanderPenalty: true,
-        qContinuum: false,
+        continuum: false,
         subspaceFracture: true,
         subspaceFractureScope: 'all-doubles',
       },
@@ -51,7 +51,7 @@ describe('lobbyOptionsFromCharter', () => {
       maxPlayers: 6,
       modules: {
         salamanderPenalty: true,
-        qContinuum: false,
+        continuum: false,
         subspaceFracture: true,
         subspaceFractureScope: 'all-doubles',
       },

@@ -39,8 +39,8 @@ export const ACTION_KIND_INDEX: Readonly<Record<WarpAiAction['kind'], number>> =
     'raise-shields': 6,
     'drop-to-impulse': 7,
     'catch-drop-to-impulse': 8,
-    'invoke-q-flash': 9,
-    'resolve-q-gamble': 10,
+    'invoke-continuum-flash': 9,
+    'resolve-continuum-wager': 10,
   };
 
 export const RACE_PHASE_INDEX: Readonly<Record<GoOutRacePhase, number>> = {

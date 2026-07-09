@@ -6,7 +6,7 @@
         "oAuthBrandDisplayName": "Warp 12",
         "supportEmail": "jessica@digitaldefiance.org",
         "authorizedRedirectUris": [
-          "https://leaderboard.warp12.app",
+          "https://iwdf.org",
           "https://warp12.app"
         ]
       }

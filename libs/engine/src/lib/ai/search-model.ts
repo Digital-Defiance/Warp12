@@ -163,8 +163,8 @@ function rankAction(
       return -1;
     case 'raise-shields':
       return -100;
-    case 'invoke-q-flash':
-    case 'resolve-q-gamble':
+    case 'invoke-continuum-flash':
+    case 'resolve-continuum-wager':
       return 5_000;
     default:
       return -2;

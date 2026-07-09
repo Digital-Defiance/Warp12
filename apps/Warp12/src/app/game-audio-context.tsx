@@ -9,6 +9,7 @@ import {
 } from 'react';
 
 import {
+  installGameSoundDevTools,
   readStoredGameSoundsMuted,
   setGameAudioBackgroundSuspended,
   setGameSoundsMuted,
@@ -30,6 +31,10 @@ export function GameAudioProvider({ children }: { children: ReactNode }) {
     setGameSoundsMuted(stored);
     return stored;
   });
+
+  useEffect(() => {
+    installGameSoundDevTools();
+  }, []);
 
   useEffect(() => {
     const unlock = () => {

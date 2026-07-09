@@ -88,6 +88,11 @@ export interface CollectOmegaTrajectoriesOptions {
   searchIterations?: number;
   /** ISMCTS max branching factor when searching (default 8). */
   searchMaxBranch?: number;
+  /**
+   * Search leaf when `searchIterations > 0`. Training bootstrap uses
+   * `heuristic`; Path A / advisor teacher should use `puct` or `value`.
+   */
+  searchLeaf?: 'puct' | 'heuristic' | 'value';
   maxSteps?: number;
   /** Log progress every N completed games (0 = silent). */
   progressEvery?: number;
@@ -265,6 +270,7 @@ export function collectOmegaTrajectoriesToSink(
   const temperature = options.temperature ?? 1;
   const searchIterations = options.searchIterations ?? 0;
   const searchMaxBranch = options.searchMaxBranch ?? 8;
+  const searchLeaf = options.searchLeaf ?? 'heuristic';
   const progressEvery = options.progressEvery ?? 0;
   const net = options.net;
 
@@ -386,9 +392,7 @@ export function collectOmegaTrajectoriesToSink(
             rng: decideRng,
             maxBranch: searchMaxBranch,
             useBeliefConstraints: true,
-            // Path B bootstrap: Commander rollouts as search leaf. Product Ω+
-            // uses leaf:'puct' (policy prior + value) — keep these separate.
-            leaf: 'heuristic',
+            leaf: searchLeaf,
           });
           const byKey = new Map<string, number>();
           for (const v of visits) byKey.set(warpAiActionKey(v.action), v.visits);

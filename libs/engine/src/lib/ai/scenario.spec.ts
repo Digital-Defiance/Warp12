@@ -177,9 +177,9 @@ describe('scenario — distress beacon pass turn', () => {
 });
 
 describe('scenario — candidate generator control paths', () => {
-  it('surfaces Q-Flash resolution when the invoker is pending', () => {
+  it('surfaces Continuum Flash resolution when the invoker is pending', () => {
     const round = makeRound({
-      qPendingInvoker: 'a',
+      continuumPendingInvoker: 'a',
       hands: { a: [N(0, 1)], b: [] },
     });
     const candidates = warpCandidateGenerator(
@@ -187,16 +187,16 @@ describe('scenario — candidate generator control paths', () => {
       { rng: () => 0 }
     );
     expect(candidates).toHaveLength(1);
-    expect(candidates[0]?.kind).toBe('invoke-q-flash');
+    expect(candidates[0]?.kind).toBe('invoke-continuum-flash');
   });
 
   it('surfaces Q gamble resolution when a gamble is pending', () => {
     const round = makeRound({
-      qGamblePending: { playerId: 'a', options: [N(2, 3), N(10, 11)] },
+      continuumWagerPending: { playerId: 'a', options: [N(2, 3), N(10, 11)] },
     });
     const candidates = warpCandidateGenerator(obsFor(round, modulesWithQ()));
     expect(candidates).toHaveLength(1);
-    expect(candidates[0]?.kind).toBe('resolve-q-gamble');
+    expect(candidates[0]?.kind).toBe('resolve-continuum-wager');
   });
 
   it('offers pass-red-alert when blocked and stuck with an empty pile', () => {

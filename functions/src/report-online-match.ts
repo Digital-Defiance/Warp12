@@ -60,7 +60,7 @@ interface GameDoc {
   charterId?: string;
   rulesProfileId?: string;
   modules?: {
-    qContinuum: boolean;
+    continuum: boolean;
     salamanderPenalty: boolean;
     subspaceFracture: boolean;
     subspaceFractureScope: string;

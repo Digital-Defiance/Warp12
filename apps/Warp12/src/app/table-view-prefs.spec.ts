@@ -22,7 +22,7 @@ describe('table-view-prefs', () => {
       teachingMode: true,
       captainTailsHud: true,
       captainTailsDisplay: 'domino',
-      pipPreset: 'lcars',
+      pipPreset: 'futuristic',
       bridgeSoundsEnabled: false,
     });
 
@@ -31,7 +31,7 @@ describe('table-view-prefs', () => {
       teachingMode: true,
       captainTailsHud: true,
       captainTailsDisplay: 'domino',
-      pipPreset: 'lcars',
+      pipPreset: 'futuristic',
       tileBg: 'dark',
       bridgeSoundsEnabled: false,
     });

@@ -56,13 +56,13 @@ export function HomePage() {
       <div className={styles.foldBody}>
         <p className={styles.heroEyebrow}>Double-twelve dominoes · fleet tactics</p>
         <p className={styles.heroLead}>
-          <strong>Warp 12</strong> is tournament Mexican Train in Starfleet
+          <strong>Warp 12</strong> is tournament Mexican Train in federation
           dress: <em>navigational coordinates</em>, <em>Spacedock</em>, and{' '}
           <em>warp trails</em> into the Neutral Zone.
         </p>
         <p className={styles.heroBody}>
           Doubles trigger red alert. Optional modules add subspace fractures,
-          All Stop!, and Q-Continuum chaos. Points campaign or first-out sprint.
+          All Stop!, and Continuum chaos. Points campaign or first-out sprint.
         </p>
         <p className={styles.heroLinks}>
           <Link to="/about" className={styles.heroLink}>
@@ -201,7 +201,7 @@ export function HomePage() {
 
   const footerSection = (
     <section className={styles.footer}>
-      <div>© 2026 Digital Defiance, Jessica Mulein</div>
+      <div>© 2026 Digital Defiance</div>
       <div>
         &lt;{' '}
         <a
@@ -231,12 +231,6 @@ export function HomePage() {
         </a>{' '}
         &gt;
       </div>
-      <p className={styles.footerNote}>
-        Note: This is a free, fan made production. It is not an official Star
-        Trek game and is not paid for, endorsed, or otherwise affiliated with
-        Paramount, CBS, the Roddenberry Trust, or any other official Star Trek
-        entity.
-      </p>
     </section>
   );
 

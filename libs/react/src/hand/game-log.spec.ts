@@ -55,7 +55,7 @@ describe('game-log', () => {
       formatOptions
     );
     expect(caution).toMatch(
-      /^00:03 - Picard played a Double 5-5 on Captain Riker's Trail, causing a Caution Status$/
+      /^00:03 - Picard played a Double 5-5 on Captain Riker's Trail, raising Yellow alert$/
     );
 
     const clear = gameLogEntryToString(
@@ -75,7 +75,7 @@ describe('game-log', () => {
     );
   });
 
-  it('formats draw escalation and q-flash lines', () => {
+  it('formats draw escalation and continuum-flash lines', () => {
     const draw = formatGameLogLine(
       {
         at: '2026-06-28T21:02:10.000Z',
@@ -104,20 +104,20 @@ describe('game-log', () => {
       '02:20 - Riker drew from Uncharted Sectors — returned to warp'
     );
 
-    const qFlash = formatGameLogLine(
+    const flash = formatGameLogLine(
       {
         at: '2026-06-28T21:03:00.000Z',
         kind: 'CHART_COORDINATE',
         captainId: 'picard',
         coordinate: { low: 0, high: 0 },
         route: { kind: 'neutral-zone', neutralZone: true },
-        effects: ['q-flash-pending'],
+        effects: ['continuum-flash-pending'],
       },
       names,
       formatOptions
     );
-    expect(qFlash).toMatch(
-      /^03:00 - Picard played a Double 0-0 on the Neutral Zone, causing a Q-Flash$/
+    expect(flash).toMatch(
+      /^03:00 - Picard played a Double 0-0 on the Neutral Zone, causing a Continuum Flash$/
     );
   });
 
@@ -134,7 +134,7 @@ describe('game-log', () => {
       { ...names, uhura: 'Uhura', troi: 'Troi' },
       formatOptions
     );
-    expect(clear).toMatch(/clearing the Caution Status$/);
+    expect(clear).toMatch(/clearing Yellow alert$/);
   });
 
   it('formats beacon deployment without redundant effect text', () => {
@@ -314,7 +314,7 @@ describe('game-log', () => {
       coordinate: { low: 0, high: 0 },
       route: { kind: 'neutral-zone', neutralZone: true },
       trainId: 7,
-      effects: ['q-flash-pending'],
+      effects: ['continuum-flash-pending'],
     });
 
     const payload = buildRoundLogExport(log.snapshot(), 2, names, {
@@ -327,7 +327,7 @@ describe('game-log', () => {
     expect(payload.sectorCode).toBe('8SU55R');
     expect(payload.entries).toHaveLength(1);
     expect(payload.lines[0]).toBe(
-      '00:08 - Picard played a Double 0-0 on the Neutral Zone, causing a Q-Flash'
+      '00:08 - Picard played a Double 0-0 on the Neutral Zone, causing a Continuum Flash'
     );
   });
 
@@ -477,6 +477,7 @@ describe('game-log', () => {
           redAlert: {
             ...round.table.redAlert!,
             responsiblePlayerId: 'b',
+            passed: true,
           },
           warpTrails: {
             ...round.table.warpTrails,
@@ -498,20 +499,20 @@ describe('game-log', () => {
       expect(entry?.effects).toContain('red-alert-opened');
     });
 
-    it('flags Q-Flash when 0-0 is charted on the invoker own trail', () => {
+    it('flags Continuum Flash when 0-0 is charted on the invoker own trail', () => {
       const before = makeGame(
         makeRound(['a', 'b'], {
           activePlayerId: 'a',
           hands: { a: [T(0, 0)], b: [] },
         }),
-        { modules: resolveModules({ qContinuum: true }) }
+        { modules: resolveModules({ continuum: true }) }
       );
 
       const after = makeGame(
         makeRound(['a', 'b'], {
           activePlayerId: 'a',
           hands: { a: [], b: [] },
-          qPendingInvoker: 'a',
+          continuumPendingInvoker: 'a',
           table: {
             ...createInitialTable(['a', 'b'], 12, 'a'),
             warpTrails: {
@@ -534,7 +535,7 @@ describe('game-log', () => {
             },
           },
         }),
-        { modules: resolveModules({ qContinuum: true }) }
+        { modules: resolveModules({ continuum: true }) }
       );
 
       const entry = buildGameLogEntry(before, after, {
@@ -543,7 +544,7 @@ describe('game-log', () => {
         coordinate: T(0, 0),
         route: { kind: 'warp-trail', playerId: 'a' },
       });
-      expect(entry?.effects).toContain('q-flash-pending');
+      expect(entry?.effects).toContain('continuum-flash-pending');
     });
 
     it('does not repeat opening Subspace Fracture on stabilizer charts', () => {

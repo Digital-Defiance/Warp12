@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  chartSlotForPlayer,
   countTurnBeepsToPlay,
   detectGameSoundTransitions,
   type GameSoundSnapshot,
@@ -16,7 +17,7 @@ describe('detectGameSoundTransitions', () => {
     trueRedAlert: false,
     redAlertResponsibleId: null,
     activeBeaconCount: 0,
-    qFlashActive: false,
+    flashActive: false,
     allStopDeclared: false,
     allStopRequired: false,
     activePlayerId: null,
@@ -115,13 +116,13 @@ describe('detectGameSoundTransitions', () => {
     ).toEqual({ play: [], stop: [] });
   });
 
-  it('plays q flash when the Q-Continuum module activates', () => {
+  it('plays Continuum Flash when the Continuum module activates', () => {
     expect(
       detectGameSoundTransitions(base, {
         ...base,
-        qFlashActive: true,
+        flashActive: true,
       })
-    ).toEqual({ play: ['qFlash'], stop: [] });
+    ).toEqual({ play: ['flash'], stop: [] });
   });
 
   it('plays powering down for All Stop declarations', () => {
@@ -286,7 +287,7 @@ describe('countTurnBeepsToPlay', () => {
     trueRedAlert: false,
     redAlertResponsibleId: null,
     activeBeaconCount: 0,
-    qFlashActive: false,
+    flashActive: false,
     allStopDeclared: false,
     allStopRequired: false,
     activePlayerId: null,
@@ -317,5 +318,14 @@ describe('countTurnBeepsToPlay', () => {
         chartedTileCount: 3,
       })
     ).toBe(0);
+  });
+});
+
+describe('chartSlotForPlayer', () => {
+  it('returns a stable slot in 1–77 per captain id', () => {
+    expect(chartSlotForPlayer('captain-a')).toBe(chartSlotForPlayer('captain-a'));
+    expect(chartSlotForPlayer('captain-a')).toBeGreaterThanOrEqual(1);
+    expect(chartSlotForPlayer('captain-a')).toBeLessThanOrEqual(77);
+    expect(chartSlotForPlayer('captain-a')).not.toBe(chartSlotForPlayer('captain-b'));
   });
 });

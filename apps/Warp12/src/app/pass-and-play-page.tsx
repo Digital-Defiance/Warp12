@@ -57,8 +57,8 @@ export function PassAndPlayPage() {
   const [salamander, setSalamander] = useState(
     WARP12_OFFICIAL_MODULES.salamanderPenalty ?? true
   );
-  const [qContinuum, setQContinuum] = useState(
-    WARP12_OFFICIAL_MODULES.qContinuum ?? true
+  const [continuum, setContinuum] = useState(
+    WARP12_OFFICIAL_MODULES.continuum ?? true
   );
   const [subspaceFracture, setSubspaceFracture] = useState(
     WARP12_OFFICIAL_MODULES.subspaceFracture ?? false
@@ -80,7 +80,7 @@ export function PassAndPlayPage() {
     setObjective(WARP12_OFFICIAL_OBJECTIVE);
     setCampaignRounds(WARP12_OFFICIAL_CAMPAIGN_ROUNDS);
     setSalamander(WARP12_OFFICIAL_MODULES.salamanderPenalty ?? true);
-    setQContinuum(WARP12_OFFICIAL_MODULES.qContinuum ?? true);
+    setContinuum(WARP12_OFFICIAL_MODULES.continuum ?? true);
     setSubspaceFracture(WARP12_OFFICIAL_MODULES.subspaceFracture ?? false);
     setSubspaceFractureScope(
       WARP12_OFFICIAL_MODULES.subspaceFractureScope ?? DEFAULT_SUBSPACE_FRACTURE_SCOPE
@@ -150,7 +150,7 @@ export function PassAndPlayPage() {
       campaignRounds,
       modules: {
         salamanderPenalty: salamander,
-        qContinuum,
+        continuum: continuum,
         subspaceFracture,
         subspaceFractureScope,
       },
@@ -294,10 +294,10 @@ export function PassAndPlayPage() {
         <label className={styles.checkboxRow}>
           <input
             type="checkbox"
-            checked={qContinuum}
-            onChange={(e) => setQContinuum(e.target.checked)}
+            checked={continuum}
+            onChange={(e) => setContinuum(e.target.checked)}
           />
-          <span>Module Alpha — Q-Continuum</span>
+          <span>Module Alpha — Continuum</span>
         </label>
       </fieldset>
 

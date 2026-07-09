@@ -369,7 +369,7 @@ export const createCharter = onCall(async (request) => {
     ...publicCharterView(charter),
     inviteToken,
     crewCode: formatCrewInviteCode(inviteCodeShort),
-    inviteUrl: `https://leaderboard.warp12.app/crews/${slug}/join?token=${inviteToken}`,
+    inviteUrl: `https://iwdf.org/crews/${slug}/join?token=${inviteToken}`,
   };
 });
 
@@ -534,7 +534,7 @@ export const rotateCharterInvite = onCall(async (request) => {
   return {
     inviteToken,
     crewCode: formatCrewInviteCode(inviteCodeShort),
-    inviteUrl: `https://leaderboard.warp12.app/crews/${charter.slug}/join?token=${inviteToken}`,
+    inviteUrl: `https://iwdf.org/crews/${charter.slug}/join?token=${inviteToken}`,
   };
 });
 

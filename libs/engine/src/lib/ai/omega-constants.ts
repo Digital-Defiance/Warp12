@@ -9,9 +9,8 @@ import {
  *
  * Unlike Class I* (a learned residual bolted onto Commander heuristics), Omega
  * is trained purely by self-play with the game outcome as the only reward. It
- * has no Commander target anywhere in its pipeline and, by design, cannot
- * explain its moves in heuristic terms — the advisor/coach path stays on the
- * explainable heuristic model. Omega is an opaque opponent, nothing more.
+ * has no Commander target anywhere in its pipeline. The tactical advisor uses a
+ * separate concept-bottleneck model (phase B) distilled from Ω+ search labels.
  */
 export const OMEGA_DISPLAY_NAME = 'Class Ω';
 

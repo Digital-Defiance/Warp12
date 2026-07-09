@@ -229,13 +229,13 @@ function describeHeuristicContribution(
         return 'Offloads 12-12 before the Salamander penalty can apply.';
       }
       return null;
-    case H.qContinuum:
+    case H.continuum:
       if (
         action.kind === 'chart' &&
         action.move.coordinate.low === 0 &&
         action.move.coordinate.high === 0
       ) {
-        return 'Triggers a Q-Flash with 0-0.';
+        return 'Triggers a Continuum Flash with 0-0.';
       }
       return null;
     case H.dropToImpulseDeclare:
@@ -268,7 +268,7 @@ function describeActionKind(
   const round = state.round;
   switch (action.kind) {
     case 'all-stop':
-      if (round?.qEffects?.allStopEcho) {
+      if (round?.continuumEffects?.allStopEcho) {
         return ['Round win pending — call All Stop!'];
       }
       return ['Neutral Zone win available — call All Stop!'];
@@ -285,9 +285,9 @@ function describeActionKind(
         `${target} returns to warp by drawing from Uncharted Sectors`,
       ];
     }
-    case 'invoke-q-flash':
+    case 'invoke-continuum-flash':
       return [`Reality shift: ${action.effect.replaceAll('-', ' ')}.`];
-    case 'resolve-q-gamble':
+    case 'resolve-continuum-wager':
       return [
         `Keep gamble tile ${action.keepIndex + 1} for the best hand shape.`,
       ];

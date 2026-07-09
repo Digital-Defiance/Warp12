@@ -5,12 +5,18 @@ import type { GameAction } from '../types/actions.js';
 import type { GameState } from '../types/game-state.js';
 import type { PlayerId } from '../types/player.js';
 import type { WarpAiAction } from './actions.js';
+import type { AdvisorModelWeights } from './advisor-net.js';
 import type { OmegaModelWeights } from './omega-net.js';
 import { advisorReplaySeed, hashStringSeed, mulberry32 } from './advisor-replay-rng.js';
 import { buildWarpContext } from './context.js';
 import { warpCandidateGenerator } from './candidate-generator.js';
+import { createAdvisorPlayer } from './create-advisor-player.js';
 import { createWarpAiPlayer } from './create-warp-ai.js';
 import { createOmegaPlayer } from './omega-agent.js';
+import {
+  computeAdvisorStateConcepts,
+  explainAdvisorConcepts,
+} from './advisor-concepts.js';
 import { explainWarpAiAction } from './explain-action.js';
 import { gameActionToWarpAi, warpAiActionKey } from './from-game-action.js';
 import { DEFAULT_WARP_HEURISTICS } from './heuristics.js';
@@ -61,6 +67,8 @@ export interface BuildAdvisorReportOptions {
   replayBaseSeed?: number;
   /** Class II neural Ω for advisor picks when reviewing weak lines. */
   omegaNet?: OmegaModelWeights;
+  /** Phase B concept advisor — preferred when loaded. */
+  advisorWeights?: AdvisorModelWeights;
 }
 
 export interface AdvisorReport {
@@ -74,6 +82,8 @@ export interface ReviewAdvisorMoveOptions {
   readonly replaySeed?: number;
   /** Class II neural Ω for advisor picks (phase A — explain Ω line). */
   readonly omegaNet?: OmegaModelWeights;
+  /** Phase B concept advisor — preferred when loaded. */
+  readonly advisorWeights?: AdvisorModelWeights;
 }
 
 function cloneState(state: GameState): GameState {
@@ -163,15 +173,20 @@ function advisorPickAtState(
   state: GameState,
   playerId: PlayerId,
   rng: Rng,
-  omegaNet?: OmegaModelWeights
+  options?: { omegaNet?: OmegaModelWeights; advisorWeights?: AdvisorModelWeights }
 ): WarpAiAction | null {
   const obs = observe(state, playerId);
   if (!obs) {
     return null;
   }
 
-  if (omegaNet) {
-    return createOmegaPlayer({ net: omegaNet, rng }).decide(obs);
+  if (options?.advisorWeights) {
+    return createAdvisorPlayer({ weights: options.advisorWeights, rng }).decide(obs)
+      ?.action ?? null;
+  }
+
+  if (options?.omegaNet) {
+    return createOmegaPlayer({ net: options.omegaNet, rng }).decide(obs);
   }
 
   const playerCount = obs.captains.length;
@@ -238,7 +253,10 @@ export function reviewAdvisorMove(
 
   const advisorPick =
     strength === 'blunder' || strength === 'weak'
-      ? advisorPickAtState(state, playerId, replayRng, options?.omegaNet)
+      ? advisorPickAtState(state, playerId, replayRng, {
+          advisorWeights: options?.advisorWeights,
+          omegaNet: options?.omegaNet,
+        })
       : warpAiActionKey(best.action) === playedKey
         ? null
         : best.action;
@@ -250,10 +268,19 @@ export function reviewAdvisorMove(
 
   const advisorReasons =
     advisorPick && warpAiActionKey(advisorPick) !== playedKey
-      ? explainWarpAiAction(state, playerId, advisorPick, {
-          names,
-          maxReasons,
-        })
+      ? options?.advisorWeights
+        ? (() => {
+            const obs = observe(state, playerId);
+            if (!obs) return [];
+            const ctx = buildWarpContext(obs, replayRng);
+            return explainAdvisorConcepts(computeAdvisorStateConcepts(ctx), {
+              maxReasons,
+            });
+          })()
+        : explainWarpAiAction(state, playerId, advisorPick, {
+            names,
+            maxReasons,
+          })
       : [];
 
   return {
@@ -305,6 +332,7 @@ export function buildAdvisorReport(
       names: options.names,
       maxReasons: options.maxReasons,
       replaySeed: advisorReplaySeed(replayBaseSeed, turnIndex, entry.playerId),
+      advisorWeights: options.advisorWeights,
       omegaNet: options.omegaNet,
     });
     if (review) {

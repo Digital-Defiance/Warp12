@@ -7,7 +7,7 @@ import type { Captain, PlayerId } from '../types/player.js';
 /**
  * What a Warp 12 bot is allowed to see this turn: the public round state, which
  * captain it is, and the active opt-in modules (so module-aware heuristics like
- * Salamander and Q-Continuum can adjust). Opponent hands are intentionally
+ * Salamander and Continuum can adjust). Opponent hands are intentionally
  * excluded — only their hand counts/placed tiles are knowable.
  */
 export interface WarpAiObservation {

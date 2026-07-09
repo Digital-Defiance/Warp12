@@ -31,9 +31,9 @@ export interface RedAlert {
   /**
    * True once Red Alert responsibility has left the captain who charted the
    * double (via a pass or a Distress Beacon deploy). While this is falsy the
-   * alert is still in the "Caution" phase and the original captain holds it.
+   * alert is still in Yellow alert and the original captain holds it.
    * The `passRedAlertWithoutDraw` house rule only grants a free pass during
-   * that Caution phase.
+   * that Yellow alert phase.
    */
   readonly passed?: boolean;
 }
@@ -106,7 +106,7 @@ export function isTrueRedAlert(round: RoundState): boolean {
 
 /**
  * An empty hand does not end the round while this captain must still satisfy
- * Red Alert or complete Subspace Fracture stabilizers. Q-Flash resolution
+ * Red Alert or complete Subspace Fracture stabilizers. Continuum Flash resolution
  * defers wins separately via {@link RoundState.pendingRoundWin}.
  */
 export function blocksRoundWin(
@@ -114,8 +114,8 @@ export function blocksRoundWin(
   playerId: PlayerId
 ): boolean {
   if (
-    round.qPendingInvoker === playerId ||
-    round.qGamblePending?.playerId === playerId
+    round.continuumPendingInvoker === playerId ||
+    round.continuumWagerPending?.playerId === playerId
   ) {
     return false;
   }

@@ -34,8 +34,8 @@ export function hasEstablishedWarpTrail(
 
 function resolutionBlockedByQ(round: RoundState, playerId: PlayerId): boolean {
   return (
-    round.qPendingInvoker === playerId ||
-    round.qGamblePending?.playerId === playerId
+    round.continuumPendingInvoker === playerId ||
+    round.continuumWagerPending?.playerId === playerId
   );
 }
 
@@ -207,7 +207,7 @@ export function canPassRedAlert(
     return true;
   }
   // The free pass only applies to the captain who charted the double, and only
-  // while the alert is still in the Caution phase (not yet passed to anyone).
+  // while the alert is still in Yellow alert (not yet passed to anyone).
   // Once responsibility has moved on, everyone — including the original
   // captain when it cycles back — must draw before passing as usual.
   if (

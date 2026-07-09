@@ -96,7 +96,7 @@ export function HouseRulesOptions({
         />
         <span>
           Pass Red Alert without drawing or shields down — only for the captain
-          who charted the double, and only before it passes (Caution phase)
+          who charted the double, and only before it passes (Yellow alert)
         </span>
       </label>
       <label className={styles.checkboxRow}>
