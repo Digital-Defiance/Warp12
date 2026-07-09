@@ -1,3 +1,8 @@
+import {
+  getWarp12SynthEngine,
+  resetWarp12SynthEngineForTests,
+} from './warp12-synth-engine.js';
+
 export type GameSound =
   | 'hail'
   | 'consoleWarning'
@@ -5,24 +10,18 @@ export type GameSound =
   | 'allStop'
   | 'dropToImpulse'
   | 'returnToWarp'
-  | 'qFlash';
+  | 'flash';
 
-const SOUND_URLS: Record<GameSound, string> = {
-  hail: '/hailbeep.mp3',
-  consoleWarning: '/consolewarning.mp3',
-  redAlert: '/redalert.mp3',
-  allStop: '/tng_poweringdown.mp3',
-  dropToImpulse: '/tng_warp_exit.mp3',
-  returnToWarp: '/tng_warp7.mp3',
-  qFlash: '/qflash.mp3',
-};
+const ALL_GAME_SOUNDS: readonly GameSound[] = [
+  'hail',
+  'consoleWarning',
+  'redAlert',
+  'allStop',
+  'dropToImpulse',
+  'returnToWarp',
+  'flash',
+];
 
-const BRIDGE_AMBIENCE_URL = '/tng_bridge_1.mp3';
-const BRIDGE_AMBIENCE_VOLUME = 0.35;
-
-const audioCache = new Map<GameSound, HTMLAudioElement>();
-const turnBeepCache = new Map<string, HTMLAudioElement>();
-let bridgeAmbienceClip: HTMLAudioElement | null = null;
 let bridgeAmbienceEnabled = false;
 let backgroundSuspended = false;
 let audioUnlocked = false;
@@ -59,49 +58,24 @@ export function areGameSoundsMuted(): boolean {
 }
 
 function stopGameSounds(): void {
-  for (const clip of audioCache.values()) {
-    clip.pause();
-    clip.currentTime = 0;
-  }
-  for (const clip of turnBeepCache.values()) {
-    clip.pause();
-    clip.currentTime = 0;
-  }
-  pauseBridgeAmbience();
-}
-
-function bridgeAmbienceElement(): HTMLAudioElement {
-  if (!bridgeAmbienceClip) {
-    bridgeAmbienceClip = new Audio(BRIDGE_AMBIENCE_URL);
-    bridgeAmbienceClip.loop = true;
-    bridgeAmbienceClip.preload = 'auto';
-    bridgeAmbienceClip.volume = BRIDGE_AMBIENCE_VOLUME;
-  }
-  return bridgeAmbienceClip;
-}
-
-function playBridgeAmbience(): void {
-  const clip = bridgeAmbienceElement();
-  if (clip.paused) {
-    void clip.play().catch(() => undefined);
+  const synth = getWarp12SynthEngine();
+  synth.stopAmbience();
+  for (const sound of ALL_GAME_SOUNDS) {
+    synth.stopGameSound(sound);
   }
 }
 
 function pauseBridgeAmbience(): void {
-  if (!bridgeAmbienceClip) {
-    return;
-  }
-  bridgeAmbienceClip.pause();
-  bridgeAmbienceClip.currentTime = 0;
+  getWarp12SynthEngine().stopAmbience();
 }
 
 function suspendBridgeAmbience(): void {
-  bridgeAmbienceClip?.pause();
+  getWarp12SynthEngine().stopAmbience();
 }
 
 function refreshBridgeAmbiencePlayback(): void {
   if (bridgeAmbienceEnabled && audioUnlocked && !soundsMuted && !backgroundSuspended) {
-    playBridgeAmbience();
+    getWarp12SynthEngine().startAmbience();
   } else if (backgroundSuspended) {
     suspendBridgeAmbience();
   } else {
@@ -109,7 +83,7 @@ function refreshBridgeAmbiencePlayback(): void {
   }
 }
 
-/** Loop bridge ambience under one-shot table SFX (separate audio element). */
+/** Loop bridge ambience under one-shot table SFX. */
 export function setBridgeAmbienceEnabled(enabled: boolean): void {
   bridgeAmbienceEnabled = enabled;
   refreshBridgeAmbiencePlayback();
@@ -119,12 +93,6 @@ export function setGameAudioBackgroundSuspended(suspended: boolean): void {
   backgroundSuspended = suspended;
   if (suspended) {
     suspendBridgeAmbience();
-    for (const clip of audioCache.values()) {
-      clip.pause();
-    }
-    for (const clip of turnBeepCache.values()) {
-      clip.pause();
-    }
     return;
   }
   refreshBridgeAmbiencePlayback();
@@ -137,71 +105,115 @@ export function isGameAudioBackgroundSuspended(): boolean {
 /** @internal Resets module audio singletons between unit tests. */
 export function resetGameAudioStateForTests(): void {
   stopGameSounds();
-  audioCache.clear();
-  turnBeepCache.clear();
-  bridgeAmbienceClip = null;
   bridgeAmbienceEnabled = false;
   backgroundSuspended = false;
   audioUnlocked = false;
   soundsMuted = false;
+  resetWarp12SynthEngineForTests();
 }
 
 export function isBridgeAmbienceEnabled(): boolean {
   return bridgeAmbienceEnabled;
 }
 
-function audioFor(sound: GameSound): HTMLAudioElement {
-  let clip = audioCache.get(sound);
-  if (!clip) {
-    clip = new Audio(SOUND_URLS[sound]);
-    clip.preload = 'auto';
-    audioCache.set(sound, clip);
-  }
-  return clip;
-}
-
 /** Prime audio after a user gesture (browser autoplay policy). */
 export function unlockGameAudio(): void {
-  if (audioUnlocked) {
-    return;
-  }
   audioUnlocked = true;
-  for (const sound of Object.keys(SOUND_URLS) as GameSound[]) {
-    const clip = audioFor(sound);
-    clip.load();
-  }
-  bridgeAmbienceElement().load();
+  void getWarp12SynthEngine().ensureContext();
   refreshBridgeAmbiencePlayback();
 }
 
 export function stopGameSound(sound: GameSound): void {
-  const clip = audioCache.get(sound);
-  if (!clip) {
-    return;
-  }
-  clip.pause();
-  clip.currentTime = 0;
+  getWarp12SynthEngine().stopGameSound(sound);
 }
 
-export function playGameSound(sound: GameSound): void {
+export function playGameSound(
+  sound: GameSound,
+  options?: { delayMs?: number }
+): void {
   if (!audioUnlocked || soundsMuted || backgroundSuspended) {
     return;
   }
-  const clip = audioFor(sound);
-  clip.currentTime = 0;
-  void clip.play().catch(() => undefined);
+  getWarp12SynthEngine().playGameSound(sound, {
+    delayMs: options?.delayMs ?? 0,
+  });
 }
 
-export function playTurnBeep(url: string): void {
+/** Play a chart chirp for the given slot (1–77 pentatonic mapping). */
+export function playTurnBeepById(
+  chartSlot: number,
+  options?: { delayMs?: number }
+): void {
   if (!audioUnlocked || soundsMuted || backgroundSuspended) {
     return;
   }
-  let clip = turnBeepCache.get(url);
-  if (!clip) {
-    clip = new Audio(url);
-    clip.preload = 'auto';
-    turnBeepCache.set(url, clip);
+  getWarp12SynthEngine().playTurnBeep(chartSlot, options?.delayMs ?? 0);
+}
+
+/** Table event sounds available for preview. */
+export const PREVIEWABLE_GAME_SOUNDS = ALL_GAME_SOUNDS;
+
+export const GAME_SOUND_PREVIEW_LABELS: Record<GameSound, string> = {
+  hail: 'Hail (your turn)',
+  consoleWarning: 'Console warning (double charted)',
+  redAlert: 'Red alert',
+  allStop: 'All Stop (power down)',
+  dropToImpulse: 'Drop to impulse',
+  returnToWarp: 'Return to warp',
+  flash: 'Continuum Flash',
+};
+
+/** Play a table sound immediately — bypasses mute for intentional preview taps. */
+export function previewGameSound(sound: GameSound): void {
+  unlockGameAudio();
+  if (backgroundSuspended) {
+    return;
   }
-  clip.currentTime = 0;
-  void clip.play().catch(() => undefined);
+  getWarp12SynthEngine().playGameSound(sound, { delayMs: 0 });
+}
+
+/** Preview a chart chirp by slot (1–77). */
+export function previewTurnBeep(chartSlot: number): void {
+  unlockGameAudio();
+  if (backgroundSuspended) {
+    return;
+  }
+  getWarp12SynthEngine().playTurnBeep(chartSlot, 0);
+}
+
+/** Dev console helpers — `warp12.previewSound('allStop')` etc. */
+export interface Warp12DevTools {
+  readonly previewSound: typeof previewGameSound;
+  readonly previewBeep: typeof previewTurnBeep;
+  readonly previewAllStopWithBridgeHum: () => void;
+  readonly startBridgeHum: () => void;
+  readonly sounds: typeof PREVIEWABLE_GAME_SOUNDS;
+  readonly soundLabels: typeof GAME_SOUND_PREVIEW_LABELS;
+}
+
+declare global {
+  interface Window {
+    warp12?: Warp12DevTools;
+  }
+}
+
+export function installGameSoundDevTools(): void {
+  if (!import.meta.env.DEV || typeof window === 'undefined') {
+    return;
+  }
+  window.warp12 = {
+    previewSound: previewGameSound,
+    previewBeep: previewTurnBeep,
+    previewAllStopWithBridgeHum: () => {
+      unlockGameAudio();
+      getWarp12SynthEngine().startAmbience();
+      previewGameSound('allStop');
+    },
+    startBridgeHum: () => {
+      unlockGameAudio();
+      getWarp12SynthEngine().startAmbience();
+    },
+    sounds: PREVIEWABLE_GAME_SOUNDS,
+    soundLabels: GAME_SOUND_PREVIEW_LABELS,
+  };
 }

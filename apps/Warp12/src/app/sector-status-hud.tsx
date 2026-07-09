@@ -1,7 +1,7 @@
 import { GAME_OBJECTIVE_LABELS, formatCampaignRoundProgress, type GameState, type RoundState } from 'warp12-engine';
 import type { RefObject } from 'react';
 import { sectorWinnerName } from '../game/sector-outcome.js';
-import { ActiveQFlashBanner, PeekedSectorBanner } from './q-flash-panel';
+import { ActiveContinuumFlashBanner, PeekedSectorBanner } from './flash-panel.js';
 import { FloatingPanelShell } from './floating-panel-shell';
 import styles from './sector-status-hud.module.scss';
 
@@ -35,7 +35,7 @@ export interface SectorStatusHudProps {
   redAlertActive: boolean;
   redAlertLabel: string;
   redAlertSummary: string;
-  redAlertTone: 'caution' | 'alert';
+  redAlertTone: 'yellow' | 'alert';
 }
 
 export function shouldShowAiThinking(props: {
@@ -242,14 +242,14 @@ export function SectorStatusHud({
         {redAlertActive && (
           <div
             className={`${styles.row} ${
-              redAlertTone === 'caution' ? styles.caution : styles.alert
+              redAlertTone === 'yellow' ? styles.yellowAlert : styles.alert
             }`}
           >
             <dt>{redAlertLabel}</dt>
             <dd>{redAlertSummary}</dd>
           </div>
         )}
-        <ActiveQFlashBanner game={game} names={names} className={styles.row} />
+        <ActiveContinuumFlashBanner game={game} names={names} className={styles.row} />
         <PeekedSectorBanner
           game={game}
           viewerId={viewerId}

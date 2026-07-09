@@ -225,11 +225,11 @@ export function LobbyForm({
         <label className={styles.checkboxRow}>
           <input
             type="checkbox"
-            checked={createOptions.modules?.qContinuum ?? false}
+            checked={createOptions.modules?.continuum ?? false}
             disabled={baseDisabled || charterLocked}
-            onChange={(e) => setModules({ qContinuum: e.target.checked })}
+            onChange={(e) => setModules({ continuum: e.target.checked })}
           />
-          <span>Module Alpha — Q-Continuum</span>
+          <span>Module Alpha — Continuum</span>
         </label>
       </fieldset>
 

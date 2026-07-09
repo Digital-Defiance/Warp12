@@ -1,4 +1,5 @@
 import {
+  createAdvisorPlayer,
   createOmegaPlayer,
   createWarpAiPlayer,
   explainTurnResolution,
@@ -7,6 +8,7 @@ import {
   observe,
   resolveAdvisorLookahead,
   toGameAction,
+  type AdvisorModelWeights,
   type ChartRoute,
   type GameAction,
   type GameState,
@@ -24,7 +26,9 @@ export interface CoachSuggestion {
 }
 
 export interface CoachSuggestionOptions {
-  /** When set, the advisor follows Class II neural Ω (greedy policy). */
+  /** Phase B concept-bottleneck advisor (preferred when loaded). */
+  readonly advisorWeights?: AdvisorModelWeights;
+  /** Phase A fallback — greedy Class II Ω pick + heuristic reasons. */
   readonly omegaNet?: OmegaModelWeights;
 }
 
@@ -40,6 +44,27 @@ export function getCoachSuggestion(
   }
 
   const playerCount = observation.captains.length;
+  if (options?.advisorWeights) {
+    const decision = createAdvisorPlayer({
+      weights: options.advisorWeights,
+    }).decide(observation);
+    if (!decision) {
+      return null;
+    }
+    const reasons = mergeCoachReasons(
+      decision.reasons,
+      explainTurnResolution(state, playerId, {
+        names,
+        focus: decision.action.kind,
+      })
+    );
+    return {
+      action: decision.action,
+      gameAction: toGameAction(decision.action, playerId),
+      reasons,
+    };
+  }
+
   const action = options?.omegaNet
     ? createOmegaPlayer({ net: options.omegaNet }).decide(observation)
     : createWarpAiPlayer({
@@ -111,9 +136,9 @@ export function formatCoachSuggestion(
       const target = names[action.targetPlayerId] ?? action.targetPlayerId;
       return `Catch Drop to Impulse · ${target} returns to warp`;
     }
-    case 'invoke-q-flash':
-      return `Invoke Q-Flash · ${action.effect.replaceAll('-', ' ')}`;
-    case 'resolve-q-gamble':
+    case 'invoke-continuum-flash':
+      return `Invoke Continuum Flash · ${action.effect.replaceAll('-', ' ')}`;
+    case 'resolve-continuum-wager':
       return `Keep gamble tile ${action.keepIndex + 1}`;
   }
 }

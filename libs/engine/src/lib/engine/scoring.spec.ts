@@ -108,7 +108,7 @@ describe('scoreRound salamander swap', () => {
       roundNumber: 13,
       phase: 'ended',
       roundWinnerId: 'a',
-      qEffects: {
+      continuumEffects: {
         reverseTurnOrder: false,
         temporalInversion: false,
         openAllTrails: false,
@@ -128,7 +128,7 @@ describe('scoreRound salamander swap', () => {
         { id: 'c', displayName: 'C', pointsScore: 100 }, // leader → swap target
       ],
       modules: resolveModules({
-        qContinuum: true,
+        continuum: true,
         salamanderPenalty: true,
         subspaceFracture: false,
       }),

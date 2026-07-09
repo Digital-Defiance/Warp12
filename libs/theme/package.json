@@ -1,9 +1,9 @@
 {
   "name": "warp12-theme",
-  "version": "0.2.1",
+  "version": "0.4.23",
   "description": "Warp 12 federation domino theme presets for DoubleTwelve",
   "license": "MIT",
-  "author": "Jessica Mulein",
+  "author": "Digital Defiance",
   "type": "module",
   "sideEffects": [
     "**/*.css",
@@ -44,7 +44,7 @@
     "prepublishOnly": "cd ../.. && yarn build:theme"
   },
   "peerDependencies": {
-    "doubletwelve": ">=0.3.0"
+    "doubletwelve": ">=0.3.2"
   },
   "devDependencies": {
     "doubletwelve": "workspace:*"

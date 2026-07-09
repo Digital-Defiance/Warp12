@@ -279,8 +279,8 @@ export function OnlineGamePage() {
       : !connected
         ? 'Reconnecting…'
         : synced
-          ? 'Subspace link active'
-          : 'Resyncing subspace link…';
+          ? 'Subspace IWDF link active'
+          : 'Resyncing subspace IWDF link…';
 
     const connectionState = syncPending
       ? 'pending'
@@ -412,7 +412,7 @@ export function OnlineGamePage() {
   if (!auth.ready || !game) {
     return (
       <p className={styles.waitingMessage}>
-        {error ?? 'Establishing subspace link…'}
+        {error ?? 'Establishing subspace IWDF link…'}
       </p>
     );
   }

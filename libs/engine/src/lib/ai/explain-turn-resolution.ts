@@ -56,7 +56,7 @@ export function explainTurnResolution(
   const mustDraw = mustDrawBeforePassing(round, playerId, houseRules);
   const redAlertBlocking = isRedAlertBlocking(round.table.redAlert, playerId);
   // The free pass (no draw, no beacon) applies only to the captain who charted
-  // the double, while the alert is still in the Caution phase (not yet passed).
+  // the double, while the alert is still in Yellow alert (not yet passed).
   const freePass =
     houseRules.passRedAlertWithoutDraw &&
     round.table.redAlert?.passed !== true;
@@ -112,12 +112,12 @@ export function explainTurnResolution(
     }
   }
 
-  if (round.qPendingInvoker === playerId) {
-    lines.push('Resolve your Q-Flash choice before other actions.');
+  if (round.continuumPendingInvoker === playerId) {
+    lines.push('Resolve your Continuum Flash choice before other actions.');
     return lines;
   }
 
-  if (round.qGamblePending?.playerId === playerId) {
+  if (round.continuumWagerPending?.playerId === playerId) {
     lines.push("Resolve Q's gamble before other actions.");
     return lines;
   }

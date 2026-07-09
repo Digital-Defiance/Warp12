@@ -4,7 +4,7 @@ set -euo pipefail
 
 PROJECT="${FIREBASE_PROJECT:-warp-12}"
 DOMAINS=(
-  "leaderboard.warp12.app"
+  "iwdf.org"
   "warp-12-leaderboard.web.app"
   "warp12.app"
 )

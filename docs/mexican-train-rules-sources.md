@@ -97,7 +97,7 @@ regress.
 
 ## Warp 12–specific layers (out of scope for standard conformance)
 
-RULES.md Sections VI–IX (Q-Continuum, Salamander Penalty, Subspace Fracture,
+RULES.md Sections VI–IX (Continuum, Salamander Penalty, Subspace Fracture,
 Drop to Impulse catch window, All Stop! ceremony, Manual shield control, TEI,
 Subspace messaging) are Warp 12 inventions or opt-in modules with no external
 standard to validate against. They are covered by their own unit tests and by

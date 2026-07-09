@@ -68,9 +68,8 @@
   animation: none;
 }
 
-// LCARS — rounded-rect PADD blocks; fixed orange/violet palette (not pip-tinted gold).
 
-.warpTile[data-pip-preset='lcars'] :global([data-testid='pip']:not([data-hollow='true'])) {
+.warpTile[data-pip-preset='futuristic'] :global([data-testid='pip']:not([data-hollow='true'])) {
   background: linear-gradient(
     160deg,
     #ffe066 0%,
@@ -85,7 +84,7 @@
   animation: none;
 }
 
-.warpTile[data-pip-preset='lcars'] :global([data-testid='pip'][data-hollow='true']) {
+.warpTile[data-pip-preset='futuristic'] :global([data-testid='pip'][data-hollow='true']) {
   background: rgba(10, 18, 32, 0.35) !important;
   border: 2px solid #cc99ff !important;
   border-radius: 22% !important;
@@ -95,24 +94,22 @@
   animation: none;
 }
 
-// Okudagram — technical schematic bracket rings.
-
-.warpTile[data-pip-preset='okudagram'] :global([data-testid='pip']:not([data-hollow='true'])) {
+.warpTile[data-pip-preset='schematic'] :global([data-testid='pip']:not([data-hollow='true'])) {
   background: color-mix(in srgb, var(--pip-color) 28%, #0a1628) !important;
   border: 1px solid #7dd3fc !important;
   box-shadow:
     0 0 0 1px rgba(56, 189, 248, 0.5),
     0 0 12px color-mix(in srgb, var(--pip-color) 55%, transparent),
     inset 0 0 8px rgba(56, 189, 248, 0.3) !important;
-  animation: warp-okudagram-scan 3.5s ease-in-out infinite;
+  animation: warp-schematic-scan 3.5s ease-in-out infinite;
 }
 
-.warpTile[data-pip-preset='okudagram'] :global([data-testid='pip'][data-hollow='true']) {
+.warpTile[data-pip-preset='schematic'] :global([data-testid='pip'][data-hollow='true']) {
   border: 2px solid #38bdf8 !important;
   box-shadow:
     0 0 0 1px rgba(125, 211, 252, 0.55),
     0 0 10px rgba(56, 189, 248, 0.45) !important;
-  animation: warp-okudagram-scan 3.5s ease-in-out infinite;
+  animation: warp-schematic-scan 3.5s ease-in-out infinite;
 }
 
 // Isolinear — squarish optical chips with cool glass rim.
@@ -202,7 +199,7 @@
   ) !important;
 }
 
-.warpTileHolographic[data-pip-preset='lcars'] :global([data-testid='pip']:not([data-hollow='true'])) {
+.warpTileHolographic[data-pip-preset='futuristic'] :global([data-testid='pip']:not([data-hollow='true'])) {
   background: linear-gradient(
     160deg,
     #ffe066 0%,
@@ -223,7 +220,7 @@
     inset 0 -2px 4px rgba(15, 23, 42, 0.28) !important;
 }
 
-@keyframes warp-okudagram-scan {
+@keyframes warp-schematic-scan {
   0%,
   100% {
     filter: brightness(1);

@@ -160,6 +160,49 @@ export type {
 export { createOmegaSearchModel, omegaActionPriors, omegaSearchVisits } from './omega-search.js';
 export type { CreateOmegaSearchPlayerOptions } from './omega-search-agent.js';
 export { createOmegaSearchPlayer } from './omega-search-agent.js';
+export {
+  ADVISOR_ACTION_FEATURE_DIM,
+  ADVISOR_DISPLAY_NAME,
+  ADVISOR_MODEL_VERSION,
+  ADVISOR_POLICY_FEATURE_DIM,
+  ADVISOR_STATE_CONCEPT_DIM,
+} from './advisor-constants.js';
+export {
+  ADVISOR_CONCEPT_IDS,
+  advisorConceptLabel,
+  computeAdvisorStateConcepts,
+  explainAdvisorConcepts,
+  rankAdvisorConcepts,
+  type AdvisorConceptId,
+} from './advisor-concepts.js';
+export {
+  encodeAdvisorActionFeatures,
+  encodeAdvisorPolicyFeatureBatch,
+  encodeAdvisorPolicyFeatures,
+} from './advisor-encoder.js';
+export type { AdvisorDenseLayer, AdvisorModelWeights } from './advisor-net.js';
+export {
+  createZeroAdvisorModelWeights,
+  forwardAdvisorPolicyBatch,
+  forwardAdvisorPolicyLogit,
+  validateAdvisorModelWeights,
+} from './advisor-net.js';
+export type {
+  AdvisorDecision,
+  AdvisorPlayer,
+  CreateAdvisorPlayerOptions,
+} from './create-advisor-player.js';
+export { createAdvisorPlayer } from './create-advisor-player.js';
+export type {
+  AdvisorTrajectoryRow,
+  CollectAdvisorTrajectoriesOptions,
+  CollectAdvisorTrajectoriesResult,
+  AdvisorTrajectorySink,
+} from './collect-advisor-trajectories.js';
+export {
+  collectAdvisorTrajectoriesToSink,
+  serializeAdvisorTrajectoryRow,
+} from './collect-advisor-trajectories.js';
 export type {
   CollectOmegaTrajectoriesOptions,
   CollectOmegaTrajectoriesResult,
@@ -225,7 +268,7 @@ export {
   warpAiActionKey,
 } from './from-game-action.js';
 
-export { chooseQFlashEffect, chooseQGambleKeepIndex } from './q-flash.js';
+export { chooseQFlashEffect, chooseQGambleKeepIndex } from './flash.js';
 
 export {
   createWarpSearchModel,

@@ -607,7 +607,7 @@ describe('blocked sector (empty draw pile, no legal charts)', () => {
         b: [T(0, 8)],
         c: [T(5, 9)],
       },
-      qEffects: {
+      continuumEffects: {
         reverseTurnOrder: false,
         temporalInversion: false,
         openAllTrails: false,
@@ -671,7 +671,7 @@ describe('blocked sector (empty draw pile, no legal charts)', () => {
           c: [T(4, 5)],
           d: [T(6, 7)],
         },
-        qEffects: {
+        continuumEffects: {
           reverseTurnOrder: false,
           temporalInversion: false,
           openAllTrails: false,
@@ -1097,7 +1097,7 @@ describe('calling all stop', () => {
       makeRound(['a', 'b'], {
         activePlayerId: 'a',
         hands: { a: [T(5, 12)], b: [T(1, 2)] },
-        qEffects: {
+        continuumEffects: {
           reverseTurnOrder: false,
           temporalInversion: false,
           openAllTrails: false,

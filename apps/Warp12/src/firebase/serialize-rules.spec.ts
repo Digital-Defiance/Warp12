@@ -18,7 +18,7 @@ describe('serialize round rule fields', () => {
       houseRules: resolveHouseRules(),
       captains: [{ id: 'a', displayName: 'A', pointsScore: 0 }],
       modules: {
-        qContinuum: { enabled: false, activeFlash: null },
+        continuum: { enabled: false, activeFlash: null },
         salamanderPenalty: { enabled: false },
         subspaceFracture: { enabled: false, scope: 'own-trail' },
       },
@@ -33,9 +33,9 @@ describe('serialize round rule fields', () => {
         allStopRequired: false,
         allStopDeclared: false,
         roundWinnerId: null,
-        qPendingInvoker: null,
-        qEffects: null,
-        qGamblePending: null,
+        continuumPendingInvoker: null,
+        continuumEffects: null,
+        continuumWagerPending: null,
         mandatoryPlay: { playerId: 'a', coordinate: { low: 6, high: 12 } },
         pendingRoundWin: { playerId: 'a', routeKind: 'warp-trail' as const },
         roundBlocked: true,
@@ -93,7 +93,7 @@ describe('serialize round rule fields', () => {
         { id: 'b', displayName: 'B', pointsScore: 0 },
       ],
       modules: {
-        qContinuum: { enabled: false, activeFlash: null },
+        continuum: { enabled: false, activeFlash: null },
         salamanderPenalty: { enabled: false },
         subspaceFracture: { enabled: false, scope: 'own-trail' },
       },
@@ -108,9 +108,9 @@ describe('serialize round rule fields', () => {
         allStopRequired: false,
         allStopDeclared: false,
         roundWinnerId: null,
-        qPendingInvoker: null,
-        qEffects: null,
-        qGamblePending: null,
+        continuumPendingInvoker: null,
+        continuumEffects: null,
+        continuumWagerPending: null,
         mandatoryPlay: null,
         pendingRoundWin: null,
         roundBlocked: false,
@@ -205,7 +205,7 @@ describe('serialize round rule fields', () => {
         { id: 'b', displayName: 'B', pointsScore: 0 },
       ],
       modules: {
-        qContinuum: { enabled: false, activeFlash: null },
+        continuum: { enabled: false, activeFlash: null },
         salamanderPenalty: { enabled: false },
         subspaceFracture: { enabled: false, scope: 'own-trail' },
       },
@@ -233,7 +233,7 @@ describe('serialize round rule fields', () => {
 });
 
 describe('serialize red alert passed flag', () => {
-  it('round-trips the Caution → passed transition through serialize/merge', () => {
+  it('round-trips the Yellow alert → passed transition through serialize/merge', () => {
     const state = {
       id: 'test',
       phase: 'active',
@@ -246,7 +246,7 @@ describe('serialize red alert passed flag', () => {
         { id: 'b', displayName: 'B', pointsScore: 0 },
       ],
       modules: {
-        qContinuum: { enabled: false, activeFlash: null },
+        continuum: { enabled: false, activeFlash: null },
         salamanderPenalty: { enabled: false },
         subspaceFracture: { enabled: false, scope: 'own-trail' },
       },
@@ -261,9 +261,9 @@ describe('serialize red alert passed flag', () => {
         allStopRequired: false,
         allStopDeclared: false,
         roundWinnerId: null,
-        qPendingInvoker: null,
-        qEffects: null,
-        qGamblePending: null,
+        continuumPendingInvoker: null,
+        continuumEffects: null,
+        continuumWagerPending: null,
         mandatoryPlay: null,
         pendingRoundWin: null,
         roundBlocked: false,
@@ -294,7 +294,7 @@ describe('serialize red alert passed flag', () => {
       },
     } satisfies GameState;
 
-    // Caution phase — passed is not serialized (kept undefined/false).
+    // Yellow alert phase — passed is not serialized (kept undefined/false).
     expect(serializePublicGame(state).round?.table.redAlert?.passed).toBeUndefined();
 
     const merged = mergeHandsIntoGame(serializePublicGame(state), {

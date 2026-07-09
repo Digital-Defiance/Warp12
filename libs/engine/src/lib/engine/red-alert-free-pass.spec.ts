@@ -9,14 +9,14 @@ import { resolveHouseRules } from '../types/house-rules.js';
 /**
  * "Pass Red Alert without draw or beacon" (mayhem) is a *creator-only* break:
  * the captain who charts the double may pass it on immediately without drawing
- * or deploying a beacon, but only during the Caution phase (before it passes).
+ * or deploying a beacon, but only during Yellow alert (before it passes).
  * Once responsibility has moved, everyone — including the original captain when
  * it cycles back — must satisfy it under standard rules.
  *
  * These tests drive the real charting flow end to end so the `passed` flag is
  * set by the engine, not hand-authored state.
  */
-describe('Red Alert free pass (creator-only, Caution phase)', () => {
+describe('Red Alert free pass (creator-only, Yellow alert)', () => {
   const freePassRules = resolveHouseRules({ passRedAlertWithoutDraw: true });
   const standardRules = resolveHouseRules();
 
@@ -70,7 +70,7 @@ describe('Red Alert free pass (creator-only, Caution phase)', () => {
     return result.state;
   }
 
-  it('opens the alert in the Caution phase (passed is not set)', () => {
+  it('opens the alert in Yellow alert (passed is not set)', () => {
     const afterChart = chartTheDouble(gameWhereCreatorChartsDouble());
     const redAlert = afterChart.round?.table.redAlert;
     expect(redAlert?.active).toBe(true);

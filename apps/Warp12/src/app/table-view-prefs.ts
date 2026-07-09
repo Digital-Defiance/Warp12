@@ -40,8 +40,8 @@ export const DEFAULT_TABLE_OPTIONS: TableOptionsPrefs = {
 const PIP_PRESETS = new Set<WarpPipPreset>([
   'classic',
   'bridge',
-  'lcars',
-  'okudagram',
+  'futuristic',
+  'schematic',
   'isolinear',
   'warpCore',
 ]);

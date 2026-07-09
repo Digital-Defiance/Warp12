@@ -113,6 +113,9 @@ function AppShell() {
               >
                 Privacy
               </button>
+              <Link to="https://iwdf.org" target='_blank' rel='noopener noreferrer' className={styles.iwdfLink}>
+                IWDF
+              </Link>
             </>
           ) : (
             <>
@@ -135,6 +138,9 @@ function AppShell() {
               </Link>
               <Link to="/profile" className={styles.navLink}>
                 Profile
+              </Link>
+              <Link to="https://iwdf.org" target='_blank' rel='noopener noreferrer' className={styles.iwdfLink}>
+                IWDF
               </Link>
             </>
           )}

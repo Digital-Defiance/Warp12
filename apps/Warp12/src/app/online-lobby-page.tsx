@@ -268,7 +268,7 @@ export function OnlineLobbyPage() {
 
   if (sectorCode && !auth.ready) {
     return (
-      <p className={styles.waitingMessage}>Establishing subspace link…</p>
+      <p className={styles.waitingMessage}>Establishing subspace IWDF link…</p>
     );
   }
 
@@ -534,18 +534,18 @@ export function OnlineLobbyPage() {
             <label className={styles.checkboxRow}>
               <input
                 type="checkbox"
-                checked={lobby.modules.qContinuum}
+                checked={lobby.modules.continuum}
                 disabled={busy || charterLocked}
                 onChange={(e) =>
                   void saveSettings({
                     modules: {
                       ...lobby.modules,
-                      qContinuum: e.target.checked,
+                      continuum: e.target.checked,
                     },
                   })
                 }
               />
-              <span>Module Alpha — Q-Continuum</span>
+              <span>Module Alpha — Continuum</span>
             </label>
             <DoubleZeroScoreField
               value={lobby.houseRules?.doubleZeroScore}

@@ -18,7 +18,7 @@ import {
   trailOpenValue,
 } from '../table/table-state.js';
 import { coordinateKey } from '../types/coordinate.js';
-import { trailsOpenToOthers } from './q-continuum.js';
+import { trailsOpenToOthers } from './continuum.js';
 import { resolveDeadRedAlert } from './dead-red-alert.js';
 import {
   canChartOnNeutralZone,
@@ -149,8 +149,8 @@ export function getLegalMoves(
   round = resolveDeadRedAlert(round);
 
   if (
-    round.qPendingInvoker === playerId ||
-    round.qGamblePending?.playerId === playerId
+    round.continuumPendingInvoker === playerId ||
+    round.continuumWagerPending?.playerId === playerId
   ) {
     return [];
   }

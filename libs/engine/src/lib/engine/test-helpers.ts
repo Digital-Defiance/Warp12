@@ -41,9 +41,9 @@ export function emptyRoundFields(): Pick<
   | 'mandatoryPlay'
   | 'pendingRoundWin'
   | 'roundBlocked'
-  | 'qPendingInvoker'
-  | 'qEffects'
-  | 'qGamblePending'
+  | 'continuumPendingInvoker'
+  | 'continuumEffects'
+  | 'continuumWagerPending'
   | 'allStopRequired'
   | 'allStopDeclared'
   | 'roundWinnerId'
@@ -57,9 +57,9 @@ export function emptyRoundFields(): Pick<
     allStopRequired: false,
     allStopDeclared: false,
     roundWinnerId: null,
-    qPendingInvoker: null,
-    qEffects: null,
-    qGamblePending: null,
+    continuumPendingInvoker: null,
+    continuumEffects: null,
+    continuumWagerPending: null,
     mandatoryPlay: null,
     pendingRoundWin: null,
     roundBlocked: false,
@@ -103,7 +103,7 @@ export function makeGame(
     completedRounds: 0,
     captains: DEFAULT_CAPTAINS.map((c) => ({ ...c })),
     modules: resolveModules({
-      qContinuum: false,
+      continuum: false,
       salamanderPenalty: false,
       subspaceFracture: false,
     }),

@@ -13,7 +13,7 @@ import {
   createRoundStateFromDeal,
   dealRoundFromShuffled,
 } from '../setup/create-game.js';
-import { highestPointsCaptainId } from './q-continuum.js';
+import { highestPointsCaptainId } from './continuum.js';
 import { withRoundAndCaptains } from './helpers.js';
 
 function penaltyForHand(
@@ -63,8 +63,8 @@ function clearActiveQFlash(state: GameState): GameState {
     ...state,
     modules: {
       ...state.modules,
-      qContinuum: {
-        ...state.modules.qContinuum,
+      continuum: {
+        ...state.modules.continuum,
         activeFlash: null,
       },
     },
@@ -75,7 +75,7 @@ function tallyRoundPoints(state: GameState, round: RoundState) {
   const salamander = state.modules.salamanderPenalty.enabled;
   const doubleZeroScore = state.houseRules.doubleZeroScore;
   const salamanderSwap =
-    salamander && round.qEffects?.salamanderSwap === true;
+    salamander && round.continuumEffects?.salamanderSwap === true;
 
   let swapHolder: string | null = null;
   let swapTarget: string | null = null;

@@ -45,7 +45,7 @@ describe('go-out trail strategy heuristics', () => {
     playerId: 'a',
     modules: {
       salamanderPenalty: { enabled: false },
-      qContinuum: { enabled: false },
+      continuum: { enabled: false },
       subspaceFracture: { enabled: false },
     },
     houseRules: { dropToImpulseCall: false },

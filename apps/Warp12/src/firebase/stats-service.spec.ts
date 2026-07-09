@@ -218,7 +218,7 @@ describe('isReplayableLocalAiMatch', () => {
       playerCount: 4,
       objective: 'go-out' as const,
       campaignRounds: 13,
-      modules: { salamanderPenalty: false, qContinuum: false, subspaceFracture: false },
+      modules: { salamanderPenalty: false, continuum: false, subspaceFracture: false },
       aiCaptains: [{ id: 'riker', displayName: 'Riker', skill: 'lieutenant' as const }],
     },
     humanActions: [

@@ -43,6 +43,10 @@ const objective = (process.env.OMEGA_OBJECTIVE ?? 'points') as GameObjective;
 const temperature = Number(process.env.OMEGA_TEMPERATURE ?? 1);
 const searchIterations = Number(process.env.OMEGA_SEARCH_ITERS ?? 0);
 const searchMaxBranch = Number(process.env.OMEGA_SEARCH_MAX_BRANCH ?? 8);
+const searchLeaf = (process.env.OMEGA_SEARCH_LEAF ?? 'heuristic') as
+  | 'puct'
+  | 'heuristic'
+  | 'value';
 const outPath = process.env.OMEGA_OUT ?? resolve(here, 'data/omega-trajectories.jsonl');
 const progressEvery = Number(process.env.OMEGA_PROGRESS_EVERY ?? 25);
 const weightsPath =
@@ -91,7 +95,7 @@ const result = await collectOmegaParallel({
     playerCount,
     ...(mixedTable ? { playerCounts } : {}),
     temperature,
-    ...(searchIterations > 0 ? { searchIterations, searchMaxBranch } : {}),
+    ...(searchIterations > 0 ? { searchIterations, searchMaxBranch, searchLeaf } : {}),
     progressEvery,
   },
   outPath,

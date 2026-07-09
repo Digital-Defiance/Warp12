@@ -20,7 +20,7 @@ export const WARP12_OFFICIAL_CAMPAIGN_ROUNDS = DEFAULT_CAMPAIGN_ROUNDS;
 /** Module Alpha + Beta enabled; Subspace Fracture off unless hosts opt in. */
 export const WARP12_OFFICIAL_MODULES: Readonly<GameModuleConfig> = {
   salamanderPenalty: true,
-  qContinuum: true,
+  continuum: true,
   subspaceFracture: false,
   subspaceFractureScope: DEFAULT_SUBSPACE_FRACTURE_SCOPE,
 };
@@ -36,13 +36,13 @@ export const WARP12_OFFICIAL_HOUSE_RULES: Readonly<HouseRulesConfig> = {
   roundStarterPlaysTwo: false,
   passRedAlertWithoutDraw: false,
   manualShieldControl: false,
-  // Warp 12 keeps the double-blank safe to hold (it triggers Q-Continuum),
+  // Warp 12 keeps the double-blank safe to hold (it triggers Continuum),
   // unlike the tournament-standard 50.
   doubleZeroScore: 0,
 };
 
 export const WARP12_OFFICIAL_RULES_SUMMARY =
-  'Points campaign, Salamander penalty, Q-Continuum, Drop to Impulse (1-tile catch), and All Stop! ceremony.';
+  'Points campaign, Salamander penalty, Continuum, Drop to Impulse (1-tile catch), and All Stop! ceremony.';
 
 /** Default online create options — Official Warp 12 rules encouraged at launch. */
 export function warp12OfficialCreateLobbyOptions(

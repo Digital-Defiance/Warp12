@@ -1,7 +1,7 @@
 import type { HouseRules } from '../types/house-rules.js';
 import type { RoundState } from '../types/game-state.js';
 import type { PlayerId } from '../types/player.js';
-import { advanceActivePlayer } from './q-continuum.js';
+import { advanceActivePlayer } from './continuum.js';
 
 /** One tile left after charting — must announce or pass helm (standard knock timing). */
 export function isDropToImpulseAnnouncePending(

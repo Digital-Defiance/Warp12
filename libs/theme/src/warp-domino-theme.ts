@@ -16,8 +16,8 @@ const WARP_TILE_BG_CLASSES = {
 const WARP_PIP_PRESETS = {
   classic: 'classic',
   bridge: 'bridge',
-  lcars: 'lcars',
-  okudagram: 'okudagram',
+  futuristic: 'futuristic',
+  schematic: 'schematic',
   isolinear: 'isolinear',
   warpCore: 'warpCore',
 } as const;
@@ -31,8 +31,8 @@ export type WarpPipPreset = keyof typeof WARP_PIP_PRESETS;
 export const WARP_PIP_PRESET_ORDER: readonly WarpPipPreset[] = [
   'classic',
   'bridge',
-  'lcars',
-  'okudagram',
+  'futuristic',
+  'schematic',
   'isolinear',
   'warpCore',
 ];
@@ -49,12 +49,12 @@ export const WARP_PIP_PRESET_META: Record<
     label: 'Bridge',
     hint: 'Deflector display — soft cyan sensor glow',
   },
-  lcars: {
-    label: 'LCARS',
-    hint: 'PADD readout — warm orange highlight, violet frame',
+  futuristic: {
+    label: 'Futuristic',
+    hint: 'Tablet readout — warm orange highlight, violet frame',
   },
-  okudagram: {
-    label: 'Okudagram',
+  schematic: {
+    label: 'Schematic',
     hint: 'Technical schematic — bracket rings and scan pulse',
   },
   isolinear: {

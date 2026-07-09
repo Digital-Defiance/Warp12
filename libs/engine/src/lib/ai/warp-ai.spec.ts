@@ -67,9 +67,9 @@ function makeRound(over: Partial<RoundState>): RoundState {
     allStopRequired: false,
     allStopDeclared: false,
     roundWinnerId: null,
-    qPendingInvoker: null,
-    qEffects: null,
-    qGamblePending: null,
+    continuumPendingInvoker: null,
+    continuumEffects: null,
+    continuumWagerPending: null,
     mandatoryPlay: null,
     pendingRoundWin: null,
     roundBlocked: false,
@@ -377,7 +377,7 @@ describe('createWarpAiPlayer — RULES.md tactics', () => {
       table: tableWithOwnTrailOpen(0),
       hands: { a: [N(0, 0), N(0, 9)], b: [] },
     });
-    const qFlash = N(0, 0);
+    const flash = N(0, 0);
 
     const withModule = createWarpAiPlayer({
       skill: getWarpSkillProfile('commander'),
@@ -390,13 +390,13 @@ describe('createWarpAiPlayer — RULES.md tactics', () => {
 
     const enabledRate = rate(
       withModule,
-      obsFor(round, resolveModules({ qContinuum: true })),
-      isChartOf(qFlash)
+      obsFor(round, resolveModules({ continuum: true })),
+      isChartOf(flash)
     );
     const disabledRate = rate(
       without,
       obsFor(round, DEFAULT_MODULES),
-      isChartOf(qFlash)
+      isChartOf(flash)
     );
 
     expect(enabledRate).toBeGreaterThan(0.95);

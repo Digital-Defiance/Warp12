@@ -29,7 +29,7 @@ describe('go-out race phase', () => {
       playerId: 'a',
       modules: {
         salamanderPenalty: { enabled: false },
-        qContinuum: { enabled: false },
+        continuum: { enabled: false },
         subspaceFracture: { enabled: false },
       },
       houseRules: { dropToImpulseCall: false },
@@ -75,7 +75,7 @@ describe('goOutFeasibility heuristic', () => {
       playerId: 'a',
       modules: {
         salamanderPenalty: { enabled: false },
-        qContinuum: { enabled: false },
+        continuum: { enabled: false },
         subspaceFracture: { enabled: false },
       },
       houseRules: { dropToImpulseCall: false },

@@ -18,7 +18,7 @@ aux_links:
   Play:
     - https://warp12.app
   Leaderboard:
-    - https://leaderboard.warp12.app
+    - https://iwdf.org
 
 footer_content: "Warp 12 — a Double-Twelve domino variant for the NX Epoch."
 
@@ -72,7 +72,7 @@ defaults:
       title: Rated Matches
       parent: TEI & Rating
       nav_order: 3
-      description: Officiated human-pool TEI for in-person play via leaderboard.warp12.app.
+      description: Officiated human-pool TEI for in-person play via iwdf.org.
 
   - scope:
       path: tei-paper-outline.md

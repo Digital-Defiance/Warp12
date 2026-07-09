@@ -18,6 +18,126 @@
     radial-gradient(circle at 80% 20%, rgba(251, 191, 36, 0.04), transparent 35%),
     var(--warp-table);
   min-height: 320px;
+  transition:
+    border-color 0.45s ease,
+    box-shadow 0.45s ease,
+    background 0.45s ease;
+
+  &[data-yellow-alert='true'] {
+    border-color: rgba(251, 191, 36, 0.4);
+    box-shadow:
+      0 0 32px rgba(251, 191, 36, 0.18),
+      0 0 64px rgba(245, 158, 11, 0.1),
+      inset 0 0 44px rgba(120, 53, 15, 0.14),
+      inset 0 0 96px rgba(251, 191, 36, 0.05);
+    background:
+      radial-gradient(ellipse at 50% 42%, rgba(251, 191, 36, 0.1), transparent 58%),
+      radial-gradient(circle at 18% 82%, rgba(180, 83, 9, 0.06), transparent 42%),
+      radial-gradient(circle at 82% 18%, rgba(253, 186, 116, 0.05), transparent 36%),
+      var(--warp-table);
+    animation: bridgeYellowAlertGlow 3.2s ease-in-out infinite;
+  }
+
+  &[data-yellow-alert='true']::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+    box-shadow:
+      inset 0 0 0 1px rgba(253, 230, 138, 0.16),
+      inset 0 0 28px rgba(251, 191, 36, 0.1);
+    animation: bridgeYellowAlertRim 3.2s ease-in-out infinite;
+  }
+
+  &[data-red-alert='true'] {
+    border-color: rgba(248, 113, 113, 0.42);
+    box-shadow:
+      0 0 36px rgba(248, 113, 113, 0.2),
+      0 0 72px rgba(239, 68, 68, 0.1),
+      inset 0 0 48px rgba(127, 29, 29, 0.16),
+      inset 0 0 100px rgba(248, 113, 113, 0.05);
+    background:
+      radial-gradient(ellipse at 50% 42%, rgba(248, 113, 113, 0.11), transparent 58%),
+      radial-gradient(circle at 18% 82%, rgba(185, 28, 28, 0.07), transparent 42%),
+      radial-gradient(circle at 82% 18%, rgba(251, 113, 133, 0.05), transparent 36%),
+      var(--warp-table);
+    animation: bridgeRedAlertGlow 2.8s ease-in-out infinite;
+  }
+
+  &[data-red-alert='true']::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+    box-shadow:
+      inset 0 0 0 1px rgba(254, 202, 202, 0.14),
+      inset 0 0 28px rgba(248, 113, 113, 0.12);
+    animation: bridgeRedAlertRim 2.8s ease-in-out infinite;
+  }
+}
+
+@keyframes bridgeYellowAlertGlow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 28px rgba(251, 191, 36, 0.14),
+      0 0 56px rgba(245, 158, 11, 0.07),
+      inset 0 0 40px rgba(120, 53, 15, 0.12),
+      inset 0 0 88px rgba(251, 191, 36, 0.04);
+  }
+
+  50% {
+    box-shadow:
+      0 0 40px rgba(251, 191, 36, 0.22),
+      0 0 76px rgba(245, 158, 11, 0.11),
+      inset 0 0 52px rgba(120, 53, 15, 0.18),
+      inset 0 0 104px rgba(251, 191, 36, 0.06);
+  }
+}
+
+@keyframes bridgeYellowAlertRim {
+  0%,
+  100% {
+    opacity: 0.68;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes bridgeRedAlertGlow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 32px rgba(248, 113, 113, 0.16),
+      0 0 64px rgba(239, 68, 68, 0.08),
+      inset 0 0 44px rgba(127, 29, 29, 0.14),
+      inset 0 0 92px rgba(248, 113, 113, 0.04);
+  }
+
+  50% {
+    box-shadow:
+      0 0 44px rgba(248, 113, 113, 0.24),
+      0 0 88px rgba(239, 68, 68, 0.12),
+      inset 0 0 56px rgba(127, 29, 29, 0.2),
+      inset 0 0 112px rgba(248, 113, 113, 0.07);
+  }
+}
+
+@keyframes bridgeRedAlertRim {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
 .controls {
@@ -165,6 +285,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .bridge[data-red-alert='true'] {
+    animation: none;
+  }
+
+  .bridge[data-red-alert='true']::after {
+    animation: none;
+    opacity: 0.88;
+  }
+
   .commandPanel {
     transition: none;
   }

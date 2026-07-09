@@ -43,7 +43,7 @@ function buildSections(game: GameState): { title: string; rows: SettingRow[] }[]
     {
       title: 'Modules',
       rows: [
-        { label: 'Module Alpha — Q-Continuum', value: onOff(modules.qContinuum.enabled) },
+        { label: 'Module Alpha — Continuum', value: onOff(modules.continuum.enabled) },
         {
           label: 'Module Beta — Salamander Penalty',
           value: onOff(modules.salamanderPenalty.enabled),

@@ -143,7 +143,7 @@ Two static SPAs on the **`warp-12`** project:
 | Site | Deploy target | Build output | URL |
 | ---- | ------------- | ------------ | --- |
 | Bridge | `hosting:bridge` | `apps/Warp12/dist` | [warp12.app](https://warp12.app) |
-| Leaderboard | `hosting:leaderboard` | `Warp12-leaderboard/dist` | [leaderboard.warp12.app](https://leaderboard.warp12.app) |
+| Leaderboard | `hosting:leaderboard` | `Warp12-leaderboard/dist` | [iwdf.org](https://iwdf.org) |
 
 ### One-time setup
 
@@ -158,7 +158,7 @@ Two static SPAs on the **`warp-12`** project:
    ```
 3. Hosting targets (already configured in `.firebaserc`):
    - **Bridge** site id: `warp-12` → [warp12.app](https://warp12.app)
-   - **Leaderboard** site id: `warp-12-leaderboard` → [leaderboard.warp12.app](https://leaderboard.warp12.app) (Firebase default URL: `warp-12-leaderboard.web.app`)
+   - **Leaderboard** site id: `warp-12-leaderboard` → [iwdf.org](https://iwdf.org) (Firebase default URL: `warp-12-leaderboard.web.app`)
 
    Re-apply targets if needed:
    ```bash
@@ -167,7 +167,7 @@ Two static SPAs on the **`warp-12`** project:
    ```
 4. In [Firebase Console → Hosting](https://console.firebase.google.com/project/warp-12/hosting), attach custom domains:
    - **Bridge** (`warp-12`): `warp12.app`
-   - **Leaderboard** (`warp-12-leaderboard`): `leaderboard.warp12.app`
+   - **Leaderboard** (`warp-12-leaderboard`): `iwdf.org`
 5. Enable Hosting on both sites if prompted.
 
 ### Build + deploy
@@ -216,7 +216,7 @@ Firebase Console → Authentication → **Settings** → **Authorized domains** 
 
 - `localhost` (dev)
 - `warp12.app`
-- `leaderboard.warp12.app`
+- `iwdf.org`
 - `warp-12.web.app`
 - `warp-12.firebaseapp.com`
 - `warp-12-leaderboard.web.app` (default Firebase URL for the leaderboard site)
@@ -225,7 +225,7 @@ Anonymous Auth will fail on a domain that is not listed there.
 
 ## 📜 Rules
 
-See [RULES.md](./RULES.md) for the full Navigational Operations Manual — Spacedock, Warp Trails, Neutral Zone, Distress Beacon, Subspace Fracture, All Stop!, Drop to Impulse, and opt-in modules (Q-Continuum, Salamander Penalty).
+See [RULES.md](./RULES.md) for the full Navigational Operations Manual — Spacedock, Warp Trails, Neutral Zone, Distress Beacon, Subspace Fracture, All Stop!, Drop to Impulse, and opt-in modules (Continuum, Salamander Penalty).
 
 ## Warp AI, tactical coach & TEI
 
@@ -256,7 +256,7 @@ The **tactical advisor** follows Class II **Ω** (greedy policy) when weights ar
 
 ### Leaderboard TEI (unassisted matches)
 
-Solo games vs AI feed **[leaderboard.warp12.app](https://leaderboard.warp12.app)**. Two independent tracks:
+Solo games vs AI feed **[iwdf.org](https://iwdf.org)**. Two independent tracks:
 
 | Track | When it applies |
 |-------|-----------------|
@@ -265,7 +265,7 @@ Solo games vs AI feed **[leaderboard.warp12.app](https://leaderboard.warp12.app)
 
 Each track also splits by AI tactical class (`localAi` Class IV / III / II profiles).
 
-**Starfleet Academy:** before the first rated match in each track, captains pick Class IV / III / II and a starting TEI within that class’s band (saved once per track — go-out and points are independent).
+**Federation Academy:** before the first rated match in each track, captains pick Class IV / III / II and a starting TEI within that class’s band (saved once per track — go-out and points are independent).
 
 **Fixed reference TEI** (`warp12-official-v2`, unassisted matches only):
 

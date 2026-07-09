@@ -1,10 +1,18 @@
 import { useEffect, useRef } from 'react';
 
-import {
-  computerBeepUrl,
-  pickRandomComputerBeepId,
-} from './computer-beeps.js';
-import { playGameSound, playTurnBeep, stopGameSound, type GameSound } from './game-sounds.js';
+import { playGameSound, playTurnBeepById, stopGameSound, type GameSound } from './game-sounds.js';
+
+/** Gap between stacked beep events on the same frame (ms). */
+const BEEP_STAGGER_MS = 120;
+
+/** Stable chart chirp slot 1–77 — pentatonic pitch via musical-chirp-synth. */
+export function chartSlotForPlayer(playerId: string): number {
+  let hash = 0;
+  for (let i = 0; i < playerId.length; i += 1) {
+    hash = (hash * 31 + playerId.charCodeAt(i)) | 0;
+  }
+  return (Math.abs(hash) % 77) + 1;
+}
 
 export interface GameSoundSnapshot {
   gamePhase: string;
@@ -18,7 +26,7 @@ export interface GameSoundSnapshot {
   trueRedAlert: boolean;
   redAlertResponsibleId: string | null;
   activeBeaconCount: number;
-  qFlashActive: boolean;
+  flashActive: boolean;
   allStopDeclared: boolean;
   allStopRequired: boolean;
   activePlayerId: string | null;
@@ -67,8 +75,8 @@ export function detectGameSoundTransitions(
     stop.push('redAlert');
   }
 
-  if (next.qFlashActive && !previous.qFlashActive) {
-    play.push('qFlash');
+  if (next.flashActive && !previous.flashActive) {
+    play.push('flash');
   }
 
   if (
@@ -123,7 +131,7 @@ export function useGameSoundEffects(options: {
   trueRedAlert: boolean;
   redAlertResponsibleId: string | null;
   activeBeaconCount: number;
-  qFlashActive: boolean;
+  flashActive: boolean;
   allStopDeclared: boolean;
   allStopRequired: boolean;
   dropToImpulseCallPending: string | null;
@@ -133,9 +141,10 @@ export function useGameSoundEffects(options: {
   turnBeepsEnabled: boolean;
 }): void {
   const previous = useRef<GameSoundSnapshot | null>(null);
-  const turnBeepForPlayer = useRef<{ playerId: string | null; url: string | null }>(
-    { playerId: null, url: null }
-  );
+  const turnChirpForPlayer = useRef<{
+    playerId: string | null;
+    chartSlot: number | null;
+  }>({ playerId: null, chartSlot: null });
 
   useEffect(() => {
     if (!options.enabled) {
@@ -143,14 +152,14 @@ export function useGameSoundEffects(options: {
     }
 
     if (options.turnBeepsEnabled && options.activePlayerId) {
-      if (turnBeepForPlayer.current.playerId !== options.activePlayerId) {
-        turnBeepForPlayer.current = {
+      if (turnChirpForPlayer.current.playerId !== options.activePlayerId) {
+        turnChirpForPlayer.current = {
           playerId: options.activePlayerId,
-          url: computerBeepUrl(pickRandomComputerBeepId()),
+          chartSlot: chartSlotForPlayer(options.activePlayerId),
         };
       }
     } else if (!options.turnBeepsEnabled) {
-      turnBeepForPlayer.current = { playerId: null, url: null };
+      turnChirpForPlayer.current = { playerId: null, chartSlot: null };
     }
 
     const snapshot: GameSoundSnapshot = {
@@ -162,7 +171,7 @@ export function useGameSoundEffects(options: {
       trueRedAlert: options.trueRedAlert,
       redAlertResponsibleId: options.redAlertResponsibleId,
       activeBeaconCount: options.activeBeaconCount,
-      qFlashActive: options.qFlashActive,
+      flashActive: options.flashActive,
       allStopDeclared: options.allStopDeclared,
       allStopRequired: options.allStopRequired,
       activePlayerId: options.activePlayerId,
@@ -177,15 +186,23 @@ export function useGameSoundEffects(options: {
     for (const sound of transition.stop) {
       stopGameSound(sound);
     }
+
+    let beepDelayMs = 0;
     for (const sound of transition.play) {
-      playGameSound(sound);
+      if (sound === 'consoleWarning' || sound === 'hail') {
+        playGameSound(sound, { delayMs: beepDelayMs });
+        beepDelayMs += BEEP_STAGGER_MS;
+      } else {
+        playGameSound(sound);
+      }
     }
 
     const turnBeeps = countTurnBeepsToPlay(previous.current, snapshot);
-    const turnBeepUrl = turnBeepForPlayer.current.url;
-    if (turnBeepUrl) {
+    const chartSlot = turnChirpForPlayer.current.chartSlot;
+    if (chartSlot !== null) {
       for (let i = 0; i < turnBeeps; i += 1) {
-        playTurnBeep(turnBeepUrl);
+        playTurnBeepById(chartSlot, { delayMs: beepDelayMs });
+        beepDelayMs += BEEP_STAGGER_MS;
       }
     }
 
@@ -200,7 +217,7 @@ export function useGameSoundEffects(options: {
     options.trueRedAlert,
     options.redAlertResponsibleId,
     options.activeBeaconCount,
-    options.qFlashActive,
+    options.flashActive,
     options.roundPhase,
     options.allStopDeclared,
     options.allStopRequired,
@@ -212,7 +229,7 @@ export function useGameSoundEffects(options: {
   ]);
 
   useEffect(() => {
-    turnBeepForPlayer.current = { playerId: null, url: null };
+    turnChirpForPlayer.current = { playerId: null, chartSlot: null };
     if (previous.current) {
       previous.current = {
         ...previous.current,

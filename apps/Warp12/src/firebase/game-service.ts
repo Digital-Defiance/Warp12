@@ -133,7 +133,7 @@ export async function createLobby(
     rated: options.rated ?? true,
     maxPlayers: clampOnlineMaxPlayers(options.maxPlayers ?? ONLINE_MAX_PLAYERS),
     modules: {
-      qContinuum: options.modules?.qContinuum ?? false,
+      continuum: options.modules?.continuum ?? false,
       salamanderPenalty: options.modules?.salamanderPenalty ?? false,
       subspaceFracture: options.modules?.subspaceFracture ?? false,
       subspaceFractureScope:
@@ -478,7 +478,7 @@ export async function launchOnlineGame(
           displayName: c.displayName,
         })),
         modules: {
-          qContinuum: lobby.modules.qContinuum,
+          continuum: lobby.modules.continuum,
           salamanderPenalty: lobby.modules.salamanderPenalty,
           subspaceFracture: lobby.modules.subspaceFracture,
           subspaceFractureScope: lobby.modules.subspaceFractureScope,
@@ -540,7 +540,7 @@ export async function resetSectorToLobby(
       captains: resetCaptains,
       captainIds: captainIds(resetCaptains),
       completedRounds: 0,
-      qFlash: null,
+      flash: null,
       updatedAt: now,
     });
 

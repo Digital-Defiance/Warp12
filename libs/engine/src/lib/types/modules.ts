@@ -1,4 +1,4 @@
-import type { QFlashEffect } from './q-continuum.js';
+import type { FlashEffect } from './continuum.js';
 import {
   DEFAULT_SUBSPACE_FRACTURE_SCOPE,
   type SubspaceFractureScope,
@@ -24,13 +24,13 @@ export {
 /** Module Alpha: The Q-Continuum — 0-0 triggers reality-bending rule changes. */
 export interface QContinuumModule {
   readonly enabled: boolean;
-  /** Active Q-Flash effect for the current round, if any. */
+  /** Active Continuum Flash effect for the current round, if any. */
   readonly activeFlash: QFlash | null;
 }
 
 export interface QFlash {
   readonly invokedBy: string;
-  readonly effect: QFlashEffect;
+  readonly effect: FlashEffect;
 }
 
 /** Module Beta: The Salamander Penalty — holding 12-12 at round end scores double (48) (round 2+). */
@@ -45,19 +45,19 @@ export interface SubspaceFractureModule {
 }
 
 export interface GameModules {
-  readonly qContinuum: QContinuumModule;
+  readonly continuum: QContinuumModule;
   readonly salamanderPenalty: SalamanderPenaltyModule;
   readonly subspaceFracture: SubspaceFractureModule;
 }
 
 export const DEFAULT_MODULES: GameModules = {
-  qContinuum: { enabled: false, activeFlash: null },
+  continuum: { enabled: false, activeFlash: null },
   salamanderPenalty: { enabled: false },
   subspaceFracture: { enabled: false, scope: DEFAULT_SUBSPACE_FRACTURE_SCOPE },
 };
 
 export interface GameModuleConfig {
-  qContinuum?: boolean;
+  continuum?: boolean;
   salamanderPenalty?: boolean;
   subspaceFracture?: boolean;
   subspaceFractureScope?: SubspaceFractureScope;
@@ -65,8 +65,8 @@ export interface GameModuleConfig {
 
 export function resolveModules(config: GameModuleConfig = {}): GameModules {
   return {
-    qContinuum: {
-      enabled: config.qContinuum ?? false,
+    continuum: {
+      enabled: config.continuum ?? false,
       activeFlash: null,
     },
     salamanderPenalty: {

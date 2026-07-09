@@ -65,7 +65,7 @@ export function AboutPage() {
               Engine survey (GitHub)
             </a>
             <a
-              href="https://leaderboard.warp12.app"
+              href="https://iwdf.org"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -105,10 +105,6 @@ export function AboutPage() {
               <strong>Not stronger than closed apps we cannot audit.</strong> We
               compare engines we can see. Black-box apps may play well; we simply
               cannot verify them.
-            </li>
-            <li>
-              <strong>Not official Star Trek.</strong> Fan production; no Paramount /
-              CBS affiliation.
             </li>
           </ul>
         </section>
@@ -242,7 +238,7 @@ export function AboutPage() {
               — only unassisted wins are rated.
             </li>
             <li>
-              <strong>Starfleet Academy.</strong> Pick a starting class and TEI band
+              <strong>Federation Academy.</strong> Pick a starting class and TEI band
               once per track before your first rated mission — go-out and points are
               independent.
             </li>

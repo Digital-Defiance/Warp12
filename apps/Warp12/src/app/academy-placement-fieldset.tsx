@@ -45,7 +45,7 @@ export function AcademyPlacementFieldset({
 
   return (
     <fieldset className={styles.fieldset}>
-      <legend>Starfleet Academy — {trackLabel}</legend>
+      <legend>Federation Academy — {trackLabel}</legend>
       {error && <p className={styles.error}>{error}</p>}
       <p className={styles.hint}>
         Everyone at the table is a <strong>Captain</strong>. Choose the{' '}

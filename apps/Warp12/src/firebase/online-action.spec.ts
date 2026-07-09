@@ -290,7 +290,7 @@ describe('house rules feedback integration', () => {
       trueRedAlert: false,
       redAlertResponsibleId: null,
       activeBeaconCount: 0,
-      qFlashActive: false,
+      flashActive: false,
       allStopDeclared: false,
       allStopRequired: false,
       activePlayerId: round.activePlayerId,

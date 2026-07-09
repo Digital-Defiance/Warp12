@@ -10,10 +10,55 @@ import {
   unlockGameAudio,
 } from './game-sounds.js';
 
+function mockAudioContext(): void {
+  const start = vi.fn();
+  const stop = vi.fn();
+  class MockGain {
+    gain = { value: 0, setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() };
+    connect = vi.fn();
+    disconnect = vi.fn();
+  }
+  class MockOscillator {
+    type = 'sine';
+    frequency = { value: 0, setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() };
+    connect = vi.fn();
+    start = start;
+    stop = stop;
+  }
+  class MockFilter {
+    type = 'lowpass';
+    frequency = { value: 0 };
+    connect = vi.fn();
+  }
+  class MockBufferSource {
+    loop = false;
+    buffer = null;
+    connect = vi.fn();
+    start = start;
+    stop = stop;
+  }
+  vi.stubGlobal(
+    'AudioContext',
+    class MockAudioContext {
+      state = 'running';
+      currentTime = 0;
+      destination = {};
+      createGain = () => new MockGain();
+      createOscillator = () => new MockOscillator();
+      createBiquadFilter = () => new MockFilter();
+      createBuffer = () => ({ getChannelData: () => new Float32Array(8) });
+      createBufferSource = () => new MockBufferSource();
+      resume = vi.fn().mockResolvedValue(undefined);
+      close = vi.fn().mockResolvedValue(undefined);
+    }
+  );
+}
+
 describe('bridge ambience', () => {
   beforeEach(() => {
     resetGameAudioStateForTests();
     vi.restoreAllMocks();
+    mockAudioContext();
   });
 
   it('tracks whether bridge ambience is requested', () => {
@@ -24,77 +69,130 @@ describe('bridge ambience', () => {
     expect(isBridgeAmbienceEnabled()).toBe(false);
   });
 
-  it('starts looping playback after audio unlock when enabled', () => {
-    const play = vi.fn().mockResolvedValue(undefined);
+  it('starts procedural ambience after audio unlock when enabled', () => {
+    const oscStart = vi.fn();
     vi.stubGlobal(
-      'Audio',
-      class MockAudio {
-        loop = false;
-        preload = '';
-        volume = 1;
-        paused = true;
+      'AudioContext',
+      class MockAudioContext {
+        state = 'running';
         currentTime = 0;
-        load = vi.fn();
-        play = play;
-        pause = vi.fn();
+        destination = {};
+        createGain = () => ({
+          gain: {
+            value: 0,
+            setValueAtTime: vi.fn(),
+            exponentialRampToValueAtTime: vi.fn(),
+          },
+          connect: vi.fn(),
+          disconnect: vi.fn(),
+        });
+        createOscillator = () => ({
+          type: 'sine',
+          frequency: { value: 0, setValueAtTime: vi.fn() },
+          connect: vi.fn(),
+          start: oscStart,
+          stop: vi.fn(),
+        });
+        createBiquadFilter = () => ({ type: 'lowpass', frequency: { value: 0 }, connect: vi.fn() });
+        createBuffer = () => ({ getChannelData: () => new Float32Array(8) });
+        createBufferSource = () => ({
+          loop: false,
+          buffer: null,
+          connect: vi.fn(),
+          start: vi.fn(),
+          stop: vi.fn(),
+        });
+        resume = vi.fn().mockResolvedValue(undefined);
+        close = vi.fn().mockResolvedValue(undefined);
       }
     );
 
     setBridgeAmbienceEnabled(true);
-    expect(play).not.toHaveBeenCalled();
+    expect(oscStart).not.toHaveBeenCalled();
 
     unlockGameAudio();
-    expect(play).toHaveBeenCalledTimes(1);
+    expect(oscStart).toHaveBeenCalled();
   });
 
   it('does not start when table sounds are muted', () => {
-    const play = vi.fn().mockResolvedValue(undefined);
+    const start = vi.fn();
     vi.stubGlobal(
-      'Audio',
-      class MockAudio {
-        loop = false;
-        preload = '';
-        volume = 1;
-        paused = true;
+      'AudioContext',
+      class MockAudioContext {
+        state = 'running';
         currentTime = 0;
-        load = vi.fn();
-        play = play;
-        pause = vi.fn();
+        destination = {};
+        createGain = () => ({
+          gain: { value: 0, setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+          connect: vi.fn(),
+          disconnect: vi.fn(),
+        });
+        createOscillator = () => ({
+          type: 'sine',
+          frequency: { value: 0, setValueAtTime: vi.fn() },
+          connect: vi.fn(),
+          start,
+          stop: vi.fn(),
+        });
+        createBiquadFilter = () => ({ type: 'lowpass', frequency: { value: 0 }, connect: vi.fn() });
+        createBuffer = () => ({ getChannelData: () => new Float32Array(8) });
+        createBufferSource = () => ({
+          loop: false,
+          connect: vi.fn(),
+          start: vi.fn(),
+          stop: vi.fn(),
+        });
+        resume = vi.fn().mockResolvedValue(undefined);
+        close = vi.fn().mockResolvedValue(undefined);
       }
     );
 
     setGameSoundsMuted(true);
     setBridgeAmbienceEnabled(true);
     unlockGameAudio();
-    expect(play).not.toHaveBeenCalled();
+    expect(start).not.toHaveBeenCalled();
   });
 
   it('pauses bridge ambience while the app is backgrounded', () => {
-    const play = vi.fn().mockResolvedValue(undefined);
-    const pause = vi.fn();
+    const stop = vi.fn();
     vi.stubGlobal(
-      'Audio',
-      class MockAudio {
-        loop = false;
-        preload = '';
-        volume = 1;
-        paused = true;
+      'AudioContext',
+      class MockAudioContext {
+        state = 'running';
         currentTime = 0;
-        load = vi.fn();
-        play = play;
-        pause = pause;
+        destination = {};
+        createGain = () => ({
+          gain: { value: 0, setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+          connect: vi.fn(),
+          disconnect: vi.fn(),
+        });
+        createOscillator = () => ({
+          type: 'sine',
+          frequency: { value: 0, setValueAtTime: vi.fn() },
+          connect: vi.fn(),
+          start: vi.fn(),
+          stop,
+        });
+        createBiquadFilter = () => ({ type: 'lowpass', frequency: { value: 0 }, connect: vi.fn() });
+        createBuffer = () => ({ getChannelData: () => new Float32Array(8) });
+        createBufferSource = () => ({
+          loop: false,
+          connect: vi.fn(),
+          start: vi.fn(),
+          stop,
+        });
+        resume = vi.fn().mockResolvedValue(undefined);
+        close = vi.fn().mockResolvedValue(undefined);
       }
     );
 
     setBridgeAmbienceEnabled(true);
     unlockGameAudio();
-    expect(play).toHaveBeenCalledTimes(1);
 
     setGameAudioBackgroundSuspended(true);
     expect(isGameAudioBackgroundSuspended()).toBe(true);
-    expect(pause).toHaveBeenCalled();
+    expect(stop).toHaveBeenCalled();
 
     setGameAudioBackgroundSuspended(false);
-    expect(play).toHaveBeenCalledTimes(2);
   });
 });

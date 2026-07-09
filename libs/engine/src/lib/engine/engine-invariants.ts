@@ -31,8 +31,8 @@ export function collectAllRoundCoordinates(round: RoundState): Coordinate[] {
   }
 
   // Q-gamble pulls two tiles out of the pile until the invoker keeps one.
-  if (round.qGamblePending) {
-    all.push(...round.qGamblePending.options);
+  if (round.continuumWagerPending) {
+    all.push(...round.continuumWagerPending.options);
   }
 
   // Spacedock double is set aside before the deal — part of the 91, never dealt.

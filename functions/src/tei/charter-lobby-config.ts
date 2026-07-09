@@ -7,7 +7,7 @@ export type CharterSubspaceFractureScope =
 
 export interface CharterModulesConfig {
   salamanderPenalty: boolean;
-  qContinuum: boolean;
+  continuum: boolean;
   subspaceFracture: boolean;
   subspaceFractureScope: CharterSubspaceFractureScope;
 }
@@ -34,7 +34,7 @@ export interface CharterHouseRulesConfig {
 /** Official Warp 12 bundle — matches apps/Warp12 warp12-preset defaults. */
 export const OFFICIAL_CHARTER_MODULES: CharterModulesConfig = {
   salamanderPenalty: true,
-  qContinuum: true,
+  continuum: true,
   subspaceFracture: false,
   subspaceFractureScope: 'own-trail',
 };
@@ -75,7 +75,7 @@ export function resolveCharterModules(
   return {
     salamanderPenalty:
       input.salamanderPenalty ?? OFFICIAL_CHARTER_MODULES.salamanderPenalty,
-    qContinuum: input.qContinuum ?? OFFICIAL_CHARTER_MODULES.qContinuum,
+    continuum: input.continuum ?? OFFICIAL_CHARTER_MODULES.continuum,
     subspaceFracture:
       input.subspaceFracture ?? OFFICIAL_CHARTER_MODULES.subspaceFracture,
     subspaceFractureScope: resolveScope(input.subspaceFractureScope),
@@ -145,7 +145,7 @@ export function charterModulesMatch(
   const actual = resolveCharterModules(gameModules);
   return (
     expected.salamanderPenalty === actual.salamanderPenalty &&
-    expected.qContinuum === actual.qContinuum &&
+    expected.continuum === actual.continuum &&
     expected.subspaceFracture === actual.subspaceFracture &&
     expected.subspaceFractureScope === actual.subspaceFractureScope
   );

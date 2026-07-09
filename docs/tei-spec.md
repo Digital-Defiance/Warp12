@@ -274,7 +274,7 @@ Before the first rated match in a bucket (`N = 0`):
 R_effective = R_stored ?? R_academy ?? 1000
 ```
 
-- **`R_academy`:** optional one-time self-reported seed per track (Starfleet Academy), clamped to band for chosen profile (§7.3)
+- **`R_academy`:** optional one-time self-reported seed per track (Federation Academy), clamped to band for chosen profile (§7.3)
 - **`1000`:** `DEFAULT_UNASSISTED_TEI`
 
 After the first rated match (`N > 0`), `R_stored` MUST be used; academy seed is ignored.

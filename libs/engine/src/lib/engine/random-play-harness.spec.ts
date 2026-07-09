@@ -40,7 +40,7 @@ const PRESETS: ReadonlyArray<{
       captainCount: 4,
       objective: 'points',
       modules: {
-        qContinuum: true,
+        continuum: true,
         salamanderPenalty: true,
         subspaceFracture: false,
       },
@@ -52,7 +52,7 @@ const PRESETS: ReadonlyArray<{
     options: {
       captainCount: 3,
       objective: 'go-out',
-      modules: { qContinuum: true, salamanderPenalty: true },
+      modules: { continuum: true, salamanderPenalty: true },
     },
   },
   {
@@ -93,7 +93,7 @@ const PRESETS: ReadonlyArray<{
       captainCount: 8,
       objective: 'points',
       modules: {
-        qContinuum: true,
+        continuum: true,
         salamanderPenalty: true,
         subspaceFracture: true,
         subspaceFractureScope: 'all-captains',

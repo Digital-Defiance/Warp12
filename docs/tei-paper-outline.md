@@ -75,7 +75,7 @@ Mexican Train dominoes is commonly played under two incompatible victory conditi
 ### 3.1 Rules engine
 - Immutable state transitions; pure `applyAction`.
 - Warp Trails, Neutral Zone, Distress Beacon, Red Alert, Subspace Fracture.
-- Optional modules: Q-Continuum, Salamander Penalty.
+- Optional modules: Continuum, Salamander Penalty.
 
 ### 3.2 House rules as runtime constraints
 - Deluxe toggles (`requireOwnTrailFirst`, `neutralZoneAfterAllTrails`, …) → legal-move graph.
@@ -373,7 +373,7 @@ Fixed opponent TEI for unassisted matches. **v1** = heuristic Class II; **v2** =
 ### 5.3 Percentile boards
 - Go-out raw TEI gaps compress; percentile (“Top X%”) preserves rank meaning.
 
-### 5.4 Starfleet Academy
+### 5.4 Federation Academy
 - One-time starting TEI pick per track within class band.
 
 ---

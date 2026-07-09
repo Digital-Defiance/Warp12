@@ -37,9 +37,9 @@ export function makeRound(over: Partial<RoundState>): RoundState {
     allStopRequired: false,
     allStopDeclared: false,
     roundWinnerId: null,
-    qPendingInvoker: null,
-    qEffects: null,
-    qGamblePending: null,
+    continuumPendingInvoker: null,
+    continuumEffects: null,
+    continuumWagerPending: null,
     mandatoryPlay: null,
     pendingRoundWin: null,
     roundBlocked: false,
@@ -98,7 +98,7 @@ export function obsFor(
 }
 
 export function modulesWithQ(): GameModules {
-  return resolveModules({ qContinuum: true, salamanderPenalty: true });
+  return resolveModules({ continuum: true, salamanderPenalty: true });
 }
 
 export const IMPULSE_HOUSE_RULES = resolveHouseRules({ dropToImpulseCall: true });

@@ -25,6 +25,7 @@ import {
   type LegalMove,
   type RoundState,
   type WarpAiPlayer,
+  type AdvisorModelWeights,
   type OmegaModelWeights,
 } from 'warp12-engine';
 import { resolveHelmControls } from '../game/helm-controls.js';
@@ -49,6 +50,8 @@ import {
   computeTableFocusPoint,
   detectNewChart,
   formatSectorRedAlertRow,
+  shouldIlluminateBridgeRedAlert,
+  shouldIlluminateBridgeYellowAlert,
   getCoachSuggestion,
   openTrailCaptainNames,
   playerIdForAction,
@@ -96,6 +99,7 @@ import {
   extractHumanActions,
 } from '../game/verify-local-ai-replay.js';
 import { ratedMatchCheckInUrl } from '../firebase/auth-actions.js';
+import { preloadAdvisorWeights } from '../ai/load-advisor-weights.js';
 import { preloadOmegaWeights } from '../ai/load-omega-weights.js';
 import { useFirebaseAuth } from '../firebase/use-firebase-auth.js';
 import { usePlayerStats } from '../firebase/use-player-stats.js';
@@ -149,10 +153,10 @@ import { FloatingCoachPanel } from './floating-coach-panel';
 import { CaptainTailsHud } from './captain-tails-hud';
 import styles from './bridge-table.module.scss';
 import {
-  QActiveOrb,
-  QFlashPanel,
-  QGamblePanel,
-} from './q-flash-panel';
+  ContinuumOrb,
+  ContinuumFlashPanel,
+  ContinuumWagerPanel,
+} from './flash-panel.js';
 import { TrailSpokeIndicators } from './trail-spoke-indicators';
 import spokeStyles from './trail-spoke-indicators.module.scss';
 import { TableViewport, type LogVisibilityMode } from './table-viewport';
@@ -423,6 +427,8 @@ export function BridgeTable({
   const [advisorOmegaNet, setAdvisorOmegaNet] = useState<OmegaModelWeights | null>(
     null
   );
+  const [advisorConceptNet, setAdvisorConceptNet] =
+    useState<AdvisorModelWeights | null>(null);
   useEffect(() => {
     let cancelled = false;
     void preloadOmegaWeights(game.objective, { allowZeroFallback: true })
@@ -436,15 +442,29 @@ export function BridgeTable({
           setAdvisorOmegaNet(null);
         }
       });
+    void preloadAdvisorWeights().then((weights) => {
+      if (!cancelled) {
+        setAdvisorConceptNet(weights);
+      }
+    });
     return () => {
       cancelled = true;
     };
   }, [game.objective]);
 
-  const coachSuggestionOptions = useMemo(
-    () => (advisorOmegaNet ? { omegaNet: advisorOmegaNet } : undefined),
-    [advisorOmegaNet]
-  );
+  const coachSuggestionOptions = useMemo(() => {
+    if (advisorConceptNet) {
+      return { advisorWeights: advisorConceptNet };
+    }
+    return advisorOmegaNet ? { omegaNet: advisorOmegaNet } : undefined;
+  }, [advisorConceptNet, advisorOmegaNet]);
+
+  const advisorReportOptions = useMemo(() => {
+    if (advisorConceptNet) {
+      return { advisorWeights: advisorConceptNet };
+    }
+    return advisorOmegaNet ? { omegaNet: advisorOmegaNet } : {};
+  }, [advisorConceptNet, advisorOmegaNet]);
 
   useEffect(() => {
     advisorUsedThisMatchRef.current = false;
@@ -1042,7 +1062,7 @@ export function BridgeTable({
     redAlertResponsibleId: round?.table.redAlert?.responsiblePlayerId ?? null,
     activeBeaconCount:
       round != null ? countActiveDistressBeacons(round.table) : 0,
-    qFlashActive: game.modules.qContinuum.activeFlash != null,
+    flashActive: game.modules.continuum.activeFlash != null,
     allStopDeclared: round?.allStopDeclared === true,
     allStopRequired: round?.allStopRequired === true,
     dropToImpulseCallPending: round?.dropToImpulseCallPending ?? null,
@@ -1123,8 +1143,8 @@ export function BridgeTable({
     isMyTurn &&
     game.phase === 'active' &&
     round.phase === 'playing' &&
-    round.qPendingInvoker !== handOwnerId &&
-    round.qGamblePending?.playerId !== handOwnerId;
+    round.continuumPendingInvoker !== handOwnerId &&
+    round.continuumWagerPending?.playerId !== handOwnerId;
 
   useEffect(() => {
     if (!coachAvailable) {
@@ -1810,14 +1830,14 @@ export function BridgeTable({
       return buildAdvisorReport({
         roundStartState,
         entries,
-        ...(advisorOmegaNet ? { omegaNet: advisorOmegaNet } : {}),
+        ...advisorReportOptions,
         ...(includeAllCaptains
           ? { includeAllPlayers: true }
           : { focusPlayerIds: focusPlayerIdsForAdvisor }),
         names,
       });
     },
-    [advisorIncludeAllCaptains, advisorOmegaNet, focusPlayerIdsForAdvisor, names]
+    [advisorIncludeAllCaptains, advisorReportOptions, focusPlayerIdsForAdvisor, names]
   );
 
   const buildCampaignAdvisorReports = useCallback(
@@ -1827,14 +1847,14 @@ export function BridgeTable({
         report: buildAdvisorReport({
           roundStartState: snapshot.roundStartState,
           entries: snapshot.entries,
-          ...(advisorOmegaNet ? { omegaNet: advisorOmegaNet } : {}),
+          ...advisorReportOptions,
           ...(includeAllCaptains
             ? { includeAllPlayers: true }
             : { focusPlayerIds: focusPlayerIdsForAdvisor }),
           names,
         }),
       })),
-    [advisorOmegaNet, focusPlayerIdsForAdvisor, names]
+    [advisorReportOptions, focusPlayerIdsForAdvisor, names]
   );
 
   const downloadCampaignAdvisorReport = useCallback(
@@ -1861,7 +1881,7 @@ export function BridgeTable({
       const report = buildAdvisorReport({
         roundStartState: snapshot.roundStartState,
         entries: snapshot.entries,
-        ...(advisorOmegaNet ? { omegaNet: advisorOmegaNet } : {}),
+        ...advisorReportOptions,
         focusPlayerIds: focusPlayerIdsForAdvisor,
         names,
       });
@@ -1870,7 +1890,7 @@ export function BridgeTable({
     campaignAdvisorReviewsRef.current = reviews;
     setCampaignPerformance(summarizeAdvisorPerformance(reviews));
     setCampaignRoundCount(campaignRoundSnapshotsRef.current.length);
-  }, [advisorOmegaNet, focusPlayerIdsForAdvisor, names]);
+  }, [advisorReportOptions, focusPlayerIdsForAdvisor, names]);
 
   const appendRoundAdvisorReviews = useCallback(() => {
     const roundStartState = roundStartStateRef.current;
@@ -2033,8 +2053,8 @@ export function BridgeTable({
         round.activePlayerId,
         round.roundStarterOpening?.playerId ?? '',
         round.mandatoryPlay?.playerId ?? '',
-        round.qPendingInvoker ?? '',
-        round.qGamblePending?.playerId ?? '',
+        round.continuumPendingInvoker ?? '',
+        round.continuumWagerPending?.playerId ?? '',
         round.allStopRequired,
         round.allStopDeclared,
         round.roundWinnerId ?? '',
@@ -2176,6 +2196,10 @@ export function BridgeTable({
   };
 
   const fracture = round?.table.subspaceFracture;
+  const bridgeYellowAlert =
+    round != null && shouldIlluminateBridgeYellowAlert(round);
+  const bridgeRedAlert =
+    round != null && shouldIlluminateBridgeRedAlert(round);
   const sectorRedAlertRow =
     round != null ? formatSectorRedAlertRow(round, names) : null;
   const beaconCount = round
@@ -2240,6 +2264,8 @@ export function BridgeTable({
       <div
         ref={bridgeSurfaceRef}
         className={styles.bridge}
+        data-yellow-alert={bridgeYellowAlert ? 'true' : undefined}
+        data-red-alert={bridgeRedAlert ? 'true' : undefined}
         style={{
           ...(immersiveLayout
             ? {}
@@ -2469,7 +2495,7 @@ export function BridgeTable({
         />
 
         <div className={styles.topRightHud}>
-          <QActiveOrb game={game} names={names} />
+          <ContinuumOrb game={game} names={names} />
         </div>
 
         {!compactLayout && (
@@ -2512,7 +2538,7 @@ export function BridgeTable({
             reasons={coachSuggestion.reasons}
             names={names}
             suggestionFormat={{
-              allStopEcho: round.qEffects?.allStopEcho === true,
+              allStopEcho: round.continuumEffects?.allStopEcho === true,
             }}
             busy={coachBusy}
             pinned={teachingMode}
@@ -2788,13 +2814,13 @@ export function BridgeTable({
           onClose={() => setCampaignCompleteOpen(false)}
         />
 
-        <QFlashPanel
+        <ContinuumFlashPanel
           game={game}
           playerId={handOwnerId}
           names={names}
           onInvoke={(action) => void dispatch(action)}
         />
-        <QGamblePanel
+        <ContinuumWagerPanel
           game={game}
           playerId={handOwnerId}
           onResolve={(action) => void dispatch(action)}

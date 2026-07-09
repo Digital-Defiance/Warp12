@@ -25,7 +25,7 @@ export interface FirestoreGameDocument {
   createdAt: string;
   updatedAt: string;
   modules: {
-    qContinuum: boolean;
+    continuum: boolean;
     salamanderPenalty: boolean;
     subspaceFracture: boolean;
     subspaceFractureScope: import('warp12-engine').SubspaceFractureScope;
@@ -51,7 +51,7 @@ export interface FirestoreGameDocument {
   captains: FirestoreCaptain[];
   completedRounds: number;
   round: FirestorePublicRound | null;
-  qFlash?: {
+  flash?: {
     invokedBy: string;
     effect: {
       kind: string;
@@ -84,7 +84,7 @@ export interface OnlineLobbySettings {
   /** Host intent to play for TEI (default true). */
   rated?: boolean;
   modules: {
-    qContinuum: boolean;
+    continuum: boolean;
     salamanderPenalty: boolean;
     subspaceFracture: boolean;
     subspaceFractureScope: import('warp12-engine').SubspaceFractureScope;
@@ -116,9 +116,9 @@ export interface FirestorePublicRound {
     playerId: string;
     routeKind: string;
   } | null;
-  qPendingInvoker?: string | null;
-  qEffects?: FirestoreQRoundEffects | null;
-  qGamblePending?: {
+  continuumPendingInvoker?: string | null;
+  continuumEffects?: FirestoreQRoundEffects | null;
+  continuumWagerPending?: {
     playerId: string;
     options: [FirestoreCoordinate, FirestoreCoordinate];
   } | null;

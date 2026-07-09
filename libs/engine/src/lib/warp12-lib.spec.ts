@@ -36,7 +36,7 @@ function seededRandom(seed: number): () => number {
 
 function buildTestGame(
   seed = 42,
-  modules?: { subspaceFracture?: boolean; qContinuum?: boolean }
+  modules?: { subspaceFracture?: boolean; continuum?: boolean }
 ) {
   const shuffled = shuffleCoordinates(
     generateCoordinateSet(12),
@@ -55,7 +55,7 @@ describe('Warp12-lib setup', () => {
 
     expect(state.phase).toBe('lobby');
     expect(state.captains).toHaveLength(4);
-    expect(state.modules.qContinuum.enabled).toBe(false);
+    expect(state.modules.continuum.enabled).toBe(false);
   });
 
   it('deals the correct hand size for four captains', () => {

@@ -6,7 +6,7 @@ Canonical instructions for AI assistants (Kiro, Cursor, Copilot, Codex, etc.) wo
 
 ## 1. Product
 
-Warp 12 is a multiplayer, federation-themed variant of standard **double-twelve Mexican Train dominoes**. It ships as a web app (warp12.app) and as a Tauri desktop/mobile app (macOS, iOS, Android). Rules are standard tournament Mexican Train reskinned with Starfleet terminology, plus opt-in modules.
+Warp 12 is a multiplayer, federation-themed variant of standard **double-twelve Mexican Train dominoes**. It ships as a web app (warp12.app) and as a Tauri desktop/mobile app (macOS, iOS, Android). Rules are standard tournament Mexican Train reskinned with federation terminology, plus opt-in modules.
 
 - Games are **sectors/missions**; players are **Captains**; the host runs a **fleet** (3–8 captains).
 - Two objectives, chosen before launch:
@@ -82,7 +82,7 @@ libs/
 vendor/
   DoubleTwelve/      git submodule, own Nx workspace — domino rendering (opaque dependency)
 functions/           @warp12/functions — Firebase Cloud Functions
-Warp12-leaderboard/  separate SPA (own build) → leaderboard.warp12.app
+Warp12-leaderboard/  separate SPA (own build) → iwdf.org
 tools/nn/            Class I* neural training pipeline (Python/PyTorch → ONNX)
 docs/                Jekyll docs site (calibration log, TEI paper)
 ```
@@ -106,14 +106,14 @@ docs/                Jekyll docs site (calibration log, TEI paper)
 
 Deterministic, immutable rules engine. **Never mutate state in place** — pure functions return new state. All engine types (`GameState`, `RoundState`, `TableState`) are `readonly`.
 
-- `types/` — `game-state.ts`, `actions.ts`, `trails.ts`, `anomalies.ts`, `player.ts`, `objective.ts`, `modules.ts`, `house-rules.ts`, `q-continuum.ts`, `coordinate.ts`.
+- `types/` — `game-state.ts`, `actions.ts`, `trails.ts`, `anomalies.ts`, `player.ts`, `objective.ts`, `modules.ts`, `house-rules.ts`, `continuum.ts`, `coordinate.ts`.
 - `setup/create-game.ts` + `constants/setup.ts` — deal, hand sizes, Spacedock.
-- `engine/` — the state machine: `apply-action.ts` (reducer), `legal-moves.ts`, `beacon.ts`, `scoring.ts`, `round-resolution.ts`, `drop-to-impulse.ts`, `q-continuum.ts`, `house-rules.ts`.
+- `engine/` — the state machine: `apply-action.ts` (reducer), `legal-moves.ts`, `beacon.ts`, `scoring.ts`, `round-resolution.ts`, `drop-to-impulse.ts`, `continuum.ts`, `house-rules.ts`.
 - `table/` — `table-state.ts`, `pip-inventory.ts`, `fracture-stabilizers.ts`.
 - `domino/coordinates.ts` — tile model.
 - `ai/` — `create-warp-ai.ts`, heuristics, skill/tactical-class profiles, lookahead, ISMCTS, advisor (`explain-*`), Class I* neural (`class1-star-policy.ts`, `feature-encoder.ts`, `residual-scorer.ts`), calibration/self-play, `fleet-admiral.ts`.
 
-### Starfleet lexicon (standard term → Warp 12)
+### Federation lexicon (standard term → Warp 12)
 | Standard | Warp 12 |
 |---|---|
 | Domino | Navigational Coordinate |
@@ -123,7 +123,7 @@ Deterministic, immutable rules engine. **Never mutate state in place** — pure 
 | Train marker | Distress Beacon (Shields Down) |
 | Boneyard | Uncharted Sectors |
 
-Warp-specific mechanics: **Red Alert** (unsatisfied double), **Subspace Fracture** (optional chicken-foot on doubles; scope Own Trail / All Captains / All Doubles), **Q-Flash / Q-Continuum** (Module Alpha anomaly on 0-0), **All Stop!** (round-win ceremony), **Drop to Impulse** (uno/knock announce). "Warp 12" = the double-twelve set (max pip). AI officers rated **Tactical Class IV/III/II**; experimental neural tier is **Class I\***; **Fleet Admiral** is the benchmark harness.
+Warp-specific mechanics: **Red Alert** (unsatisfied double), **Subspace Fracture** (optional chicken-foot on doubles; scope Own Trail / All Captains / All Doubles), **Flash / Continuum** (Module Alpha anomaly on 0-0), **All Stop!** (round-win ceremony), **Drop to Impulse** (uno/knock announce). "Warp 12" = the double-twelve set (max pip). AI officers rated **Tactical Class IV/III/II**; experimental neural tier is **Class I\***; **Fleet Admiral** is the benchmark harness.
 
 ---
 

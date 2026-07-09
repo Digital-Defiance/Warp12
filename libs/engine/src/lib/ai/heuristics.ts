@@ -32,7 +32,7 @@ export const WARP_HEURISTIC_IDS = {
   handFlexibility: 'hand-flexibility',
   defensiveShared: 'defensive-shared',
   salamanderDump: 'salamander-dump',
-  qContinuum: 'q-continuum',
+  continuum: 'continuum',
   goOutWin: 'go-out-win',
   /** Build on own trail while the hand is still long; dump remnants on shared routes late. */
   goOutTrailPriority: 'go-out-trail-priority',
@@ -94,8 +94,8 @@ const preferChart: WarpHeuristic = {
         return -40;
       case 'raise-shields':
         return -20;
-      case 'invoke-q-flash':
-      case 'resolve-q-gamble':
+      case 'invoke-continuum-flash':
+      case 'resolve-continuum-wager':
         return 150;
     }
   },
@@ -480,14 +480,14 @@ const salamanderDump: WarpHeuristic = {
 };
 
 /**
- * Module Alpha (Q-Continuum): playing the 0-0 triggers a reality-bending
- * Q-Flash. When enabled, value seizing that effect despite the tile's 0 pips.
+ * Module Alpha (Continuum): playing the 0-0 triggers a reality-bending
+ * Continuum Flash. When enabled, value seizing that effect despite the tile's 0 pips.
  */
-const qContinuum: WarpHeuristic = {
-  id: H.qContinuum,
+const continuum: WarpHeuristic = {
+  id: H.continuum,
   score(action: WarpAiAction, ctx: WarpEvalContext): number {
     if (action.kind !== 'chart') return 0;
-    if (!ctx.obs.modules.qContinuum.enabled) return 0;
+    if (!ctx.obs.modules.continuum.enabled) return 0;
     const { low, high } = action.move.coordinate;
     return low === 0 && high === 0 ? 15 : 0;
   },
@@ -555,7 +555,7 @@ export const DEFAULT_WARP_HEURISTICS: WarpHeuristic[] = [
   handFlexibility,
   defensiveShared,
   salamanderDump,
-  qContinuum,
+  continuum,
   dropToImpulseDeclare,
   dropToImpulseCatch,
   dropToImpulseForget,
