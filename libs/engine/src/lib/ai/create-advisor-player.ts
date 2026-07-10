@@ -1,4 +1,4 @@
-import { chooseActionIndex, type Rng } from 'doubletwelve';
+import { chooseActionIndex, type Rng } from 'double-eighteen';
 
 import type { WarpAiAction } from './actions.js';
 import {

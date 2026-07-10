@@ -1,13 +1,13 @@
 # warp12-react
 
-React adapters for Warp 12 — `RoundState` to DoubleTwelve trains, tactical advisor, hand layout.
+React adapters for Warp 12 — `RoundState` to DoubleEighteen trains, tactical advisor, hand layout.
 
 Published on npm as **`warp12-react`**.
 
 ## Install
 
 ```bash
-npm install warp12-react warp12-engine doubletwelve react react-dom
+npm install warp12-react warp12-engine double-eighteen react react-dom
 ```
 
 ## Usage

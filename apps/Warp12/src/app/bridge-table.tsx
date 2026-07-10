@@ -29,7 +29,7 @@ import {
   type OmegaModelWeights,
 } from 'warp12-engine';
 import { resolveHelmControls } from '../game/helm-controls.js';
-import { DominoHub, DoubleTwelve, DominoThemeProvider } from 'doubletwelve';
+import { DominoHub, DominoTile, DominoThemeProvider } from 'double-eighteen';
 import {
   coachActionKind,
   coachChartMove,
@@ -47,6 +47,7 @@ import {
   formatGameLogLine,
   gameStateToTrains,
   buildTrailSpokeStatuses,
+  hubTableGeometry,
   computeTableFocusPoint,
   detectNewChart,
   formatSectorRedAlertRow,
@@ -175,13 +176,10 @@ import { GameLogDialog } from './game-log-dialog';
 import { AdvisorReportDialog } from './advisor-report-dialog.js';
 import { buildCaptainNameColors } from './game-log-display';
 
-const TABLE_WIDTH = 1200;
-const TABLE_HEIGHT = 800;
 const HAND_TILE_WIDTH = 36;
 const HAND_TILE_HEIGHT = 72;
 const HAND_TILE_WIDTH_COMPACT = 24;
 const HAND_TILE_HEIGHT_COMPACT = 48;
-const HUB_SLOTS = 8;
 
 function canShowInHandPenalty(
   captainId: string,
@@ -627,7 +625,8 @@ export function BridgeTable({
     const eligibility = onlineMatchRatingEligibility(
       captains,
       game.objective,
-      sectorRated
+      sectorRated,
+      game.maxPip ?? 12
     );
     if (!eligibility.rated) {
       setMatchReportNotice(
@@ -752,6 +751,7 @@ export function BridgeTable({
   const prevHandoffActiveRef = useRef<string | null>(null);
 
   const round = game.round;
+  const maxPip = game.maxPip ?? 12;
   const roundAwaitingScore =
     game.phase === 'active' &&
     round?.phase === 'ended' &&
@@ -768,8 +768,18 @@ export function BridgeTable({
         round?.activePlayerId &&
         onlineAiCaptainIds?.has(round.activePlayerId)
     );
-  const centerX = TABLE_WIDTH / 2;
-  const centerY = TABLE_HEIGHT / 2;
+  const hub = useMemo(
+    () => hubTableGeometry(round?.turnOrder.length ?? 4, layoutStyle),
+    [layoutStyle, round?.turnOrder.length]
+  );
+  const {
+    tableWidth: TABLE_WIDTH,
+    tableHeight: TABLE_HEIGHT,
+    centerX,
+    centerY,
+    hubRadius,
+    hubSlots: HUB_SLOTS,
+  } = hub;
   const names = useMemo(() => captainNameMap(game), [game]);
   const gameLogEntries = useMemo(() => {
     void gameLogVersion;
@@ -951,13 +961,13 @@ export function BridgeTable({
       layoutStyle,
       centerX,
       centerY,
-      hubRadius: 80,
+      hubRadius,
       hubSlots: HUB_SLOTS,
     });
     if (point) {
       setActionFocus(point);
     }
-  }, [autoFollowAction, centerX, centerY, layoutStyle, round]);
+  }, [autoFollowAction, centerX, centerY, hubRadius, HUB_SLOTS, layoutStyle, round]);
 
   const activePlayerId = round?.activePlayerId ?? '';
   const activeIsHumanSeat = humanSeatIds.has(activePlayerId);
@@ -1122,15 +1132,19 @@ export function BridgeTable({
       return false;
     }
     if (
-      !onlineMatchRatingEligibility(onlineCaptains ?? [], game.objective, sectorRated)
-        .rated
+      !onlineMatchRatingEligibility(
+        onlineCaptains ?? [],
+        game.objective,
+        sectorRated,
+        game.maxPip ?? 12
+      ).rated
     ) {
       return false;
     }
     return Object.values(mergedCoachPresence).some(
       (presence) => presence.coachUsedThisRound === true
     );
-  }, [isOnline, mergedCoachPresence, onlineCaptains, game.objective, sectorRated]);
+  }, [isOnline, mergedCoachPresence, onlineCaptains, game.objective, sectorRated, game.maxPip]);
 
   const coachChart = coachSuggestion
     ? coachChartMove(coachSuggestion.action)
@@ -1198,10 +1212,14 @@ export function BridgeTable({
       isOnline &&
       !advisorConsentRef.current &&
       !advisorUsedThisMatchRef.current &&
-      onlineMatchRatingEligibility(onlineCaptains ?? [], game.objective, sectorRated)
-        .rated
+      onlineMatchRatingEligibility(
+        onlineCaptains ?? [],
+        game.objective,
+        sectorRated,
+        game.maxPip ?? 12
+      ).rated
     );
-  }, [isOnline, onlineCaptains, game.objective, sectorRated]);
+  }, [isOnline, onlineCaptains, game.objective, sectorRated, game.maxPip]);
 
   const applyCoachSuggestion = useCallback(
     (suggestion: CoachSuggestion, options?: { announce?: boolean }) => {
@@ -2568,6 +2586,7 @@ export function BridgeTable({
             tileBg={tileBg}
             tacticalClassAbbrevByCaptain={captainTacticalClassAbbrevById}
             tacticalClassLabelByCaptain={captainTacticalClassLabelById}
+            maxPip={maxPip}
           />
         )}
 
@@ -2607,7 +2626,8 @@ export function BridgeTable({
               <TrailSpokeIndicators
                 centerX={centerX}
                 centerY={centerY}
-                hubRadius={80}
+                hubRadius={hubRadius}
+                startDistance={hub.startDistance}
                 hubSlots={HUB_SLOTS}
                 spokes={trailSpokes}
                 coachByCaptain={coachByCaptain}
@@ -2617,8 +2637,9 @@ export function BridgeTable({
               playerCount={HUB_SLOTS}
               centerX={centerX}
               centerY={centerY}
-              radius={80}
+              radius={hubRadius}
               engineValue={round.spacedockValue}
+              maxPips={maxPip}
               trains={trains}
               layoutStyle={layoutStyle}
               tableWidth={TABLE_WIDTH}
@@ -2977,7 +2998,8 @@ export function BridgeTable({
                     }
                     aria-label={`Coordinate ${top}-${bottom}`}
                   >
-                    <DoubleTwelve
+                    <DominoTile
+                      maxPips={maxPip}
                       value1={top}
                       value2={bottom}
                       width={compactLayout ? HAND_TILE_WIDTH_COMPACT : HAND_TILE_WIDTH}

@@ -11,7 +11,7 @@ describe('sector-status-hud', () => {
       formatSectorTurnFooter({
         game: { phase: 'active', objective: 'points', campaignRounds: 5 } as never,
         round: { roundNumber: 2 } as never,
-        names: { you: 'Picard' },
+        names: { you: 'Armstrong' },
         activePlayerId: 'you',
         handOwnerId: 'you',
         isMyTurn: true,
@@ -23,7 +23,7 @@ describe('sector-status-hud', () => {
         roundEndSummaryOpen: false,
         lastMessage: null,
       })
-    ).toBe('Picard · your turn');
+    ).toBe('Armstrong · your turn');
   });
 
   it('describes AI thinking for local play and the online host', () => {
@@ -49,8 +49,8 @@ describe('sector-status-hud', () => {
       formatSectorTurnFooter({
         game: { phase: 'active', objective: 'points', campaignRounds: 3 } as never,
         round: { roundNumber: 2 } as never,
-        names: { 'ai:riker': 'Riker' },
-        activePlayerId: 'ai:riker',
+        names: { 'ai:lovell': 'Lovell' },
+        activePlayerId: 'ai:lovell',
         handOwnerId: 'host',
         isMyTurn: false,
         activePlayerIsAi: true,
@@ -61,7 +61,7 @@ describe('sector-status-hud', () => {
         roundEndSummaryOpen: false,
         lastMessage: null,
       })
-    ).toBe('Riker is thinking…');
+    ).toBe('Lovell is thinking…');
   });
 
   it('shows awaiting for online guests during an AI turn', () => {
@@ -77,8 +77,8 @@ describe('sector-status-hud', () => {
       formatSectorTurnFooter({
         game: { phase: 'active', objective: 'points', campaignRounds: 3 } as never,
         round: { roundNumber: 2 } as never,
-        names: { 'ai:riker': 'Riker' },
-        activePlayerId: 'ai:riker',
+        names: { 'ai:lovell': 'Lovell' },
+        activePlayerId: 'ai:lovell',
         handOwnerId: 'guest',
         isMyTurn: false,
         activePlayerIsAi: true,
@@ -89,6 +89,6 @@ describe('sector-status-hud', () => {
         roundEndSummaryOpen: false,
         lastMessage: null,
       })
-    ).toBe('Awaiting Riker');
+    ).toBe('Awaiting Lovell');
   });
 });

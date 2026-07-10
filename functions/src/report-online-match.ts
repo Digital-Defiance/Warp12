@@ -56,6 +56,8 @@ interface GameDoc {
   phase: string;
   objective: string;
   rated?: boolean;
+  /** Double-N max pip. Omitted = 12 (legacy). */
+  maxPip?: number;
   campaignRounds?: number;
   charterId?: string;
   rulesProfileId?: string;
@@ -80,7 +82,8 @@ export type OnlineRatingIneligibleReason =
   | 'objective_not_rated'
   | 'not_enough_humans'
   | 'class1_star_present'
-  | 'unrated_ai';
+  | 'unrated_ai'
+  | 'exhibition_set';
 
 export function isAiGameCaptain(captain: GameCaptainDoc): boolean {
   return captain.isAi === true || captain.id.startsWith(AI_ID_PREFIX);
@@ -98,10 +101,13 @@ function aiSkill(captain: GameCaptainDoc): AiSkillLevel {
  * against Firebase Auth — this covers only what the game document itself tells us.
  */
 export function evaluateOnlineRatingEligibility(
-  game: Pick<GameDoc, 'objective' | 'captains' | 'rated'>
+  game: Pick<GameDoc, 'objective' | 'captains' | 'rated' | 'maxPip'>
 ): OnlineRatingEligibility {
   if (game.rated === false) {
     return { rated: false, reason: 'casual' };
+  }
+  if ((game.maxPip ?? 12) !== 12) {
+    return { rated: false, reason: 'exhibition_set' };
   }
   if (game.objective !== 'go-out' && game.objective !== 'points') {
     return { rated: false, reason: 'objective_not_rated' };

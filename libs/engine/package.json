@@ -48,9 +48,9 @@
     "prepublishOnly": "cd ../.. && yarn build:engine && yarn test:engine"
   },
   "peerDependencies": {
-    "doubletwelve": ">=0.3.2"
+    "double-eighteen": ">=0.3.2"
   },
   "devDependencies": {
-    "doubletwelve": "workspace:*"
+    "double-eighteen": "workspace:*"
   }
 }

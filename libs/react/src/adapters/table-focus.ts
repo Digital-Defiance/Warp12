@@ -3,11 +3,11 @@ import {
   computeTrainTree,
   flattenSegments,
   hubTrainStartDistance,
-} from 'doubletwelve';
+} from 'double-eighteen';
 
-import { gameStateToTrains, NEUTRAL_ZONE_SLOT } from './game-to-trains.js';
+import { gameStateToTrains, neutralZoneSlot } from './game-to-trains.js';
 
-/** Must match DominoHub / DoubleTwelve standard tile width. */
+/** Must match DominoHub / DoubleEighteen's standard tile width. */
 const DOMINO_WIDTH = 60;
 
 export type ChartSite =
@@ -115,7 +115,7 @@ export function computeTableFocusPoint(
       tileIndex = site.tileIndex;
       break;
     case 'neutral-zone':
-      slot = NEUTRAL_ZONE_SLOT;
+      slot = neutralZoneSlot(hubSlots);
       tileIndex = site.tileIndex;
       break;
     case 'fracture-stabilizer':

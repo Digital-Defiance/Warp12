@@ -1,4 +1,4 @@
-import type { Rng } from 'doubletwelve';
+import type { Rng } from 'double-eighteen';
 
 import type { PlayerId } from '../types/player.js';
 

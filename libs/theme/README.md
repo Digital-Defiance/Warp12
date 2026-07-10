@@ -1,13 +1,13 @@
 # warp12-theme
 
-Federation–styled domino theme presets for [DoubleTwelve](https://www.npmjs.com/package/doubletwelve).
+Federation–styled domino theme presets for [DoubleEighteen](https://www.npmjs.com/package/double-eighteen).
 
 Published on npm as **`warp12-theme`**.
 
 ## Install
 
 ```bash
-npm install warp12-theme doubletwelve
+npm install warp12-theme double-eighteen
 ```
 
 ## Usage

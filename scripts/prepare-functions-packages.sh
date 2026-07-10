@@ -7,15 +7,15 @@ VENDOR="$ROOT/functions/vendor"
 MODELS="$ROOT/functions/models"
 
 cd "$ROOT"
-yarn build:doubletwelve
+yarn build:double-eighteen
 yarn build:engine
 
 rm -rf "$VENDOR"
 mkdir -p "$VENDOR" "$MODELS"
 
 node "$ROOT/scripts/stage-functions-vendor.mjs" \
-  "$ROOT/vendor/DoubleTwelve" \
-  "$VENDOR/doubletwelve"
+  "$ROOT/vendor/double-eighteen" \
+  "$VENDOR/double-eighteen"
 
 node "$ROOT/scripts/stage-functions-vendor.mjs" \
   "$ROOT/libs/engine" \

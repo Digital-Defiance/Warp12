@@ -15,7 +15,7 @@ Where this manual says "standard" or "tournament practice," read it as *the comm
 
 This document is the authoritative rules reference **for Warp 12**. **Sections I–V** follow widely published Mexican Train practice (double-twelve set, engine double set aside before the deal, personal trains, Mexican Train / Neutral Zone, train markers, doubles, boneyard, multi-round scoring). **Section VI** lists optional Warp 12 modules and the **Official Warp 12 rules** recommended preset.
 
-> **Digital implementation note:** Warp 12 enforces these rules in software. Setup defaults to **Official Warp 12 rules** (Section VI); hosts may change any toggle before launch. This manual describes behavior when modules are **on** or **off** as stated in each section. **Section VII** describes AI officers and the tactical advisor; **Section VIII** describes solo TEI and the public leaderboard (digital play only).
+> **Digital implementation note:** Warp 12 enforces these rules in software. Setup defaults to **Official Warp 12 rules** (Section VI); hosts may change any toggle before launch. This manual describes behavior when modules are **on** or **off** as stated in each section. **Section VII** describes AI officers and the tactical advisor; **Section VIII** describes solo TEI and the public leaderboard (digital play only). The app also offers **Warp 9 / 15 / 18** as **exhibition** (unrated) sets — see Section II.
 
 ---
 
@@ -86,6 +86,19 @@ Setup matches standard double-twelve Mexican Train:
 **Round starter:** Round 1 opener is designated by fleet command (typically the host). Each later round, the starter rotates clockwise. The starter charts first; Spacedock was still set aside before the deal.
 
 **Optional modules** (Section VI) and **Subspace Fracture** must be agreed before launch. Digital setup defaults to the **Official Warp 12 rules** preset (see Section VI). Hosts can change any toggle before launch.
+
+### Exhibition sets *(digital — Warp 9 / 15 / 18)*
+
+Sections I–V above describe the **double-twelve** game. The digital app also supports larger and smaller Mexican Train sets as **exhibition** sectors — same protocols, different bone count and fleet caps. These never update TEI (Section VIII).
+
+| Factor | Set | Tiles | Fleet | Points campaign |
+| --- | --- | --- | --- | --- |
+| **Warp 9** | Double-9 | 55 | 2–4 | 10 rounds (9-9 → 0-0) |
+| **Warp 12** | Double-12 | 91 | 2–8 | 13 rounds (12-12 → 0-0) — *rated* |
+| **Warp 15** | Double-15 | 136 | 2–12 | 16 rounds (15-15 → 0-0) |
+| **Warp 18** | Double-18 | 190 | 2–18 | 19 rounds (18-18 → 0-0) |
+
+Hand sizes for Warp 9 / 15 / 18 follow the engine’s set profile. The **7–8 captain 10-vs-11** host choice still applies on Warp 15 / 18 when the fleet is exactly 7 or 8; fleets of **9+** use fixed profile sizes (9 / 8 / 7 / 6 as the table grows). Official-rules presets on exhibition factors use that factor’s full campaign length, not thirteen rounds.
 
 ---
 
@@ -248,7 +261,7 @@ The app does this automatically at round end and shows a summary before the next
 5. **Advance the round.** Step Spacedock down one double (`12-12 → 11-11 → … → 0-0`), re-deal, and play the next round. There are **13 rounds** in a full points campaign.
 6. **Declare the winner.** After round 13, the captain with the **lowest cumulative total** wins the sector. If two or more captains tie on the lowest total, they **share** the victory.
 
-**Worked example (round 5, Salamander off).** Picard goes out → **0**. Riker holds `5-3`, `9-9`, `6-0` → 8 + 18 + 6 = **23**. Troi holds `0-0` and `4-2` with Double-blank score = 50 → 50 + 6 = **56**. Those round scores are added to each captain's campaign total; Picard adds nothing.
+**Worked example (round 5, Salamander off).** Armstrong goes out → **0**. Lovell holds `5-3`, `9-9`, `6-0` → 8 + 18 + 6 = **23**. Earhart holds `0-0` and `4-2` with Double-blank score = 50 → 50 + 6 = **56**. Those round scores are added to each captain's campaign total; Armstrong adds nothing.
 
 **Go out mode.** There is **no pip tally** — the first captain to empty their hand in any single round wins the sector immediately.
 
@@ -414,6 +427,7 @@ The normative rating math (Elo update, reference bands, multi-captain human tabl
 
 A completed online sector is rated into the **human pool** when it meets every condition below; otherwise it plays out normally but changes no ratings. The lobby shows a live **rated / unrated** banner so the fleet knows before launch.
 
+- **The set is double-twelve (Warp 12).** Warp 9 / 15 / 18 are **exhibition** — the lobby forces unrated and the server rejects TEI reports for those sets.
 - **Two or more captains are signed in with an account.** Guests (anonymous sign-in) can play, but a guest at the table makes the whole sector unrated — a rating that can't persist across devices isn't a rating.
 - **Every AI officer is Class IV / III / II.** These have fixed reference strength and serve as rating **anchors**: finishing above or below them moves your TEI, which keeps online results on the same scale as solo play. An experimental **Class I\*** search officer makes the sector unrated. (Class II is a neural policy — still rated, same σ=`commander` anchor.)
 - **The objective is Points or Go-out.** Other modes are unrated.
@@ -491,14 +505,15 @@ Before your **first rated** match in each track, complete **Federation Academy p
 
 ### What counts as rated
 
-**Solo pool** — only **unassisted** matches update TEI:
+**Solo pool** — only **unassisted double-twelve** matches update TEI:
 
-- **Rated:** you played without invoking the in-game **tactical advisor** during live turns.
+- **Rated:** Warp 12, played without invoking the in-game **tactical advisor** during live turns.
 - **Assisted:** you requested a coach suggestion during play. The win or loss still appears in your profile and general stats, but **TEI does not move**. Assisted wins are tracked separately (`advisorMatches` / `advisorWins`).
+- **Exhibition:** Warp 9 / 15 / 18 never update TEI, with or without the advisor.
 
 Downloading a post-match advisor report or campaign analysis does **not** disqualify a match.
 
-**Human pool** — an online sector is rated when it clears the eligibility bar above (two or more signed-in captains, only Class IV / III / II AI, Points or Go-out, **and no captain used the advisor**). Any guest, experimental Class I\* seat, or advisor consult leaves the whole sector unrated.
+**Human pool** — an online sector is rated when it clears the eligibility bar above (Warp 12, two or more signed-in captains, only Class IV / III / II AI, Points or Go-out, **and no captain used the advisor**). Any guest, experimental Class I\* seat, exhibition set, or advisor consult leaves the whole sector unrated.
 
 **Crew charter** — same eligibility bar, plus: host attached a `charterId`; sector settings match the charter (fleet size, objective, campaign length, rules profile); every human captain is a signed-in **member** of that crew. Private crew matches update crew TEI only. **Global Official** also updates global human-pool TEI.
 

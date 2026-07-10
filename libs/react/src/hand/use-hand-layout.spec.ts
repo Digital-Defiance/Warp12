@@ -24,8 +24,8 @@ describe('useHandLayout', () => {
 
   it('restores each player hand order when switching seats in pass-and-play', () => {
     const gameId = 'local-pass-and-play';
-    const picardHand = [tile(0, 1), tile(2, 3), tile(4, 5)];
-    const rikerHand = [tile(6, 7), tile(8, 9)];
+    const armstrongHand = [tile(0, 1), tile(2, 3), tile(4, 5)];
+    const lovellHand = [tile(6, 7), tile(8, 9)];
 
     writeStoredHandLayout(gameId, 'human:0', {
       order: [coordinateKey(tile(4, 5)), coordinateKey(tile(0, 1)), coordinateKey(tile(2, 3))],
@@ -38,7 +38,7 @@ describe('useHandLayout', () => {
       ({ playerId, hand }: { playerId: string; hand: readonly Coordinate[] }) =>
         useHandLayout(gameId, playerId, hand),
       {
-        initialProps: { playerId: 'human:0', hand: picardHand },
+        initialProps: { playerId: 'human:0', hand: armstrongHand },
       }
     );
 
@@ -48,14 +48,14 @@ describe('useHandLayout', () => {
       coordinateKey(tile(2, 3)),
     ]);
 
-    rerender({ playerId: 'human:1', hand: rikerHand });
+    rerender({ playerId: 'human:1', hand: lovellHand });
 
     expect(result.current.orderedHand.map(coordinateKey)).toEqual([
       coordinateKey(tile(8, 9)),
       coordinateKey(tile(6, 7)),
     ]);
 
-    rerender({ playerId: 'human:0', hand: picardHand });
+    rerender({ playerId: 'human:0', hand: armstrongHand });
 
     expect(result.current.orderedHand.map(coordinateKey)).toEqual([
       coordinateKey(tile(4, 5)),
@@ -66,14 +66,14 @@ describe('useHandLayout', () => {
 
   it('persists custom order edits across seat switches', () => {
     const gameId = 'local-pass-and-play';
-    const picardHand = [tile(0, 1), tile(2, 3)];
-    const rikerHand = [tile(6, 7), tile(8, 9)];
+    const armstrongHand = [tile(0, 1), tile(2, 3)];
+    const lovellHand = [tile(6, 7), tile(8, 9)];
 
     const { result, rerender } = renderHook(
       ({ playerId, hand }: { playerId: string; hand: readonly Coordinate[] }) =>
         useHandLayout(gameId, playerId, hand),
       {
-        initialProps: { playerId: 'human:0', hand: picardHand },
+        initialProps: { playerId: 'human:0', hand: armstrongHand },
       }
     );
 
@@ -86,8 +86,8 @@ describe('useHandLayout', () => {
       coordinateKey(tile(0, 1)),
     ]);
 
-    rerender({ playerId: 'human:1', hand: rikerHand });
-    rerender({ playerId: 'human:0', hand: picardHand });
+    rerender({ playerId: 'human:1', hand: lovellHand });
+    rerender({ playerId: 'human:0', hand: armstrongHand });
 
     expect(result.current.orderedHand.map(coordinateKey)).toEqual([
       coordinateKey(tile(2, 3)),

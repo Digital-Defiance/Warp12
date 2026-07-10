@@ -84,8 +84,13 @@ export interface GameState {
   readonly houseRules: HouseRules;
   /** Fleet victory condition — points campaign vs first captain out. */
   readonly objective: GameObjective;
-  /** Points campaigns end after this many rounds (1–13). Ignored for go-out. */
+  /** Points campaigns end after this many rounds. Ignored for go-out. */
   readonly campaignRounds: number;
+  /**
+   * Double-N max pip for this sector (9 / 12 / 15 / 18). Omit for legacy
+   * double-twelve fixtures (treated as 12).
+   */
+  readonly maxPip?: number;
 }
 
 export interface CreateGameInput {
@@ -95,6 +100,8 @@ export interface CreateGameInput {
   readonly houseRules?: HouseRulesConfig;
   readonly objective?: GameObjective;
   readonly campaignRounds?: number;
+  /** Double-N max pip (9 / 12 / 15 / 18). Defaults to 12. */
+  readonly maxPip?: number;
 }
 
 export interface CreateRoundInput {

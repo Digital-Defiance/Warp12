@@ -1,0 +1,163 @@
+.page {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.hero {
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.12), transparent 45%),
+    rgba(15, 23, 42, 0.92);
+  border: 1px solid #334155;
+  border-radius: 12px;
+}
+
+.title {
+  font-family: var(--font-federation-wide, var(--font-federation, system-ui));
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  color: #f8fafc;
+  margin: 0 0 0.85rem;
+}
+
+.lead {
+  font-family: var(--font-federation, system-ui);
+  color: #cbd5e1;
+  line-height: 1.65;
+  margin: 0 0 1.25rem;
+  font-size: 0.92rem;
+}
+
+.factorGrid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.factorCard {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 9.5rem) minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem 1.25rem;
+  width: 100%;
+  text-align: left;
+  padding: 1rem 1.15rem;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid #334155;
+  border-radius: 10px;
+  cursor: pointer;
+  color: inherit;
+
+  &:hover {
+    border-color: #38bdf8;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
+  }
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+
+  svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+}
+
+.meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.metaHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.setName {
+  font-family: var(--font-federation, system-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #38bdf8;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid #475569;
+  background: rgba(51, 65, 85, 0.65);
+  color: #cbd5e1;
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.stats {
+  margin: 0;
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.82rem;
+  color: #94a3b8;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.statSep {
+  color: #64748b;
+}
+
+.description {
+  margin: 0;
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #cbd5e1;
+}
+
+.harnessLink {
+  margin: 1.5rem 0 0;
+  text-align: center;
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.82rem;
+  color: #64748b;
+
+  a {
+    color: #38bdf8;
+    text-decoration: none;
+
+    &:hover {
+      color: #7dd3fc;
+    }
+  }
+}
+
+@media (max-width: 520px) {
+  .factorCard {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .logo {
+    max-width: 11rem;
+  }
+}

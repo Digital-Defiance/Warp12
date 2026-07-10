@@ -53,7 +53,7 @@ Mexican Train dominoes is commonly played under two incompatible victory conditi
 - Mexican Train specifics: doubles, public trains, draw pile, multi-player.
 
 ### 2.2 Game AI paradigms
-- Heuristic policies (DoubleTwelve lineage).
+- Heuristic policies (DoubleEighteen lineage).
 - MCTS / ISMCTS for imperfect information.
 - CFR and poker-style equilibrium methods.
 - Deep RL self-play (AlphaZero family) — cost vs interpretability.

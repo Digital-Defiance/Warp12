@@ -1,13 +1,14 @@
-/** Hand sizes by fleet size (RULES.md §II). */
-export const HAND_SIZE_BY_PLAYER_COUNT: Readonly<Record<number, number>> = {
-  2: 15,
-  3: 15,
-  4: 15,
-  5: 12,
-  6: 12,
-  7: 10,
-  8: 10,
-};
+import {
+  DOUBLE_TWELVE_HAND_SIZES,
+  normalizeWarpFactor,
+  salamanderPenaltyTileValue,
+  warpSetProfile,
+  type WarpFactor,
+} from './warp-set.js';
+
+/** @deprecated Prefer {@link DOUBLE_TWELVE_HAND_SIZES} / {@link warpSetProfile}. */
+export const HAND_SIZE_BY_PLAYER_COUNT: Readonly<Record<number, number>> =
+  DOUBLE_TWELVE_HAND_SIZES;
 
 /**
  * Hand size for large fleets (7–8 captains) is the one setup value where major
@@ -29,7 +30,7 @@ export const DOUBLE_TWELVE_SET_SIZE = 91;
 /** Highest pip value in a double-twelve set. */
 export const DOUBLE_TWELVE_MAX_PIPS = 12;
 
-/** Starting Spacedock double for round 1. */
+/** Starting Spacedock double for round 1 (double-twelve). */
 export const INITIAL_SPACEDOCK_VALUE = 12;
 
 /** Default points campaign length (12-12 through 0-0). */
@@ -47,16 +48,23 @@ export const TWELVE_TWELVE_PIP_VALUE = 24;
 /**
  * Salamander Penalty: a held 12-12 scores DOUBLE its pips (round 2+). Base pips
  * are already 24 (both ends), so the penalty value is 48.
+ * @deprecated Prefer {@link salamanderPenaltyTileValue}(maxPip).
  */
 export const SALAMANDER_PENALTY_TILE_VALUE = TWELVE_TWELVE_PIP_VALUE * 2;
 
-
-
-export function clampCampaignRounds(rounds: number): number {
+export function clampCampaignRounds(
+  rounds: number,
+  maxPip: number = DOUBLE_TWELVE_MAX_PIPS
+): number {
+  const profile = warpSetProfile(maxPip);
   return Math.min(
-    MAX_CAMPAIGN_ROUNDS,
+    profile.campaignRounds,
     Math.max(MIN_CAMPAIGN_ROUNDS, Math.round(rounds))
   );
+}
+
+export function defaultCampaignRounds(maxPip: number): number {
+  return warpSetProfile(maxPip).campaignRounds;
 }
 
 export function formatCampaignRoundProgress(
@@ -68,31 +76,54 @@ export function formatCampaignRoundProgress(
 
 export function handSizeForPlayerCount(
   playerCount: number,
-  largeFleetHandSize: LargeFleetHandSize = DEFAULT_LARGE_FLEET_HAND_SIZE
+  largeFleetHandSize: LargeFleetHandSize = DEFAULT_LARGE_FLEET_HAND_SIZE,
+  maxPip: number = DOUBLE_TWELVE_MAX_PIPS
 ): number {
-  const size = HAND_SIZE_BY_PLAYER_COUNT[playerCount];
+  const profile = warpSetProfile(maxPip);
+  const size = profile.handSizeByPlayerCount[playerCount];
   if (size === undefined) {
     throw new RangeError(
-      `Warp 12 supports 2–8 captains; received ${playerCount}.`
+      `Warp ${profile.maxPip} supports ${profile.minPlayers}–${profile.maxPlayers} captains; received ${playerCount}.`
     );
   }
-  // 7–8 captains: honor the host's opt-in (10 default, 11 = Galt/University).
-  if (LARGE_FLEET_PLAYER_COUNTS.includes(playerCount)) {
+  // 7–8 captains on double-12+ fleets: honor the host's opt-in.
+  if (
+    profile.maxPip >= 12 &&
+    LARGE_FLEET_PLAYER_COUNTS.includes(playerCount)
+  ) {
     return largeFleetHandSize;
   }
   return size;
 }
 
-export function spacedockValueForRound(roundNumber: number): number {
-  if (roundNumber < 1 || roundNumber > 13) {
+export function spacedockValueForRound(
+  roundNumber: number,
+  maxPip: number = DOUBLE_TWELVE_MAX_PIPS
+): number {
+  const factor = normalizeWarpFactor(maxPip);
+  const maxRounds = factor + 1;
+  if (roundNumber < 1 || roundNumber > maxRounds) {
     throw new RangeError(
-      `Round number must be 1–13 for a double-twelve set; received ${roundNumber}.`
+      `Round number must be 1–${maxRounds} for a double-${factor} set; received ${roundNumber}.`
     );
   }
-  return INITIAL_SPACEDOCK_VALUE - (roundNumber - 1);
+  return factor - (roundNumber - 1);
 }
 
-/** 12-12 is set aside as Spacedock in round 1; Salamander applies from round 2 onward. */
+/** Highest double is Spacedock in round 1; Salamander applies from round 2 onward. */
 export function salamanderPenaltyApplies(roundNumber: number): boolean {
   return roundNumber > 1;
 }
+
+export type { WarpFactor };
+export {
+  WARP_FACTORS,
+  WARP_SET_PROFILES,
+  coordinateSetSize,
+  highestDoublePipValue,
+  isHighestDouble,
+  isWarpFactor,
+  normalizeWarpFactor,
+  salamanderPenaltyTileValue,
+  warpSetProfile,
+} from './warp-set.js';

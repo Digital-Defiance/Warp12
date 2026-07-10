@@ -477,23 +477,23 @@ When a campaign includes both humans and AI:
 
 ## 11. Worked example — four-human points campaign
 
-**Field:** Picard, Riker, Troi, Worf — 13-round points campaign, unassisted.
+**Field:** Armstrong, Lovell, Earhart, Yeager — 13-round points campaign, unassisted.
 
 **Final points (lower wins):**
 
 | Captain | pointsScore | rank |
 |---------|-------------|------|
-| Picard | 42 | 1 |
-| Riker | 58 | 2 |
-| Troi | 61 | 3 |
-| Worf | 79 | 4 |
+| Armstrong | 42 | 1 |
+| Lovell | 58 | 2 |
+| Earhart | 61 | 3 |
+| Yeager | 79 | 4 |
 
-**Prior human-pool TEI (points):** Picard 1240, Riker 1180, Troi 1200, Worf 1100.  
+**Prior human-pool TEI (points):** Armstrong 1240, Lovell 1180, Earhart 1200, Yeager 1100.  
 **Experience:** all `N = 15` → `K = 32`.
 
-**Picard (rank 1):** beats all three → each pairwise S=1  
+**Armstrong (rank 1):** beats all three → each pairwise S=1  
 Δ = (32/3) · Σ_q (1 − E(1240, R_q))  
-Update Riker, Troi, Worf similarly with mixed win/loss pairwise scores.
+Update Lovell, Earhart, Yeager similarly with mixed win/loss pairwise scores.
 
 After update, publish new `R_H(p, points)` on leaderboard.
 

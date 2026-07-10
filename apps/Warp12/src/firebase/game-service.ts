@@ -5,6 +5,7 @@ import {
   resolveHouseRules,
   shuffleCoordinates,
   startGame,
+  warpSetProfile,
   type GameAction,
   type GameObjective,
   type HouseRulesConfig,
@@ -96,6 +97,7 @@ export interface CreateLobbyOptions {
   objective?: GameObjective;
   maxPlayers?: number;
   campaignRounds?: number;
+  maxPip?: number;
   modules?: OnlineLobbySettings['modules'];
   houseRules?: HouseRulesConfig;
   /** Host intent to play for TEI (default true). */
@@ -130,8 +132,13 @@ export async function createLobby(
     updatedAt: now,
     objective: options.objective ?? DEFAULT_GAME_OBJECTIVE,
     campaignRounds: options.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS,
-    rated: options.rated ?? true,
-    maxPlayers: clampOnlineMaxPlayers(options.maxPlayers ?? ONLINE_MAX_PLAYERS),
+    maxPip: options.maxPip ?? 12,
+    rated:
+      (options.maxPip ?? 12) === 12 ? (options.rated ?? true) : false,
+    maxPlayers: clampOnlineMaxPlayers(
+      options.maxPlayers ?? ONLINE_MAX_PLAYERS,
+      warpSetProfile(options.maxPip ?? 12).maxPlayers
+    ),
     modules: {
       continuum: options.modules?.continuum ?? false,
       salamanderPenalty: options.modules?.salamanderPenalty ?? false,
@@ -406,12 +413,21 @@ export async function updateLobbySettings(
       throw new Error('Settings are locked once the mission launches');
     }
 
+    const factorMax = warpSetProfile(data.maxPip ?? 12).maxPlayers;
     const maxPlayers = settings.maxPlayers
-      ? clampOnlineMaxPlayers(settings.maxPlayers)
+      ? clampOnlineMaxPlayers(settings.maxPlayers, factorMax)
       : maxPlayersFor(data);
     if (data.captains.length > maxPlayers) {
       throw new Error('Too many captains aboard for that fleet size');
     }
+
+    const nextMaxPip = settings.maxPip ?? data.maxPip ?? 12;
+    const nextRated =
+      nextMaxPip !== 12
+        ? false
+        : settings.rated !== undefined
+          ? settings.rated
+          : undefined;
 
     tx.update(gameRef(gameId), {
       ...(settings.objective !== undefined
@@ -420,7 +436,8 @@ export async function updateLobbySettings(
       ...(settings.campaignRounds !== undefined
         ? { campaignRounds: settings.campaignRounds }
         : {}),
-      ...(settings.rated !== undefined ? { rated: settings.rated } : {}),
+      ...(settings.maxPip !== undefined ? { maxPip: settings.maxPip } : {}),
+      ...(nextRated !== undefined ? { rated: nextRated } : {}),
       ...(settings.modules !== undefined ? { modules: settings.modules } : {}),
       ...(settings.houseRules !== undefined
         ? { houseRules: settings.houseRules }
@@ -468,7 +485,8 @@ export async function launchOnlineGame(
       throw new Error(`Need at least ${ONLINE_MIN_PLAYERS} captains`);
     }
 
-    const shuffled = shuffleCoordinates(generateCoordinateSet(12));
+    const maxPip = lobby.maxPip ?? 12;
+    const shuffled = shuffleCoordinates(generateCoordinateSet(maxPip));
 
     const game = startGame(
       {
@@ -486,6 +504,7 @@ export async function launchOnlineGame(
         houseRules: lobby.houseRules,
         objective: lobby.objective ?? 'points',
         campaignRounds: lobby.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS,
+        maxPip,
       },
       { shuffledCoordinates: shuffled, roundStarterId: hostId }
     );

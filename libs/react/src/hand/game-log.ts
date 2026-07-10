@@ -12,7 +12,10 @@ import {
   type RoundState,
 } from 'warp12-engine';
 
-import { NEUTRAL_ZONE_SLOT } from '../adapters/game-to-trains.js';
+import {
+  hubSlotsForCaptainCount,
+  neutralZoneSlot,
+} from '../adapters/game-to-trains.js';
 
 function wasRedAlertPassed(round: RoundState): boolean {
   return hasRedAlertPassed(round.table.redAlert);
@@ -123,18 +126,19 @@ function routeToLogRoute(route: ChartRoute): GameLogRoute {
 }
 
 function trainIdForRoute(round: RoundState, route: ChartRoute): number | undefined {
+  const nzSlot = neutralZoneSlot(hubSlotsForCaptainCount(round.turnOrder.length));
   switch (route.kind) {
     case 'warp-trail':
       return trainIdForCaptain(round, route.playerId);
     case 'neutral-zone':
-      return NEUTRAL_ZONE_SLOT;
+      return nzSlot;
     case 'fracture-stabilizer':
       return undefined;
     case 'red-alert-cover':
       return route.trailPlayerId
         ? trainIdForCaptain(round, route.trailPlayerId)
         : route.neutralZone
-          ? NEUTRAL_ZONE_SLOT
+          ? nzSlot
           : undefined;
   }
 }

@@ -18,13 +18,13 @@ function baseRound(overrides: Partial<RoundState> = {}): RoundState {
     roundNumber: 1,
     spacedockValue: 12,
     phase: 'playing',
-    activePlayerId: 'troi',
-    turnOrder: ['you', 'riker', 'troi', 'worf'],
+    activePlayerId: 'earhart',
+    turnOrder: ['you', 'lovell', 'earhart', 'yeager'],
     hands: {
       you: [],
-      riker: [],
-      troi: [tile(6, 6)],
-      worf: [],
+      lovell: [],
+      earhart: [tile(6, 6)],
+      yeager: [],
     },
     unchartedSectors: [],
     allStopRequired: false,
@@ -51,18 +51,18 @@ function baseRound(overrides: Partial<RoundState> = {}): RoundState {
           ],
           distressBeacon: { active: true },
         },
-        riker: {
-          playerId: 'riker',
+        lovell: {
+          playerId: 'lovell',
           tiles: [],
           distressBeacon: { active: false },
         },
-        troi: {
-          playerId: 'troi',
+        earhart: {
+          playerId: 'earhart',
           tiles: [],
           distressBeacon: { active: false },
         },
-        worf: {
-          playerId: 'worf',
+        yeager: {
+          playerId: 'yeager',
           tiles: [],
           distressBeacon: { active: false },
         },
@@ -82,10 +82,10 @@ function game(round: RoundState): GameState {
     objective: 'go-out',
     completedRounds: 0,
     captains: [
-      { id: 'you', displayName: 'Picard', pointsScore: 0 },
-      { id: 'riker', displayName: 'Riker', pointsScore: 0 },
-      { id: 'troi', displayName: 'Troi', pointsScore: 0 },
-      { id: 'worf', displayName: 'Worf', pointsScore: 0 },
+      { id: 'you', displayName: 'Armstrong', pointsScore: 0 },
+      { id: 'lovell', displayName: 'Lovell', pointsScore: 0 },
+      { id: 'earhart', displayName: 'Earhart', pointsScore: 0 },
+      { id: 'yeager', displayName: 'Yeager', pointsScore: 0 },
     ],
     modules: {
       continuum: { enabled: false, activeFlash: null },
@@ -104,7 +104,7 @@ describe('Red Alert on any legal double', () => {
 
     const result = applyAction(state, {
       type: 'CHART_COORDINATE',
-      playerId: 'troi',
+      playerId: 'earhart',
       coordinate: tile(6, 6),
       route: { kind: 'warp-trail', playerId: 'you' },
     });
@@ -116,10 +116,10 @@ describe('Red Alert on any legal double', () => {
 
     expect(result.state.round?.table.redAlert?.active).toBe(true);
     expect(result.state.round?.table.redAlert?.responsiblePlayerId).toBe(
-      'troi'
+      'earhart'
     );
     expect(result.state.round?.table.redAlert?.trailPlayerId).toBe('you');
-    expect(result.state.round?.activePlayerId).toBe('troi');
+    expect(result.state.round?.activePlayerId).toBe('earhart');
     expect(result.state.round?.table.warpTrails.you.tiles.at(-1)?.coordinate).toEqual(
       tile(6, 6)
     );
@@ -128,19 +128,19 @@ describe('Red Alert on any legal double', () => {
   it('does not end the round when the last tile is an unsatisfied double', () => {
     const state = game(
       baseRound({
-        activePlayerId: 'troi',
+        activePlayerId: 'earhart',
         hands: {
           you: [],
-          riker: [],
-          troi: [tile(6, 6)],
-          worf: [],
+          lovell: [],
+          earhart: [tile(6, 6)],
+          yeager: [],
         },
       })
     );
 
     const result = applyAction(state, {
       type: 'CHART_COORDINATE',
-      playerId: 'troi',
+      playerId: 'earhart',
       coordinate: tile(6, 6),
       route: { kind: 'warp-trail', playerId: 'you' },
     });
@@ -153,7 +153,7 @@ describe('Red Alert on any legal double', () => {
     expect(result.state.round?.roundWinnerId).toBeNull();
     expect(result.state.round?.phase).toBe('playing');
     expect(result.state.round?.table.redAlert?.active).toBe(true);
-    expect(result.state.round?.activePlayerId).toBe('troi');
+    expect(result.state.round?.activePlayerId).toBe('earhart');
   });
 
   it('requires the responsible captain to cover before other routes unlock', () => {
@@ -161,16 +161,16 @@ describe('Red Alert on any legal double', () => {
       baseRound({
         hands: {
           you: [tile(6, 5)],
-          riker: [],
-          troi: [tile(6, 6), tile(6, 5)],
-          worf: [],
+          lovell: [],
+          earhart: [tile(6, 6), tile(6, 5)],
+          yeager: [],
         },
       })
     );
 
     const playDouble = applyAction(state, {
       type: 'CHART_COORDINATE',
-      playerId: 'troi',
+      playerId: 'earhart',
       coordinate: tile(6, 6),
       route: { kind: 'warp-trail', playerId: 'you' },
     });
@@ -180,17 +180,17 @@ describe('Red Alert on any legal double', () => {
     }
     state = playDouble.state;
 
-    expect(getLegalMoves(state.round!, 'troi')).toEqual([
+    expect(getLegalMoves(state.round!, 'earhart')).toEqual([
       {
         coordinate: tile(6, 5),
         route: { kind: 'red-alert-cover', trailPlayerId: 'you' },
       },
     ]);
-    expect(getLegalMoves(state.round!, 'worf')).toEqual([]);
+    expect(getLegalMoves(state.round!, 'yeager')).toEqual([]);
 
     const cover = applyAction(state, {
       type: 'CHART_COORDINATE',
-      playerId: 'troi',
+      playerId: 'earhart',
       coordinate: tile(6, 5),
       route: { kind: 'red-alert-cover', trailPlayerId: 'you' },
     });
@@ -200,19 +200,19 @@ describe('Red Alert on any legal double', () => {
     }
 
     expect(cover.state.round?.table.redAlert).toBeNull();
-    expect(cover.state.round?.hands.troi).toHaveLength(0);
-    expect(cover.state.round?.roundWinnerId).toBe('troi');
+    expect(cover.state.round?.hands.earhart).toHaveLength(0);
+    expect(cover.state.round?.roundWinnerId).toBe('earhart');
   });
 
   it('opens Red Alert for doubles charted on the Neutral Zone', () => {
     const state = game(
       baseRound({
-        activePlayerId: 'troi',
+        activePlayerId: 'earhart',
         hands: {
           you: [],
-          riker: [],
-          troi: [tile(4, 4)],
-          worf: [],
+          lovell: [],
+          earhart: [tile(4, 4)],
+          yeager: [],
         },
         table: {
           ...baseRound().table,
@@ -231,7 +231,7 @@ describe('Red Alert on any legal double', () => {
 
     const result = applyAction(state, {
       type: 'CHART_COORDINATE',
-      playerId: 'troi',
+      playerId: 'earhart',
       coordinate: tile(4, 4),
       route: { kind: 'neutral-zone' },
     });
@@ -242,7 +242,7 @@ describe('Red Alert on any legal double', () => {
     }
 
     expect(result.state.round?.table.redAlert?.neutralZone).toBe(true);
-    expect(result.state.round?.activePlayerId).toBe('troi');
+    expect(result.state.round?.activePlayerId).toBe('earhart');
   });
 
   it('does not clear an opponent Distress Beacon when covering their double', () => {
@@ -250,16 +250,16 @@ describe('Red Alert on any legal double', () => {
       baseRound({
         hands: {
           you: [],
-          riker: [],
-          troi: [tile(6, 6), tile(6, 5)],
-          worf: [],
+          lovell: [],
+          earhart: [tile(6, 6), tile(6, 5)],
+          yeager: [],
         },
       })
     );
 
     const playDouble = applyAction(state, {
       type: 'CHART_COORDINATE',
-      playerId: 'troi',
+      playerId: 'earhart',
       coordinate: tile(6, 6),
       route: { kind: 'warp-trail', playerId: 'you' },
     });
@@ -270,7 +270,7 @@ describe('Red Alert on any legal double', () => {
 
     const cover = applyAction(state, {
       type: 'CHART_COORDINATE',
-      playerId: 'troi',
+      playerId: 'earhart',
       coordinate: tile(6, 5),
       route: { kind: 'red-alert-cover', trailPlayerId: 'you' },
     });
@@ -294,7 +294,7 @@ describe('subspace fracture and red alert', () => {
     const state: GameState = {
       id: 'fracture-red-alert',
       phase: 'active',
-      captains: [{ id: 'laforge', displayName: 'La Forge', pointsScore: 0 }],
+      captains: [{ id: 'glenn', displayName: 'La Forge', pointsScore: 0 }],
       objective: 'go-out',
       campaignRounds: 13,
       modules: { salamanderPenalty: { enabled: true }, continuum: { enabled: false, activeFlash: null }, subspaceFracture: { enabled: true, scope: 'own-trail' } },
@@ -303,10 +303,10 @@ describe('subspace fracture and red alert', () => {
         roundNumber: 1,
         spacedockValue: 12,
         phase: 'playing',
-        activePlayerId: 'laforge',
-        turnOrder: ['laforge'],
+        activePlayerId: 'glenn',
+        turnOrder: ['glenn'],
         hands: {
-          laforge: [tile(2, 9)],
+          glenn: [tile(2, 9)],
         },
         unchartedSectors: [],
         allStopRequired: false,
@@ -320,10 +320,10 @@ describe('subspace fracture and red alert', () => {
         roundBlocked: false,
         roundStarterOpening: null,
         table: {
-          spacedock: { value: 12, placedBy: 'laforge' },
+          spacedock: { value: 12, placedBy: 'glenn' },
           warpTrails: {
-            laforge: {
-              playerId: 'laforge',
+            glenn: {
+              playerId: 'glenn',
               tiles: [
                 {
                   coordinate: tile(9, 12),
@@ -356,8 +356,8 @@ describe('subspace fracture and red alert', () => {
           redAlert: {
             active: true,
             anchor,
-            responsiblePlayerId: 'laforge',
-            trailPlayerId: 'laforge',
+            responsiblePlayerId: 'glenn',
+            trailPlayerId: 'glenn',
           },
         },
       },
@@ -365,7 +365,7 @@ describe('subspace fracture and red alert', () => {
 
     const result = applyAction(state, {
       type: 'CHART_COORDINATE',
-      playerId: 'laforge',
+      playerId: 'glenn',
       coordinate: tile(2, 9),
       route: { kind: 'fracture-stabilizer' },
     });
@@ -377,9 +377,9 @@ describe('subspace fracture and red alert', () => {
 
     expect(result.state.round?.table.subspaceFracture?.active).toBe(false);
     expect(result.state.round?.table.subspaceFracture?.stabilizers).toHaveLength(0);
-    expect(result.state.round?.table.warpTrails.laforge.tiles).toHaveLength(5);
+    expect(result.state.round?.table.warpTrails.glenn.tiles).toHaveLength(5);
     expect(result.state.round?.table.redAlert).toBeNull();
-    expect(getLegalMoves(result.state.round!, 'laforge')).not.toEqual(
+    expect(getLegalMoves(result.state.round!, 'glenn')).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({ route: { kind: 'red-alert-cover' } }),
       ])
@@ -389,19 +389,19 @@ describe('subspace fracture and red alert', () => {
   it('does not allow a separate red-alert cover after the fracture is satisfied', () => {
     const anchor = placed(T(9, 9), 1, 9);
     const resolved = makeGame(
-      makeRound(['laforge', 'uhura'], {
-        activePlayerId: 'uhura',
-        hands: { laforge: [], uhura: [T(8, 9)] },
+      makeRound(['glenn', 'collins'], {
+        activePlayerId: 'collins',
+        hands: { glenn: [], collins: [T(8, 9)] },
         table: {
-          ...createInitialTable(['laforge', 'uhura'], 12, 'laforge'),
+          ...createInitialTable(['glenn', 'collins'], 12, 'glenn'),
           warpTrails: {
-            laforge: {
-              playerId: 'laforge',
+            glenn: {
+              playerId: 'glenn',
               tiles: [placed(T(9, 12), 0, 9), anchor],
               distressBeacon: { active: false },
             },
-            uhura: {
-              playerId: 'uhura',
+            collins: {
+              playerId: 'collins',
               tiles: [],
               distressBeacon: { active: false },
             },
@@ -424,9 +424,9 @@ describe('subspace fracture and red alert', () => {
 
     const cover = applyAction(resolved, {
       type: 'CHART_COORDINATE',
-      playerId: 'uhura',
+      playerId: 'collins',
       coordinate: T(8, 9),
-      route: { kind: 'red-alert-cover', trailPlayerId: 'laforge' },
+      route: { kind: 'red-alert-cover', trailPlayerId: 'glenn' },
     });
 
     expect(cover).toEqual({ ok: false, violation: 'INVALID_ROUTE' });
@@ -435,19 +435,19 @@ describe('subspace fracture and red alert', () => {
   it('clears red alert when a passed captain places the third stabilizer', () => {
     const anchor = placed(T(9, 9), 1, 9);
     const state = makeGame(
-      makeRound(['laforge', 'uhura'], {
-        activePlayerId: 'uhura',
-        hands: { laforge: [], uhura: [T(2, 9)] },
+      makeRound(['glenn', 'collins'], {
+        activePlayerId: 'collins',
+        hands: { glenn: [], collins: [T(2, 9)] },
         table: {
-          ...createInitialTable(['laforge', 'uhura'], 12, 'laforge'),
+          ...createInitialTable(['glenn', 'collins'], 12, 'glenn'),
           warpTrails: {
-            laforge: {
-              playerId: 'laforge',
+            glenn: {
+              playerId: 'glenn',
               tiles: [placed(T(9, 12), 0, 9), anchor],
               distressBeacon: { active: true },
             },
-            uhura: {
-              playerId: 'uhura',
+            collins: {
+              playerId: 'collins',
               tiles: [],
               distressBeacon: { active: false },
             },
@@ -461,8 +461,8 @@ describe('subspace fracture and red alert', () => {
           redAlert: {
             active: true,
             anchor,
-            responsiblePlayerId: 'uhura',
-            trailPlayerId: 'laforge',
+            responsiblePlayerId: 'collins',
+            trailPlayerId: 'glenn',
           },
         },
       }),
@@ -471,7 +471,7 @@ describe('subspace fracture and red alert', () => {
 
     const result = applyAction(state, {
       type: 'CHART_COORDINATE',
-      playerId: 'uhura',
+      playerId: 'collins',
       coordinate: T(2, 9),
       route: { kind: 'fracture-stabilizer' },
     });
@@ -484,25 +484,25 @@ describe('subspace fracture and red alert', () => {
     expect(result.state.round?.table.redAlert).toBeNull();
     expect(result.state.round?.table.subspaceFracture?.active).toBe(false);
     expect(result.state.round?.table.subspaceFracture?.stabilizers).toHaveLength(0);
-    expect(result.state.round?.table.warpTrails.laforge.tiles).toHaveLength(5);
+    expect(result.state.round?.table.warpTrails.glenn.tiles).toHaveLength(5);
   });
 
   it('advances turn after the third stabilizer when red alert is cleared', () => {
     const anchor = placed(T(9, 9), 1, 9);
     const state = makeGame(
-      makeRound(['laforge', 'uhura'], {
-        activePlayerId: 'laforge',
-        hands: { laforge: [T(2, 9), T(0, 1)], uhura: [] },
+      makeRound(['glenn', 'collins'], {
+        activePlayerId: 'glenn',
+        hands: { glenn: [T(2, 9), T(0, 1)], collins: [] },
         table: {
-          ...createInitialTable(['laforge', 'uhura'], 12, 'laforge'),
+          ...createInitialTable(['glenn', 'collins'], 12, 'glenn'),
           warpTrails: {
-            laforge: {
-              playerId: 'laforge',
+            glenn: {
+              playerId: 'glenn',
               tiles: [placed(T(9, 12), 0, 9), anchor],
               distressBeacon: { active: false },
             },
-            uhura: {
-              playerId: 'uhura',
+            collins: {
+              playerId: 'collins',
               tiles: [],
               distressBeacon: { active: false },
             },
@@ -516,8 +516,8 @@ describe('subspace fracture and red alert', () => {
           redAlert: {
             active: true,
             anchor,
-            responsiblePlayerId: 'laforge',
-            trailPlayerId: 'laforge',
+            responsiblePlayerId: 'glenn',
+            trailPlayerId: 'glenn',
           },
         },
       }),
@@ -526,7 +526,7 @@ describe('subspace fracture and red alert', () => {
 
     const result = applyAction(state, {
       type: 'CHART_COORDINATE',
-      playerId: 'laforge',
+      playerId: 'glenn',
       coordinate: T(2, 9),
       route: { kind: 'fracture-stabilizer' },
     });
@@ -537,6 +537,6 @@ describe('subspace fracture and red alert', () => {
     }
 
     expect(result.state.round?.table.redAlert).toBeNull();
-    expect(result.state.round?.activePlayerId).toBe('uhura');
+    expect(result.state.round?.activePlayerId).toBe('collins');
   });
 });

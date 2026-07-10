@@ -8,7 +8,7 @@ import {
   type RoundState,
 } from 'warp12-engine';
 
-import { NEUTRAL_ZONE_SLOT } from './game-to-trains.js';
+import { neutralZoneSlot } from './game-to-trains.js';
 
 export type TrailAccessState = 'open' | 'shields' | 'neutral' | 'red-alert';
 
@@ -38,8 +38,10 @@ export function buildTrailSpokeStatuses(
   );
   const statuses: TrailSpokeStatus[] = [];
 
+  const nzSlot = neutralZoneSlot(hubSlots);
+
   for (let slot = 0; slot < hubSlots; slot += 1) {
-    if (slot === NEUTRAL_ZONE_SLOT) {
+    if (slot === nzSlot) {
       statuses.push({
         slot,
         captainId: null,

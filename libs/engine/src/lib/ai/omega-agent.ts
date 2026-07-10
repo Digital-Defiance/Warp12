@@ -1,4 +1,4 @@
-import type { Rng } from 'doubletwelve';
+import type { Rng } from 'double-eighteen';
 
 import type { GameAction } from '../types/actions.js';
 import type { GameState } from '../types/game-state.js';

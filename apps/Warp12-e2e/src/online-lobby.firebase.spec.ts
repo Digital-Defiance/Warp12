@@ -51,10 +51,10 @@ test.describe('online fleet (Firebase emulators)', () => {
 
     try {
       const sectorCode = await openSector(hostPage, 'Captain Sulu');
-      await joinSectorViaLink(guestPage, 'Captain Uhura', sectorCode);
+      await joinSectorViaLink(guestPage, 'Captain Collins', sectorCode);
       await expectWaitingRoom(guestPage, sectorCode, 2);
       await expect(
-        guestPage.getByRole('listitem').filter({ hasText: 'Captain Uhura' })
+        guestPage.getByRole('listitem').filter({ hasText: 'Captain Collins' })
       ).toBeVisible();
       await expectWaitingRoom(hostPage, sectorCode, 2);
     } finally {

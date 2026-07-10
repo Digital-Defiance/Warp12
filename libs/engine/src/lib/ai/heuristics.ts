@@ -1,4 +1,4 @@
-import type { GenericHeuristic } from 'doubletwelve';
+import type { GenericHeuristic } from 'double-eighteen';
 import { salamanderPenaltyApplies } from '../constants/setup.js';
 import { getLegalMoves } from '../engine/legal-moves.js';
 import {
@@ -464,8 +464,9 @@ const defensiveShared: WarpHeuristic = {
 };
 
 /**
- * Module Beta (Salamander): holding 12-12 at round end costs 24, not 12. The
- * tile is Spacedock in round 1 and never in hand; this applies from round 2 on.
+ * Module Beta (Salamander): holding the highest double at round end costs
+ * double its pips. The tile is Spacedock in round 1 and never in hand; this
+ * applies from round 2 on.
  */
 const salamanderDump: WarpHeuristic = {
   id: H.salamanderDump,
@@ -475,7 +476,8 @@ const salamanderDump: WarpHeuristic = {
     if (!ctx.obs.modules.salamanderPenalty.enabled) return 0;
     if (!salamanderPenaltyApplies(ctx.obs.round.roundNumber)) return 0;
     const { low, high } = action.move.coordinate;
-    return low === 12 && high === 12 ? 50 : 0;
+    const maxPip = ctx.obs.maxPip ?? 12;
+    return low === maxPip && high === maxPip ? 50 : 0;
   },
 };
 

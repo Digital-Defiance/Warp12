@@ -18,12 +18,12 @@ describe('buildAiRosterFromConfigs', () => {
   it('detects Class II seats as needing Omega weights', () => {
     expect(
       rosterNeedsOmegaNet([
-        { id: 'ai:riker', displayName: 'Riker', skill: 'commander' },
+        { id: 'ai:lovell', displayName: 'Lovell', skill: 'commander' },
       ])
     ).toBe(true);
     expect(
       rosterNeedsOmegaNet([
-        { id: 'ai:riker', displayName: 'Riker', skill: 'lieutenant' },
+        { id: 'ai:lovell', displayName: 'Lovell', skill: 'lieutenant' },
       ])
     ).toBe(false);
   });
@@ -31,8 +31,8 @@ describe('buildAiRosterFromConfigs', () => {
   it('creates Omega players for Class II (commander) seats', () => {
     const captains: AiCaptainConfig[] = [
       {
-        id: 'ai:riker',
-        displayName: 'Riker',
+        id: 'ai:lovell',
+        displayName: 'Lovell',
         skill: 'commander',
       },
     ];
@@ -44,7 +44,7 @@ describe('buildAiRosterFromConfigs', () => {
       zeroOmega
     );
 
-    const player = roster.get('ai:riker');
+    const player = roster.get('ai:lovell');
     expect(player).toBeDefined();
     expect(typeof player?.decideGameActionAsync).toBe('function');
   });
@@ -54,8 +54,8 @@ describe('buildAiRosterFromConfigs', () => {
       buildAiRosterFromConfigs(
         [
           {
-            id: 'ai:riker',
-            displayName: 'Riker',
+            id: 'ai:lovell',
+            displayName: 'Lovell',
             skill: 'commander',
           },
         ],
@@ -69,20 +69,20 @@ describe('buildAiRosterFromConfigs', () => {
   it('creates heuristic players for Class III / IV', () => {
     const captains: AiCaptainConfig[] = [
       {
-        id: 'ai:riker',
-        displayName: 'Riker',
+        id: 'ai:lovell',
+        displayName: 'Lovell',
         skill: 'lieutenant',
       },
     ];
     const roster = buildAiRosterFromConfigs(captains, 'points', 42, 2);
-    expect(roster.get('ai:riker')).toBeDefined();
+    expect(roster.get('ai:lovell')).toBeDefined();
   });
 
   it('uses seeded RNG for reproducible Class II play', () => {
     const captains: AiCaptainConfig[] = [
       {
-        id: 'ai:riker',
-        displayName: 'Riker',
+        id: 'ai:lovell',
+        displayName: 'Lovell',
         skill: 'commander',
       },
     ];
@@ -92,7 +92,7 @@ describe('buildAiRosterFromConfigs', () => {
     const rngA = createSeededRng(42 + 997);
     const rngB = createSeededRng(42 + 997);
     expect(rngA()).toBe(rngB());
-    expect(rosterA.get('ai:riker')).toBeDefined();
-    expect(rosterB.get('ai:riker')).toBeDefined();
+    expect(rosterA.get('ai:lovell')).toBeDefined();
+    expect(rosterB.get('ai:lovell')).toBeDefined();
   });
 });

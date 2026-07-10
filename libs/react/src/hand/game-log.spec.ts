@@ -22,9 +22,9 @@ import {
 import { createInitialTable } from '../../../engine/src/lib/table/table-state.js';
 
 const names = {
-  picard: 'Picard',
-  riker: 'Riker',
-  troi: 'Troi',
+  armstrong: 'Armstrong',
+  lovell: 'Lovell',
+  earhart: 'Earhart',
 };
 
 const roundStart = Date.parse('2026-06-28T21:00:00.000Z');
@@ -45,9 +45,9 @@ describe('game-log', () => {
       {
         at: '2026-06-28T21:00:03.000Z',
         kind: 'CHART_COORDINATE',
-        captainId: 'picard',
+        captainId: 'armstrong',
         coordinate: { low: 5, high: 5 },
-        route: { kind: 'warp-trail', trailCaptainId: 'riker' },
+        route: { kind: 'warp-trail', trailCaptainId: 'lovell' },
         trainId: 1,
         effects: ['caution-opened'],
       },
@@ -55,23 +55,23 @@ describe('game-log', () => {
       formatOptions
     );
     expect(caution).toMatch(
-      /^00:03 - Picard played a Double 5-5 on Captain Riker's Trail, raising Yellow alert$/
+      /^00:03 - Armstrong played a Double 5-5 on Captain Lovell's Trail, raising Yellow alert$/
     );
 
     const clear = gameLogEntryToString(
       {
         at: '2026-06-28T21:01:45.000Z',
         kind: 'CHART_COORDINATE',
-        captainId: 'troi',
+        captainId: 'earhart',
         coordinate: { low: 12, high: 7 },
-        route: { kind: 'red-alert-cover', trailCaptainId: 'riker' },
+        route: { kind: 'red-alert-cover', trailCaptainId: 'lovell' },
         effects: ['red-alert-cleared'],
       },
       names,
       formatOptions
     );
     expect(clear).toMatch(
-      /^01:45 - Troi played a 12:7 on Captain Riker's Trail, clearing the Red Alert$/
+      /^01:45 - Earhart played a 12:7 on Captain Lovell's Trail, clearing the Red Alert$/
     );
   });
 
@@ -80,35 +80,35 @@ describe('game-log', () => {
       {
         at: '2026-06-28T21:02:10.000Z',
         kind: 'DRAW_FROM_UNCHARTED',
-        captainId: 'riker',
+        captainId: 'lovell',
         effects: ['red-alert-opened'],
       },
       names,
       formatOptions
     );
     expect(draw).toBe(
-      '02:10 - Riker drew and could not answer the Double, causing a Red Alert'
+      '02:10 - Lovell drew and could not answer the Double, causing a Red Alert'
     );
 
     const returnToWarp = formatGameLogLine(
       {
         at: '2026-06-28T21:02:20.000Z',
         kind: 'DRAW_FROM_UNCHARTED',
-        captainId: 'riker',
+        captainId: 'lovell',
         effects: ['return-to-warp'],
       },
       names,
       formatOptions
     );
     expect(returnToWarp).toBe(
-      '02:20 - Riker drew from Uncharted Sectors — returned to warp'
+      '02:20 - Lovell drew from Uncharted Sectors — returned to warp'
     );
 
     const flash = formatGameLogLine(
       {
         at: '2026-06-28T21:03:00.000Z',
         kind: 'CHART_COORDINATE',
-        captainId: 'picard',
+        captainId: 'armstrong',
         coordinate: { low: 0, high: 0 },
         route: { kind: 'neutral-zone', neutralZone: true },
         effects: ['continuum-flash-pending'],
@@ -117,7 +117,7 @@ describe('game-log', () => {
       formatOptions
     );
     expect(flash).toMatch(
-      /^03:00 - Picard played a Double 0-0 on the Neutral Zone, causing a Continuum Flash$/
+      /^03:00 - Armstrong played a Double 0-0 on the Neutral Zone, causing a Continuum Flash$/
     );
   });
 
@@ -126,12 +126,12 @@ describe('game-log', () => {
       {
         at: '2026-06-28T21:01:45.000Z',
         kind: 'CHART_COORDINATE',
-        captainId: 'uhura',
+        captainId: 'collins',
         coordinate: { low: 8, high: 10 },
-        route: { kind: 'red-alert-cover', trailCaptainId: 'troi' },
+        route: { kind: 'red-alert-cover', trailCaptainId: 'earhart' },
         effects: ['caution-cleared'],
       },
-      { ...names, uhura: 'Uhura', troi: 'Troi' },
+      { ...names, collins: 'Collins', earhart: 'Earhart' },
       formatOptions
     );
     expect(clear).toMatch(/clearing Yellow alert$/);
@@ -142,13 +142,13 @@ describe('game-log', () => {
       {
         at: '2026-06-28T21:02:38.000Z',
         kind: 'DEPLOY_DISTRESS_BEACON',
-        captainId: 'riker',
+        captainId: 'lovell',
         effects: [],
       },
       names,
       formatOptions
     );
-    expect(line).toBe('02:38 - Riker deployed a Distress Beacon');
+    expect(line).toBe('02:38 - Lovell deployed a Distress Beacon');
   });
 
   it('logs a silent opening beacon when the round starter cannot play twice', () => {
@@ -205,9 +205,9 @@ describe('game-log', () => {
     const ratings = formatGameLogLine(
       buildRoundRatingsEntry(
         [
-          { captainId: 'picard', tei: 1180 },
+          { captainId: 'armstrong', tei: 1180 },
           {
-            captainId: 'riker',
+            captainId: 'lovell',
             tei: 1200,
             tacticalClass: 'Class III',
             reference: true,
@@ -216,20 +216,20 @@ describe('game-log', () => {
         2,
         '2026-06-28T21:00:00.000Z'
       ),
-      { picard: 'Picard', riker: 'Riker' },
+      { armstrong: 'Armstrong', lovell: 'Lovell' },
       formatOptions
     );
     expect(ratings).toBe(
-      '00:00 - Ratings · Picard TEI 1180 · Riker ~TEI 1200 · Class III'
+      '00:00 - Ratings · Armstrong TEI 1180 · Lovell ~TEI 1200 · Class III'
     );
 
     // hideTei renders captain classes without the TEI portion.
     const onlineRatings = formatGameLogLine(
       buildRoundRatingsEntry(
         [
-          { captainId: 'picard', tei: null, hideTei: true },
+          { captainId: 'armstrong', tei: null, hideTei: true },
           {
-            captainId: 'riker',
+            captainId: 'lovell',
             tei: null,
             hideTei: true,
             tacticalClass: 'Class II',
@@ -238,31 +238,31 @@ describe('game-log', () => {
         1,
         '2026-06-28T21:00:00.000Z'
       ),
-      { picard: 'Picard', riker: 'Riker' },
+      { armstrong: 'Armstrong', lovell: 'Lovell' },
       formatOptions
     );
-    expect(onlineRatings).toBe('00:00 - Ratings · Picard · Riker · Class II');
+    expect(onlineRatings).toBe('00:00 - Ratings · Armstrong · Lovell · Class II');
 
     const pass = formatGameLogLine(
       {
         at: '2026-06-28T21:01:04.000Z',
         kind: 'PASS_RED_ALERT',
-        captainId: 'worf',
+        captainId: 'yeager',
         nextCaptainId: 'data',
         effects: ['red-alert-opened'],
       },
-      { ...names, worf: 'Worf', data: 'Data' },
+      { ...names, yeager: 'Yeager', data: 'Data' },
       formatOptions
     );
     expect(pass).toBe(
-      '01:04 - Worf passed Red Alert to Data, causing a Red Alert'
+      '01:04 - Yeager passed Red Alert to Data, causing a Red Alert'
     );
 
     const win = formatGameLogLine(
       buildRoundOutcomeEntry(
         {
           roundNumber: 2,
-          roundWinnerId: 'picard',
+          roundWinnerId: 'armstrong',
           roundBlocked: false,
         } as never,
         '2026-06-28T21:12:00.000Z'
@@ -270,7 +270,7 @@ describe('game-log', () => {
       names,
       formatOptions
     );
-    expect(win).toBe('12:00 - Picard wins the round');
+    expect(win).toBe('12:00 - Armstrong wins the round');
 
     const blocked = formatGameLogLine(
       buildRoundOutcomeEntry(
@@ -292,7 +292,7 @@ describe('game-log', () => {
       {
         at: '2026-06-28T21:00:23.000Z',
         kind: 'CHART_COORDINATE',
-        captainId: 'picard',
+        captainId: 'armstrong',
         coordinate: { low: 12, high: 12 },
         route: { kind: 'neutral-zone', neutralZone: true },
         effects: ['dead-double'],
@@ -301,7 +301,7 @@ describe('game-log', () => {
       formatOptions
     );
     expect(line).toBe(
-      '00:23 - Picard played a Double 12-12 on the Neutral Zone, the Double is dead — no cover required'
+      '00:23 - Armstrong played a Double 12-12 on the Neutral Zone, the Double is dead — no cover required'
     );
   });
 
@@ -310,7 +310,7 @@ describe('game-log', () => {
     log.append({
       at: '2026-06-28T21:00:08.000Z',
       kind: 'CHART_COORDINATE',
-      captainId: 'picard',
+      captainId: 'armstrong',
       coordinate: { low: 0, high: 0 },
       route: { kind: 'neutral-zone', neutralZone: true },
       trainId: 7,
@@ -327,22 +327,22 @@ describe('game-log', () => {
     expect(payload.sectorCode).toBe('8SU55R');
     expect(payload.entries).toHaveLength(1);
     expect(payload.lines[0]).toBe(
-      '00:08 - Picard played a Double 0-0 on the Neutral Zone, causing a Continuum Flash'
+      '00:08 - Armstrong played a Double 0-0 on the Neutral Zone, causing a Continuum Flash'
     );
   });
 
   describe('buildGameLogEntry', () => {
     it('clears caution even when another captain has an unrelated Distress Beacon', () => {
       let state = makeGame(
-        makeRound(['you', 'riker', 'troi'], {
-          activePlayerId: 'troi',
+        makeRound(['you', 'lovell', 'earhart'], {
+          activePlayerId: 'earhart',
           hands: {
             you: [],
-            riker: [],
-            troi: [T(6, 6), T(6, 5)],
+            lovell: [],
+            earhart: [T(6, 6), T(6, 5)],
           },
           table: {
-            ...createInitialTable(['you', 'riker', 'troi'], 12, 'you'),
+            ...createInitialTable(['you', 'lovell', 'earhart'], 12, 'you'),
             warpTrails: {
               you: {
                 playerId: 'you',
@@ -351,13 +351,13 @@ describe('game-log', () => {
                 ],
                 distressBeacon: { active: true },
               },
-              riker: {
-                playerId: 'riker',
+              lovell: {
+                playerId: 'lovell',
                 tiles: [],
                 distressBeacon: { active: false },
               },
-              troi: {
-                playerId: 'troi',
+              earhart: {
+                playerId: 'earhart',
                 tiles: [],
                 distressBeacon: { active: false },
               },
@@ -368,7 +368,7 @@ describe('game-log', () => {
 
       const playDouble = applyAction(state, {
         type: 'CHART_COORDINATE',
-        playerId: 'troi',
+        playerId: 'earhart',
         coordinate: T(6, 6),
         route: { kind: 'warp-trail', playerId: 'you' },
       });
@@ -380,7 +380,7 @@ describe('game-log', () => {
 
       const cover = applyAction(state, {
         type: 'CHART_COORDINATE',
-        playerId: 'troi',
+        playerId: 'earhart',
         coordinate: T(6, 5),
         route: { kind: 'red-alert-cover', trailPlayerId: 'you' },
       });
@@ -391,7 +391,7 @@ describe('game-log', () => {
 
       const entry = buildGameLogEntry(state, cover.state, {
         type: 'CHART_COORDINATE',
-        playerId: 'troi',
+        playerId: 'earhart',
         coordinate: T(6, 5),
         route: { kind: 'red-alert-cover', trailPlayerId: 'you' },
       });
@@ -601,19 +601,19 @@ describe('game-log', () => {
       };
 
       const before = makeGame(
-        makeRound(['laforge', 'uhura'], {
-          activePlayerId: 'laforge',
-          hands: { laforge: [T(2, 9)], uhura: [T(8, 9)] },
+        makeRound(['glenn', 'collins'], {
+          activePlayerId: 'glenn',
+          hands: { glenn: [T(2, 9)], collins: [T(8, 9)] },
           table: {
-            ...createInitialTable(['laforge', 'uhura'], 12, 'laforge'),
+            ...createInitialTable(['glenn', 'collins'], 12, 'glenn'),
             warpTrails: {
-              laforge: {
-                playerId: 'laforge',
+              glenn: {
+                playerId: 'glenn',
                 tiles: [placed(T(9, 12), 0, 9), anchor],
                 distressBeacon: { active: false },
               },
-              uhura: {
-                playerId: 'uhura',
+              collins: {
+                playerId: 'collins',
                 tiles: [],
                 distressBeacon: { active: false },
               },
@@ -622,8 +622,8 @@ describe('game-log', () => {
             redAlert: {
               active: true,
               anchor,
-              responsiblePlayerId: 'laforge',
-              trailPlayerId: 'laforge',
+              responsiblePlayerId: 'glenn',
+              trailPlayerId: 'glenn',
             },
           },
         }),
@@ -631,19 +631,19 @@ describe('game-log', () => {
       );
 
       const after = makeGame(
-        makeRound(['laforge', 'uhura'], {
-          activePlayerId: 'laforge',
-          hands: { laforge: [], uhura: [T(8, 9)] },
+        makeRound(['glenn', 'collins'], {
+          activePlayerId: 'glenn',
+          hands: { glenn: [], collins: [T(8, 9)] },
           table: {
-            ...createInitialTable(['laforge', 'uhura'], 12, 'laforge'),
+            ...createInitialTable(['glenn', 'collins'], 12, 'glenn'),
             warpTrails: {
-              laforge: {
-                playerId: 'laforge',
+              glenn: {
+                playerId: 'glenn',
                 tiles: [placed(T(9, 12), 0, 9), anchor],
                 distressBeacon: { active: false },
               },
-              uhura: {
-                playerId: 'uhura',
+              collins: {
+                playerId: 'collins',
                 tiles: [],
                 distressBeacon: { active: false },
               },
@@ -661,7 +661,7 @@ describe('game-log', () => {
 
       const entry = buildGameLogEntry(before, after, {
         type: 'CHART_COORDINATE',
-        playerId: 'laforge',
+        playerId: 'glenn',
         coordinate: T(2, 9),
         route: { kind: 'fracture-stabilizer' },
       });
@@ -675,30 +675,30 @@ describe('game-log', () => {
           {
             at: '2026-06-28T21:00:26.000Z',
             kind: 'CHART_COORDINATE',
-            captainId: 'laforge',
+            captainId: 'glenn',
             coordinate: T(2, 9),
             route: { kind: 'fracture-stabilizer' },
             effects: entry?.effects ?? [],
           },
-          { laforge: 'La Forge' },
+          { glenn: 'Glenn' },
           formatOptions
         )
       ).toBe(
-        '00:26 - La Forge played a 2:9 on a Subspace Fracture stabilizer, clearing the Subspace Fracture, clearing the Red Alert'
+        '00:26 - Glenn played a 2:9 on a Subspace Fracture stabilizer, clearing the Subspace Fracture, clearing the Red Alert'
       );
     });
 
     it('logs red alert and subspace fracture when an own-trail double opens a fracture', () => {
     const anchor = placed(T(9, 9), 1, 9);
     const before = makeGame(
-      makeRound(['laforge'], {
-        activePlayerId: 'laforge',
-        hands: { laforge: [T(9, 9)] },
+      makeRound(['glenn'], {
+        activePlayerId: 'glenn',
+        hands: { glenn: [T(9, 9)] },
         table: {
-          ...createInitialTable(['laforge'], 12, 'laforge'),
+          ...createInitialTable(['glenn'], 12, 'glenn'),
           warpTrails: {
-            laforge: {
-              playerId: 'laforge',
+            glenn: {
+              playerId: 'glenn',
               tiles: [placed(T(9, 12), 0, 9)],
               distressBeacon: { active: false },
             },
@@ -709,14 +709,14 @@ describe('game-log', () => {
     );
 
     const after = makeGame(
-      makeRound(['laforge'], {
-        activePlayerId: 'laforge',
-        hands: { laforge: [] },
+      makeRound(['glenn'], {
+        activePlayerId: 'glenn',
+        hands: { glenn: [] },
         table: {
-          ...createInitialTable(['laforge'], 12, 'laforge'),
+          ...createInitialTable(['glenn'], 12, 'glenn'),
           warpTrails: {
-            laforge: {
-              playerId: 'laforge',
+            glenn: {
+              playerId: 'glenn',
               tiles: [placed(T(9, 12), 0, 9), anchor],
               distressBeacon: { active: false },
             },
@@ -730,8 +730,8 @@ describe('game-log', () => {
           redAlert: {
             active: true,
             anchor,
-            responsiblePlayerId: 'laforge',
-            trailPlayerId: 'laforge',
+            responsiblePlayerId: 'glenn',
+            trailPlayerId: 'glenn',
           },
         },
       }),
@@ -740,9 +740,9 @@ describe('game-log', () => {
 
     const entry = buildGameLogEntry(before, after, {
       type: 'CHART_COORDINATE',
-      playerId: 'laforge',
+      playerId: 'glenn',
       coordinate: T(9, 9),
-      route: { kind: 'warp-trail', playerId: 'laforge' },
+      route: { kind: 'warp-trail', playerId: 'glenn' },
     });
 
     expect(entry?.effects).toContain('red-alert-opened');

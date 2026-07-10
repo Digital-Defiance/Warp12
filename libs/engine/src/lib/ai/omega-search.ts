@@ -1,4 +1,4 @@
-import type { PlayerRef, Rng, SearchModel } from 'doubletwelve';
+import type { PlayerRef, Rng, SearchModel } from 'double-eighteen';
 
 import type { GameState } from '../types/game-state.js';
 import type { GameObjective } from '../types/objective.js';

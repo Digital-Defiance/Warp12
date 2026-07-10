@@ -4,6 +4,14 @@ import { MemoryRouter } from 'react-router-dom';
 import App from './app';
 
 describe('App', () => {
+  beforeEach(() => {
+    localStorage.setItem('warp-factor', '12');
+  });
+
+  afterEach(() => {
+    localStorage.removeItem('warp-factor');
+  });
+
   it('should render successfully', () => {
     const { baseElement } = render(
       <MemoryRouter>

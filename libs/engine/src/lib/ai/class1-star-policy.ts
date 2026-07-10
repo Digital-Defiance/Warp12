@@ -1,4 +1,4 @@
-import { chooseActionIndex, scoreWithHeuristics, type Rng } from 'doubletwelve';
+import { chooseActionIndex, scoreWithHeuristics, type Rng } from 'double-eighteen';
 
 import type { WarpAiAction } from './actions.js';
 import { buildWarpContext, type WarpEvalContext } from './context.js';

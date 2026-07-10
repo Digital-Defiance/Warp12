@@ -1,4 +1,4 @@
-import { mergePipColors, type PipColorMap } from 'doubletwelve';
+import { mergePipColors, type PipColorMap } from 'double-eighteen';
 
 /** Cosmic pip palette for Navigational Coordinates (0–12). */
 export const WARP_PIP_COLORS: PipColorMap = mergePipColors({

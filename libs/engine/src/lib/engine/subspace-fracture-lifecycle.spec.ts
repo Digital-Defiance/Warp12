@@ -12,7 +12,7 @@ const modules = resolveModules({
   subspaceFractureScope: 'all-doubles',
 });
 
-function resolvedLaForgeFracture() {
+function resolvedGlennFracture() {
   const anchor = placed(T(3, 3), 1, 3);
   return {
     active: false,
@@ -23,20 +23,20 @@ function resolvedLaForgeFracture() {
       placed(T(3, 5), 2, 3),
     ],
     requiredValue: 3,
-    trailCaptainId: 'laforge',
+    trailCaptainId: 'glenn',
   };
 }
 
 describe('subspace fracture lifecycle', () => {
   it('opens a fresh fracture with zero stabilizers after a previous fracture resolved', () => {
     const state = makeGame(
-      makeRound(['crusher', 'worf'], {
-        activePlayerId: 'crusher',
-        hands: { crusher: [T(11, 11)], worf: [] },
+      makeRound(['ride', 'yeager'], {
+        activePlayerId: 'ride',
+        hands: { ride: [T(11, 11)], yeager: [] },
         table: {
-          ...createInitialTable(['crusher', 'worf'], 12, 'crusher'),
+          ...createInitialTable(['ride', 'yeager'], 12, 'ride'),
           neutralZone: { tiles: [placed(T(11, 12), 0, 11)] },
-          subspaceFracture: resolvedLaForgeFracture(),
+          subspaceFracture: resolvedGlennFracture(),
           redAlert: null,
         },
       }),
@@ -45,7 +45,7 @@ describe('subspace fracture lifecycle', () => {
 
     const opened = applyAction(state, {
       type: 'CHART_COORDINATE',
-      playerId: 'crusher',
+      playerId: 'ride',
       coordinate: T(11, 11),
       route: { kind: 'neutral-zone' },
     });
@@ -135,11 +135,11 @@ describe('subspace fracture lifecycle', () => {
 
   it('rejects red-alert cover while a neutral zone fracture is open', () => {
     let state = makeGame(
-      makeRound(['crusher', 'worf'], {
-        activePlayerId: 'crusher',
-        hands: { crusher: [T(11, 11), T(3, 11)], worf: [] },
+      makeRound(['ride', 'yeager'], {
+        activePlayerId: 'ride',
+        hands: { ride: [T(11, 11), T(3, 11)], yeager: [] },
         table: {
-          ...createInitialTable(['crusher', 'worf'], 12, 'crusher'),
+          ...createInitialTable(['ride', 'yeager'], 12, 'ride'),
           neutralZone: { tiles: [placed(T(11, 12), 0, 11)] },
           subspaceFracture: null,
           redAlert: null,
@@ -150,7 +150,7 @@ describe('subspace fracture lifecycle', () => {
 
     const opened = applyAction(state, {
       type: 'CHART_COORDINATE',
-      playerId: 'crusher',
+      playerId: 'ride',
       coordinate: T(11, 11),
       route: { kind: 'neutral-zone' },
     });
@@ -160,7 +160,7 @@ describe('subspace fracture lifecycle', () => {
     }
     state = opened.state;
 
-    const moves = getLegalMoves(state.round!, 'crusher');
+    const moves = getLegalMoves(state.round!, 'ride');
     expect(moves.every((move) => move.route.kind === 'fracture-stabilizer')).toBe(
       true
     );
@@ -170,7 +170,7 @@ describe('subspace fracture lifecycle', () => {
 
     const cover = applyAction(state, {
       type: 'CHART_COORDINATE',
-      playerId: 'crusher',
+      playerId: 'ride',
       coordinate: T(3, 11),
       route: { kind: 'red-alert-cover', neutralZone: true },
     });
@@ -180,25 +180,25 @@ describe('subspace fracture lifecycle', () => {
   it('blocks cover on corrupt fracture state inherited from a resolved fracture', () => {
     const anchor = placed(T(11, 11), 1, 11);
     const corrupt = makeGame(
-      makeRound(['crusher', 'worf'], {
-        activePlayerId: 'crusher',
-        hands: { crusher: [T(3, 11)], worf: [] },
+      makeRound(['ride', 'yeager'], {
+        activePlayerId: 'ride',
+        hands: { ride: [T(3, 11)], yeager: [] },
         table: {
-          ...createInitialTable(['crusher', 'worf'], 12, 'crusher'),
+          ...createInitialTable(['ride', 'yeager'], 12, 'ride'),
           neutralZone: {
             tiles: [placed(T(11, 12), 0, 11), anchor],
           },
           subspaceFracture: {
             active: true,
             anchor,
-            stabilizers: resolvedLaForgeFracture().stabilizers,
+            stabilizers: resolvedGlennFracture().stabilizers,
             requiredValue: 11,
             neutralZone: true,
           },
           redAlert: {
             active: true,
             anchor,
-            responsiblePlayerId: 'crusher',
+            responsiblePlayerId: 'ride',
             trailPlayerId: '',
             neutralZone: true,
           },
@@ -216,7 +216,7 @@ describe('subspace fracture lifecycle', () => {
 
     const cover = applyAction(corrupt, {
       type: 'CHART_COORDINATE',
-      playerId: 'crusher',
+      playerId: 'ride',
       coordinate: T(3, 11),
       route: { kind: 'red-alert-cover', neutralZone: true },
     });
@@ -233,7 +233,7 @@ describe('subspace fracture lifecycle', () => {
           neutralZone: {
             tiles: [placed(T(1, 12), 0, 1), placed(T(1, 1), 1, 1)],
           },
-          subspaceFracture: resolvedLaForgeFracture(),
+          subspaceFracture: resolvedGlennFracture(),
           redAlert: {
             active: true,
             anchor: placed(T(1, 1), 1, 1),

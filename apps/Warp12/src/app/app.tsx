@@ -30,6 +30,11 @@ import { RulesDialog } from './rules-dialog';
 import { RulesPage } from './rules-page';
 import styles from './app.module.scss';
 import { Warp12Logo } from './Warp12Logo';
+import { FactorLanding } from './factor-landing';
+import { HubHarnessPage } from './hub-harness-page';
+import { getWarpFactor } from './warp-factor';
+
+const warpFactor = getWarpFactor();
 
 function AppShell() {
   const auth = useFirebaseAuth();
@@ -62,7 +67,7 @@ function AppShell() {
         <div className={styles.headerStart}>
           <Link to="/" className={styles.logo}>
             <div>
-              <Warp12Logo className={styles.logoSvg} width={layoutFocus ? 180 : 320} />
+              <Warp12Logo className={styles.logoSvg} width={layoutFocus ? 180 : 320} factor={warpFactor} />
               <p className={styles.subtitle}>The Bridge — Navigational Operations</p>
             </div>
           </Link>
@@ -150,7 +155,9 @@ function AppShell() {
       <main className={`${styles.main} ${layoutFocus ? styles.mainFocus : ''}`}>
         <div className={layoutFocus ? styles.mainStage : undefined}>
           <Routes>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/" element={<HomePage factor={warpFactor} />} />
+            <Route path="/factor" element={<FactorLanding />} />
+            <Route path="/harness/hub" element={<HubHarnessPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/paper" element={<PaperPage />} />
             <Route path="/paper/log" element={<PaperPage />} />

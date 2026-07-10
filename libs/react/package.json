@@ -42,12 +42,12 @@
     "prepublishOnly": "cd ../.. && yarn build:react && yarn test:react"
   },
   "peerDependencies": {
-    "doubletwelve": ">=0.3.2",
+    "double-eighteen": ">=0.3.2",
     "react": ">=18.0.0",
     "warp12-engine": ">=0.4.23"
   },
   "devDependencies": {
-    "doubletwelve": "workspace:*",
+    "double-eighteen": "workspace:*",
     "react": "^19.0.0",
     "warp12-engine": "workspace:*"
   }

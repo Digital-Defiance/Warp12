@@ -7,6 +7,10 @@
   gap: 1.5rem;
 }
 
+.logoContainer {
+  text-align: center;
+}
+
 .heroImage {
   display: block;
   width: min(100%, 420px);
@@ -153,6 +157,94 @@
 
 .mission {
   margin: 0;
+}
+
+.warpFactorSelection {
+  margin: 0;
+}
+
+.warpFactorSelectionHeading {
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin: 0 0 0.85rem;
+}
+
+.warpFactorSelectionIcon {
+  height: 16px;
+  width: auto;
+  vertical-align: -0.15em;
+  padding-right: 0.35rem;
+  filter: brightness(0) saturate(100%) invert(88%) sepia(8%) saturate(427%)
+  hue-rotate(169deg) brightness(98%) contrast(92%);
+}
+
+.warpFactorSelectionLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #38bdf8;
+  text-decoration: none;
+
+  &:hover {
+    color: #7dd3fc;
+  }
+}
+
+.tooltip {
+  position: relative;
+  cursor: help; // Changes cursor to a question mark on hover
+  
+  // Custom Tactical Underline
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-decoration-color: var(--text-muted, #888); // Or your theme colors
+  text-underline-offset: 4px;
+
+  // The Tooltip Box (Hidden by default)
+  &::after {
+    content: attr(data-tooltip); // Dynamically pulls text from your HTML data attribute
+    position: absolute;
+    bottom: 130%; // Renders safely right above the text
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    
+    // UI Styling & Layout
+    background-color: #121214; // Match your dark HUD palette
+    color: #e4e4e7;
+    border: 1px solid #27272a;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    z-index: 50;
+    
+    // Width Handling
+    width: max-content;
+    max-width: 200px;
+    white-space: normal; // Allows wrapping for longer descriptions
+
+    // Animation & Pointer Safety
+    pointer-events: none; // Prevents mouse flickering when waving over it
+    opacity: 0;
+    transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+  }
+
+  // Hover Activation
+  &:hover {
+    color: #fff; // Subtle highlight of the parent text on hover
+
+    &::after {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0); // Subtle upward slide effect
+    }
+  }
 }
 
 .playHeading {

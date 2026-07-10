@@ -1,5 +1,9 @@
 import { generateCoordinateSet } from '../domino/coordinates.js';
 import {
+  coordinateSetSize,
+  normalizeWarpFactor,
+} from '../constants/warp-set.js';
+import {
   coordinateKey,
   normalizeCoordinate,
   type Coordinate,
@@ -35,7 +39,7 @@ export function collectAllRoundCoordinates(round: RoundState): Coordinate[] {
     all.push(...round.continuumWagerPending.options);
   }
 
-  // Spacedock double is set aside before the deal — part of the 91, never dealt.
+  // Spacedock double is set aside before the deal — part of the set, never dealt.
   all.push(normalizeCoordinate(round.spacedockValue, round.spacedockValue));
 
   return all;
@@ -58,23 +62,32 @@ export function checkRoundInvariants(
   const push = (kind: string, detail: string) =>
     violations.push({ kind, detail });
 
-  // 1. Tile conservation: exactly the 91-tile double-twelve set, no dupes.
+  const maxPip = normalizeWarpFactor(state.maxPip ?? 12);
+  const expectedCount = coordinateSetSize(maxPip);
+
+  // 1. Tile conservation: exactly the double-N set for this sector, no dupes.
   const all = collectAllRoundCoordinates(round);
-  if (all.length !== 91) {
-    push('tile-count', `expected 91 tiles, found ${all.length}`);
+  if (all.length !== expectedCount) {
+    push(
+      'tile-count',
+      `expected ${expectedCount} tiles (double-${maxPip}), found ${all.length}`
+    );
   }
   const keys = new Set<string>();
-  const expected = new Set(
-    generateCoordinateSet(12).map(coordinateKey)
-  );
+  const expected = new Set(generateCoordinateSet(maxPip).map(coordinateKey));
   for (const coordinate of all) {
-    const key = coordinateKey(normalizeCoordinate(coordinate.low, coordinate.high));
+    const key = coordinateKey(
+      normalizeCoordinate(coordinate.low, coordinate.high)
+    );
     if (keys.has(key)) {
       push('tile-duplicate', `tile ${key} appears more than once`);
     }
     keys.add(key);
     if (!expected.has(key)) {
-      push('tile-foreign', `tile ${key} is not part of a double-twelve set`);
+      push(
+        'tile-foreign',
+        `tile ${key} is not part of a double-${maxPip} set`
+      );
     }
   }
   for (const key of expected) {

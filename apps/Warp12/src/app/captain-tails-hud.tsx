@@ -1,7 +1,7 @@
 import type { PlacedCoordinate, RoundState } from 'warp12-engine';
-import { DoubleTwelve } from 'doubletwelve';
+import { DominoTile } from 'double-eighteen';
 import type { RefObject } from 'react';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import type { TrailAccessState, TrailSpokeStatus } from 'warp12-react';
 import { WARP_PIP_COLORS, WARP_TILE_SURFACE, type WarpTileBg } from 'warp12-theme';
@@ -31,6 +31,8 @@ export interface CaptainTailsHudProps {
   tileBg: WarpTileBg;
   tacticalClassAbbrevByCaptain?: Readonly<Record<string, string>>;
   tacticalClassLabelByCaptain?: Readonly<Record<string, string>>;
+  /** Double-N max pip for tile rendering. */
+  maxPip?: number;
 }
 
 export function buildTailRows(
@@ -166,15 +168,18 @@ function TailDomino({
   anchor,
   tail,
   tileBg,
+  maxPip = 12,
 }: {
   anchor: number;
   tail: number;
   tileBg: WarpTileBg;
+  maxPip?: number;
 }) {
   const tileSurface = WARP_TILE_SURFACE[tileBg];
   return (
     <span className={styles.dominoWrap} aria-hidden>
-      <DoubleTwelve
+      <DominoTile
+        maxPips={maxPip}
         value1={anchor}
         value2={tail}
         width={22}
@@ -197,6 +202,7 @@ export function CaptainTailsHud({
   tileBg,
   tacticalClassAbbrevByCaptain = {},
   tacticalClassLabelByCaptain = {},
+  maxPip = 12,
 }: CaptainTailsHudProps) {
   const rows = useMemo(
     () =>
@@ -215,6 +221,15 @@ export function CaptainTailsHud({
       trailSpokes,
     ]
   );
+  const activeRowRef = useRef<HTMLLIElement | null>(null);
+
+  useEffect(() => {
+    activeRowRef.current?.scrollIntoView({
+      block: 'nearest',
+      inline: 'nearest',
+      behavior: 'smooth',
+    });
+  }, [activePlayerId, rows.length]);
 
   return (
     <FloatingPanelShell
@@ -242,6 +257,7 @@ export function CaptainTailsHud({
           return (
             <li
               key={row.rowId}
+              ref={row.isActive ? activeRowRef : undefined}
               className={styles.row}
               data-display={display}
               data-active={row.isActive ? 'true' : undefined}
@@ -256,7 +272,12 @@ export function CaptainTailsHud({
                 )}
               </span>
               {display === 'domino' && (
-                <TailDomino anchor={anchor} tail={tail} tileBg={tileBg} />
+                <TailDomino
+                  anchor={anchor}
+                  tail={tail}
+                  tileBg={tileBg}
+                  maxPip={maxPip}
+                />
               )}
               <TailCoordinateText
                 anchor={anchor}

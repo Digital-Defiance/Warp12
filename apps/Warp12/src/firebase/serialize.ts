@@ -78,6 +78,7 @@ export function serializePublicGame(state: GameState): FirestoreGameDocument {
     },
     objective: state.objective,
     campaignRounds: state.campaignRounds,
+    maxPip: state.maxPip ?? 12,
     maxPlayers: ONLINE_MAX_PLAYERS,
     captainIds: state.captains.map((c) => c.id),
     captains: state.captains.map((c) => ({
@@ -406,6 +407,7 @@ export function mergeHandsIntoGame(
     },
     objective: doc.objective,
     campaignRounds: doc.campaignRounds,
+    maxPip: doc.maxPip ?? 12,
     houseRules: resolveHouseRules(doc.houseRules),
   };
 }

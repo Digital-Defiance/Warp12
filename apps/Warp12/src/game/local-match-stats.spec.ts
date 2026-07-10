@@ -20,8 +20,8 @@ describe('classifyLocalAiMatchOpponent', () => {
   it('treats Class II as rated (opponentOmega false)', () => {
     expect(
       classifyLocalAiMatchOpponent([
-        { id: 'a', displayName: 'Riker', skill: 'commander' },
-        { id: 'b', displayName: 'Troi', skill: 'commander' },
+        { id: 'a', displayName: 'Lovell', skill: 'commander' },
+        { id: 'b', displayName: 'Earhart', skill: 'commander' },
       ])
     ).toEqual({ skill: 'commander', opponentOmega: false });
   });
@@ -29,7 +29,7 @@ describe('classifyLocalAiMatchOpponent', () => {
   it('ignores legacy omega flags for rating classification', () => {
     expect(
       classifyLocalAiMatchOpponent([
-        { id: 'a', displayName: 'Riker', skill: 'commander', omega: true },
+        { id: 'a', displayName: 'Lovell', skill: 'commander', omega: true },
       ])
     ).toEqual({ skill: 'commander', opponentOmega: false });
   });

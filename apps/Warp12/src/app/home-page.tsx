@@ -2,12 +2,27 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { useLayoutTier } from './layout-tier-context';
 import styles from './home-page.module.scss';
+import { Warp12Logo } from './Warp12Logo';
+import { FC } from 'react';
+import { getWarpFactor } from './warp-factor';
 
-export function HomePage() {
+export interface HomePageProps {
+  factor?: number;
+}
+
+export const HomePage: FC<HomePageProps> = ({ factor }) => {
   const navigate = useNavigate();
   const layoutTier = useLayoutTier();
   const phoneLayout = layoutTier === 'phone';
+  const warpFactor = getWarpFactor();
 
+  const warpFactorSelection = (
+    <section className={styles.warpFactorSelection}>
+      <h2 className={styles.warpFactorSelectionHeading}>Choose your Warp Factor</h2>
+      <img src="/angle-right-vellum-solid-full.svg" alt="Angle Right" className={styles.warpFactorSelectionIcon} width={16} height={16} /><Link to="/factor" className={styles.warpFactorSelectionLink}>{warpFactor ? 'Return' : 'Proceed'} to Warp Factor Selection</Link>
+    </section>
+  );
+  
   const missionSection = (
     <section className={styles.mission}>
       <h2 className={styles.playHeading}>Choose your mission</h2>
@@ -28,7 +43,7 @@ export function HomePage() {
           onClick={() => navigate('/local')}
         >
           <h2>Local simulation</h2>
-          <p>Play against 2–7 AI captains — first out or points campaign.</p>
+          <p>Play against AI captains — first out or points campaign.</p>
         </button>
         <button
           type="button"
@@ -36,7 +51,7 @@ export function HomePage() {
           onClick={() => navigate('/local/pass-and-play')}
         >
           <h2>Pass and play</h2>
-          <p>2–8 humans on one device — share the bridge, unrated local table.</p>
+          <p>Humans on one device — share the bridge, unrated local table.</p>
         </button>
         <button
           type="button"
@@ -44,21 +59,27 @@ export function HomePage() {
           onClick={() => navigate('/online')}
         >
           <h2>Online fleet</h2>
-          <p>Create or join a sector — syncs via Firebase warp-12.</p>
+          <p>Create or join a sector</p>
         </button>
       </div>
     </section>
   );
 
+  const doubleMap = {
+    9: 'Double-nine',
+    12: 'Double-twelve',
+    15: 'Double-fifteen',
+    18: 'Double-eighteen',
+  }
   const heroSection = phoneLayout ? (
     <details className={styles.fold}>
-      <summary className={styles.foldSummary}>About Warp 12</summary>
+      <summary className={styles.foldSummary}>About Warp</summary>
       <div className={styles.foldBody}>
-        <p className={styles.heroEyebrow}>Double-twelve dominoes · fleet tactics</p>
+        <p className={styles.heroEyebrow}>{doubleMap[warpFactor as keyof typeof doubleMap]} dominoes · fleet tactics</p>
         <p className={styles.heroLead}>
-          <strong>Warp 12</strong> is tournament Mexican Train in federation
-          dress: <em>navigational coordinates</em>, <em>Spacedock</em>, and{' '}
-          <em>warp trails</em> into the Neutral Zone.
+          <strong>Warp</strong> is competitive, <span className={styles.tooltip} data-tooltip="Mexican Train in Federation dress">multi-trail interstellar dominoes</span> with
+          fleet decorum: <em><span className={styles.tooltip} data-tooltip="Tiles">navigational coordinates</span></em>, <em><span className={styles.tooltip} data-tooltip="Hub/Engine">Spacedock</span></em>, and{' '}
+          <em><span className={styles.tooltip} data-tooltip="Trains">warp trails</span></em> into the <span className={styles.tooltip} data-tooltip="Mexican Train/Community Train">Neutral Zone</span>.
         </p>
         <p className={styles.heroBody}>
           Doubles trigger red alert. Optional modules add subspace fractures,
@@ -77,19 +98,16 @@ export function HomePage() {
     </details>
   ) : (
     <section className={styles.hero}>
-      <p className={styles.heroEyebrow}>Double-twelve dominoes · fleet tactics</p>
+      <p className={styles.heroEyebrow}>{doubleMap[warpFactor as keyof typeof doubleMap]} dominoes · fleet tactics</p>
       <h1 className={styles.heroTitle}>
         Chart the sector. Empty your hand. Win the campaign.
       </h1>
       <p className={styles.heroLead}>
-        <strong>Warp 12</strong> is a double-twelve domino variant dressed in
-        starship ops jargon: tiles are <em>navigational coordinates</em>, the
-        center double is <em>Spacedock</em>, and every captain builds a{' '}
-        <em>warp trail</em> into the void.
-      </p>
+          <strong>Warp</strong> is competitive, <span className={styles.tooltip} data-tooltip="Mexican Train in Federation dress">multi-trail interstellar dominoes</span> with
+          fleet decorum: <em><span className={styles.tooltip} data-tooltip="Tiles">navigational coordinates</span></em>, <em><span className={styles.tooltip} data-tooltip="Hub/Engine">Spacedock</span></em>, and{' '}
+          <em><span className={styles.tooltip} data-tooltip="Trains">warp trails</span></em> into the <span className={styles.tooltip} data-tooltip="Mexican Train/Community Train">Neutral Zone</span>.      </p>
       <p className={styles.heroLead}>
-        Warp 12 is what Wesley would play if he were playing Mexican Train on the
-        Enterprise.
+        Warp is what the night shift plays on the bridge.
       </p>
       <p className={styles.heroBody}>
         Match pips to chart routes on your trail, the communal Neutral Zone, or a
@@ -101,7 +119,7 @@ export function HomePage() {
       </p>
       <p className={styles.heroLinks}>
         <Link to="/about" className={styles.heroLink}>
-          About Warp 12 — engine, TEI, and what we claim
+          About Warp — engine, TEI, and what we claim
         </Link>
         {' · '}
         <Link to="/rules" className={styles.heroLink}>
@@ -138,7 +156,7 @@ export function HomePage() {
       <h2 className={styles.disclaimerTitle}>Before you launch</h2>
       <ul className={styles.disclaimerList}>
         <li>
-          Warp 12 is a fan-made hobby project from a nonprofit, one-person dev
+          Warp is a fan-made hobby project from a nonprofit, one-person dev
           team — built for fun with friends, not sanctioned tournament play.
         </li>
         <li>
@@ -152,7 +170,7 @@ export function HomePage() {
           living-room adjudication over the app.
         </li>
         <li>
-          Warp 12 is built for <strong>tablets and desktops</strong>. A{' '}
+          Warp is built for <strong>tablets and desktops</strong>. A{' '}
           <strong>phone layout</strong> is in preview — rotate to portrait for
           round summaries.
         </li>
@@ -177,7 +195,7 @@ export function HomePage() {
     <section className={styles.disclaimer} aria-label="The Captain's Oath">
       <h2 className={styles.disclaimerTitle}>The Captain&apos;s Oath</h2>
       <p className={styles.oathBody}>
-        Warp 12 has no referees — it runs on the honor of the captains at the
+        Warp has no referees — it runs on the honor of the captains at the
         table. Rated play is a matter of record, so we hold a simple line: play
         with honor, run the sanctioned build, earn your rating, and keep the
         pool clean. We don&apos;t cheat, tamper with the client, farm or sandbag
@@ -236,13 +254,19 @@ export function HomePage() {
 
   return (
     <div className={styles.page} data-layout-tier={layoutTier}>
-      <img src="/Warp12-feat-tx.png" alt="" className={styles.heroImage} />
+      <div className={styles.logoContainer}>
+        <Warp12Logo
+          width={400}
+          factor={factor}
+        />
+      </div>
       {phoneLayout ? (
         <>
           <p className={styles.phoneTagline}>
             Chart the sector. Empty your hand. Win the campaign.
           </p>
-          {missionSection}
+          {warpFactorSelection}
+          {warpFactor ? missionSection : undefined}
           {heroSection}
           {disclaimerSection}
           {oathSection}
@@ -253,7 +277,8 @@ export function HomePage() {
           {heroSection}
           {disclaimerSection}
           {oathSection}
-          {missionSection}
+          {warpFactorSelection}
+          {warpFactor ? missionSection : undefined}
           {appsSection}
         </>
       )}

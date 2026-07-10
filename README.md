@@ -21,9 +21,9 @@ warp-12/
 ├── libs/
 │   ├── engine/                 # warp12-engine — rules, AI, advisor (npm)
 │   ├── react/                  # warp12-react — adapters, coach, hand layout (npm)
-│   └── theme/                  # warp12-theme — DoubleTwelve skins (npm)
+│   └── theme/                  # warp12-theme — DoubleEighteen skins (npm)
 ├── vendor/
-│   └── DoubleTwelve/           # Domino rendering submodule (own Nx workspace)
+│   └── double-eighteen/           # Domino rendering submodule (own Nx workspace)
 └── RULES.md                    # Navigational Operations Manual
 ```
 
@@ -31,37 +31,37 @@ warp-12/
 |-------|---------|----------------|
 | **Engine** | `warp12-engine` | Deterministic state machine: turns, scoring, Distress Beacon, Subspace Fracture, Warp AI, advisor explanations |
 | **React adapters** | `warp12-react` | `RoundState` → trains, tactical coach, hand layout hooks |
-| **Theme** | `warp12-theme` | federation domino tile presets for DoubleTwelve |
-| **Rendering** | `doubletwelve` | React domino components, train layout, chicken-foot geometry, pip theming |
+| **Theme** | `warp12-theme` | federation domino tile presets for double-eighteen |
+| **Rendering** | `double-eighteen` | React domino components, train layout, chicken-foot geometry, pip theming |
 | **Client** | `@warp12/Warp12` | Space-themed UI, Firebase Auth + Firestore sync (private app) |
 | **Multiplayer** | Firebase (`warp-12`) | Auth, game documents, action log, private hands |
 
-### Vendor boundary (`vendor/DoubleTwelve`)
+### Vendor boundary (`vendor/double-eighteen`)
 
-DoubleTwelve is a **git submodule** with its own Nx workspace (demo app, e2e, npm publish). Warp12 treats it as an opaque dependency:
+double-eighteen is a **git submodule** with its own Nx workspace (demo app, e2e, npm publish). Warp12 treats it as an opaque dependency:
 
-- Parent Nx only runs `doubletwelve:build-lib` (Vite → `dist/`)
-- Develop DoubleTwelve standalone: `cd vendor/DoubleTwelve && yarn start`
-- Do not run parent `nx` against DoubleTwelve’s internal projects
+- Parent Nx only runs `double-eighteen:build-lib` (Vite → `dist/`)
+- Develop double-eighteen standalone: `cd vendor/double-eighteen && yarn start`
+- Do not run parent `nx` against DoubleEighteen’s internal projects
 
 ## 🚀 Development Quickstart
 
 Run all commands from the **monorepo root** (the directory with the top-level `package.json`, not `apps/Warp12`).
 
 ```bash
-# Install dependencies (includes DoubleTwelve submodule)
+# Install dependencies (includes DoubleEighteen submodule)
 yarn install
-git submodule update --init vendor/DoubleTwelve
+git submodule update --init vendor/double-eighteen
 
 # Build everything (domino lib → engine → client)
 yarn build:all
 
 # Or step by step:
-yarn build:doubletwelve   # vendor/DoubleTwelve → dist/
-yarn build:engine         # libs/engine → dist/  (warp12-engine)
-yarn build:react          # libs/react → dist/   (warp12-react)
-yarn build:theme          # libs/theme → dist/   (warp12-theme)
-yarn build:bridge         # apps/Warp12 → dist/
+yarn build:double-eighteen # vendor/double-eighteen → dist/
+yarn build:engine          # libs/engine → dist/  (warp12-engine)
+yarn build:react           # libs/react → dist/   (warp12-react)
+yarn build:theme           # libs/theme → dist/   (warp12-theme)
+yarn build:bridge          # apps/Warp12 → dist/
 
 # Serve the client (dev server)
 yarn serve:bridge
@@ -99,7 +99,7 @@ If `pkill` reports no processes, skip step 2. After cleanup, prefer `yarn build:
 <summary>Advanced: Nx targets (optional)</summary>
 
 ```bash
-yarn nx run doubletwelve:build-lib
+yarn nx run double-eighteen:build-lib
 yarn nx run @warp12/Warp12-lib:build
 yarn nx serve @warp12/Warp12
 ```
@@ -216,10 +216,12 @@ Firebase Console → Authentication → **Settings** → **Authorized domains** 
 
 - `localhost` (dev)
 - `warp12.app`
-- `iwdf.org`
+- `warp.iwdf.org`
 - `warp-12.web.app`
 - `warp-12.firebaseapp.com`
 - `warp-12-leaderboard.web.app` (default Firebase URL for the leaderboard site)
+- `iwdf.org`
+- `leaderboard.warp12.app`
 
 Anonymous Auth will fail on a domain that is not listed there.
 
@@ -240,7 +242,7 @@ Warp 12 ships with offline AI captains and a human-facing **tactical coach**, bo
 | **Extended thinking (Ω+)** | Same Ω weights + net-guided search (`createOmegaSearchPlayer`) | **No** — local exhibition only |
 | **Class I\*** | Heuristic + search/residual research | No |
 
-Class IV–III officers use DoubleTwelve heuristics on the real engine (Distress Beacons, Red Alert, modules, house rules). **Class II is Ω** — a self-play neural policy, not a separate lobby tier. Optional **extended thinking** on Class II in local simulation runs Ω+ search; those matches do not update TEI.
+Class IV–III officers use double-eighteen heuristics on the real engine (Distress Beacons, Red Alert, modules, house rules). **Class II is Ω** — a self-play neural policy, not a separate lobby tier. Optional **extended thinking** on Class II in local simulation runs Ω+ search; those matches do not update TEI.
 
 Self-play suites verify skill ordering and fairness. Heuristic tier calibration:
 
@@ -317,7 +319,7 @@ Published packages: `warp12-engine` (AI + rules), `warp12-react` (coach + table 
 
 - [Documentation site](https://docs.warp12.app) (Jekyll + Just the Docs — `docs/`)
 - [Nx documentation](https://nx.dev)
-- [DoubleTwelve library](./vendor/DoubleTwelve/README.md)
+- [DoubleEighteen library](./vendor/double-eighteen/README.md)
 - [Firebase Console — warp-12](https://console.firebase.google.com/project/warp-12)
 
 ## 📦 Install (macOS)

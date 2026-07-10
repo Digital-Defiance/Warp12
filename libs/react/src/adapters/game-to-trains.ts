@@ -1,10 +1,24 @@
 import type { Coordinate, PlacedCoordinate } from 'warp12-engine';
 import { trailsOpenToOthers, type RoundState } from 'warp12-engine';
-import type { TrainBranch, TrainData } from 'doubletwelve';
-import type { DominoValue } from 'doubletwelve';
+import type { TrainBranch, TrainData } from 'double-eighteen';
+import type { DominoValue } from 'double-eighteen';
 
-/** Hub arm reserved for the Neutral Zone (8-spoke layout). */
-export const NEUTRAL_ZONE_SLOT = 7;
+import {
+  hubSlotsForCaptainCount,
+  neutralZoneSlot,
+} from './hub-layout.js';
+
+export {
+  hubSlotsForCaptainCount,
+  hubSlotsForRound,
+  hubTableGeometry,
+  HUB_DOMINO_WIDTH,
+  HUB_RING_RADIUS,
+  NEUTRAL_ZONE_SLOT,
+  neutralZoneSlot,
+  spokeBadgeRingDistance,
+  type HubTableGeometry,
+} from './hub-layout.js';
 
 /** Map engine placement to domino halves with value1 toward the connecting end. */
 export function placedToDomino(
@@ -223,10 +237,11 @@ function layoutFromTiles(
 
 export function gameStateToTrains(
   round: RoundState,
-  hubSlots = 8
+  hubSlots = hubSlotsForCaptainCount(round.turnOrder.length)
 ): TrainData[] {
   const trains: TrainData[] = [];
   const hubValue = round.spacedockValue;
+  const nzSlot = neutralZoneSlot(hubSlots);
   const slotByCaptain = new Map(
     round.turnOrder.map((captainId, index) => [captainId, index])
   );
@@ -234,6 +249,10 @@ export function gameStateToTrains(
 
   for (const captainId of round.turnOrder) {
     const slot = slotByCaptain.get(captainId)!;
+    if (slot >= nzSlot) {
+      // Captain indices must stay below the Neutral Zone arm.
+      continue;
+    }
     const trail = round.table.warpTrails[captainId];
     const fractureOnTrail =
       fracture && !fracture.neutralZone && fracture.trailCaptainId === captainId
@@ -254,7 +273,10 @@ export function gameStateToTrains(
     });
   }
 
-  if (round.table.neutralZone.tiles.length > 0 || hubSlots > round.turnOrder.length) {
+  if (
+    round.table.neutralZone.tiles.length > 0 ||
+    hubSlots > round.turnOrder.length
+  ) {
     const fractureOnNz = fracture?.neutralZone ? fracture : null;
     const { dominoes, feet } = layoutFromTiles(
       round.table.neutralZone.tiles,
@@ -263,7 +285,7 @@ export function gameStateToTrains(
     );
 
     trains.push({
-      playerId: NEUTRAL_ZONE_SLOT,
+      playerId: nzSlot,
       isPublic: true,
       dominoes,
       feet,

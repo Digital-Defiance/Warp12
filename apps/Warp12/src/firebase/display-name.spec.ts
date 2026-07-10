@@ -8,24 +8,24 @@ import {
 
 describe('display-name', () => {
   it('compares call signs case-insensitively', () => {
-    expect(normalizeCallSign('  Picard  ')).toBe('picard');
-    expect(isCallSignTaken([{ displayName: 'Picard' }], 'picard')).toBe(true);
+    expect(normalizeCallSign('  Armstrong  ')).toBe('armstrong');
+    expect(isCallSignTaken([{ displayName: 'Armstrong' }], 'armstrong')).toBe(true);
   });
 
   it('keeps a unique requested call sign', () => {
     expect(
-      allocateUniqueCallSign([{ displayName: 'Picard' }], 'Riker')
-    ).toBe('Riker');
+      allocateUniqueCallSign([{ displayName: 'Armstrong' }], 'Lovell')
+    ).toBe('Lovell');
   });
 
   it('suffixes when the call sign is already aboard', () => {
-    const roster = [{ displayName: 'Picard' }];
-    expect(allocateUniqueCallSign(roster, 'Picard')).toBe('Picard (2)');
+    const roster = [{ displayName: 'Armstrong' }];
+    expect(allocateUniqueCallSign(roster, 'Armstrong')).toBe('Armstrong (2)');
     expect(
       allocateUniqueCallSign(
-        [...roster, { displayName: 'Picard (2)' }],
-        'Picard'
+        [...roster, { displayName: 'Armstrong (2)' }],
+        'Armstrong'
       )
-    ).toBe('Picard (3)');
+    ).toBe('Armstrong (3)');
   });
 });

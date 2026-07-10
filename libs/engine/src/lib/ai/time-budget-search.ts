@@ -2,7 +2,7 @@ import {
   searchActionValues,
   type Rng,
   type SearchModel,
-} from 'doubletwelve';
+} from 'double-eighteen';
 
 import type { LookaheadOptions } from './lookahead-options.js';
 import { warpAiActionKey } from './from-game-action.js';

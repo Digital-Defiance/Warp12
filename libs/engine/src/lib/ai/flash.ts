@@ -61,7 +61,10 @@ function scoreEffect(
     case 'fracture-immunity':
       return myHand.some((tile) => tile.low === tile.high) ? 10 : 2;
     case 'salamander-swap':
-      return myHand.some((tile) => tile.low === 12 && tile.high === 12)
+      return myHand.some((tile) => {
+        const maxPip = obs.maxPip ?? 12;
+        return tile.low === maxPip && tile.high === maxPip;
+      })
         ? 20
         : highest.id !== playerId
           ? 6

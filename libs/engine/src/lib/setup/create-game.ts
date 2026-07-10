@@ -1,9 +1,11 @@
 import {
   handSizeForPlayerCount,
   spacedockValueForRound,
-  DEFAULT_CAMPAIGN_ROUNDS,
   DEFAULT_LARGE_FLEET_HAND_SIZE,
+  DOUBLE_TWELVE_MAX_PIPS,
   clampCampaignRounds,
+  defaultCampaignRounds,
+  normalizeWarpFactor,
   type LargeFleetHandSize,
 } from '../constants/setup.js';
 import {
@@ -26,6 +28,7 @@ export function createCaptain(
 }
 
 export function createLobbyState(input: CreateGameInput): GameState {
+  const maxPip = normalizeWarpFactor(input.maxPip ?? DOUBLE_TWELVE_MAX_PIPS);
   return {
     id: input.id,
     phase: 'lobby',
@@ -35,8 +38,10 @@ export function createLobbyState(input: CreateGameInput): GameState {
     modules: resolveModules(input.modules),
     houseRules: resolveHouseRules(input.houseRules),
     objective: input.objective ?? DEFAULT_GAME_OBJECTIVE,
+    maxPip,
     campaignRounds: clampCampaignRounds(
-      input.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS
+      input.campaignRounds ?? defaultCampaignRounds(maxPip),
+      maxPip
     ),
   };
 }
@@ -74,8 +79,11 @@ export function dealRoundFromShuffled(input: {
   readonly roundStarterId?: PlayerId;
   /** 7–8 captain hand size (10 default, 11 = Galt/University). */
   readonly largeFleetHandSize?: LargeFleetHandSize;
+  /** Double-N max pip for Spacedock descent and hand sizes. */
+  readonly maxPip?: number;
 }): RoundDealResult {
-  const spacedockValue = spacedockValueForRound(input.roundNumber);
+  const maxPip = normalizeWarpFactor(input.maxPip ?? DOUBLE_TWELVE_MAX_PIPS);
+  const spacedockValue = spacedockValueForRound(input.roundNumber, maxPip);
   const spacedockCoordinate = normalizeCoordinate(
     spacedockValue,
     spacedockValue
@@ -95,7 +103,8 @@ export function dealRoundFromShuffled(input: {
 
   const handSize = handSizeForPlayerCount(
     input.captains.length,
-    input.largeFleetHandSize ?? DEFAULT_LARGE_FLEET_HAND_SIZE
+    input.largeFleetHandSize ?? DEFAULT_LARGE_FLEET_HAND_SIZE,
+    maxPip
   );
   const hands: Record<string, Coordinate[]> = {};
 
@@ -190,6 +199,7 @@ export function startGame(
     turnOrder,
     roundStarterId: deal.roundStarterId,
     largeFleetHandSize: lobby.houseRules.largeFleetHandSize,
+    maxPip: lobby.maxPip,
   });
 
   return {

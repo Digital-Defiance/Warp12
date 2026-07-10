@@ -8,7 +8,9 @@ import { warp12OfficialCreateLobbyOptions } from '../game/warp12-preset.js';
 import {
   LOCAL_MAX_PLAYERS,
   LOCAL_MIN_PLAYERS,
+  maxPlayersForFactor,
 } from '../game/local-game-config.js';
+import { requireWarpFactor } from './warp-factor.js';
 import { CampaignRoundsField, ObjectivePicker } from './objective-picker';
 import { HouseRulesOptions } from './house-rules-options';
 import { DoubleZeroScoreField } from './double-zero-score-field';
@@ -48,6 +50,10 @@ export function LobbyForm({
   firebaseConfigured,
   myCharters = [],
 }: LobbyProps) {
+  const fleetMax = maxPlayersForFactor(requireWarpFactor());
+  const fleetCeiling = Math.min(LOCAL_MAX_PLAYERS, fleetMax);
+  const maxPip = requireWarpFactor();
+  const exhibitionSet = maxPip !== 12;
   const charterLocked = Boolean(createOptions.charterId);
   const activeCharter =
     myCharters.find((crew) => crew.charterId === createOptions.charterId) ?? null;
@@ -60,7 +66,7 @@ export function LobbyForm({
   const setMaxPlayers = (maxPlayers: number) =>
     onCreateOptionsChange({
       ...createOptions,
-      maxPlayers: clampOnlineMaxPlayers(maxPlayers),
+      maxPlayers: clampOnlineMaxPlayers(maxPlayers, fleetCeiling),
     });
 
   const setModules = (patch: Partial<NonNullable<CreateLobbyOptions['modules']>>) =>
@@ -86,7 +92,8 @@ export function LobbyForm({
     <section className={`${styles.lobby} ${styles.lobbyWide}`}>
       <h2 className={styles.title}>Fleet muster</h2>
       <p className={styles.subtitle}>
-        Open a sector for up to eight captains, or join with a sector code.
+        Open a sector for up to {fleetCeiling} captains, or join with a sector
+        code.
       </p>
 
       {!firebaseConfigured && (
@@ -181,28 +188,33 @@ export function LobbyForm({
         <label className={styles.checkboxRow}>
           <input
             type="checkbox"
-            checked={createOptions.rated ?? true}
+            checked={!exhibitionSet && (createOptions.rated ?? true)}
+            disabled={baseDisabled || charterLocked || exhibitionSet}
             onChange={(e) =>
               onCreateOptionsChange({ ...createOptions, rated: e.target.checked })
             }
           />
           <span>
-            Rated sector — results count toward TEI. Comms are limited to quick
-            hails during play. Uncheck for a casual game with open chat.
+            {exhibitionSet
+              ? `Exhibition set (Warp ${maxPip}) — TEI is Warp 12 only. This sector stays unrated.`
+              : 'Rated sector — results count toward TEI. Comms are limited to quick hails during play. Uncheck for a casual game with open chat.'}
           </span>
         </label>
         <label className={styles.field}>
           <span>
-            Fleet capacity ({LOCAL_MIN_PLAYERS}–{LOCAL_MAX_PLAYERS} captains)
+            Fleet capacity ({LOCAL_MIN_PLAYERS}–{fleetCeiling} captains)
           </span>
           <select
             aria-label="Fleet capacity"
-            value={createOptions.maxPlayers ?? LOCAL_MAX_PLAYERS}
+            value={Math.min(
+              createOptions.maxPlayers ?? fleetCeiling,
+              fleetCeiling
+            )}
             disabled={baseDisabled || charterLocked}
             onChange={(e) => setMaxPlayers(Number(e.target.value))}
           >
             {Array.from(
-              { length: LOCAL_MAX_PLAYERS - LOCAL_MIN_PLAYERS + 1 },
+              { length: fleetCeiling - LOCAL_MIN_PLAYERS + 1 },
               (_, index) => LOCAL_MIN_PLAYERS + index
             ).map((count) => (
               <option key={count} value={count}>
@@ -245,7 +257,7 @@ export function LobbyForm({
             })
           }
         />
-        {(createOptions.maxPlayers ?? LOCAL_MAX_PLAYERS) >= 7 && (
+        {(createOptions.maxPlayers ?? fleetCeiling) >= 7 && (
           <LargeFleetHandSizeField
             value={createOptions.houseRules?.largeFleetHandSize}
             disabled={baseDisabled || charterLocked}

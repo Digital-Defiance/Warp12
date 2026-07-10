@@ -1,4 +1,4 @@
-import { searchActionValues } from 'doubletwelve';
+import { searchActionValues } from 'double-eighteen';
 import { applyAction } from '../engine/apply-action.js';
 import { startGame } from '../setup/create-game.js';
 import {

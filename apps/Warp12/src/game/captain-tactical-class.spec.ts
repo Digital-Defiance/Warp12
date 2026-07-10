@@ -9,42 +9,42 @@ describe('captain-tactical-class', () => {
   it('shows Class II for commander officers (neural Ω)', () => {
     const localConfig = {
       humanId: 'you',
-      humanName: 'Picard',
-      humanCaptains: [{ id: 'you', displayName: 'Picard' }],
+      humanName: 'Armstrong',
+      humanCaptains: [{ id: 'you', displayName: 'Armstrong' }],
       playerCount: 4,
       objective: 'go-out' as const,
       campaignRounds: 13,
       modules: {},
       aiCaptains: [
         {
-          id: 'riker',
-          displayName: 'Riker',
+          id: 'lovell',
+          displayName: 'Lovell',
           skill: 'commander' as const,
         },
       ],
     };
 
     expect(
-      buildCaptainTacticalClassAbbrevById({ localConfig }).riker
+      buildCaptainTacticalClassAbbrevById({ localConfig }).lovell
     ).toBe('Cls II');
     expect(
-      buildCaptainTacticalClassLabelById({ localConfig }).riker
+      buildCaptainTacticalClassLabelById({ localConfig }).lovell
     ).toMatch(/Class II/);
   });
 
   it('shows the human captain tactical class from solo TEI', () => {
     const localConfig = {
-      humanId: 'picard',
-      humanName: 'Picard',
-      humanCaptains: [{ id: 'picard', displayName: 'Picard' }],
+      humanId: 'armstrong',
+      humanName: 'Armstrong',
+      humanCaptains: [{ id: 'armstrong', displayName: 'Armstrong' }],
       playerCount: 4,
       objective: 'points' as const,
       campaignRounds: 13,
       modules: {},
       aiCaptains: [
         {
-          id: 'riker',
-          displayName: 'Riker',
+          id: 'lovell',
+          displayName: 'Lovell',
           skill: 'commander' as const,
         },
       ],
@@ -53,16 +53,16 @@ describe('captain-tactical-class', () => {
     expect(
       buildCaptainTacticalClassAbbrevById({
         localConfig,
-        humanId: 'picard',
+        humanId: 'armstrong',
         humanTei: 1420,
-      }).picard
+      }).armstrong
     ).toBe('Cls II');
     expect(
       buildCaptainTacticalClassLabelById({
         localConfig,
-        humanId: 'picard',
+        humanId: 'armstrong',
         humanTei: null,
-      }).picard
+      }).armstrong
     ).toContain('Class IV');
   });
 });

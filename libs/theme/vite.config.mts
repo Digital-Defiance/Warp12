@@ -31,7 +31,7 @@ export default defineConfig(() => ({
       formats: ['es' as const],
     },
     rolldownOptions: {
-      external: ['doubletwelve'],
+      external: ['double-eighteen'],
     },
   },
 }));

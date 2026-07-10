@@ -3,11 +3,12 @@
     "providers": {
       "anonymous": true,
       "googleSignIn": {
-        "oAuthBrandDisplayName": "Warp 12",
+        "oAuthBrandDisplayName": "Warp",
         "supportEmail": "jessica@digitaldefiance.org",
         "authorizedRedirectUris": [
           "https://iwdf.org",
-          "https://warp12.app"
+          "https://warp12.app",
+          "https://warp.iwdf.org"
         ]
       }
     }

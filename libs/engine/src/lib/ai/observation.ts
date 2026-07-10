@@ -3,6 +3,7 @@ import type { HouseRules } from '../types/house-rules.js';
 import type { GameModules } from '../types/modules.js';
 import type { GameObjective } from '../types/objective.js';
 import type { Captain, PlayerId } from '../types/player.js';
+import { DOUBLE_TWELVE_MAX_PIPS } from '../constants/setup.js';
 
 /**
  * What a Warp 12 bot is allowed to see this turn: the public round state, which
@@ -18,6 +19,8 @@ export interface WarpAiObservation {
   readonly objective: GameObjective;
   readonly campaignRounds: number;
   readonly captains: readonly Captain[];
+  /** Double-N max pip for this sector (defaults to 12). */
+  readonly maxPip?: number;
 }
 
 /** Builds an observation for `playerId` from a game state, or null if no round. */
@@ -36,5 +39,6 @@ export function observe(
     objective: state.objective,
     campaignRounds: state.campaignRounds,
     captains: state.captains,
+    maxPip: state.maxPip ?? DOUBLE_TWELVE_MAX_PIPS,
   };
 }

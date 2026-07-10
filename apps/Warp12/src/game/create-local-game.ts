@@ -14,6 +14,7 @@ import {
 
 import { preloadOmegaWeights } from '../ai/load-omega-weights.js';
 import type { AiCaptainConfig, LocalGameConfig } from './local-game-config.js';
+import { neuralAiSupported } from './local-game-config.js';
 
 function seededRandom(seed: number): () => number {
   let value = seed >>> 0;
@@ -40,7 +41,7 @@ export function createLocalGame(
   seed = Date.now()
 ): GameState {
   const shuffled = shuffleCoordinates(
-    generateCoordinateSet(12),
+    generateCoordinateSet(config.maxPip),
     seededRandom(seed)
   );
   const captains = [
@@ -62,6 +63,7 @@ export function createLocalGame(
       houseRules: config.houseRules,
       objective: config.objective,
       campaignRounds: config.campaignRounds,
+      maxPip: config.maxPip,
     },
     {
       shuffledCoordinates: shuffled,
@@ -90,9 +92,11 @@ export function buildAiRosterFromConfigs(
   objective: GameObjective,
   seed: number,
   playerCount = aiCaptains.length + 1,
-  omegaNet?: OmegaModelWeights
+  omegaNet?: OmegaModelWeights,
+  maxPip = 12
 ): ReadonlyMap<string, WarpAiPlayer> {
-  if (rosterNeedsOmegaNet(aiCaptains) && !omegaNet) {
+  const allowOmega = neuralAiSupported(maxPip);
+  if (allowOmega && rosterNeedsOmegaNet(aiCaptains) && !omegaNet) {
     throw new Error(
       'Class II (Ω) officers require loaded model weights — call buildAiRosterFromConfigsAsync.'
     );
@@ -102,8 +106,8 @@ export function buildAiRosterFromConfigs(
   for (const [index, ai] of aiCaptains.entries()) {
     const rng = createSeededRng(seed + (index + 1) * 997);
     const skill = getWarpSkillProfile(ai.skill, objective, playerCount);
-    const useOmega = usesOmegaNet(ai);
-    const useSearch = usesOmegaSearch(ai);
+    const useOmega = allowOmega && usesOmegaNet(ai);
+    const useSearch = useOmega && usesOmegaSearch(ai);
 
     roster.set(
       ai.id,
@@ -112,7 +116,13 @@ export function buildAiRosterFromConfigs(
         : useOmega
           ? createOmegaPlayer({ net: omegaNet!, rng })
           : createWarpAiPlayer({
-              skill,
+              skill: useOmega
+                ? skill
+                : getWarpSkillProfile(
+                    ai.skill === 'commander' ? 'ensign' : ai.skill,
+                    objective,
+                    playerCount
+                  ),
               objective,
               rng,
             })
@@ -125,17 +135,20 @@ export async function buildAiRosterFromConfigsAsync(
   aiCaptains: readonly AiCaptainConfig[],
   objective: GameObjective,
   seed: number,
-  playerCount = aiCaptains.length + 1
+  playerCount = aiCaptains.length + 1,
+  maxPip = 12
 ): Promise<ReadonlyMap<string, WarpAiPlayer>> {
-  const omegaNet = rosterNeedsOmegaNet(aiCaptains)
-    ? await preloadOmegaWeights(objective)
-    : undefined;
+  const omegaNet =
+    neuralAiSupported(maxPip) && rosterNeedsOmegaNet(aiCaptains)
+      ? await preloadOmegaWeights(objective)
+      : undefined;
   return buildAiRosterFromConfigs(
     aiCaptains,
     objective,
     seed,
     playerCount,
-    omegaNet
+    omegaNet,
+    maxPip
   );
 }
 
@@ -149,7 +162,8 @@ export function buildAiRoster(
     config.objective,
     seed,
     config.playerCount,
-    omegaNet
+    omegaNet,
+    config.maxPip
   );
 }
 
@@ -161,6 +175,7 @@ export async function buildAiRosterAsync(
     config.aiCaptains,
     config.objective,
     seed,
-    config.playerCount
+    config.playerCount,
+    config.maxPip
   );
 }

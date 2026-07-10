@@ -1,4 +1,4 @@
-import { SKILL_PRESETS, type SkillProfile } from 'doubletwelve';
+import { SKILL_PRESETS, type SkillProfile } from 'double-eighteen';
 import type { GameObjective } from '../types/objective.js';
 import type { LookaheadOptions } from './lookahead-options.js';
 import { resolveDeepThinkAdvisorLookahead } from './fleet-admiral.js';
@@ -7,7 +7,7 @@ import { WARP_HEURISTIC_IDS } from './heuristics.js';
 
 const H = WARP_HEURISTIC_IDS;
 
-/** Warp skill profile — DoubleTwelve {@link SkillProfile} plus optional go-out tuning. */
+/** Warp skill profile — DoubleEighteen {@link SkillProfile} plus optional go-out tuning. */
 export type WarpSkillProfile = SkillProfile & {
   goOutTuning?: Partial<GoOutTuning>;
 };

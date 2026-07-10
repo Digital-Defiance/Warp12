@@ -47,7 +47,7 @@ export function formatShareRoundMessage(meta: ShareRoundMetadata): string {
   if (meta.statsLines?.length) {
     lines.push(...meta.statsLines);
   }
-  lines.push('https://warp12.app');
+  lines.push('https://warp.iwdf.org');
   return lines.join('\n');
 }
 

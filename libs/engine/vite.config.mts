@@ -28,7 +28,7 @@ export default defineConfig(() => ({
       fileName: (format, entryName) => `${entryName}.js`,
     },
     rolldownOptions: {
-      external: ['doubletwelve'],
+      external: ['double-eighteen'],
     },
   },
   test: {

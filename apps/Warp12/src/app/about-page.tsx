@@ -218,6 +218,8 @@ export function AboutPage() {
             <strong>points</strong> and <strong>go-out</strong> — because they are
             strategically different games on the same table. Each track splits by the
             tactical class of AI you face (Class IV / III / II reference officers).
+            Only <strong>Warp 12</strong> (double-twelve) is rated; Warp 9 / 15 / 18
+            are exhibition sectors and never move TEI.
           </p>
           <p className={styles.p}>
             TEI is not just for captains. It is how <em>we</em> grow the fleet:

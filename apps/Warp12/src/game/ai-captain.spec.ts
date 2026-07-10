@@ -10,8 +10,8 @@ import {
 
 describe('ai captain helpers', () => {
   it('uses stable synthetic ids', () => {
-    expect(toAiCaptainId('riker')).toBe('ai:riker');
-    expect(isAiCaptainId('ai:riker')).toBe(true);
+    expect(toAiCaptainId('lovell')).toBe('ai:lovell');
+    expect(isAiCaptainId('ai:lovell')).toBe(true);
     expect(isAiCaptainId('firebase-uid')).toBe(false);
   });
 
@@ -38,10 +38,10 @@ describe('ai captain helpers', () => {
     expect(
       pickNextAiOfficer([
         { id: 'host' },
-        { id: 'ai:riker' },
-        { id: 'ai:troi' },
+        { id: 'ai:chen' },
+        { id: 'ai:nguyen' },
       ])?.id
-    ).toBe('worf');
+    ).toBe('smith');
   });
 
   it('derives a deterministic seed from the sector code', () => {
