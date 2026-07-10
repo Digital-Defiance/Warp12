@@ -1,6 +1,6 @@
 [package]
 name = "warp12"
-version = "0.4.26"
+version = "0.5.31"
 description = "Warp 12 — Federation-style Mexican Train dominoes"
 authors = ["Digital Defiance"]
 license = "MIT"

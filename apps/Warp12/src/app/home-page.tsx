@@ -19,7 +19,17 @@ export const HomePage: FC<HomePageProps> = ({ factor }) => {
   const warpFactorSelection = (
     <section className={styles.warpFactorSelection}>
       <h2 className={styles.warpFactorSelectionHeading}>Choose your Warp Factor</h2>
-      <img src="/angle-right-vellum-solid-full.svg" alt="Angle Right" className={styles.warpFactorSelectionIcon} width={16} height={16} /><Link to="/factor" className={styles.warpFactorSelectionLink}>{warpFactor ? 'Return' : 'Proceed'} to Warp Factor Selection</Link>
+      <Link to="/factor" className={styles.warpFactorSelectionLink}>
+        <img
+          src="/angle-right-vellum-solid-full.svg"
+          alt=""
+          aria-hidden="true"
+          className={styles.warpFactorSelectionIcon}
+          width={16}
+          height={16}
+        />
+        {warpFactor ? 'Return' : 'Proceed'} to Warp Factor Selection
+      </Link>
     </section>
   );
   
@@ -77,9 +87,9 @@ export const HomePage: FC<HomePageProps> = ({ factor }) => {
       <div className={styles.foldBody}>
         <p className={styles.heroEyebrow}>{doubleMap[warpFactor as keyof typeof doubleMap]} dominoes · fleet tactics</p>
         <p className={styles.heroLead}>
-          <strong>Warp</strong> is competitive, <span className={styles.tooltip} data-tooltip="Mexican Train in Federation dress">multi-trail interstellar dominoes</span> with
+          <strong>Warp</strong> is competitive, <span className={styles.tooltip} data-tooltip="Multi-trail Interstellar Dominoes">multi-trail interstellar dominoes</span> with
           fleet decorum: <em><span className={styles.tooltip} data-tooltip="Tiles">navigational coordinates</span></em>, <em><span className={styles.tooltip} data-tooltip="Hub/Engine">Spacedock</span></em>, and{' '}
-          <em><span className={styles.tooltip} data-tooltip="Trains">warp trails</span></em> into the <span className={styles.tooltip} data-tooltip="Mexican Train/Community Train">Neutral Zone</span>.
+          <em><span className={styles.tooltip} data-tooltip="Trains">warp trails</span></em> into the <span className={styles.tooltip} data-tooltip="Community / public train">Neutral Zone</span>.
         </p>
         <p className={styles.heroBody}>
           Doubles trigger red alert. Optional modules add subspace fractures,
@@ -103,9 +113,9 @@ export const HomePage: FC<HomePageProps> = ({ factor }) => {
         Chart the sector. Empty your hand. Win the campaign.
       </h1>
       <p className={styles.heroLead}>
-          <strong>Warp</strong> is competitive, <span className={styles.tooltip} data-tooltip="Mexican Train in Federation dress">multi-trail interstellar dominoes</span> with
+          <strong>Warp</strong> is competitive, <span className={styles.tooltip} data-tooltip="Multi-trail Interstellar Dominoes">multi-trail interstellar dominoes</span> with
           fleet decorum: <em><span className={styles.tooltip} data-tooltip="Tiles">navigational coordinates</span></em>, <em><span className={styles.tooltip} data-tooltip="Hub/Engine">Spacedock</span></em>, and{' '}
-          <em><span className={styles.tooltip} data-tooltip="Trains">warp trails</span></em> into the <span className={styles.tooltip} data-tooltip="Mexican Train/Community Train">Neutral Zone</span>.      </p>
+          <em><span className={styles.tooltip} data-tooltip="Trains">warp trails</span></em> into the <span className={styles.tooltip} data-tooltip="Community / public train">Neutral Zone</span>.      </p>
       <p className={styles.heroLead}>
         Warp is what the night shift plays on the bridge.
       </p>

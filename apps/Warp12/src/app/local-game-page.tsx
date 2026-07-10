@@ -317,6 +317,7 @@ export function LocalGamePage() {
           <CampaignRoundsField
             value={campaignRounds}
             onChange={setCampaignRounds}
+            maxPip={maxPip}
           />
         </fieldset>
       )}

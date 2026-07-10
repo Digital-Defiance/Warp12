@@ -6,7 +6,7 @@ import {
 } from './house-rules.js';
 
 describe('resolveHouseRules', () => {
-  it('returns standard Mexican Train defaults when config is empty', () => {
+  it('returns standard multi-trail defaults when config is empty', () => {
     expect(resolveHouseRules()).toEqual(DEFAULT_HOUSE_RULES);
   });
 

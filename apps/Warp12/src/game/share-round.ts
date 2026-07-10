@@ -279,7 +279,7 @@ export async function drawWarp12Logo(
 
   ctx.font = '100 42px "Nova Light", Federation, sans-serif';
   ctx.fillStyle = '#e2e8f0';
-  ctx.fillText('Mexican Train Dominoes', 345.15, 97.29);
+  ctx.fillText('Interstellar Dominoes', 345.15, 97.29);
 
   ctx.restore();
 }

@@ -10,7 +10,7 @@ BRIDGE_DIR="${ROOT}/apps/Warp12"
 TAURI_DIR="${BRIDGE_DIR}/src-tauri"
 SRC="${TAURI_DIR}/icons/android"
 DEST="${TAURI_DIR}/gen/android/app/src/main/res"
-SOURCE_ICON="${BRIDGE_DIR}/public/W12-1-1.png"
+SOURCE_ICON="${BRIDGE_DIR}/public/W-1-1.png"
 TAURI_BIN="${ROOT}/node_modules/.bin/tauri"
 
 die() {

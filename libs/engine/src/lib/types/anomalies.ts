@@ -96,12 +96,12 @@ export function isRedAlertBlocking(
 }
 
 /** Active Red Alert that still requires a cover tile (excludes dead doubles). */
-export function isTrueRedAlert(round: RoundState): boolean {
+export function isTrueRedAlert(round: RoundState, maxPip?: number): boolean {
   const redAlert = round.table.redAlert;
   if (!redAlert?.active) {
     return false;
   }
-  return !isRedAlertDoubleDead(round);
+  return !isRedAlertDoubleDead(round, maxPip);
 }
 
 /**

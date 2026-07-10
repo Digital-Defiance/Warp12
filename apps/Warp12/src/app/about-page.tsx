@@ -18,8 +18,8 @@ export function AboutPage() {
       <div className={styles.body}>
         <section className={styles.section}>
           <p className={styles.lead}>
-            <strong>Warp 12</strong> is a federation–themed double-twelve domino game built
-            on standard Mexican Train bones: Spacedock, warp trails, the Neutral Zone,
+            <strong>Warp 12</strong> is federation–themed multi-trail{' '}
+            <em>Interstellar Dominoes</em>: Spacedock, warp trails, the Neutral Zone,
             distress beacons, doubles and red alert, and optional house rules. Under the
             chrome is a deterministic rules engine, calibrated AI officers, and a
             tactical coach — all running the same code path.
@@ -35,8 +35,8 @@ export function AboutPage() {
           <h2 className={styles.sectionTitle}>What we claim</h2>
           <div className={styles.calloutClaim}>
             <strong>
-              Warp 12 is the best Mexican Train engine in the galaxy that is currently
-              known.
+              Warp 12 is the best Interstellar Dominoes engine in the galaxy that is
+              currently known.
             </strong>
           </div>
           <p className={styles.p}>
@@ -51,9 +51,9 @@ export function AboutPage() {
           <p className={styles.p}>
             Most store apps are well loved but closed boxes — three difficulty sliders,
             no public rules engine, no reproducible AI validation. We believe Warp 12
-            is the most complete <em>documented</em> Mexican Train engine available
-            today: points and go-out objectives, house rules, optional modules, online
-            sync, and TEI-rated play against fixed reference officers.
+            is the most complete <em>documented</em> multi-trail Interstellar Dominoes
+            engine available today: points and go-out objectives, house rules, optional
+            modules, online sync, and TEI-rated play against fixed reference officers.
           </p>
           <div className={styles.links}>
             <Link to="/paper">Research &amp; calibration log</Link>
@@ -90,7 +90,7 @@ export function AboutPage() {
               differ.
             </li>
             <li>
-              <strong>Not rules-perfect.</strong> We follow published Mexican Train
+              <strong>Not rules-perfect.</strong> We follow published multi-trail
               practice in <Link to="/rules">RULES.md</Link> and test heavily, but
               edge cases and house variants abound. Report bugs; do not assume infallibility.
             </li>
@@ -280,7 +280,7 @@ export function AboutPage() {
             </li>
             <li>
               <strong>Share the stack.</strong> Open packages so other builders can
-              ship Mexican Train experiences on a engine you can read and test.
+              ship Interstellar Dominoes experiences on an engine you can read and test.
             </li>
             <li>
               <strong>Write it up.</strong> A short paper on dual-objective

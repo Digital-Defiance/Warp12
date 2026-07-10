@@ -317,6 +317,7 @@ export function mergeHandsIntoGame(
         drewThisTurn: doc.round.drewThisTurn ?? false,
         shieldChangedThisTurn: doc.round.shieldChangedThisTurn ?? false,
         returnedToWarp: doc.round.returnedToWarp === true,
+        maxPip: doc.maxPip ?? 12,
         table: tableDoc
           ? {
               spacedock: tableDoc.spacedock,

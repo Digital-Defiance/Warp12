@@ -27,7 +27,7 @@ Store listings commonly advertise “3 difficulty levels” or “rule variation
 
 ## Warp 12 claim (narrow)
 
-> **Warp 12 is the best Mexican Train engine in the galaxy that is currently known.**
+> **Warp 12 is the best Interstellar Dominoes engine in the galaxy that is currently known.**
 
 Interpretation:
 
