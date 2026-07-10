@@ -100,6 +100,17 @@ export const reportPracticeAiMatch = onCall(
       logger.warn('reportPracticeAiMatch rejected', { uid, reason: 'missing_config' });
       throw new HttpsError('invalid-argument', 'config required.');
     }
+    if ((data.config.maxPip ?? 12) !== 12) {
+      logger.warn('reportPracticeAiMatch rejected', {
+        uid,
+        reason: 'exhibition_set',
+        maxPip: data.config.maxPip,
+      });
+      throw new HttpsError(
+        'failed-precondition',
+        'Warp 9 / 15 / 18 are exhibition sets — TEI is only tracked on Warp 12.'
+      );
+    }
     if (!Array.isArray(data.humanActions)) {
       logger.warn('reportPracticeAiMatch rejected', {
         uid,

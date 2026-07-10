@@ -6,13 +6,13 @@ Canonical instructions for AI assistants (Kiro, Cursor, Copilot, Codex, etc.) wo
 
 ## 1. Product
 
-Warp 12 is a multiplayer, federation-themed variant of standard **double-twelve Mexican Train dominoes**. It ships as a web app (warp12.app) and as a Tauri desktop/mobile app (macOS, iOS, Android). Rules are standard tournament Mexican Train reskinned with federation terminology, plus opt-in modules.
+Warp is a multiplayer, federation-themed variant of Mexican Train dominoes across **Warp factors 9 / 12 / 15 / 18** (double-N sets). It ships as a web app (warp.iwdf.org) and as a Tauri desktop/mobile app (macOS, iOS, Android). Rules are standard tournament Mexican Train reskinned with federation terminology, plus opt-in modules.
 
-- Games are **sectors/missions**; players are **Captains**; the host runs a **fleet** (3–8 captains).
+- Games are **sectors/missions**; players are **Captains**; the host runs a **fleet** (size capped by Warp factor: 4 / 8 / 12 / 18).
 - Two objectives, chosen before launch:
-  - **Points campaign** (default): 13 rounds, Spacedock double descends 12-12 → 0-0, lowest cumulative pip total wins.
+  - **Points campaign** (default): Spacedock double descends maxPip→0 (10 / 13 / 16 / 19 rounds), lowest cumulative pip total wins.
   - **Go out**: first captain to empty their hand wins immediately.
-- **TEI** = the Elo-like leaderboard rating. Independent **Go-out** and **Points** tracks, each split by AI **Tactical Class** (IV / III / II). Solo unassisted matches and online human-pool sectors are rated. Using the tactical advisor disqualifies a match from TEI. Online sectors are auto-rated (context B: humans anchored against Class II–IV AI) when all human seats are verified, no Class I\* is aboard, the host opts in (rated=true), and no captain used the advisor. The host may toggle **Rated sector** before launch; casual sectors never update TEI.
+- **TEI** = the Elo-like leaderboard rating — **Warp 12 only**. Warp 9 / 15 / 18 are **exhibition** (unrated). Independent **Go-out** and **Points** tracks, each split by AI **Tactical Class** (IV / III / II). Solo unassisted matches and online human-pool sectors are rated on double-12. Using the tactical advisor disqualifies a match from TEI. Online sectors are auto-rated (context B: humans anchored against Class II–IV AI) when all human seats are verified, no Class I\* is aboard, the host opts in (rated=true), maxPip is 12, and no captain used the advisor. The host may toggle **Rated sector** before launch on Warp 12; casual / exhibition sectors never update TEI.
 - **Subspace messaging** = in-game comms. Quick-phrase hails (five category groups) are always available. Free-form text + DMs are allowed in the lobby, casual active play, and post-game — but restricted to hails only during live rated play to prevent collusion. Per-user mute and rate-limiting are client-enforced; comms rules are also enforced server-side via Firestore security rules.
 
 Authoritative rules: `RULES.md` (Sections I–V = standard Mexican Train, VI = modules + Official Warp 12 preset, VII = AI/advisor, VIII = TEI/leaderboard, IX = Subspace messaging). Full architecture/setup: `README.md`.
@@ -32,7 +32,7 @@ Authoritative rules: `RULES.md` (Sections I–V = standard Mexican Train, VI = m
 - **Backend**: Firebase 12 (anonymous Auth, Firestore, Functions, Hosting), project `warp-12`. Browser AI inference via onnxruntime-web (WebNN → wasm fallback).
 
 ### Module resolution (important)
-There are **no tsconfig `paths`**. Resolution uses package `exports` with the custom condition `@warp12/source` pointing to each lib's `src/index.ts` (source-first). The app `vite.config.mts` adds `resolve.alias` for `doubletwelve`, `warp12-engine`, `warp12-react`, `warp12-theme` → their source.
+There are **no tsconfig `paths`**. Resolution uses package `exports` with the custom condition `@warp12/source` pointing to each lib's `src/index.ts` (source-first). The app `vite.config.mts` adds `resolve.alias` for `double-eighteen`, `warp12-engine`, `warp12-react`, `warp12-theme` → their source.
 
 ---
 
@@ -41,8 +41,8 @@ There are **no tsconfig `paths`**. Resolution uses package `exports` with the cu
 Scripts call Vite/Vitest **directly** and avoid `nx run` orchestration (which can hang). Prefer these over `yarn nx run …`.
 
 **Build** (order matters — deps first):
-- `yarn build:all` → doubletwelve → engine → react → theme → bridge → **functions** (`tsc` + staged vendor for Cloud Functions)
-- Individual: `build:doubletwelve | build:engine | build:react | build:theme | build:bridge | build:leaderboard`
+- `yarn build:all` → double-eighteen → engine → react → theme → bridge → **functions** (`tsc` + staged vendor for Cloud Functions)
+- Individual: `build:double-eighteen | build:engine | build:react | build:theme | build:bridge | build:leaderboard`
 - `build:all:hosting` adds the leaderboard SPA
 
 **Test:**
@@ -80,7 +80,7 @@ libs/
   theme/             warp12-theme  — federation domino skins (published)
   tei-core/          @warp12/tei-core — TEI/Elo core (private, src-only)
 vendor/
-  DoubleTwelve/      git submodule, own Nx workspace — domino rendering (opaque dependency)
+  double-eighteen/      git submodule, own Nx workspace — domino rendering (opaque dependency)
 functions/           @warp12/functions — Firebase Cloud Functions
 Warp12-leaderboard/  separate SPA (own build) → iwdf.org
 tools/nn/            Class I* neural training pipeline (Python/PyTorch → ONNX)
@@ -98,7 +98,7 @@ docs/                Jekyll docs site (calibration log, TEI paper)
 `libs/<name>/src/index.ts` barrel → `src/lib/**`. Each lib has `tsconfig.json` + `tsconfig.lib.json` + `tsconfig.spec.json` + `vite.config.mts`. Files use **kebab-case**.
 
 ### Vendor boundary
-`vendor/DoubleTwelve` is a submodule with its own Nx workspace. Treat it as opaque: parent only runs `build:doubletwelve`. Do not run parent `nx` against its internal projects; develop it standalone (`cd vendor/DoubleTwelve && yarn start`).
+`vendor/double-eighteen` is a submodule with its own Nx workspace. Treat it as opaque: parent only runs `build:double-eighteen`. Do not run parent `nx` against its internal projects; develop it standalone (`cd vendor/double-eighteen && yarn start`).
 
 ---
 

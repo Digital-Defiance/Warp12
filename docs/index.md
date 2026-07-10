@@ -14,7 +14,7 @@ Welcome to the Warp 12 documentation hub. This site covers the **Navigational Op
 
 {: .fs-6 .fw-300 }
 
-**Play now:** [warp12.app](https://warp12.app) · **Leaderboard:** [iwdf.org](https://iwdf.org)
+**Play now:** [warp.iwdf.org](https://warp.iwdf.org) · **Leaderboard:** [iwdf.org](https://iwdf.org)
 
 {: .highlight }
 For hands-on development, start with [System Architecture](architecture) and the [repository README](https://github.com/Digital-Defiance/Warp12/blob/main/README.md).
@@ -27,7 +27,7 @@ For hands-on development, start with [System Architecture](architecture) and the
 | Document | Description |
 | -------- | ----------- |
 | [Navigational Operations Manual](rules) | Authoritative rules — Spacedock, Warp Trails, Neutral Zone, Distress Beacon, modules, AI officers, and TEI |
-| [System Architecture](architecture) | Monorepo layout: `warp12-engine`, React adapters, Bridge client, DoubleTwelve rendering, Firebase multiplayer |
+| [System Architecture](architecture) | Monorepo layout: `warp12-engine`, React adapters, Bridge client, DoubleEighteen rendering, Firebase multiplayer |
 
 ### TEI & Rating
 
@@ -55,7 +55,7 @@ For hands-on development, start with [System Architecture](architecture) and the
 
 | Resource | URL |
 | -------- | --- |
-| Bridge (play) | [warp12.app](https://warp12.app) |
+| Bridge (play) | [warp.iwdf.org](https://warp.iwdf.org) |
 | Leaderboard | [iwdf.org](https://iwdf.org) |
 | `warp12-engine` on npm | [npmjs.com/package/warp12-engine](https://www.npmjs.com/package/warp12-engine) |
 | Source repository | [github.com/Digital-Defiance/Warp12](https://github.com/Digital-Defiance/Warp12) |

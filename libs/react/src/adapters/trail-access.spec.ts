@@ -11,7 +11,7 @@ import {
   shouldIlluminateBridgeYellowAlert,
   openTrailCaptainNames,
 } from './trail-access';
-import { NEUTRAL_ZONE_SLOT } from './game-to-trains';
+import { neutralZoneSlot } from './game-to-trains';
 
 const names = {
   alpha: 'Alpha',
@@ -55,7 +55,7 @@ describe('buildTrailSpokeStatuses', () => {
       8
     );
 
-    expect(statuses.find((spoke) => spoke.slot === NEUTRAL_ZONE_SLOT)).toMatchObject({
+    expect(statuses.find((spoke) => spoke.slot === neutralZoneSlot(8))).toMatchObject({
       state: 'neutral',
       label: 'Neutral',
     });
@@ -97,6 +97,41 @@ describe('buildTrailSpokeStatuses', () => {
       'open'
     );
     expect(openTrailCaptainNames(statuses)).toEqual(['Alpha']);
+  });
+
+  it('places Neutral Zone on the last arm for 12-captain hubs', () => {
+    const turnOrder = Array.from({ length: 12 }, (_, index) => `c${index}`);
+    const captainNames = Object.fromEntries(
+      turnOrder.map((id) => [id, id.toUpperCase()])
+    );
+    const statuses = buildTrailSpokeStatuses(
+      round({
+        turnOrder,
+        table: {
+          warpTrails: Object.fromEntries(
+            turnOrder.map((id) => [
+              id,
+              {
+                playerId: id,
+                tiles: [],
+                distressBeacon: { active: false },
+              },
+            ])
+          ),
+          neutralZone: { tiles: [] },
+          subspaceFracture: null,
+          redAlert: null,
+        },
+      }),
+      captainNames,
+      13
+    );
+
+    expect(statuses.find((spoke) => spoke.slot === 12)).toMatchObject({
+      state: 'neutral',
+      label: 'Neutral',
+    });
+    expect(statuses.filter((spoke) => spoke.captainId).length).toBe(12);
   });
 
   it('prefers red alert over open beacon on the same trail', () => {

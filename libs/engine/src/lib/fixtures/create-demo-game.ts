@@ -7,9 +7,9 @@ import { startGame } from '../setup/create-game.js';
 
 export const DEMO_CAPTAINS = [
   { id: 'you', displayName: 'You' },
-  { id: 'riker', displayName: 'Riker' },
-  { id: 'troi', displayName: 'Troi' },
-  { id: 'worf', displayName: 'Worf' },
+  { id: 'lovell', displayName: 'Lovell' },
+  { id: 'earhart', displayName: 'Earhart' },
+  { id: 'yeager', displayName: 'Yeager' },
 ] as const;
 
 function seededRandom(seed: number): () => number {

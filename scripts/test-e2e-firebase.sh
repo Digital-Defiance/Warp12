@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 echo "Building bridge for Firebase e2e (Vite mode e2e)…"
-yarn build:doubletwelve
+yarn build:double-eighteen
 yarn build:engine
 yarn build:react
 yarn build:theme

@@ -3,7 +3,7 @@ import {
   createPolicyPlayer,
   type GenericHeuristic,
   type Rng,
-} from 'doubletwelve';
+} from 'double-eighteen';
 import type { GameAction } from '../types/actions.js';
 import type { GameState } from '../types/game-state.js';
 import type { GameObjective } from '../types/objective.js';
@@ -86,7 +86,7 @@ export interface WarpAiPlayer {
 /**
  * An offline, heuristic Warp 12 captain. It runs entirely on Warp12-lib's own
  * engine (so all of RULES.md — Distress Beacons, Red Alerts, Subspace Fractures,
- * the Neutral Zone, treaties, modules — is honored) while reusing DoubleTwelve's
+ * the Neutral Zone, treaties, modules — is honored) while reusing DoubleEighteen's
  * model-agnostic decision policy for skill, scoring, and selection.
  */
 export function createWarpAiPlayer(

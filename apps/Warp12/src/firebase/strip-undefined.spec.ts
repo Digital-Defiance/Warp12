@@ -6,14 +6,14 @@ describe('stripUndefined', () => {
   it('removes undefined fields from nested objects', () => {
     expect(
       stripUndefined({
-        id: 'ai:riker',
+        id: 'ai:lovell',
         isAi: true,
         skill: undefined,
         useLookahead: undefined,
         nested: { keep: 1, drop: undefined },
       })
     ).toEqual({
-      id: 'ai:riker',
+      id: 'ai:lovell',
       isAi: true,
       nested: { keep: 1 },
     });

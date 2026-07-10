@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import {
-  DEFAULT_CAMPAIGN_ROUNDS,
   DEFAULT_GAME_OBJECTIVE,
   DEFAULT_SUBSPACE_FRACTURE_SCOPE,
   aiSkillToTacticalClass,
+  defaultCampaignRounds,
   formatAiSkillRatedLabel,
   formatAiSkillUnratedLabel,
   formatTacticalClass,
@@ -33,7 +33,6 @@ import {
 } from '../game/create-local-game.js';
 import { preloadOmegaWeights } from '../ai/load-omega-weights.js';
 import {
-  WARP12_OFFICIAL_CAMPAIGN_ROUNDS,
   WARP12_OFFICIAL_HOUSE_RULES,
   WARP12_OFFICIAL_MODULES,
   WARP12_OFFICIAL_OBJECTIVE,
@@ -41,8 +40,9 @@ import {
 import {
   buildAiCaptains,
   clampLocalPlayerCount,
-  LOCAL_MAX_PLAYERS,
-  LOCAL_MIN_PLAYERS,
+  maxPlayersForFactor,
+  minPlayersForFactor,
+  neuralAiSupported,
   soloHumanCaptain,
   type AiCaptainConfig,
   type LocalGameConfig,
@@ -53,6 +53,7 @@ import { opponentTeiForObjective } from '../firebase/stats-elo.js';
 import { WARP12_OFFICIAL_RULES_PROFILE_ID } from '../firebase/rules-profile.js';
 import type { RatedObjective } from '../firebase/stats-schema.js';
 import { usePlayerStats } from '../firebase/use-player-stats.js';
+import { requireWarpFactor } from './warp-factor.js';
 
 type SetupPhase = 'configure' | 'playing';
 
@@ -93,11 +94,18 @@ function skillOptionLabel(
 }
 
 export function LocalGamePage() {
+  const maxPip = requireWarpFactor();
+  const fleetMin = minPlayersForFactor(maxPip);
+  const fleetMax = maxPlayersForFactor(maxPip);
   const [phase, setPhase] = useState<SetupPhase>('configure');
-  const [humanName, setHumanName] = useState('Picard');
-  const [playerCount, setPlayerCount] = useState(4);
+  const [humanName, setHumanName] = useState('Armstrong');
+  const [playerCount, setPlayerCount] = useState(() =>
+    clampLocalPlayerCount(4, maxPip)
+  );
   const [objective, setObjective] = useState<GameObjective>(DEFAULT_GAME_OBJECTIVE);
-  const [campaignRounds, setCampaignRounds] = useState(DEFAULT_CAMPAIGN_ROUNDS);
+  const [campaignRounds, setCampaignRounds] = useState(() =>
+    defaultCampaignRounds(maxPip)
+  );
   const [salamander, setSalamander] = useState(
     WARP12_OFFICIAL_MODULES.salamanderPenalty ?? true
   );
@@ -123,14 +131,15 @@ export function LocalGamePage() {
   const [launching, setLaunching] = useState(false);
 
   useEffect(() => {
+    if (!neuralAiSupported(maxPip)) return;
     void preloadOmegaWeights(objective).catch(() => {
       /* Preload is best-effort; launch fails hard if weights are missing. */
     });
-  }, [objective]);
+  }, [objective, maxPip]);
 
   const applyOfficialWarp12Rules = () => {
     setObjective(WARP12_OFFICIAL_OBJECTIVE);
-    setCampaignRounds(WARP12_OFFICIAL_CAMPAIGN_ROUNDS);
+    setCampaignRounds(defaultCampaignRounds(maxPip));
     setSalamander(WARP12_OFFICIAL_MODULES.salamanderPenalty ?? true);
     setContinuum(WARP12_OFFICIAL_MODULES.continuum ?? true);
     setSubspaceFracture(WARP12_OFFICIAL_MODULES.subspaceFracture ?? false);
@@ -147,8 +156,9 @@ export function LocalGamePage() {
   );
 
   const aiCaptains = useMemo(
-    () => buildAiCaptains(clampLocalPlayerCount(playerCount) - 1),
-    [playerCount]
+    () =>
+      buildAiCaptains(clampLocalPlayerCount(playerCount, maxPip) - 1, maxPip),
+    [playerCount, maxPip]
   );
   const aiCount = aiCaptains.length;
   const rulesProfileId = WARP12_OFFICIAL_RULES_PROFILE_ID;
@@ -161,9 +171,11 @@ export function LocalGamePage() {
     [configuredAiCaptains]
   );
   const rated = ratedObjective(objective);
+  const exhibitionSet = maxPip !== 12;
+  const teiTrack = rated && !exhibitionSet ? rated : null;
   const playerTei =
-    rated && playerStats.ready
-      ? playerStats.displayTei(matchSkill, rated)
+    teiTrack && playerStats.ready
+      ? playerStats.displayTei(matchSkill, teiTrack)
       : null;
 
   const game = useMemo(() => {
@@ -193,7 +205,7 @@ export function LocalGamePage() {
   };
 
   const launch = () => {
-    const count = clampLocalPlayerCount(playerCount);
+    const count = clampLocalPlayerCount(playerCount, maxPip);
     const human = soloHumanCaptain(humanName);
     const next: LocalGameConfig = {
       humanId: human.id,
@@ -210,11 +222,12 @@ export function LocalGamePage() {
       },
       houseRules,
       aiCaptains: applyAiTierOverrides(
-        buildAiCaptains(count - 1),
+        buildAiCaptains(count - 1, maxPip),
         aiTiers,
         extendedThinkingByAi
       ),
       rulesProfileId,
+      maxPip,
     };
     void startSession(next, drawMatchSeed());
   };
@@ -252,6 +265,12 @@ export function LocalGamePage() {
         You plus {aiCount} AI officer{aiCount === 1 ? '' : 's'}. Choose fleet
         size and how victory is decided.
       </p>
+      {exhibitionSet ? (
+        <p className={styles.notice} role="status">
+          Exhibition set — Warp {maxPip} does not update TEI. Switch to Warp 12
+          for rated ladders.
+        </p>
+      ) : null}
 
       <label className={styles.field}>
         <span>Your call sign</span>
@@ -266,16 +285,18 @@ export function LocalGamePage() {
 
       <label className={styles.field}>
         <span>
-          Fleet size ({LOCAL_MIN_PLAYERS}–{LOCAL_MAX_PLAYERS} captains)
+          Fleet size ({fleetMin}–{fleetMax} captains) · Warp {maxPip}
         </span>
         <select
           aria-label="Fleet size"
           value={playerCount}
-          onChange={(e) => setPlayerCount(Number(e.target.value))}
+          onChange={(e) =>
+            setPlayerCount(clampLocalPlayerCount(Number(e.target.value), maxPip))
+          }
         >
           {Array.from(
-            { length: LOCAL_MAX_PLAYERS - LOCAL_MIN_PLAYERS + 1 },
-            (_, index) => LOCAL_MIN_PLAYERS + index
+            { length: fleetMax - fleetMin + 1 },
+            (_, index) => fleetMin + index
           ).map((count) => (
             <option key={count} value={count}>
               {count} captains — you + {count - 1} AI
@@ -333,7 +354,7 @@ export function LocalGamePage() {
             setHouseRules((current) => ({ ...current, doubleZeroScore }))
           }
         />
-        {clampLocalPlayerCount(playerCount) >= 7 && (
+        {clampLocalPlayerCount(playerCount, maxPip) >= 7 && (
           <LargeFleetHandSizeField
             value={houseRules.largeFleetHandSize}
             onChange={(largeFleetHandSize) =>
@@ -355,16 +376,16 @@ export function LocalGamePage() {
         />
       </fieldset>
 
-      {rated &&
+      {teiTrack &&
         playerStats.ready &&
-        playerStats.needsAcademyPlacementForObjective(rated) && (
+        playerStats.needsAcademyPlacementForObjective(teiTrack) && (
         <AcademyPlacementFieldset
-          objective={rated}
+          objective={teiTrack}
           saving={academySaving}
           onSave={async (skill) => {
             setAcademySaving(true);
             try {
-              await playerStats.saveAcademyPlacement(rated, skill);
+              await playerStats.saveAcademyPlacement(teiTrack, skill);
             } finally {
               setAcademySaving(false);
             }
@@ -372,11 +393,11 @@ export function LocalGamePage() {
         />
       )}
 
-      {rated &&
+      {teiTrack &&
         playerStats.ready &&
-        !playerStats.needsAcademyPlacementForObjective(rated) && (
+        !playerStats.needsAcademyPlacementForObjective(teiTrack) && (
         <fieldset className={styles.fieldset}>
-          <legend>Solo TEI ({TEI_OBJECTIVE_LABEL[rated]})</legend>
+          <legend>Solo TEI ({TEI_OBJECTIVE_LABEL[teiTrack]})</legend>
           {playerTei !== null ? (
             <p className={styles.hint}>
               Your TEI vs {formatTacticalClass(aiSkillToTacticalClass(matchSkill))}{' '}
@@ -384,7 +405,7 @@ export function LocalGamePage() {
               {' · '}
               reference{' '}
               {formatTei(
-                opponentTeiForObjective(rated, matchSkill, rulesProfileId),
+                opponentTeiForObjective(teiTrack, matchSkill, rulesProfileId),
                 true
               )}
             </p>
@@ -427,16 +448,16 @@ export function LocalGamePage() {
                 }
               }}
             >
-              {rated ? (
+              {teiTrack ? (
                 <>
                   <option value="ensign">
-                    {skillOptionLabel('ensign', rated, rulesProfileId)}
+                    {skillOptionLabel('ensign', teiTrack, rulesProfileId)}
                   </option>
                   <option value="lieutenant">
-                    {skillOptionLabel('lieutenant', rated, rulesProfileId)}
+                    {skillOptionLabel('lieutenant', teiTrack, rulesProfileId)}
                   </option>
                   <option value="commander">
-                    {skillOptionLabel('commander', rated, rulesProfileId)}
+                    {skillOptionLabel('commander', teiTrack, rulesProfileId)}
                   </option>
                 </>
               ) : (

@@ -2,20 +2,26 @@ import type {
   GameModuleConfig,
   GameObjective,
   HouseRulesConfig,
+  WarpFactor,
   WarpSkillLevel,
+} from 'warp12-engine';
+import {
+  defaultCampaignRounds,
+  normalizeWarpFactor,
+  warpSetProfile,
 } from 'warp12-engine';
 
 import { WARP12_OFFICIAL_RULES_PROFILE_ID } from '../firebase/rules-profile.js';
 
 import {
-  WARP12_OFFICIAL_CAMPAIGN_ROUNDS,
   WARP12_OFFICIAL_HOUSE_RULES,
   WARP12_OFFICIAL_MODULES,
   WARP12_OFFICIAL_OBJECTIVE,
 } from './warp12-preset.js';
 
 export const LOCAL_MIN_PLAYERS = 2;
-export const LOCAL_MAX_PLAYERS = 8;
+/** Absolute local fleet ceiling (Warp 18). Per-factor caps via {@link maxPlayersForFactor}. */
+export const LOCAL_MAX_PLAYERS = 18;
 export const PASS_AND_PLAY_MIN_PLAYERS = 2;
 
 export interface HumanCaptainConfig {
@@ -40,14 +46,33 @@ export interface AiCaptainConfig {
 
 /** Default call signs for human seats (pass-and-play setup). */
 export const DEFAULT_HUMAN_CAPTAIN_NAMES: readonly string[] = [
-  'Picard',
-  'Riker',
-  'Troi',
-  'Worf',
-  'Data',
-  'Crusher',
-  'La Forge',
-  'Uhura',
+  // The Original Eight
+  'Armstrong',  // Neil Armstrong - First human on the Moon
+  'Lovell',     // Jim Lovell - Commander of Apollo 13
+  'Earhart',    // Amelia Earhart - Aviation pioneer
+  'Yeager',     // Chuck Yeager - First pilot to break the sound barrier
+  'Gagarin',    // Yuri Gagarin - First human in space
+  'Ride',       // Sally Ride - First American woman in space
+  'Glenn',      // John Glenn - First American to orbit the Earth
+  'Collins',    // Michael Collins - Apollo 11 Command Module Pilot
+
+  // The Fleet Expansion
+  'Aldrin',     // Buzz Aldrin - Apollo 11 Lunar Module Pilot
+  'Shepard',    // Alan Shepard - First American in space
+  'Tereshkova', // Valentina Tereshkova - First woman in space
+  'Jemison',    // Mae Jemison - First Black woman in space
+  'Piccard',    // Auguste/Jean Piccard - Balloonists (The real-life inspiration for Jean-Luc Picard)
+  'Leonov',     // Alexei Leonov - First human to conduct a spacewalk
+  'Hadfield',   // Chris Hadfield - Iconic ISS Commander
+  'Coleman',    // Bessie Coleman - First African American/Native American female pilot
+  'Lindbergh',  // Charles Lindbergh - First solo transatlantic flight
+  'Chawla',     // Kalpana Chawla - First woman of Indian origin in space
+  'Ochoa',      // Ellen Ochoa - First Hispanic woman in space
+  'Cochran',    // Jacqueline Cochran - First woman to break the sound barrier
+  'Cernan',     // Gene Cernan - Last human on the Moon (Apollo 17)
+  'Wright',     // Orville/Wilbur Wright - Pioneers of powered flight
+  'Slayton',    // Deke Slayton - Mercury Seven pilot and NASA Director of Flight Crew Operations
+  'Borman',     // Frank Borman - Commander of Apollo 8 (First mission to orbit the Moon)
 ];
 
 /** Options chosen at the local bridge before a simulation launches. */
@@ -66,6 +91,8 @@ export interface LocalGameConfig {
   readonly aiCaptains: readonly AiCaptainConfig[];
   /** Frozen TEI anchor set — defaults to `warp12-official-v2`. */
   readonly rulesProfileId?: string;
+  /** Double-N max pip for this sector (9 / 12 / 15 / 18). */
+  readonly maxPip: WarpFactor;
 }
 
 /** Named AI officers drawn in order when the fleet grows. */
@@ -73,21 +100,68 @@ export const AI_OFFICER_POOL: readonly {
   id: string;
   displayName: string;
 }[] = [
-  { id: 'riker', displayName: 'Riker' },
-  { id: 'troi', displayName: 'Troi' },
-  { id: 'worf', displayName: 'Worf' },
-  { id: 'data', displayName: 'Data' },
-  { id: 'crusher', displayName: 'Crusher' },
-  { id: 'laforge', displayName: 'La Forge' },
-  { id: 'uhura', displayName: 'Uhura' },
+  { id: 'chen', displayName: 'Chen' },
+  { id: 'nguyen', displayName: 'Nguyen' },
+  { id: 'smith', displayName: 'Smith' },
+  { id: 'garcia', displayName: 'Garcia' },
+  { id: 'rossi', displayName: 'Rossi' },
+  { id: 'muller', displayName: 'Müller' },
+  { id: 'kim', displayName: 'Kim' },
+  { id: 'patel', displayName: 'Patel' },
+  { id: 'okafor', displayName: 'Okafor' },
+  { id: 'silva', displayName: 'Silva' },
+  { id: 'ivanov', displayName: 'Ivanov' },
+  { id: 'berg', displayName: 'Berg' },
+  { id: 'suzuki', displayName: 'Suzuki' },
+  { id: 'hassan', displayName: 'Hassan' },
+  { id: 'novak', displayName: 'Novak' },
+  { id: 'owens', displayName: 'Owens' },
+  { id: 'park', displayName: 'Park' },
+  { id: 'dubois', displayName: 'Dubois' },     // French
+  { id: 'sato', displayName: 'Sato' },         // Japanese
+  { id: 'haddad', displayName: 'Haddad' },     // Levantine/Arabic
+  { id: 'cruz', displayName: 'Cruz' },         // Spanish/Latin American/Filipino
+  { id: 'kowalski', displayName: 'Kowalski' }, // Polish
+  { id: 'wong', displayName: 'Wong' },         // Cantonese/Chinese
+  { id: 'diallo', displayName: 'Diallo' },     // West African
+  { id: 'sharma', displayName: 'Sharma' },     // Indian
+  { id: 'hansen', displayName: 'Hansen' },     // Scandinavian
+  { id: 'reyes', displayName: 'Reyes' },       // Filipino/Spanish
+  { id: 'cohen', displayName: 'Cohen' },       // Jewish/Israeli
+  { id: 'costa', displayName: 'Costa' },       // Portuguese/Italian
+  { id: 'ndlovu', displayName: 'Ndlovu' },     // Southern African
+  { id: 'jones', displayName: 'Jones' },       // Welsh/English/American
+  { id: 'mensah', displayName: 'Mensah' },     // Ghanaian
+  { id: 'becker', displayName: 'Becker' },     // German
+  { id: 'ali', displayName: 'Ali' },           // Arabic/Global
+  { id: 'flores', displayName: 'Flores' },     // Hispanic/Latin American
 ];
 
-export function clampLocalPlayerCount(count: number): number {
-  return Math.min(LOCAL_MAX_PLAYERS, Math.max(LOCAL_MIN_PLAYERS, count));
+export function maxPlayersForFactor(maxPip: number): number {
+  return Math.min(LOCAL_MAX_PLAYERS, warpSetProfile(maxPip).maxPlayers);
 }
 
-export function clampPassAndPlayPlayerCount(count: number): number {
-  return Math.min(LOCAL_MAX_PLAYERS, Math.max(PASS_AND_PLAY_MIN_PLAYERS, count));
+export function minPlayersForFactor(maxPip: number): number {
+  return warpSetProfile(maxPip).minPlayers;
+}
+
+export function clampLocalPlayerCount(
+  count: number,
+  maxPip = 12
+): number {
+  const profile = warpSetProfile(maxPip);
+  const max = Math.min(LOCAL_MAX_PLAYERS, profile.maxPlayers);
+  return Math.min(max, Math.max(profile.minPlayers, count));
+}
+
+export function clampPassAndPlayPlayerCount(
+  count: number,
+  maxPip = 12
+): number {
+  return clampLocalPlayerCount(
+    Math.max(PASS_AND_PLAY_MIN_PLAYERS, count),
+    maxPip
+  );
 }
 
 /** Two or more human seats — shared-device pass-and-play (always unrated). */
@@ -101,16 +175,29 @@ export function localMatchHasExtendedThinking(
   return aiCaptains.some((ai) => ai.extendedThinking === true);
 }
 
-/** Solo vs-AI local matches may report TEI when signed in and unassisted. */
+/**
+ * Solo vs-AI local matches may report TEI when signed in and unassisted.
+ * Non-12 factors are exhibition-only until TEI tracks exist per set.
+ */
 export function isRatedLocalGame(config: LocalGameConfig): boolean {
-  return !isPassAndPlay(config) && !localMatchHasExtendedThinking(config.aiCaptains);
+  return (
+    config.maxPip === 12 &&
+    !isPassAndPlay(config) &&
+    !localMatchHasExtendedThinking(config.aiCaptains)
+  );
+}
+
+/** Neural Ω / Class I* are trained on double-12 feature schemas only. */
+export function neuralAiSupported(maxPip: number): boolean {
+  return normalizeWarpFactor(maxPip) === 12;
 }
 
 export function buildHumanCaptains(
   count: number,
-  names: readonly string[] = DEFAULT_HUMAN_CAPTAIN_NAMES
+  names: readonly string[] = DEFAULT_HUMAN_CAPTAIN_NAMES,
+  maxPip = 12
 ): HumanCaptainConfig[] {
-  const capped = clampPassAndPlayPlayerCount(count);
+  const capped = clampPassAndPlayPlayerCount(count, maxPip);
   return Array.from({ length: capped }, (_, index) => ({
     id: `human:${index}`,
     displayName: names[index]?.trim() || `Captain ${index + 1}`,
@@ -123,19 +210,28 @@ export function soloHumanCaptain(displayName: string): HumanCaptainConfig {
 }
 
 /** Build `aiCount` AI captain slots with sensible defaults. */
-export function buildAiCaptains(aiCount: number): AiCaptainConfig[] {
+export function buildAiCaptains(
+  aiCount: number,
+  maxPip = 12
+): AiCaptainConfig[] {
   const capped = Math.min(aiCount, AI_OFFICER_POOL.length);
+  const allowOmega = neuralAiSupported(maxPip);
   return AI_OFFICER_POOL.slice(0, capped).map((officer, index) => ({
     ...officer,
-    skill: index === capped - 1 && capped >= 2 ? 'commander' : 'lieutenant',
+    skill:
+      allowOmega && index === capped - 1 && capped >= 2
+        ? 'commander'
+        : 'lieutenant',
   }));
 }
 
 export function defaultLocalGameConfig(
   humanName: string,
-  playerCount = 4
+  playerCount = 4,
+  maxPip: WarpFactor = 12
 ): LocalGameConfig {
-  const count = clampLocalPlayerCount(playerCount);
+  const factor = normalizeWarpFactor(maxPip);
+  const count = clampLocalPlayerCount(playerCount, factor);
   const human = soloHumanCaptain(humanName);
   return {
     humanId: human.id,
@@ -143,10 +239,11 @@ export function defaultLocalGameConfig(
     humanCaptains: [human],
     playerCount: count,
     objective: WARP12_OFFICIAL_OBJECTIVE,
-    campaignRounds: WARP12_OFFICIAL_CAMPAIGN_ROUNDS,
+    campaignRounds: defaultCampaignRounds(factor),
     modules: { ...WARP12_OFFICIAL_MODULES },
     houseRules: { ...WARP12_OFFICIAL_HOUSE_RULES },
-    aiCaptains: buildAiCaptains(count - 1),
+    aiCaptains: buildAiCaptains(count - 1, factor),
     rulesProfileId: WARP12_OFFICIAL_RULES_PROFILE_ID,
+    maxPip: factor,
   };
 }

@@ -1,4 +1,4 @@
-import type { PlayerRef, Rng, SearchModel } from 'doubletwelve';
+import type { PlayerRef, Rng, SearchModel } from 'double-eighteen';
 import {
   coordinateKey,
   coordinatePipValue,
@@ -11,7 +11,7 @@ import { applyAction } from '../engine/apply-action.js';
 import type { GameState } from '../types/game-state.js';
 import type { GameModules } from '../types/modules.js';
 import { DEFAULT_HOUSE_RULES } from '../types/house-rules.js';
-import { salamanderPenaltyApplies } from '../constants/setup.js';
+import { salamanderPenaltyApplies, salamanderPenaltyTileValue } from '../constants/setup.js';
 import type { GameObjective } from '../types/objective.js';
 import type { PlayerId } from '../types/player.js';
 import { toGameAction, type WarpAiAction } from './actions.js';
@@ -20,18 +20,23 @@ import { assignHiddenHands } from './belief-constraints.js';
 import { collectPlacedCoordinates } from './context.js';
 import type { WarpAiObservation } from './observation.js';
 
-/** Points weight of a hand, honoring the Salamander module's 24-point 12-12. */
+/** Points weight of a hand, honoring Salamander on the highest double. */
 export function handPips(
   hand: readonly Coordinate[],
   modules: GameModules,
-  roundNumber: number
+  roundNumber: number,
+  maxPip = 12
 ): number {
   const salamander =
     modules.salamanderPenalty.enabled && salamanderPenaltyApplies(roundNumber);
   let total = 0;
   for (const coordinate of hand) {
-    if (salamander && coordinate.low === 12 && coordinate.high === 12) {
-      total += 24;
+    if (
+      salamander &&
+      coordinate.low === maxPip &&
+      coordinate.high === maxPip
+    ) {
+      total += salamanderPenaltyTileValue(maxPip);
     } else {
       total += coordinatePipValue(coordinate);
     }
@@ -56,16 +61,23 @@ export function warpLeafEvalPenalty(
   if (!round) return 0;
   const modules = state.modules;
 
+  const maxPip = state.maxPip ?? 12;
   const mine = handPips(
     round.hands[perspective as PlayerId] ?? [],
     modules,
-    round.roundNumber
+    round.roundNumber,
+    maxPip
   );
   let opponentTotal = 0;
   let opponents = 0;
   for (const id of round.turnOrder) {
     if (id === perspective) continue;
-    opponentTotal += handPips(round.hands[id] ?? [], modules, round.roundNumber);
+    opponentTotal += handPips(
+      round.hands[id] ?? [],
+      modules,
+      round.roundNumber,
+      maxPip
+    );
     opponents++;
   }
   const opponentAvg = opponents > 0 ? opponentTotal / opponents : 0;
@@ -139,6 +151,7 @@ export function observationToState(obs: WarpAiObservation): GameState {
     houseRules: obs.houseRules,
     objective: obs.objective,
     campaignRounds: obs.campaignRounds,
+    maxPip: obs.maxPip ?? 12,
   };
 }
 

@@ -1,5 +1,5 @@
 import type { PlayerId } from '../types/player.js';
-import type { Rng } from 'doubletwelve';
+import type { Rng } from 'double-eighteen';
 
 /** Deterministic replay RNG — same log position always gets the same advisor search rollouts. */
 export function mulberry32(seed: number): Rng {

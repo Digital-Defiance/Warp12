@@ -27,6 +27,7 @@ export type LocalAiMatchRejectReason =
   | 'missing_advisor_used'
   | 'pass_and_play'
   | 'extended_thinking'
+  | 'exhibition_set'
   | 'missing_seed'
   | 'missing_config'
   | 'missing_human_actions'
@@ -55,11 +56,15 @@ export function getLocalAiMatchRejectReason(
   if (!input.config || typeof input.config !== 'object') {
     return 'missing_config';
   }
-  if (isPassAndPlay(input.config as LocalGameConfig)) {
+  const config = input.config as LocalGameConfig;
+  if (isPassAndPlay(config)) {
     return 'pass_and_play';
   }
-  if (localMatchHasExtendedThinking((input.config as LocalGameConfig).aiCaptains)) {
+  if (localMatchHasExtendedThinking(config.aiCaptains)) {
     return 'extended_thinking';
+  }
+  if (config.maxPip !== 12) {
+    return 'exhibition_set';
   }
   if (!Array.isArray(input.humanActions)) {
     return 'missing_human_actions';
@@ -84,6 +89,8 @@ export function localAiMatchRejectNotice(
       return 'Pass-and-play matches are unrated — TEI is not tracked.';
     case 'extended_thinking':
       return 'Extended-thinking Class II officers are exhibition mode — TEI is not tracked.';
+    case 'exhibition_set':
+      return 'Warp 9 / 15 / 18 are exhibition sets — TEI is only tracked on Warp 12.';
     case 'missing_advisor_used':
     case 'missing_seed':
     case 'missing_config':

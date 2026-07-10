@@ -1,4 +1,4 @@
-import type { PlayerRef, Rng, SearchModel } from 'doubletwelve';
+import type { PlayerRef, Rng, SearchModel } from 'double-eighteen';
 
 export interface IsmctsOptions<TAction = unknown> {
   readonly perspective: PlayerRef;

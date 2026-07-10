@@ -14,7 +14,7 @@ Published on npm as **`warp12-engine`**.
 ## Install
 
 ```bash
-npm install warp12-engine doubletwelve
+npm install warp12-engine double-eighteen
 ```
 
 ## Usage

@@ -7966,7 +7966,7 @@ __metadata:
     "@tauri-apps/api": "npm:^2"
     "@tauri-apps/plugin-deep-link": "npm:^2"
     "@tauri-apps/plugin-opener": "npm:^2"
-    doubletwelve: "workspace:*"
+    double-eighteen: "workspace:*"
     firebase: "npm:^12.15.0"
     html-to-image: "npm:^1.11.13"
     onnxruntime-web: "npm:^1.27.0"
@@ -7982,7 +7982,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@warp12/functions@workspace:functions"
   dependencies:
-    doubletwelve: "file:vendor/doubletwelve"
+    double-eighteen: "file:vendor/double-eighteen"
     firebase-admin: "npm:^13.0.0"
     firebase-functions: "npm:^7.2.5"
     typescript: "npm:~5.9.2"
@@ -11243,19 +11243,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"doubletwelve@file:vendor/doubletwelve::locator=%40warp12%2Ffunctions%40workspace%3Afunctions":
-  version: 0.3.1
-  resolution: "doubletwelve@file:vendor/doubletwelve#vendor/doubletwelve::hash=fcda44&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
+"double-eighteen@file:vendor/double-eighteen::locator=%40warp12%2Ffunctions%40workspace%3Afunctions":
+  version: 0.3.2
+  resolution: "double-eighteen@file:vendor/double-eighteen#vendor/double-eighteen::hash=7af8c6&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
   peerDependencies:
     react: ">=18.0.0"
     react-dom: ">=18.0.0"
-  checksum: 10c0/115e44fd2b0dc71fab028d64ce901ef9f1a06ea087eb0d34d101b997e218e8606c2c6ddb8ae394b42097f59528754ca0a63cb6ee53e9ad719247498fa82d3b80
+  checksum: 10c0/9b15f4f35c419c2b7821a5176acb59f01e1eff183406de347930848e744c141984a8560f11221ebd78b743b1222b2e53b7a525c37a3100ab1ba8b8767406202b
   languageName: node
   linkType: hard
 
-"doubletwelve@workspace:*, doubletwelve@workspace:vendor/DoubleTwelve":
+"double-eighteen@workspace:*, double-eighteen@workspace:vendor/double-eighteen":
   version: 0.0.0-use.local
-  resolution: "doubletwelve@workspace:vendor/DoubleTwelve"
+  resolution: "double-eighteen@workspace:vendor/double-eighteen"
   dependencies:
     "@eslint/js": "npm:^9.8.0"
     "@nx/devkit": "npm:21.6.11"
@@ -23033,11 +23033,11 @@ __metadata:
   linkType: hard
 
 "warp12-engine@file:vendor/warp12-engine::locator=%40warp12%2Ffunctions%40workspace%3Afunctions":
-  version: 0.2.0
-  resolution: "warp12-engine@file:vendor/warp12-engine#vendor/warp12-engine::hash=47b1c7&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
+  version: 0.4.23
+  resolution: "warp12-engine@file:vendor/warp12-engine#vendor/warp12-engine::hash=f3b8cc&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
   peerDependencies:
-    doubletwelve: ">=0.3.0"
-  checksum: 10c0/0248af5804a754d10f67369effcb8b44ec995864f210f517c7e25f1dc95ce64bd1e3c578c92655c4582c9c438e12875603f6cc18dddca5d0dc9c3dc011344add
+    doubletwelve: ">=0.3.2"
+  checksum: 10c0/dc7870a9e56c4193722bd872d4d5436b96ea6f6e0ec5d9fddc177805b5d794ac2ba6c9031cea230f93dfff718c03ab07b3dc1e00098688d32fc257071ec464aa
   languageName: node
   linkType: hard
 
@@ -23045,9 +23045,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "warp12-engine@workspace:libs/engine"
   dependencies:
-    doubletwelve: "workspace:*"
+    double-eighteen: "workspace:*"
   peerDependencies:
-    doubletwelve: ">=0.3.0"
+    double-eighteen: ">=0.3.2"
   languageName: unknown
   linkType: soft
 
@@ -23055,11 +23055,11 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "warp12-react@workspace:libs/react"
   dependencies:
-    doubletwelve: "workspace:*"
+    double-eighteen: "workspace:*"
     react: "npm:^19.0.0"
     warp12-engine: "workspace:*"
   peerDependencies:
-    doubletwelve: ">=0.3.2"
+    double-eighteen: ">=0.3.2"
     react: ">=18.0.0"
     warp12-engine: ">=0.4.23"
   languageName: unknown
@@ -23069,9 +23069,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "warp12-theme@workspace:libs/theme"
   dependencies:
-    doubletwelve: "workspace:*"
+    double-eighteen: "workspace:*"
   peerDependencies:
-    doubletwelve: ">=0.3.2"
+    double-eighteen: ">=0.3.2"
   languageName: unknown
   linkType: soft
 

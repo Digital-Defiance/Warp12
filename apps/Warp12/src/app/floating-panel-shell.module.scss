@@ -1,6 +1,10 @@
 .panel {
   position: absolute;
   z-index: 110;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100% - 24px);
+  min-height: 7rem;
   font-family: var(--font-federation);
   color: var(--warp-text);
   background: var(--warp-panel);
@@ -8,6 +12,13 @@
   backdrop-filter: blur(10px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   pointer-events: auto;
+  overflow: hidden;
+
+  &[data-bounds='viewport'] {
+    position: fixed;
+    z-index: 1200;
+    max-height: calc(100dvh - 24px);
+  }
 
   &[data-accent='cyan'] {
     border: 1px solid var(--warp-panel-border);
@@ -19,6 +30,10 @@
     box-shadow:
       0 8px 24px rgba(0, 0, 0, 0.35),
       0 0 18px rgba(251, 191, 36, 0.12);
+
+    &[data-bounds='viewport'] {
+      z-index: 1201;
+    }
   }
 
   &[data-anchor='bottom-left'] {
@@ -46,6 +61,7 @@
   cursor: grab;
   touch-action: none;
   user-select: none;
+  flex-shrink: 0;
 
   &:active {
     cursor: grabbing;
@@ -77,7 +93,53 @@
 }
 
 .body {
-  padding: 0.45rem 0.55rem 0.55rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0.45rem 0.55rem 0.35rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.resizeHandle {
+  flex-shrink: 0;
+  height: 12px;
+  margin-top: auto;
+  cursor: ns-resize;
+  touch-action: none;
+  user-select: none;
+  display: grid;
+  place-items: center;
+  border-top: 1px solid rgba(51, 65, 85, 0.65);
+  background: rgba(15, 23, 42, 0.55);
+
+  &::after {
+    content: '';
+    width: 2rem;
+    height: 3px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.55);
+  }
+
+  &:hover::after,
+  &:focus-visible::after {
+    background: rgba(56, 189, 248, 0.75);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(56, 189, 248, 0.55);
+    outline-offset: -2px;
+  }
+}
+
+.panel[data-accent='amber'] .resizeHandle {
+  border-top-color: rgba(251, 191, 36, 0.25);
+
+  &:hover::after,
+  &:focus-visible::after {
+    background: rgba(251, 191, 36, 0.75);
+  }
 }
 
 .advisorBadge {

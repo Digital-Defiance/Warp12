@@ -24,8 +24,8 @@ describe('action-log', () => {
     expect(
       playerIdForAction({
         type: 'END_ROUND',
-        winnerId: 'ai:riker',
+        winnerId: 'ai:lovell',
       })
-    ).toBe('ai:riker');
+    ).toBe('ai:lovell');
   });
 });

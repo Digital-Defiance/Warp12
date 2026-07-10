@@ -22,17 +22,17 @@ function lobbyDoc(
       subspaceFracture: true,
       subspaceFractureScope: 'own-trail',
     },
-    captainIds: ['host-uid', 'ai:riker'],
+    captainIds: ['host-uid', 'ai:lovell'],
     captains: [
       {
         id: 'host-uid',
-        displayName: 'Picard',
+        displayName: 'Armstrong',
         pointsScore: 0,
         joinedAt: '2026-01-01T00:00:00.000Z',
       },
       {
-        id: 'ai:riker',
-        displayName: 'Riker',
+        id: 'ai:lovell',
+        displayName: 'Lovell',
         pointsScore: 0,
         joinedAt: '2026-01-01T00:00:00.000Z',
         isAi: true,
@@ -47,9 +47,9 @@ function lobbyDoc(
       roundNumber: 1,
       spacedockValue: 12,
       phase: 'playing',
-      activePlayerId: 'ai:riker',
-      turnOrder: ['host-uid', 'ai:riker'],
-      handCounts: { 'host-uid': 15, 'ai:riker': 15 },
+      activePlayerId: 'ai:lovell',
+      turnOrder: ['host-uid', 'ai:lovell'],
+      handCounts: { 'host-uid': 15, 'ai:lovell': 15 },
       unchartedSectors: [],
       allStopRequired: false,
       allStopDeclared: false,
@@ -71,17 +71,17 @@ describe('online AI move proxy', () => {
     const doc = lobbyDoc();
     const action: GameAction = {
       type: 'PASS_TURN',
-      playerId: 'ai:riker',
+      playerId: 'ai:lovell',
     };
 
-    expect(canHostProxyAiMove(doc, 'host-uid', 'ai:riker')).toBe(true);
+    expect(canHostProxyAiMove(doc, 'host-uid', 'ai:lovell')).toBe(true);
     expect(assertActorMaySubmit(doc, 'host-uid', action)).toBeNull();
   });
 
   it('rejects a guest submitting for an AI captain', () => {
     const base = lobbyDoc();
     const doc = lobbyDoc({
-      captainIds: ['host-uid', 'guest-uid', 'ai:riker'],
+      captainIds: ['host-uid', 'guest-uid', 'ai:lovell'],
       captains: [
         base.captains[0]!,
         {
@@ -97,7 +97,7 @@ describe('online AI move proxy', () => {
     expect(
       assertActorMaySubmit(doc, 'guest-uid', {
         type: 'PASS_TURN',
-        playerId: 'ai:riker',
+        playerId: 'ai:lovell',
       })
     ).toBe('NOT_YOUR_TURN');
   });
@@ -113,7 +113,7 @@ describe('online AI move proxy', () => {
     expect(
       assertActorMaySubmit(doc, 'host-uid', {
         type: 'PASS_TURN',
-        playerId: 'ai:riker',
+        playerId: 'ai:lovell',
       })
     ).toBe('NOT_YOUR_TURN');
   });
@@ -180,8 +180,8 @@ describe('online AI move proxy', () => {
     const doc = lobbyDoc({
       round: {
         ...lobbyDoc().round!,
-        activePlayerId: 'ai:riker',
-        roundWinnerId: 'ai:riker',
+        activePlayerId: 'ai:lovell',
+        roundWinnerId: 'ai:lovell',
         allStopRequired: true,
         allStopDeclared: false,
       },
@@ -190,7 +190,7 @@ describe('online AI move proxy', () => {
     expect(
       assertActorMaySubmit(doc, 'host-uid', {
         type: 'ALL_STOP',
-        playerId: 'ai:riker',
+        playerId: 'ai:lovell',
       })
     ).toBeNull();
   });
@@ -218,15 +218,15 @@ describe('online AI move proxy', () => {
       houseRules: { dropToImpulseCall: true },
       round: {
         ...lobbyDoc().round!,
-        activePlayerId: 'ai:riker',
+        activePlayerId: 'ai:lovell',
         dropToImpulseCatchable: 'host-uid',
       },
     });
 
     expect(
-      assertActorMaySubmit(doc, 'ai:riker', {
+      assertActorMaySubmit(doc, 'ai:lovell', {
         type: 'CATCH_DROP_TO_IMPULSE',
-        challengerId: 'ai:riker',
+        challengerId: 'ai:lovell',
         targetPlayerId: 'host-uid',
       })
     ).toBeNull();
@@ -273,7 +273,7 @@ describe('online AI move proxy', () => {
       houseRules: { manualShieldControl: true },
       round: {
         ...lobbyDoc().round!,
-        activePlayerId: 'ai:riker',
+        activePlayerId: 'ai:lovell',
       },
     });
 

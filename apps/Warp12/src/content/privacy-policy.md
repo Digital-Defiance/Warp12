@@ -2,7 +2,7 @@
 
 **Last updated:** June 28, 2026
 
-Warp 12 ("the app," "we," "us") is operated by **Digital Defiance**. This policy describes how information is handled when you use the Warp 12 website, native apps (Tauri on macOS, iOS, and Android), and related Firebase-hosted URLs at [https://warp12.app](https://warp12.app).
+Warp 12 ("the app," "we," "us") is operated by **Digital Defiance**. This policy describes how information is handled when you use the Warp 12 website, native apps (Tauri on macOS, iOS, and Android), and related Firebase-hosted URLs at [https://warp.iwdf.org](https://warp.iwdf.org).
 
 ---
 
@@ -128,4 +128,4 @@ Questions about this privacy policy or a data request:
 
 ## App store note
 
-This page is available at **https://warp12.app/privacy** for Google Play, Apple App Store, and other distribution listings that require a privacy policy URL.
+This page is available at **https://warp.iwdf.org/privacy** for Google Play, Apple App Store, and other distribution listings that require a privacy policy URL.

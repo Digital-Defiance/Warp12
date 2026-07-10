@@ -2,8 +2,10 @@ import { coordinatePipValue } from '../types/coordinate.js';
 import type { ActionResult } from '../types/actions.js';
 import {
   DEFAULT_CAMPAIGN_ROUNDS,
-  SALAMANDER_PENALTY_TILE_VALUE,
+  DOUBLE_TWELVE_MAX_PIPS,
+  isHighestDouble,
   salamanderPenaltyApplies,
+  salamanderPenaltyTileValue,
 } from '../constants/setup.js';
 import type { GameState, RoundState } from '../types/game-state.js';
 import type { DoubleZeroScore } from '../types/house-rules.js';
@@ -21,20 +23,22 @@ function penaltyForHand(
   salamanderEnabled: boolean,
   roundNumber: number,
   doubleZeroScore: DoubleZeroScore,
+  maxPip: number,
   options?: { swapHolder?: boolean }
 ): number {
   const salamander =
     salamanderEnabled && salamanderPenaltyApplies(roundNumber);
+  const salamanderValue = salamanderPenaltyTileValue(maxPip);
   let total = 0;
   for (const coordinate of hand) {
-    if (coordinate.low === 12 && coordinate.high === 12) {
+    if (isHighestDouble(coordinate, maxPip)) {
       if (salamander && options?.swapHolder) {
-        // Salamander swap: the entire doubled 12-12 penalty leaves the holder
-        // and lands on the leader — the holder pays nothing for this tile.
+        // Salamander swap: the entire doubled highest-double penalty leaves the
+        // holder and lands on the leader — the holder pays nothing for this tile.
         continue;
       }
       total += salamander
-        ? SALAMANDER_PENALTY_TILE_VALUE
+        ? salamanderValue
         : coordinatePipValue(coordinate);
     } else if (coordinate.low === 0 && coordinate.high === 0) {
       total += doubleZeroScore;
@@ -53,9 +57,16 @@ export function handPoints(
   hand: readonly { low: number; high: number }[],
   salamanderEnabled: boolean,
   roundNumber: number,
-  doubleZeroScore: DoubleZeroScore = 50
+  doubleZeroScore: DoubleZeroScore = 50,
+  maxPip: number = DOUBLE_TWELVE_MAX_PIPS
 ): number {
-  return penaltyForHand(hand, salamanderEnabled, roundNumber, doubleZeroScore);
+  return penaltyForHand(
+    hand,
+    salamanderEnabled,
+    roundNumber,
+    doubleZeroScore,
+    maxPip
+  );
 }
 
 function clearActiveQFlash(state: GameState): GameState {
@@ -74,8 +85,10 @@ function clearActiveQFlash(state: GameState): GameState {
 function tallyRoundPoints(state: GameState, round: RoundState) {
   const salamander = state.modules.salamanderPenalty.enabled;
   const doubleZeroScore = state.houseRules.doubleZeroScore;
+  const maxPip = state.maxPip ?? DOUBLE_TWELVE_MAX_PIPS;
   const salamanderSwap =
     salamander && round.continuumEffects?.salamanderSwap === true;
+  const salamanderValue = salamanderPenaltyTileValue(maxPip);
 
   let swapHolder: string | null = null;
   let swapTarget: string | null = null;
@@ -86,7 +99,7 @@ function tallyRoundPoints(state: GameState, round: RoundState) {
         continue;
       }
       const hand = round.hands[captain.id] ?? [];
-      if (hand.some((tile) => tile.low === 12 && tile.high === 12)) {
+      if (hand.some((tile) => isHighestDouble(tile, maxPip))) {
         swapHolder = captain.id;
         break;
       }
@@ -109,6 +122,7 @@ function tallyRoundPoints(state: GameState, round: RoundState) {
       salamander,
       round.roundNumber,
       doubleZeroScore,
+      maxPip,
       { swapHolder: captain.id === swapHolder }
     );
     if (
@@ -117,9 +131,9 @@ function tallyRoundPoints(state: GameState, round: RoundState) {
       swapTarget !== swapHolder &&
       captain.id === swapTarget
     ) {
-      // The full doubled Salamander penalty lands on the leader; the 12-12
-      // holder paid nothing for the tile (swapHolder above).
-      penalty += SALAMANDER_PENALTY_TILE_VALUE;
+      // The full doubled Salamander penalty lands on the leader; the highest
+      // double holder paid nothing for the tile (swapHolder above).
+      penalty += salamanderValue;
     }
     return {
       ...captain,
@@ -185,6 +199,7 @@ export function scoreRound(
     shuffledCoordinates: shuffled,
     turnOrder: round.turnOrder,
     largeFleetHandSize: state.houseRules.largeFleetHandSize,
+    maxPip: state.maxPip ?? DOUBLE_TWELVE_MAX_PIPS,
   });
   const nextRound = createRoundStateFromDeal(nextDeal);
 

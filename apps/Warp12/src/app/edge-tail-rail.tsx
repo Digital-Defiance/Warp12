@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import type { RoundState } from 'warp12-engine';
 import type { TrailSpokeStatus } from 'warp12-react';
@@ -68,6 +68,15 @@ export function EdgeTailRail({
       trailSpokes,
     ]
   );
+  const activeRowRef = useRef<HTMLLIElement | null>(null);
+
+  useEffect(() => {
+    activeRowRef.current?.scrollIntoView({
+      block: 'nearest',
+      inline: 'nearest',
+      behavior: 'smooth',
+    });
+  }, [activePlayerId, rows.length]);
 
   return (
     <aside className={styles.rail} aria-label="Trail tails">
@@ -81,6 +90,7 @@ export function EdgeTailRail({
           return (
             <li
               key={row.rowId}
+              ref={row.isActive ? activeRowRef : undefined}
               className={styles.row}
               data-active={row.isActive ? 'true' : undefined}
               data-state={row.state}

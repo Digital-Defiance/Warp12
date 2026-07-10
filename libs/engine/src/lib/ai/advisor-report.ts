@@ -1,4 +1,4 @@
-import { scoreWithHeuristics, type Rng } from 'doubletwelve';
+import { scoreWithHeuristics, type Rng } from 'double-eighteen';
 
 import { applyAction } from '../engine/apply-action.js';
 import type { GameAction } from '../types/actions.js';

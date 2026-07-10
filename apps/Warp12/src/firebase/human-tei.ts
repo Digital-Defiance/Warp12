@@ -34,7 +34,8 @@ export type OnlineRatingIneligibleReason =
   | 'objective_not_rated'
   | 'not_enough_humans'
   | 'unrated_participant'
-  | 'unrated_ai';
+  | 'unrated_ai'
+  | 'exhibition_set';
 
 export interface OnlineRatingEligibility {
   readonly rated: boolean;
@@ -54,14 +55,20 @@ type EligibilityCaptain = Pick<
  * anchors (no Class Ω / Class I* / other neural opponents). Mirrors the authoritative server
  * gate in `functions/src/report-online-match.ts`; the lobby uses it to warn
  * captains before launch.
+ *
+ * Warp 9 / 15 / 18 are exhibition-only until per-set TEI tracks exist.
  */
 export function onlineMatchRatingEligibility(
   captains: readonly EligibilityCaptain[],
   objective: GameObjective,
-  rated = true
+  rated = true,
+  maxPip = 12
 ): OnlineRatingEligibility {
   if (!rated) {
     return { rated: false, reason: 'casual', unratedCaptainIds: [] };
+  }
+  if (maxPip !== 12) {
+    return { rated: false, reason: 'exhibition_set', unratedCaptainIds: [] };
   }
   if (objective !== 'go-out' && objective !== 'points') {
     return { rated: false, reason: 'objective_not_rated', unratedCaptainIds: [] };
@@ -111,6 +118,8 @@ export function onlineUnratedNotice(reason: string | undefined): string {
       return 'Unrated sector — rated matches need at least two signed-in captains.';
     case 'charter_mismatch':
       return 'Unrated sector — sector settings do not match the crew charter (fleet size, objective, or rules).';
+    case 'exhibition_set':
+      return 'Exhibition sector — Warp 9 / 15 / 18 do not update TEI. Play Warp 12 for rated ladders.';
     default:
       return 'This sector was unrated.';
   }
@@ -131,6 +140,8 @@ export function onlineRatingWarning(
       return 'This objective is not rated — TEI will not change.';
     case 'not_enough_humans':
       return 'Rated sectors need at least two signed-in captains. This match will be unrated.';
+    case 'exhibition_set':
+      return 'Exhibition set — Warp 9 / 15 / 18 are unrated. TEI ladders are Warp 12 only.';
     case 'unrated_participant': {
       const names = eligibility.unratedCaptainIds
         .map((id) => captains.find((c) => c.id === id)?.displayName ?? 'a guest')

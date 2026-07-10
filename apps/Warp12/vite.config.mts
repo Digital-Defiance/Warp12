@@ -20,9 +20,9 @@ export default defineConfig(() => ({
     dedupe: ['react', 'react-dom'],
     conditions: ['@warp12/source', 'import', 'module', 'browser', 'default'],
     alias: {
-      doubletwelve: path.resolve(
+      'double-eighteen': path.resolve(
         import.meta.dirname,
-        '../../vendor/DoubleTwelve/dist/index.js'
+        '../../vendor/double-eighteen/dist/index.js'
       ),
       'warp12-engine': path.resolve(
         import.meta.dirname,

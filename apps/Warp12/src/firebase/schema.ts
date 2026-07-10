@@ -33,8 +33,10 @@ export interface FirestoreGameDocument {
   houseRules?: HouseRulesConfig;
   /** Sector scoring objective. */
   objective: GameObjective;
-  /** Penalty campaign length (1–13). */
+  /** Penalty campaign length. */
   campaignRounds: number;
+  /** Double-N max pip (9 / 12 / 15 / 18). Defaults to 12 for legacy docs. */
+  maxPip?: number;
   /**
    * Host intent to play for TEI. Default `true`. When `false`, the sector is a
    * casual game — never rated — and free-form chat/DMs stay open during play.
@@ -81,6 +83,8 @@ export interface OnlineLobbySettings {
   objective: GameObjective;
   maxPlayers: number;
   campaignRounds: number;
+  /** Double-N max pip (9 / 12 / 15 / 18). */
+  maxPip?: number;
   /** Host intent to play for TEI (default true). */
   rated?: boolean;
   modules: {
@@ -231,8 +235,13 @@ export function handCollectionPath(gameId: string): string {
 }
 
 export const ONLINE_MIN_PLAYERS = 2;
-export const ONLINE_MAX_PLAYERS = 8;
+/** Absolute online fleet ceiling (Warp 18). Hosts still clamp via lobby maxPlayers. */
+export const ONLINE_MAX_PLAYERS = 18;
 
-export function clampOnlineMaxPlayers(maxPlayers: number): number {
-  return Math.min(ONLINE_MAX_PLAYERS, Math.max(ONLINE_MIN_PLAYERS + 1, maxPlayers));
+export function clampOnlineMaxPlayers(
+  maxPlayers: number,
+  factorMaxPlayers: number = ONLINE_MAX_PLAYERS
+): number {
+  const ceiling = Math.min(ONLINE_MAX_PLAYERS, Math.max(ONLINE_MIN_PLAYERS + 1, factorMaxPlayers));
+  return Math.min(ceiling, Math.max(ONLINE_MIN_PLAYERS + 1, maxPlayers));
 }

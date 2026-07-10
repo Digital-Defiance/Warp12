@@ -73,11 +73,11 @@ describe('explainTurnResolution', () => {
     );
 
     const lines = explainTurnResolution(state, 'a', {
-      names: { b: 'Riker' },
+      names: { b: 'Lovell' },
       focus: 'pass-red-alert',
     });
     expect(lines[0]).toContain('Pass Red Alert is legal');
-    expect(lines.some((line) => line.includes("Riker's warp trail"))).toBe(true);
+    expect(lines.some((line) => line.includes("Lovell's warp trail"))).toBe(true);
   });
 
   it('explains voluntary pass when shields are already down', () => {
@@ -114,14 +114,14 @@ describe('explainTurnResolution', () => {
       openValue: 9,
     };
     const state = makeGame(
-      makeRound(['laforge'], {
-        activePlayerId: 'laforge',
-        hands: { laforge: [{ low: 4, high: 9 }] },
+      makeRound(['glenn'], {
+        activePlayerId: 'glenn',
+        hands: { glenn: [{ low: 4, high: 9 }] },
         table: {
-          spacedock: { value: 12, placedBy: 'laforge' },
+          spacedock: { value: 12, placedBy: 'glenn' },
           warpTrails: {
-            laforge: {
-              playerId: 'laforge',
+            glenn: {
+              playerId: 'glenn',
               tiles: [anchor],
               distressBeacon: { active: false },
             },
@@ -136,14 +136,14 @@ describe('explainTurnResolution', () => {
           redAlert: {
             active: true,
             anchor,
-            responsiblePlayerId: 'laforge',
-            trailPlayerId: 'laforge',
+            responsiblePlayerId: 'glenn',
+            trailPlayerId: 'glenn',
           },
         },
       })
     );
 
-    expect(explainTurnResolution(state, 'laforge')[0]).toContain(
+    expect(explainTurnResolution(state, 'glenn')[0]).toContain(
       'third stabilizer clears the fracture and Red Alert'
     );
   });
@@ -155,15 +155,15 @@ describe('explainTurnResolution', () => {
       openValue: 9,
     };
     const state = makeGame(
-      makeRound(['laforge'], {
-        activePlayerId: 'laforge',
-        hands: { laforge: [{ low: 0, high: 1 }] },
+      makeRound(['glenn'], {
+        activePlayerId: 'glenn',
+        hands: { glenn: [{ low: 0, high: 1 }] },
         unchartedSectors: [{ low: 2, high: 9 }],
         table: {
-          spacedock: { value: 12, placedBy: 'laforge' },
+          spacedock: { value: 12, placedBy: 'glenn' },
           warpTrails: {
-            laforge: {
-              playerId: 'laforge',
+            glenn: {
+              playerId: 'glenn',
               tiles: [anchor],
               distressBeacon: { active: false },
             },
@@ -184,14 +184,14 @@ describe('explainTurnResolution', () => {
           redAlert: {
             active: true,
             anchor,
-            responsiblePlayerId: 'laforge',
-            trailPlayerId: 'laforge',
+            responsiblePlayerId: 'glenn',
+            trailPlayerId: 'glenn',
           },
         },
       })
     );
 
-    const lines = explainTurnResolution(state, 'laforge');
+    const lines = explainTurnResolution(state, 'glenn');
     expect(lines[0]).toContain('no stabilizer in your hand');
     expect(lines.some((line) => line.includes('separate cover tile is not used'))).toBe(
       true

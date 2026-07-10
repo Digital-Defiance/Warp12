@@ -1,14 +1,13 @@
 import type { CoachIndicator } from '../firebase/coach-presence';
-import type { TrailSpokeStatus } from 'warp12-react';
+import { spokeBadgeRingDistance, type TrailSpokeStatus } from 'warp12-react';
 import styles from './trail-spoke-indicators.module.scss';
-
-/** Distance from hub center to badge center — just outside the spacedock ring. */
-const BADGE_HUB_PADDING = 12;
 
 interface TrailSpokeIndicatorsProps {
   centerX: number;
   centerY: number;
   hubRadius: number;
+  /** Distance to first train tile — badges sit in the gap for large fleets. */
+  startDistance: number;
   hubSlots: number;
   spokes: readonly TrailSpokeStatus[];
   coachByCaptain?: Readonly<Record<string, CoachIndicator>>;
@@ -19,12 +18,17 @@ export function TrailSpokeIndicators({
   centerX,
   centerY,
   hubRadius,
+  startDistance,
   hubSlots,
   spokes,
   coachByCaptain = {},
   tacticalClassLabelByCaptain = {},
 }: TrailSpokeIndicatorsProps) {
-  const badgeDistance = hubRadius + BADGE_HUB_PADDING;
+  const badgeDistance = spokeBadgeRingDistance(
+    hubSlots,
+    hubRadius,
+    startDistance
+  );
 
   return (
     <>

@@ -1,4 +1,4 @@
-import type { Rng } from 'doubletwelve';
+import type { Rng } from 'double-eighteen';
 import { coordinateKey, type Coordinate } from '../types/coordinate.js';
 import { generateCoordinateSet } from '../domino/coordinates.js';
 import type { ChartRoute } from '../types/actions.js';
@@ -92,7 +92,7 @@ export function buildWarpContext(
   for (const coordinate of hand) {
     seen.add(coordinateKey(coordinate));
   }
-  const unseen = generateCoordinateSet(12).filter(
+  const unseen = generateCoordinateSet(obs.maxPip ?? 12).filter(
     (coordinate) => !seen.has(coordinateKey(coordinate))
   );
 

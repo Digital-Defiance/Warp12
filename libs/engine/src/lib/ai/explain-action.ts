@@ -1,4 +1,4 @@
-import { scoreWithHeuristics } from 'doubletwelve';
+import { scoreWithHeuristics } from 'double-eighteen';
 
 import {
   coordinateKey,
@@ -220,15 +220,17 @@ function describeHeuristicContribution(
       }
       return null;
     }
-    case H.salamanderDump:
+    case H.salamanderDump: {
+      const maxPip = ctx.obs.maxPip ?? 12;
       if (
         action.kind === 'chart' &&
-        action.move.coordinate.low === 12 &&
-        action.move.coordinate.high === 12
+        action.move.coordinate.low === maxPip &&
+        action.move.coordinate.high === maxPip
       ) {
-        return 'Offloads 12-12 before the Salamander penalty can apply.';
+        return `Offloads ${maxPip}-${maxPip} before the Salamander penalty can apply.`;
       }
       return null;
+    }
     case H.continuum:
       if (
         action.kind === 'chart' &&

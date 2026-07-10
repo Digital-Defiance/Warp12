@@ -1,5 +1,5 @@
-# DoubleTwelve is a git submodule with its own Nx workspace — keep it out of graph scans.
-vendor/DoubleTwelve/node_modules
-vendor/DoubleTwelve/.nx
-vendor/DoubleTwelve/dist
-vendor/DoubleTwelve/e2e
+# DoubleEighteen is a git submodule with its own Nx workspace — keep it out of graph scans.
+vendor/double-eighteen/node_modules
+vendor/double-eighteen/.nx
+vendor/double-eighteen/dist
+vendor/double-eighteen/e2e

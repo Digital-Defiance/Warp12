@@ -6,7 +6,9 @@ PROJECT="${FIREBASE_PROJECT:-warp-12}"
 DOMAINS=(
   "iwdf.org"
   "warp-12-leaderboard.web.app"
+  "leaderboard.warp12.app"
   "warp12.app"
+  "warp.iwdf.org"
 )
 
 if ! command -v gcloud >/dev/null 2>&1; then

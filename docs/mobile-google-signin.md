@@ -7,7 +7,7 @@ and the Firebase `signInWithPopup`/`signInWithRedirect` helpers do not work in a
 
 | Target | Mechanism | Status |
 | --- | --- | --- |
-| **Web** (warp12.app) | `signInWithPopup` | Works out of the box |
+| **Web** (warp.iwdf.org) | `signInWithPopup` | Works out of the box |
 | **iOS** (Tauri) | System-browser OAuth 2.0 + PKCE → **custom-scheme deep link** → `signInWithCredential` | Needs the setup below |
 | **Android** (Tauri) | Same PKCE flow, custom-scheme deep link | Needs the setup below |
 | **Desktop** (Tauri: macOS/Windows/Linux) | System-browser OAuth 2.0 + PKCE → **loopback server** → `signInWithCredential` | Needs the setup below |

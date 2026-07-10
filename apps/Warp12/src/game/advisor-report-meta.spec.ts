@@ -5,7 +5,7 @@ import type { LocalGameConfig } from './local-game-config.js';
 import { defaultLocalGameConfig } from './local-game-config.js';
 
 describe('tableOpponentLabelForAdvisor', () => {
-  const base = defaultLocalGameConfig('Picard', 3);
+  const base = defaultLocalGameConfig('Armstrong', 3);
 
   it('labels Class II when the top seat is commander', () => {
     expect(tableOpponentLabelForAdvisor(base)).toMatch(/Class II|Cls II/);

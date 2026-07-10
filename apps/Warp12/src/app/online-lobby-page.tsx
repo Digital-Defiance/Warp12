@@ -5,6 +5,7 @@ import {
   DEFAULT_CAMPAIGN_ROUNDS,
   DEFAULT_GAME_OBJECTIVE,
   GAME_OBJECTIVE_LABELS,
+  defaultCampaignRounds,
   type GameObjective,
 } from 'warp12-engine';
 
@@ -50,21 +51,25 @@ import {
   lobbyOptionsFromCharter,
 } from '../game/charter-lobby.js';
 import {
-  WARP12_OFFICIAL_CAMPAIGN_ROUNDS,
   WARP12_OFFICIAL_HOUSE_RULES,
   WARP12_OFFICIAL_MODULES,
   WARP12_OFFICIAL_OBJECTIVE,
   warp12OfficialCreateLobbyOptions,
 } from '../game/warp12-preset.js';
+import { maxPlayersForFactor } from '../game/local-game-config.js';
 import styles from './lobby.module.scss';
+import { requireWarpFactor } from './warp-factor.js';
 
-const DEFAULT_CREATE_OPTIONS = warp12OfficialCreateLobbyOptions();
+const DEFAULT_CREATE_OPTIONS = warp12OfficialCreateLobbyOptions({
+  maxPip: requireWarpFactor(),
+});
 
 export function OnlineLobbyPage() {
   const { gameId: routeGameId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const auth = useFirebaseAuth();
+  const fleetCeiling = maxPlayersForFactor(requireWarpFactor());
 
   const [gameCode, setGameCode] = useState(routeGameId?.toUpperCase() ?? '');
   const [displayName, setDisplayName] = useState('');
@@ -343,7 +348,8 @@ export function OnlineLobbyPage() {
           const eligibility = onlineMatchRatingEligibility(
             lobby.captains,
             objective,
-            lobby.rated ?? true
+            lobby.rated ?? true,
+            lobby.maxPip ?? 12
           );
           if (eligibility.rated) {
             return (
@@ -410,13 +416,14 @@ export function OnlineLobbyPage() {
           <label className={styles.checkboxRow}>
             <input
               type="checkbox"
-              checked={lobby.rated ?? true}
-              disabled={busy}
+              checked={(lobby.maxPip ?? 12) === 12 && (lobby.rated ?? true)}
+              disabled={busy || (lobby.maxPip ?? 12) !== 12}
               onChange={(e) => void saveSettings({ rated: e.target.checked })}
             />
             <span>
-              Rated sector — count results toward TEI (quick-hail comms only
-              during play). Uncheck for a casual game with open chat.
+              {(lobby.maxPip ?? 12) === 12
+                ? 'Rated sector — count results toward TEI (quick-hail comms only during play). Uncheck for a casual game with open chat.'
+                : `Exhibition set (Warp ${lobby.maxPip}) — TEI is Warp 12 only. This sector stays unrated.`}
             </span>
           </label>
         )}
@@ -487,7 +494,9 @@ export function OnlineLobbyPage() {
               onApply={() =>
                 void saveSettings({
                   objective: WARP12_OFFICIAL_OBJECTIVE,
-                  campaignRounds: WARP12_OFFICIAL_CAMPAIGN_ROUNDS,
+                  campaignRounds: defaultCampaignRounds(
+                    lobby.maxPip ?? requireWarpFactor()
+                  ),
                   modules: { ...WARP12_OFFICIAL_MODULES },
                   houseRules: { ...WARP12_OFFICIAL_HOUSE_RULES },
                 })
@@ -497,16 +506,19 @@ export function OnlineLobbyPage() {
               <span>Fleet capacity</span>
               <select
                 aria-label="Fleet capacity"
-                value={maxPlayers}
+                value={Math.min(maxPlayers, fleetCeiling)}
                 disabled={busy || charterLocked}
                 onChange={(e) =>
                   void saveSettings({
-                    maxPlayers: clampOnlineMaxPlayers(Number(e.target.value)),
+                    maxPlayers: clampOnlineMaxPlayers(
+                      Number(e.target.value),
+                      fleetCeiling
+                    ),
                   })
                 }
               >
                 {Array.from(
-                  { length: ONLINE_MAX_PLAYERS - (ONLINE_MIN_PLAYERS + 1) + 1 },
+                  { length: fleetCeiling - (ONLINE_MIN_PLAYERS + 1) + 1 },
                   (_, index) => ONLINE_MIN_PLAYERS + 1 + index
                 ).map((count) => (
                   <option key={count} value={count}>

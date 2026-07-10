@@ -9,26 +9,26 @@ import {
 describe('buildOnlineRosterClasses', () => {
   const captains = [
     { id: 'you', isAi: false },
-    { id: 'riker', isAi: true, skill: 'commander' as const },
-    { id: 'troi', isAi: true, skill: 'lieutenant' as const },
+    { id: 'lovell', isAi: true, skill: 'commander' as const },
+    { id: 'earhart', isAi: true, skill: 'lieutenant' as const },
   ];
 
   it('shows AI officers with reference TEI + class; humans as unrated', () => {
     const roster = buildOnlineRosterClasses(
-      ['you', 'riker', 'troi'],
+      ['you', 'lovell', 'earhart'],
       captains,
       'points'
     );
 
     expect(roster[0]).toEqual({ captainId: 'you', tei: null });
     expect(roster[1]).toMatchObject({
-      captainId: 'riker',
+      captainId: 'lovell',
       reference: true,
       tacticalClass: 'Class II',
     });
     expect(typeof roster[1]?.tei).toBe('number');
     expect(roster[2]).toMatchObject({
-      captainId: 'troi',
+      captainId: 'earhart',
       reference: true,
       tacticalClass: 'Class III',
     });
@@ -37,8 +37,8 @@ describe('buildOnlineRosterClasses', () => {
   });
 
   it('uses the objective for the reference TEI (points vs go-out differ)', () => {
-    const points = buildOnlineRosterClasses(['riker'], captains, 'points');
-    const goOut = buildOnlineRosterClasses(['riker'], captains, 'go-out');
+    const points = buildOnlineRosterClasses(['lovell'], captains, 'points');
+    const goOut = buildOnlineRosterClasses(['lovell'], captains, 'go-out');
     expect(points[0]?.tei).not.toBe(goOut[0]?.tei);
   });
 
@@ -60,16 +60,16 @@ describe('buildLocalRosterTei', () => {
     const roster = buildLocalRosterTei(
       {
         humanId: 'you',
-        humanName: 'Picard',
-        humanCaptains: [{ id: 'you', displayName: 'Picard' }],
+        humanName: 'Armstrong',
+        humanCaptains: [{ id: 'you', displayName: 'Armstrong' }],
         playerCount: 2,
         objective: 'points',
         campaignRounds: 13,
         modules: {},
         aiCaptains: [
           {
-            id: 'riker',
-            displayName: 'Riker',
+            id: 'lovell',
+            displayName: 'Lovell',
             skill: 'commander',
             omega: true,
           },

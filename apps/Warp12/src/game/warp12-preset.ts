@@ -2,6 +2,8 @@ import {
   DEFAULT_CAMPAIGN_ROUNDS,
   DEFAULT_GAME_OBJECTIVE,
   DEFAULT_SUBSPACE_FRACTURE_SCOPE,
+  defaultCampaignRounds,
+  normalizeWarpFactor,
   type GameModuleConfig,
   type GameObjective,
   type HouseRulesConfig,
@@ -48,11 +50,15 @@ export const WARP12_OFFICIAL_RULES_SUMMARY =
 export function warp12OfficialCreateLobbyOptions(
   overrides: Partial<CreateLobbyOptions> = {}
 ): CreateLobbyOptions {
+  const maxPip = normalizeWarpFactor(overrides.maxPip ?? 12);
+  const ratedEligible = maxPip === 12;
   return {
     objective: WARP12_OFFICIAL_OBJECTIVE,
     maxPlayers: 4,
-    campaignRounds: WARP12_OFFICIAL_CAMPAIGN_ROUNDS,
+    campaignRounds: defaultCampaignRounds(maxPip),
     ...overrides,
+    maxPip,
+    rated: ratedEligible ? (overrides.rated ?? true) : false,
     modules: { ...WARP12_OFFICIAL_MODULES, ...overrides.modules },
     houseRules: { ...WARP12_OFFICIAL_HOUSE_RULES, ...overrides.houseRules },
   };

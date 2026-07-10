@@ -563,18 +563,18 @@ describe('house rules', () => {
       // Reproduces the reported bug: open the round with a single chart on your
       // own trail under manual shield control, then Pass — helm must advance,
       // Draw must be unavailable, and Pass must be legal.
-      const round = makeRound(['you', 'riker', 'troi', 'worf'], {
+      const round = makeRound(['you', 'lovell', 'earhart', 'yeager'], {
         activePlayerId: 'you',
         spacedockValue: 12,
         hands: {
           you: [T(1, 5), T(5, 10), T(9, 12)],
-          riker: [],
-          troi: [],
-          worf: [],
+          lovell: [],
+          earhart: [],
+          yeager: [],
         },
         unchartedSectors: [T(0, 1), T(2, 2)],
         table: {
-          ...makeRound(['you', 'riker', 'troi', 'worf']).table,
+          ...makeRound(['you', 'lovell', 'earhart', 'yeager']).table,
           spacedock: { value: 12, placedBy: 'you' },
         },
       });
@@ -600,7 +600,7 @@ describe('house rules', () => {
       });
       expect(pass.ok).toBe(true);
       if (!pass.ok) return;
-      expect(pass.state.round?.activePlayerId).toBe('riker');
+      expect(pass.state.round?.activePlayerId).toBe('lovell');
     });
 
     it('keeps the turn open after a chart so shields can be toggled before passing', () => {

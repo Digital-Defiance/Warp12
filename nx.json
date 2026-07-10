@@ -16,7 +16,7 @@
   "plugins": [
     {
       "plugin": "@nx/js/typescript",
-      "exclude": ["vendor/DoubleTwelve/**"],
+      "exclude": ["vendor/double-eighteen/**"],
       "options": {
         "typecheck": {
           "targetName": "typecheck"
@@ -31,14 +31,14 @@
     },
     {
       "plugin": "@nx/eslint/plugin",
-      "exclude": ["vendor/DoubleTwelve/**"],
+      "exclude": ["vendor/double-eighteen/**"],
       "options": {
         "targetName": "lint"
       }
     },
     {
       "plugin": "@nx/vite/plugin",
-      "exclude": ["vendor/DoubleTwelve/**"],
+      "exclude": ["vendor/double-eighteen/**"],
       "options": {
         "buildTargetName": "build",
         "serveTargetName": "serve",
@@ -52,7 +52,7 @@
     },
     {
       "plugin": "@nx/vitest",
-      "exclude": ["vendor/DoubleTwelve/**"],
+      "exclude": ["vendor/double-eighteen/**"],
       "options": {
         "testTargetName": "test",
         "ciTargetName": "test-ci",
@@ -61,7 +61,7 @@
     },
     {
       "plugin": "@nx/playwright/plugin",
-      "exclude": ["vendor/DoubleTwelve/**"],
+      "exclude": ["vendor/double-eighteen/**"],
       "options": {
         "targetName": "e2e"
       }

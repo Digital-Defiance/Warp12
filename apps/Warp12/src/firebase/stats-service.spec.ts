@@ -219,7 +219,7 @@ describe('isReplayableLocalAiMatch', () => {
       objective: 'go-out' as const,
       campaignRounds: 13,
       modules: { salamanderPenalty: false, continuum: false, subspaceFracture: false },
-      aiCaptains: [{ id: 'riker', displayName: 'Riker', skill: 'lieutenant' as const }],
+      aiCaptains: [{ id: 'lovell', displayName: 'Lovell', skill: 'lieutenant' as const }],
     },
     humanActions: [
       { type: 'PASS_TURN' as const, playerId: 'you' },
@@ -237,8 +237,8 @@ describe('isReplayableLocalAiMatch', () => {
         config: {
           ...base.config,
           humanCaptains: [
-            { id: 'human:0', displayName: 'Picard' },
-            { id: 'human:1', displayName: 'Riker' },
+            { id: 'human:0', displayName: 'Armstrong' },
+            { id: 'human:1', displayName: 'Lovell' },
           ],
         },
       })
@@ -267,8 +267,8 @@ describe('isReplayableLocalAiMatch', () => {
           ...base.config,
           aiCaptains: [
             {
-              id: 'riker',
-              displayName: 'Riker',
+              id: 'lovell',
+              displayName: 'Lovell',
               skill: 'commander',
               extendedThinking: true,
             },
@@ -287,8 +287,8 @@ describe('isReplayableLocalAiMatch', () => {
           ...base.config,
           aiCaptains: [
             {
-              id: 'riker',
-              displayName: 'Riker',
+              id: 'lovell',
+              displayName: 'Lovell',
               skill: 'commander',
               omega: true,
             },

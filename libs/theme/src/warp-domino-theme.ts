@@ -1,4 +1,4 @@
-import type { DominoTheme, PipRenderContext } from 'doubletwelve';
+import type { DominoTheme, PipRenderContext } from 'double-eighteen';
 
 import styles from './warp-domino-theme.module.scss';
 
@@ -101,7 +101,7 @@ export interface WarpDominoThemeOptions {
   holographic?: boolean;
   /** Tile body fill when not in holographic mode. */
   tileBg?: WarpTileBg;
-  /** Pip readout preset — positioning stays in DoubleTwelve. */
+  /** Pip readout preset — positioning stays in DoubleEighteen. */
   pipPreset?: WarpPipPreset;
 }
 
@@ -114,7 +114,7 @@ function resolveWarpDominoEffects(
   };
 }
 
-/** Compose base + enabled effect classes for DoubleTwelve tiles. */
+/** Compose base + enabled effect classes for DoubleEighteen tiles. */
 export function composeWarpTileClassName(
   effects: WarpDominoEffects = {},
   _pipPreset: WarpPipPreset = 'bridge',
@@ -156,7 +156,7 @@ function warpTileDataAttributes(
   return attrs;
 }
 
-/** Warp12 presentation layer for DoubleTwelve tiles — safe to swap or extend. */
+/** Warp12 presentation layer for DoubleEighteen tiles — safe to swap or extend. */
 export function createWarpDominoTheme(
   options: WarpDominoThemeOptions = {}
 ): DominoTheme {

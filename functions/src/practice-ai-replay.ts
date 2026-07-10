@@ -16,6 +16,8 @@ export interface SerializableLocalGameConfig {
   campaignRounds: number;
   modules: GameModuleConfig;
   houseRules?: HouseRulesConfig;
+  /** Double-N max pip. Omitted / 12 = rated-eligible Warp 12. */
+  maxPip?: number;
   aiCaptains: readonly {
     id: string;
     displayName: string;
@@ -83,6 +85,10 @@ function roundAwaitingScore(state: GameState): boolean {
 }
 
 function validateConfig(config: SerializableLocalGameConfig): string | null {
+  const maxPip = config.maxPip ?? 12;
+  if (maxPip !== 12) {
+    return 'EXHIBITION_SET';
+  }
   if (config.playerCount < 2 || config.playerCount > 8) {
     return 'INVALID_PLAYER_COUNT';
   }
@@ -149,8 +155,9 @@ export async function replayLocalAiHumanActions(input: {
   }
 
   const config = input.config;
+  const maxPip = config.maxPip ?? 12;
   const shuffled = shuffleCoordinates(
-    generateCoordinateSet(12),
+    generateCoordinateSet(maxPip),
     seededRandom(input.seed)
   );
   const captains = [

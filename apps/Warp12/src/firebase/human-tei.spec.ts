@@ -108,6 +108,21 @@ describe('onlineMatchRatingEligibility', () => {
     expect(onlineRatingWarning(result, [])).toBeNull();
   });
 
+  it('marks Warp 9 / 15 / 18 as exhibition (unrated)', () => {
+    const result = onlineMatchRatingEligibility(
+      [verifiedHuman('u1'), verifiedHuman('u2')],
+      'points',
+      true,
+      18
+    );
+    expect(result).toEqual({
+      rated: false,
+      reason: 'exhibition_set',
+      unratedCaptainIds: [],
+    });
+    expect(onlineRatingWarning(result, [])).toMatch(/Exhibition set/i);
+  });
+
   it('rates verified humans anchored against Class II–IV AI', () => {
     const captains: FirestoreCaptain[] = [
       verifiedHuman('u1'),
@@ -160,8 +175,8 @@ describe('onlineMatchRatingEligibility', () => {
       verifiedHuman('u1'),
       verifiedHuman('u2'),
       {
-        id: 'ai:riker',
-        displayName: 'Riker',
+        id: 'ai:lovell',
+        displayName: 'Lovell',
         pointsScore: 0,
         joinedAt: '',
         isAi: true,
@@ -179,8 +194,8 @@ describe('onlineMatchRatingEligibility', () => {
       verifiedHuman('u1'),
       verifiedHuman('u2'),
       {
-        id: 'ai:riker',
-        displayName: 'Riker',
+        id: 'ai:lovell',
+        displayName: 'Lovell',
         pointsScore: 0,
         joinedAt: '',
         isAi: true,

@@ -1,7 +1,7 @@
 {
   "name": "warp12-theme",
   "version": "0.4.23",
-  "description": "Warp 12 federation domino theme presets for DoubleTwelve",
+  "description": "Warp 12 federation domino theme presets for DoubleEighteen",
   "license": "MIT",
   "author": "Digital Defiance",
   "type": "module",
@@ -27,7 +27,7 @@
   ],
   "keywords": [
     "warp12",
-    "doubletwelve",
+    "double-eighteen",
     "dominoes",
     "theme"
   ],
@@ -44,9 +44,9 @@
     "prepublishOnly": "cd ../.. && yarn build:theme"
   },
   "peerDependencies": {
-    "doubletwelve": ">=0.3.2"
+    "double-eighteen": ">=0.3.2"
   },
   "devDependencies": {
-    "doubletwelve": "workspace:*"
+    "double-eighteen": "workspace:*"
   }
 }

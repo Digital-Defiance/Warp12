@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import {
-  DEFAULT_CAMPAIGN_ROUNDS,
   DEFAULT_GAME_OBJECTIVE,
   DEFAULT_SUBSPACE_FRACTURE_SCOPE,
+  defaultCampaignRounds,
   type GameObjective,
   type HouseRulesConfig,
   type SubspaceFractureScope,
@@ -21,7 +21,6 @@ import { SubspaceFractureOptions } from './subspace-fracture-options';
 import { Warp12RulesPreset } from './warp12-rules-preset';
 import { buildAiRosterAsync, createLocalGame } from '../game/create-local-game.js';
 import {
-  WARP12_OFFICIAL_CAMPAIGN_ROUNDS,
   WARP12_OFFICIAL_HOUSE_RULES,
   WARP12_OFFICIAL_MODULES,
   WARP12_OFFICIAL_OBJECTIVE,
@@ -31,11 +30,12 @@ import {
   buildHumanCaptains,
   clampPassAndPlayPlayerCount,
   DEFAULT_HUMAN_CAPTAIN_NAMES,
-  LOCAL_MAX_PLAYERS,
+  maxPlayersForFactor,
   PASS_AND_PLAY_MIN_PLAYERS,
   type LocalGameConfig,
 } from '../game/local-game-config.js';
 import { drawMatchSeed } from '../game/match-seed.js';
+import { requireWarpFactor } from './warp-factor.js';
 
 type SetupPhase = 'configure' | 'playing';
 
@@ -46,14 +46,20 @@ interface PassAndPlayLaunchSession {
 }
 
 export function PassAndPlayPage() {
+  const maxPip = requireWarpFactor();
+  const fleetMax = maxPlayersForFactor(maxPip);
   const [phase, setPhase] = useState<SetupPhase>('configure');
-  const [playerCount, setPlayerCount] = useState(4);
+  const [playerCount, setPlayerCount] = useState(() =>
+    clampPassAndPlayPlayerCount(4, maxPip)
+  );
   const [humanNames, setHumanNames] = useState<string[]>(() =>
     DEFAULT_HUMAN_CAPTAIN_NAMES.slice(0, 4).map((name) => name)
   );
   const [aiFillCount, setAiFillCount] = useState(0);
   const [objective, setObjective] = useState<GameObjective>(DEFAULT_GAME_OBJECTIVE);
-  const [campaignRounds, setCampaignRounds] = useState(DEFAULT_CAMPAIGN_ROUNDS);
+  const [campaignRounds, setCampaignRounds] = useState(() =>
+    defaultCampaignRounds(maxPip)
+  );
   const [salamander, setSalamander] = useState(
     WARP12_OFFICIAL_MODULES.salamanderPenalty ?? true
   );
@@ -78,7 +84,7 @@ export function PassAndPlayPage() {
 
   const applyOfficialWarp12Rules = () => {
     setObjective(WARP12_OFFICIAL_OBJECTIVE);
-    setCampaignRounds(WARP12_OFFICIAL_CAMPAIGN_ROUNDS);
+    setCampaignRounds(defaultCampaignRounds(maxPip));
     setSalamander(WARP12_OFFICIAL_MODULES.salamanderPenalty ?? true);
     setContinuum(WARP12_OFFICIAL_MODULES.continuum ?? true);
     setSubspaceFracture(WARP12_OFFICIAL_MODULES.subspaceFracture ?? false);
@@ -88,12 +94,12 @@ export function PassAndPlayPage() {
     setHouseRules({ ...WARP12_OFFICIAL_HOUSE_RULES });
   };
 
-  const cappedCount = clampPassAndPlayPlayerCount(playerCount);
+  const cappedCount = clampPassAndPlayPlayerCount(playerCount, maxPip);
   const humanCount = cappedCount - aiFillCount;
   const aiCount = aiFillCount;
 
   const syncPlayerCount = (count: number) => {
-    const next = clampPassAndPlayPlayerCount(count);
+    const next = clampPassAndPlayPlayerCount(count, maxPip);
     setPlayerCount(next);
     setHumanNames((current) =>
       Array.from({ length: next }, (_, index) => current[index] ?? DEFAULT_HUMAN_CAPTAIN_NAMES[index] ?? `Captain ${index + 1}`)
@@ -138,8 +144,8 @@ export function PassAndPlayPage() {
   };
 
   const launch = () => {
-    const count = clampPassAndPlayPlayerCount(playerCount);
-    const humans = buildHumanCaptains(humanCount, configuredHumanNames);
+    const count = clampPassAndPlayPlayerCount(playerCount, maxPip);
+    const humans = buildHumanCaptains(humanCount, configuredHumanNames, maxPip);
     const primary = humans[0];
     const next: LocalGameConfig = {
       humanId: primary.id,
@@ -155,7 +161,8 @@ export function PassAndPlayPage() {
         subspaceFractureScope,
       },
       houseRules,
-      aiCaptains: buildAiCaptains(aiCount),
+      aiCaptains: buildAiCaptains(aiCount, maxPip),
+      maxPip,
     };
     void startSession(next, drawMatchSeed());
   };
@@ -203,7 +210,7 @@ export function PassAndPlayPage() {
 
       <label className={styles.field}>
         <span>
-          Fleet size ({PASS_AND_PLAY_MIN_PLAYERS}–{LOCAL_MAX_PLAYERS} captains)
+          Fleet size ({PASS_AND_PLAY_MIN_PLAYERS}–{fleetMax} captains) · Warp {maxPip}
         </span>
         <select
           aria-label="Fleet size"
@@ -211,7 +218,7 @@ export function PassAndPlayPage() {
           onChange={(e) => syncPlayerCount(Number(e.target.value))}
         >
           {Array.from(
-            { length: LOCAL_MAX_PLAYERS - PASS_AND_PLAY_MIN_PLAYERS + 1 },
+            { length: fleetMax - PASS_AND_PLAY_MIN_PLAYERS + 1 },
             (_, index) => PASS_AND_PLAY_MIN_PLAYERS + index
           ).map((count) => (
             <option key={count} value={count}>

@@ -10,9 +10,9 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       'warp12-engine': path.resolve(import.meta.dirname, '../engine/src/index.ts'),
-      doubletwelve: path.resolve(
+      'double-eighteen': path.resolve(
         import.meta.dirname,
-        '../../vendor/DoubleTwelve/dist/index.js'
+        '../../vendor/double-eighteen/dist/index.js'
       ),
     },
   },
@@ -37,7 +37,7 @@ export default defineConfig(() => ({
       formats: ['es' as const],
     },
     rolldownOptions: {
-      external: ['react', 'react/jsx-runtime', 'doubletwelve', 'warp12-engine'],
+      external: ['react', 'react/jsx-runtime', 'double-eighteen', 'warp12-engine'],
     },
   },
   test: {

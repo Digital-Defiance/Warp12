@@ -6,7 +6,7 @@
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-deep-link": "^2",
     "@tauri-apps/plugin-opener": "^2",
-    "doubletwelve": "workspace:*",
+    "double-eighteen": "workspace:*",
     "firebase": "^12.15.0",
     "html-to-image": "^1.11.13",
     "onnxruntime-web": "^1.27.0",
@@ -18,14 +18,14 @@
   },
   "nx": {
     "implicitDependencies": [
-      "doubletwelve"
+      "double-eighteen"
     ],
     "targets": {
       "build": {
         "dependsOn": [
           {
             "projects": [
-              "doubletwelve"
+              "double-eighteen"
             ],
             "target": "build-lib"
           }
