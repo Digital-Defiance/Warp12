@@ -12,7 +12,7 @@ describe('AboutPage', () => {
     );
 
     expect(
-      screen.getByText(/best mexican train engine in the galaxy that is currently known/i)
+      screen.getByText(/best interstellar dominoes engine in the galaxy that is currently known/i)
     ).toBeTruthy();
     expect(
       screen.getByText(/do not use warp 12 to settle sanctioned tournament disputes/i)

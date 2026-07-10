@@ -87,6 +87,7 @@ export function makeRound(
     unchartedSectors: [],
     hands: Object.fromEntries(turnOrder.map((id) => [id, []])),
     ...emptyRoundFields(),
+    maxPip: 12,
     ...over,
   };
 }

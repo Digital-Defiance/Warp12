@@ -279,6 +279,7 @@ export function PassAndPlayPage() {
           <CampaignRoundsField
             value={campaignRounds}
             onChange={setCampaignRounds}
+            maxPip={maxPip}
           />
         </fieldset>
       )}

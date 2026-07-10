@@ -10,10 +10,13 @@ import { allTilesWithPip, makeRound, placed, T } from '../engine/test-helpers.js
 import { createInitialTable } from './table-state.js';
 
 describe('maxTilesWithPipInSet', () => {
-  it('counts thirteen tiles for every pip in a double-twelve set', () => {
+  it('counts N+1 tiles for every pip in a double-N set', () => {
     expect(maxTilesWithPipInSet(0)).toBe(13);
     expect(maxTilesWithPipInSet(6)).toBe(13);
     expect(maxTilesWithPipInSet(12)).toBe(13);
+    expect(maxTilesWithPipInSet(6, 9)).toBe(10);
+    expect(maxTilesWithPipInSet(15, 15)).toBe(16);
+    expect(maxTilesWithPipInSet(0, 18)).toBe(19);
   });
 });
 
@@ -132,5 +135,42 @@ describe('isPipExhausted / isRedAlertDoubleDead', () => {
 
     expect(countChartedTilesWithPip(round, 12)).toBeLessThan(13);
     expect(isPipExhausted(round, 12)).toBe(false);
+  });
+
+  it('treats ten sixes as exhausted on a Warp 9 set', () => {
+    const sixes = allTilesWithPip(6, 9);
+    expect(sixes).toHaveLength(10);
+    const round = makeRound(['a', 'b'], {
+      spacedockValue: 9,
+      maxPip: 9,
+      table: {
+        ...createInitialTable(['a', 'b'], 9, 'a'),
+        warpTrails: {
+          a: {
+            playerId: 'a',
+            tiles: sixes.map((coordinate, index) =>
+              placed(coordinate, index, 6)
+            ),
+            distressBeacon: { active: false },
+          },
+          b: { playerId: 'b', tiles: [], distressBeacon: { active: false } },
+        },
+        redAlert: {
+          active: true,
+          anchor: placed(
+            T(6, 6),
+            sixes.findIndex((c) => c.low === 6 && c.high === 6),
+            6
+          ),
+          responsiblePlayerId: 'a',
+          trailPlayerId: 'a',
+        },
+      },
+    });
+
+    expect(isPipExhausted(round, 6, 9)).toBe(true);
+    expect(isPipExhausted(round, 6, 12)).toBe(false);
+    expect(isRedAlertDoubleDead(round)).toBe(true);
+    expect(isRedAlertDoubleDead(round, 12)).toBe(false);
   });
 });

@@ -2,9 +2,12 @@ import type { RoundState, TableState } from '../types/game-state.js';
 import { isRedAlertDoubleDead } from '../table/pip-inventory.js';
 import { archiveFractureStabilizers } from '../table/fracture-stabilizers.js';
 
-/** Clear Red Alert when the double pip is exhausted (Mexican Train dead double). */
-export function resolveDeadRedAlert(round: RoundState): RoundState {
-  if (!isRedAlertDoubleDead(round)) {
+/** Clear Red Alert when the double pip is exhausted (dead double). */
+export function resolveDeadRedAlert(
+  round: RoundState,
+  maxPip?: number
+): RoundState {
+  if (!isRedAlertDoubleDead(round, maxPip)) {
     return round;
   }
   const redAlert = round.table.redAlert!;

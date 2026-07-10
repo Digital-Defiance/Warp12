@@ -63,7 +63,7 @@ export function getLocalAiMatchRejectReason(
   if (localMatchHasExtendedThinking(config.aiCaptains)) {
     return 'extended_thinking';
   }
-  if (config.maxPip !== 12) {
+  if ((config.maxPip ?? 12) !== 12) {
     return 'exhibition_set';
   }
   if (!Array.isArray(input.humanActions)) {

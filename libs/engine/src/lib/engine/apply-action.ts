@@ -157,7 +157,8 @@ function resolvePostChartAnomalies(
   placed: PlacedCoordinate,
   route: ChartRoute,
   wasCover: boolean,
-  subspaceFracture: { enabled: boolean; scope: SubspaceFractureScope }
+  subspaceFracture: { enabled: boolean; scope: SubspaceFractureScope },
+  maxPip?: number
 ): RoundState {
   let table = round.table;
   let redAlert = table.redAlert;
@@ -177,7 +178,11 @@ function resolvePostChartAnomalies(
 
   if (playedDouble && !wasCover) {
     if (route.kind === 'warp-trail' || route.kind === 'neutral-zone') {
-      const doubleIsDead = isPipExhausted(round, placed.coordinate.low);
+      const doubleIsDead = isPipExhausted(
+        round,
+        placed.coordinate.low,
+        maxPip
+      );
       if (!doubleIsDead) {
         redAlert = openRedAlert(
           placed,
@@ -227,6 +232,7 @@ function applyChartToRoute(
     subspaceFracture: { enabled: boolean; scope: SubspaceFractureScope };
     qContinuumEnabled: boolean;
     houseRules: HouseRules;
+    maxPip?: number;
   }
 ): RoundState {
   const { hand, removed } = removeCoordinateFromHand(
@@ -408,10 +414,11 @@ function applyChartToRoute(
     placed,
     route,
     wasCover,
-    options.subspaceFracture
+    options.subspaceFracture,
+    options.maxPip
   );
 
-  nextRound = resolveDeadRedAlert(nextRound);
+  nextRound = resolveDeadRedAlert(nextRound, options.maxPip);
 
   const playedZeroZero =
     options.qContinuumEnabled &&
@@ -1132,6 +1139,7 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
           },
           qContinuumEnabled: state.modules.continuum.enabled,
           houseRules: state.houseRules,
+          maxPip: state.maxPip ?? state.round?.maxPip ?? 12,
         });
       } catch {
         return fail('INVALID_ROUTE');

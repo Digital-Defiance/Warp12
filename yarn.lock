@@ -23034,10 +23034,10 @@ __metadata:
 
 "warp12-engine@file:vendor/warp12-engine::locator=%40warp12%2Ffunctions%40workspace%3Afunctions":
   version: 0.4.23
-  resolution: "warp12-engine@file:vendor/warp12-engine#vendor/warp12-engine::hash=f3b8cc&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
+  resolution: "warp12-engine@file:vendor/warp12-engine#vendor/warp12-engine::hash=5f9545&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
   peerDependencies:
-    doubletwelve: ">=0.3.2"
-  checksum: 10c0/dc7870a9e56c4193722bd872d4d5436b96ea6f6e0ec5d9fddc177805b5d794ac2ba6c9031cea230f93dfff718c03ab07b3dc1e00098688d32fc257071ec464aa
+    double-eighteen: ">=0.3.2"
+  checksum: 10c0/b708c4e1c1e4ee90510817a3d1f1aa6a766993fb4c9f6646afe5299b689c6ea3356b61ebd080dad03326b2411e0dcd6d8b2ea8a07302c8a6d23e9926053a09a5
   languageName: node
   linkType: hard
 
@@ -23047,7 +23047,7 @@ __metadata:
   dependencies:
     double-eighteen: "workspace:*"
   peerDependencies:
-    double-eighteen: ">=0.3.2"
+    double-eighteen: ">=0.3.3"
   languageName: unknown
   linkType: soft
 
@@ -23059,7 +23059,7 @@ __metadata:
     react: "npm:^19.0.0"
     warp12-engine: "workspace:*"
   peerDependencies:
-    double-eighteen: ">=0.3.2"
+    double-eighteen: ">=0.3.3"
     react: ">=18.0.0"
     warp12-engine: ">=0.4.23"
   languageName: unknown
@@ -23071,7 +23071,7 @@ __metadata:
   dependencies:
     double-eighteen: "workspace:*"
   peerDependencies:
-    double-eighteen: ">=0.3.2"
+    double-eighteen: ">=0.3.3"
   languageName: unknown
   linkType: soft
 

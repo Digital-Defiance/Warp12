@@ -54,9 +54,10 @@ export interface RoundDealResult {
   readonly spacedockPlacedBy: PlayerId;
   readonly hands: Readonly<Record<PlayerId, readonly Coordinate[]>>;
   readonly unchartedSectors: readonly Coordinate[];
+  readonly maxPip: number;
 }
 
-/** Round starter rotates clockwise through turn order (standard Mexican Train). */
+/** Round starter rotates clockwise through turn order (standard multi-trail). */
 export function roundStarterForRound(
   turnOrder: readonly PlayerId[],
   roundNumber: number
@@ -68,7 +69,7 @@ export function roundStarterForRound(
 }
 
 /**
- * Deal a round per standard Mexican Train setup: set aside the round Spacedock
+ * Deal a round per standard multi-trail setup: set aside the round Spacedock
  * double before dealing hands; remaining tiles form Uncharted Sectors.
  */
 export function dealRoundFromShuffled(input: {
@@ -124,6 +125,7 @@ export function dealRoundFromShuffled(input: {
     spacedockPlacedBy,
     hands,
     unchartedSectors: pile,
+    maxPip,
   };
 }
 
@@ -155,6 +157,7 @@ export function createRoundStateFromDeal(deal: RoundDealResult): RoundState {
     dropToImpulseCatchable: null,
     playedThisTurn: false,
     drewThisTurn: false,
+    maxPip: deal.maxPip,
   };
 }
 

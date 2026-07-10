@@ -69,7 +69,7 @@ export function OnlineLobbyPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const auth = useFirebaseAuth();
-  const fleetCeiling = maxPlayersForFactor(requireWarpFactor());
+  const createMaxPip = requireWarpFactor();
 
   const [gameCode, setGameCode] = useState(routeGameId?.toUpperCase() ?? '');
   const [displayName, setDisplayName] = useState('');
@@ -82,6 +82,8 @@ export function OnlineLobbyPage() {
   const [lobbyLoaded, setLobbyLoaded] = useState(false);
   const [myCharters, setMyCharters] = useState<PublicCharterView[]>([]);
 
+  const sectorMaxPip = lobby?.maxPip ?? createMaxPip;
+  const fleetCeiling = maxPlayersForFactor(sectorMaxPip);
   const uid = auth.user?.uid;
   const sectorCode = routeGameId?.toUpperCase() ?? '';
   const isMember = Boolean(uid && lobby?.captainIds.includes(uid));
@@ -481,6 +483,7 @@ export function OnlineLobbyPage() {
             <CampaignRoundsField
               value={campaignRounds}
               disabled={busy || charterLocked}
+              maxPip={sectorMaxPip}
               onChange={(value) => void saveSettings({ campaignRounds: value })}
             />
           </fieldset>
@@ -494,9 +497,7 @@ export function OnlineLobbyPage() {
               onApply={() =>
                 void saveSettings({
                   objective: WARP12_OFFICIAL_OBJECTIVE,
-                  campaignRounds: defaultCampaignRounds(
-                    lobby.maxPip ?? requireWarpFactor()
-                  ),
+                  campaignRounds: defaultCampaignRounds(sectorMaxPip),
                   modules: { ...WARP12_OFFICIAL_MODULES },
                   houseRules: { ...WARP12_OFFICIAL_HOUSE_RULES },
                 })
