@@ -1,10 +1,25 @@
 # 🌌 WARP 12
 
-**A Double-Twelve Domino Variant**
+**Interstellar Dominoes — Warp factors 9 / 12 / 15 / 18**
 
-Warp 12 is a multiplayer, federation-themed variant of standard Mexican Train (double-twelve) dominoes. This repository contains the game engine, client UI, domino rendering library, and Firebase-backed multiplayer infrastructure in a TypeScript Nx monorepo.
+Warp 12 is multiplayer, federation-themed **multi-trail Interstellar Dominoes**. The Bridge client supports **double-9, double-12, double-15, and double-18** sets (choose a Warp factor on first launch or from the home screen). This repository contains the game engine, client UI, domino rendering library, and Firebase-backed multiplayer infrastructure in a TypeScript Nx monorepo.
 
 Online sectors include **subspace messaging** — quick-phrase hails (always available, even during rated play) plus free-form text and DMs (lobby, casual, and post-game). Rated sectors restrict comms to hails to prevent collusion. See [Subspace messaging in RULES.md](RULES.md#ix-subspace-messaging-digital--online-sectors).
+
+### Warp factors
+
+Captains pick a set before play (`/factor`, or **Choose your Warp Factor** on the home page). The choice is stored in `localStorage` (`warp-factor`) and drives tile count, campaign length, and fleet caps:
+
+| Factor | Set | Tiles | Fleet | Points campaign | TEI |
+| --- | --- | --- | --- | --- | --- |
+| **Warp 9** | Double-9 | 55 | 2–4 | 10 rounds (9-9 → 0-0) | Exhibition (unrated) |
+| **Warp 12** | Double-12 | 91 | 2–8 | 13 rounds (12-12 → 0-0) | **Rated** (default) |
+| **Warp 15** | Double-15 | 136 | 2–12 | 16 rounds (15-15 → 0-0) | Exhibition (unrated) |
+| **Warp 18** | Double-18 | 190 | 2–18 | 19 rounds (18-18 → 0-0) | Exhibition (unrated) |
+
+Engine profiles live in `libs/engine` (`warpSetProfile` / `WARP_FACTORS`). The Bridge wires the selection through `apps/Warp12/src/app/warp-factor.ts`. Hub layout scales with fleet size (Neutral Zone is the last spoke). See [RULES.md §II — Exhibition sets](RULES.md#exhibition-sets-digital--warp-9--15--18).
+
+**TEI is Warp 12 only.** Warp 9 / 15 / 18 are exhibition: the lobby forces unrated, Academy/TEI UI is hidden, and Cloud Functions reject TEI reports for non-12 sets.
 
 ## 🖖 The Captain's Oath
 
@@ -227,7 +242,7 @@ Anonymous Auth will fail on a domain that is not listed there.
 
 ## 📜 Rules
 
-See [RULES.md](./RULES.md) for the full Navigational Operations Manual — Spacedock, Warp Trails, Neutral Zone, Distress Beacon, Subspace Fracture, All Stop!, Drop to Impulse, and opt-in modules (Continuum, Salamander Penalty).
+See [RULES.md](./RULES.md) for the full Navigational Operations Manual — Spacedock, Warp Trails, Neutral Zone, Distress Beacon, Subspace Fracture, All Stop!, Drop to Impulse, opt-in modules (Continuum, Salamander Penalty), and **exhibition sets** (Warp 9 / 15 / 18).
 
 ## Warp AI, tactical coach & TEI
 
@@ -258,7 +273,7 @@ The **tactical advisor** follows Class II **Ω** (greedy policy) when weights ar
 
 ### Leaderboard TEI (unassisted matches)
 
-Solo games vs AI feed **[iwdf.org](https://iwdf.org)**. Two independent tracks:
+Solo games vs AI feed **[iwdf.org](https://iwdf.org)** when the sector is **Warp 12** (double-twelve). Warp 9 / 15 / 18 never update TEI. Two independent tracks:
 
 | Track | When it applies |
 |-------|-----------------|
@@ -282,7 +297,7 @@ Go-out uses wider spacing because race outcomes are noisier; the leaderboard als
 
 Your TEI updates with a standard Elo formula; K-factor starts at **40** for the first 10 rated games, then **32** until 30 games, then **24**.
 
-**Advisor disqualification:** if you used the tactical advisor during the match, the win still counts in general stats, but **TEI does not move** — only unassisted matches are rated. Assisted wins are tracked separately (`advisorMatches` / `advisorWins`).
+**Advisor disqualification:** if you used the tactical advisor during the match, the win still counts in general stats, but **TEI does not move** — only unassisted **Warp 12** matches are rated. Assisted wins are tracked separately (`advisorMatches` / `advisorWins`). Exhibition sets (9 / 15 / 18) are never rated, with or without the advisor.
 
 Calibration: heuristic tiers via `yarn calibrate:ai-tei`; Class II Ω via champion fair-share benches (`tools/nn/data/omega-champion-score.txt`). Go-out compresses skill gaps — percentile boards help.
 

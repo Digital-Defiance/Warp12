@@ -2,7 +2,7 @@ import { isDouble, type Coordinate } from '../types/coordinate.js';
 import type { RoundState } from '../types/game-state.js';
 import { DOUBLE_TWELVE_MAX_PIPS } from '../constants/setup.js';
 
-/** Tiles in a double-twelve set that contain pip `pip` (thirteen for every pip). */
+/** Tiles in a double-N set that contain pip `pip` (N+1 for every pip). */
 export function maxTilesWithPipInSet(
   pip: number,
   maxPips = DOUBLE_TWELVE_MAX_PIPS
@@ -54,7 +54,7 @@ export function countChartedTilesWithPip(
 export function isPipExhausted(
   round: RoundState,
   pip: number,
-  maxPips = DOUBLE_TWELVE_MAX_PIPS
+  maxPips: number = DOUBLE_TWELVE_MAX_PIPS
 ): boolean {
   return (
     countChartedTilesWithPip(round, pip) >= maxTilesWithPipInSet(pip, maxPips)
@@ -62,7 +62,10 @@ export function isPipExhausted(
 }
 
 /** Red Alert double is dead when no tile with that pip remains off the table. */
-export function isRedAlertDoubleDead(round: RoundState): boolean {
+export function isRedAlertDoubleDead(
+  round: RoundState,
+  maxPips: number = round.maxPip ?? DOUBLE_TWELVE_MAX_PIPS
+): boolean {
   const redAlert = round.table.redAlert;
   if (!redAlert?.active) {
     return false;
@@ -71,5 +74,5 @@ export function isRedAlertDoubleDead(round: RoundState): boolean {
   if (!isDouble(anchor)) {
     return false;
   }
-  return isPipExhausted(round, anchor.low);
+  return isPipExhausted(round, anchor.low, maxPips);
 }

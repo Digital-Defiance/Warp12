@@ -11,7 +11,7 @@ export type DropToImpulseCatchPenalty = 1 | 2;
 /** Points a double-blank (0-0) scores when caught in hand. 50 = tournament standard. */
 export type DoubleZeroScore = 0 | 25 | 50;
 
-/** Optional house-rule toggles for tournament hosts (default = standard Mexican Train). */
+/** Optional house-rule toggles for tournament hosts (default = standard multi-trail). */
 export interface HouseRules {
   /** Deluxe-style: must chart on your warp trail before an opponent's open trail. */
   readonly requireOwnTrailFirst: boolean;

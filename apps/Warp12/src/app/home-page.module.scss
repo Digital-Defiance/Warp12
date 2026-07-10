@@ -173,12 +173,17 @@
 }
 
 .warpFactorSelectionIcon {
+  display: block;
+  flex-shrink: 0;
   height: 16px;
-  width: auto;
-  vertical-align: -0.15em;
-  padding-right: 0.35rem;
-  filter: brightness(0) saturate(100%) invert(88%) sepia(8%) saturate(427%)
-  hue-rotate(169deg) brightness(98%) contrast(92%);
+  width: 16px;
+  filter: brightness(0) saturate(100%) invert(72%) sepia(47%) saturate(749%)
+    hue-rotate(166deg) brightness(101%) contrast(96%);
+
+  // Phone: label already fills the row — icon would force a wrap.
+  [data-layout-tier='phone'] & {
+    display: none;
+  }
 }
 
 .warpFactorSelectionLink {

@@ -81,7 +81,8 @@ export function useHostAiRunner(options: {
       aiCaptains,
       objective,
       onlineAiSeed(options.code),
-      tableSize
+      tableSize,
+      options.game?.maxPip ?? 12
     )
       .then((next) => {
         if (!cancelled) setRoster(next);
@@ -104,6 +105,7 @@ export function useHostAiRunner(options: {
     options.code,
     options.enabled,
     options.game?.captains.length,
+    options.game?.maxPip,
     options.onError,
     options.sectorCaptains.length,
   ]);

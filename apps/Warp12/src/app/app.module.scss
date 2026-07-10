@@ -32,6 +32,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1.25rem 2rem 0.85rem;
+  padding-top: calc(1.25rem + env(safe-area-inset-top, 0px));
   border-bottom: 1px solid var(--warp-panel-border);
   background: rgba(5, 8, 22, 0.9);
   backdrop-filter: blur(12px);
@@ -192,6 +193,7 @@
 
 .headerFocus {
   padding: 0.35rem 1rem 0.3rem;
+  padding-top: calc(0.35rem + env(safe-area-inset-top, 0px));
   flex-shrink: 0;
 
   .subtitle {
@@ -251,6 +253,7 @@
   .header {
     flex-wrap: wrap;
     padding: 0.55rem 0.75rem 0.45rem;
+    padding-top: calc(0.55rem + env(safe-area-inset-top, 0px));
     gap: 0.5rem;
   }
 
@@ -270,14 +273,18 @@
 
   .nav {
     flex: 1 1 100%;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-    gap: 0.35rem;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 0.15rem;
+    min-width: 0;
   }
 
-  .navLink {
-    font-size: 0.62rem;
-    padding: 0.35rem 0.45rem;
+  .navLink,
+  .iwdfLink {
+    font-size: 0.58rem;
+    padding: 0.3rem 0.28rem;
+    flex: 0 1 auto;
+    white-space: nowrap;
   }
 
   .main {
@@ -287,6 +294,7 @@
     min-width: 0;
     overflow-x: clip;
     padding: 0.65rem 0.5rem 0.75rem;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
   }
 
   .mainStage {
@@ -296,6 +304,7 @@
 
   &.shellFocus .main {
     padding: 0.35rem 0.35rem 0.45rem;
+    padding-bottom: calc(0.45rem + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -303,6 +312,7 @@
   .header {
     flex-wrap: nowrap;
     padding: 0.2rem 0.45rem;
+    padding-top: calc(0.2rem + env(safe-area-inset-top, 0px));
     gap: 0.35rem;
   }
 

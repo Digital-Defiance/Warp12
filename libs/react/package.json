@@ -42,7 +42,7 @@
     "prepublishOnly": "cd ../.. && yarn build:react && yarn test:react"
   },
   "peerDependencies": {
-    "double-eighteen": ">=0.3.2",
+    "double-eighteen": ">=0.3.3",
     "react": ">=18.0.0",
     "warp12-engine": ">=0.4.23"
   },

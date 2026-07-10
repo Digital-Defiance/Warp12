@@ -71,6 +71,11 @@ export interface RoundState {
    * caught penalty draw, and announced-then-drawn). Reset on the next action.
    */
   readonly returnedToWarp?: boolean;
+  /**
+   * Double-N max pip for this sector (9 / 12 / 15 / 18). Used for dead-double
+   * pip exhaustion. Omit for legacy fixtures (treated as 12).
+   */
+  readonly maxPip?: number;
 }
 
 export interface GameState {
@@ -80,7 +85,7 @@ export interface GameState {
   readonly round: RoundState | null;
   readonly completedRounds: number;
   readonly modules: import('./modules.js').GameModules;
-  /** Optional house-rule toggles (default standard Mexican Train). */
+  /** Optional house-rule toggles (default standard multi-trail). */
   readonly houseRules: HouseRules;
   /** Fleet victory condition — points campaign vs first captain out. */
   readonly objective: GameObjective;

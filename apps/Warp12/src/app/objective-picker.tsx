@@ -1,7 +1,7 @@
 import {
   clampCampaignRounds,
+  defaultCampaignRounds,
   GAME_OBJECTIVE_LABELS,
-  MAX_CAMPAIGN_ROUNDS,
   MIN_CAMPAIGN_ROUNDS,
   type GameObjective,
 } from 'warp12-engine';
@@ -50,6 +50,8 @@ export interface CampaignRoundsFieldProps {
   value: number;
   onChange?: (rounds: number) => void;
   disabled?: boolean;
+  /** Warp factor — caps campaign length (10 / 13 / 16 / 19). */
+  maxPip?: number;
 }
 
 /** Penalty campaign length — shown when the points objective is selected. */
@@ -57,22 +59,27 @@ export function CampaignRoundsField({
   value,
   onChange,
   disabled = false,
+  maxPip = 12,
 }: CampaignRoundsFieldProps) {
   const readOnly = !onChange;
+  const maxRounds = defaultCampaignRounds(maxPip);
+  const clamped = clampCampaignRounds(value, maxPip);
 
   return (
     <label className={styles.field}>
       <span>
-        Campaign length ({MIN_CAMPAIGN_ROUNDS}–{MAX_CAMPAIGN_ROUNDS} rounds)
+        Campaign length ({MIN_CAMPAIGN_ROUNDS}–{maxRounds} rounds)
       </span>
       <select
         aria-label="Campaign length"
-        value={clampCampaignRounds(value)}
+        value={clamped}
         disabled={disabled || readOnly}
-        onChange={(event) => onChange?.(clampCampaignRounds(Number(event.target.value)))}
+        onChange={(event) =>
+          onChange?.(clampCampaignRounds(Number(event.target.value), maxPip))
+        }
       >
         {Array.from(
-          { length: MAX_CAMPAIGN_ROUNDS - MIN_CAMPAIGN_ROUNDS + 1 },
+          { length: maxRounds - MIN_CAMPAIGN_ROUNDS + 1 },
           (_, index) => MIN_CAMPAIGN_ROUNDS + index
         ).map((rounds) => (
           <option key={rounds} value={rounds}>

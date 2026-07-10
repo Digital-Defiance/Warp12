@@ -101,7 +101,7 @@
     "preview:bridge": "vite preview --config apps/Warp12/vite.config.mts",
     "tauri:dev": "cd apps/Warp12 && ../../node_modules/.bin/tauri dev",
     "tauri:build": "cd apps/Warp12 && ../../node_modules/.bin/tauri build",
-    "tauri:icon": "cd apps/Warp12 && ../../node_modules/.bin/tauri icon public/W12-1-1.png",
+    "tauri:icon": "cd apps/Warp12 && ../../node_modules/.bin/tauri icon public/W-1-1.png",
     "sync:ios-icons": "/usr/bin/env bash scripts/sync-ios-icons.sh",
     "sync:android-icons": "/usr/bin/env bash scripts/sync-android-icons.sh",
     "sync:ort-wasm": "/usr/bin/env bash scripts/sync-ort-wasm.sh",

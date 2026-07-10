@@ -1,4 +1,4 @@
-import { DEFAULT_CAMPAIGN_ROUNDS, DEFAULT_GAME_OBJECTIVE, type GameObjective } from 'warp12-engine';
+import { defaultCampaignRounds, DEFAULT_GAME_OBJECTIVE, type GameObjective } from 'warp12-engine';
 
 import type { CreateLobbyOptions } from '../firebase';
 import type { PublicCharterView } from '../firebase/charter-service.js';
@@ -168,9 +168,10 @@ export function LobbyForm({
         <fieldset className={styles.fieldset}>
           <legend>Campaign length</legend>
           <CampaignRoundsField
-            value={createOptions.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS}
+            value={createOptions.campaignRounds ?? defaultCampaignRounds(maxPip)}
             onChange={setCampaignRounds}
             disabled={baseDisabled || charterLocked}
+            maxPip={maxPip}
           />
         </fieldset>
       )}

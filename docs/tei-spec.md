@@ -1,14 +1,14 @@
 # TEI Specification (Tactical Effectiveness Index)
 
 **Version:** 1.4 (v2 rules profile + neural Class II — 2026-07)  
-**Status:** Normative — interoperable definition for Warp 12 and third-party Mexican Train platforms  
+**Status:** Normative — interoperable definition for Warp 12 and third-party multi-trail / Interstellar Dominoes platforms  
 **Reference implementation:** `apps/Warp12/src/firebase/stats-elo.ts`, `functions/src/tei/stats-elo.ts` (Warp 12 v1.4)
 
 ---
 
 ## 1. Purpose
 
-TEI is a **skill rating system** for Mexican Train / Warp 12 captains. It answers:
+TEI is a **skill rating system** for Interstellar Dominoes / Warp 12 captains. It answers:
 
 1. How strong is this captain on the **points** track (lowest campaign pip total wins)?
 2. How strong is this captain on the **go-out** track (first empty hand wins the sector)?

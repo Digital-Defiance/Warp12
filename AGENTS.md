@@ -1,4 +1,4 @@
-# Warp 12 — Agent Guide
+# Warp — Agent Guide
 
 Canonical instructions for AI assistants (Kiro, Cursor, Copilot, Codex, etc.) working in this repo. This is the single source of truth; tool-specific configs (`.kiro/steering/`, `.cursor/rules/`) just point here.
 
@@ -6,7 +6,7 @@ Canonical instructions for AI assistants (Kiro, Cursor, Copilot, Codex, etc.) wo
 
 ## 1. Product
 
-Warp is a multiplayer, federation-themed variant of Mexican Train dominoes across **Warp factors 9 / 12 / 15 / 18** (double-N sets). It ships as a web app (warp.iwdf.org) and as a Tauri desktop/mobile app (macOS, iOS, Android). Rules are standard tournament Mexican Train reskinned with federation terminology, plus opt-in modules.
+Warp is multiplayer, federation-themed **multi-trail Interstellar Dominoes** across **Warp factors 9 / 12 / 15 / 18** (double-N sets). It ships as a web app (warp.iwdf.org) and as a Tauri desktop/mobile app (macOS, iOS, Android). Core play follows widely published multi-trail tournament practice, reskinned with federation terminology, plus opt-in modules.
 
 - Games are **sectors/missions**; players are **Captains**; the host runs a **fleet** (size capped by Warp factor: 4 / 8 / 12 / 18).
 - Two objectives, chosen before launch:
@@ -15,7 +15,7 @@ Warp is a multiplayer, federation-themed variant of Mexican Train dominoes acros
 - **TEI** = the Elo-like leaderboard rating — **Warp 12 only**. Warp 9 / 15 / 18 are **exhibition** (unrated). Independent **Go-out** and **Points** tracks, each split by AI **Tactical Class** (IV / III / II). Solo unassisted matches and online human-pool sectors are rated on double-12. Using the tactical advisor disqualifies a match from TEI. Online sectors are auto-rated (context B: humans anchored against Class II–IV AI) when all human seats are verified, no Class I\* is aboard, the host opts in (rated=true), maxPip is 12, and no captain used the advisor. The host may toggle **Rated sector** before launch on Warp 12; casual / exhibition sectors never update TEI.
 - **Subspace messaging** = in-game comms. Quick-phrase hails (five category groups) are always available. Free-form text + DMs are allowed in the lobby, casual active play, and post-game — but restricted to hails only during live rated play to prevent collusion. Per-user mute and rate-limiting are client-enforced; comms rules are also enforced server-side via Firestore security rules.
 
-Authoritative rules: `RULES.md` (Sections I–V = standard Mexican Train, VI = modules + Official Warp 12 preset, VII = AI/advisor, VIII = TEI/leaderboard, IX = Subspace messaging). Full architecture/setup: `README.md`.
+Authoritative rules: `RULES.md` (Sections I–V = multi-trail core, VI = modules + Official Warp preset, VII = AI/advisor, VIII = TEI/leaderboard, IX = Subspace messaging). Full architecture/setup: `README.md`.
 
 ---
 
@@ -113,13 +113,13 @@ Deterministic, immutable rules engine. **Never mutate state in place** — pure 
 - `domino/coordinates.ts` — tile model.
 - `ai/` — `create-warp-ai.ts`, heuristics, skill/tactical-class profiles, lookahead, ISMCTS, advisor (`explain-*`), Class I* neural (`class1-star-policy.ts`, `feature-encoder.ts`, `residual-scorer.ts`), calibration/self-play, `fleet-admiral.ts`.
 
-### Federation lexicon (standard term → Warp 12)
-| Standard | Warp 12 |
+### Federation lexicon (multi-trail → Warp)
+| Multi-trail | Warp |
 |---|---|
 | Domino | Navigational Coordinate |
 | Engine/station double | Spacedock |
 | Personal train | Warp Trail |
-| Mexican Train | Neutral Zone |
+| Community / public train | Neutral Zone |
 | Train marker | Distress Beacon (Shields Down) |
 | Boneyard | Uncharted Sectors |
 

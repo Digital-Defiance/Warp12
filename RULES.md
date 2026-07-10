@@ -1,35 +1,42 @@
-# WARP 12: Navigational Operations Manual
+# WARP/WARP 12: Navigational Operations Manual
 
-*A double-twelve Mexican Train variant, with federation terminology.*
+*Multi-trail Interstellar Dominoes, with federation terminology.*
+
+### Warp vs Warp 12
+
+Our app was initially only targeted at Double Twelve dominoes and was simply called Warp 12, befitting that scope. We then expanded the domino set capabilities to be able to play double 9 through 18 and in many places the game became known just as Warp or Warp Dominoes.
+
+As an aside, we like Warp 12- it has a certain ring to it.
 
 ### A note on "official" rules
 
-Unlike chess, Mexican Train dominoes has no governing body and no single canonical ruleset. Almost every published source, commercial app, and family table differs on the details — hand sizes, the value of the blank, when a train opens, how doubles are handled, and dozens of optional variants. There is no authority to appeal to; there is only common practice.
+Unlike chess, multi-trail dominoes originally had no governing body and no single canonical ruleset. Almost every published source, commercial app, and family table differs on the details — hand sizes, the value of the blank, when a train opens, how doubles are handled, and dozens of optional variants. There was no authority to appeal to; there was only common practice.
 
-Warp 12 does not claim otherwise. We have studied the most widely cited sources and tournament-style conventions and tried to stay true to the *spirit* of authentic Mexican Train, while making deliberate, documented choices wherever those sources disagree. The result is meant to be two things at once:
+While Warp does not claim otherwise, we have formed the Interstellar Warp Dominoes Federation to be a fun semi-fictional authority. We have studied the most widely cited sources and tournament-style conventions and tried to stay true to the *spirit* of authentic multi-trail play, while making deliberate, documented choices wherever those sources disagree. The result is meant to be three things at once:
 
 - **A faithful, flexible base.** The most common variations are supported as configurable options, so you can tune a table toward whatever "standard" your group grew up with.
-- **An opinionated house standard.** The **Official Warp 12 rules** preset (Section VI) bundles our recommended choices and adds a little fun on top — much as other domino publishers have shaped their own signature editions.
+- **An opinionated house standard.** The **Official Warp rules** preset (Section VI) bundles our recommended choices and adds a little fun on top — much as other domino publishers have shaped their own signature editions.
+- **A fun, but elevated and refined experience.** Warp combines the frantic action of "Mexican Train" dominoes with the decorum of the space academy and the refined future envisioned by so many science fiction authors.
 
-Where this manual says "standard" or "tournament practice," read it as *the common convention Warp 12 has chosen to adopt*, not a claim of sanctioned authority. This is our best attempt to honor the game, cover the popular variants, and establish a Warp 12 standard worth playing.
+Where this manual says "standard" or "tournament practice," read it as *the common multi-trail convention Warp has chosen to adopt* for members/players of the IWDF, not a claim of sanctioned authority across "Mexican Train" as a whole. This is our best attempt to honor the game, cover the popular variants, and establish a Warp standard worth playing. This is the IWDF Warp standard, but is by no means an authoritative standard beyond Warp players.
 
-This document is the authoritative rules reference **for Warp 12**. **Sections I–V** follow widely published Mexican Train practice (double-twelve set, engine double set aside before the deal, personal trains, Mexican Train / Neutral Zone, train markers, doubles, boneyard, multi-round scoring). **Section VI** lists optional Warp 12 modules and the **Official Warp 12 rules** recommended preset.
+This document is the authoritative rules reference **for Warp** (and Warp only). **Sections I–V** follow widely published multi-trail practice (double-twelve set, engine double set aside before the deal, personal trains, community / Neutral Zone train, train markers, doubles, boneyard, multi-round scoring). **Section VI** lists optional Warp modules and the **Official Warp rules** recommended preset.
 
-> **Digital implementation note:** Warp 12 enforces these rules in software. Setup defaults to **Official Warp 12 rules** (Section VI); hosts may change any toggle before launch. This manual describes behavior when modules are **on** or **off** as stated in each section. **Section VII** describes AI officers and the tactical advisor; **Section VIII** describes solo TEI and the public leaderboard (digital play only). The app also offers **Warp 9 / 15 / 18** as **exhibition** (unrated) sets — see Section II.
+> **Digital implementation note:** Warp enforces these rules in software. Setup defaults to **Official Warp rules** (Section VI); hosts may change any toggle before launch. This manual describes behavior when modules are **on** or **off** as stated in each section. **Section VII** describes AI officers and the tactical advisor; **Section VIII** describes solo TEI and the public leaderboard (digital play only). The app also offers **Warp 9 / 15 / 18** as **exhibition** (unrated) sets — see Section II.
 
 ---
 
 ## The Captain's Oath — Honor of the Fleet
 
-Warp 12 has no referees. Like the living-room Mexican Train tables it descends from, it runs on the honor of the people at the table — and on an older ideal, the one every officer sworn to explore the deep black knows by heart: that *how* you serve matters as much as whether you win.
+Warp has no referees. Like the living-room multi-trail tables it descends from, it runs on the honor of the people at the table — and on an older ideal, the one every officer sworn to explore the deep black knows by heart: that *how* you serve matters as much as whether you win.
 
 Every captain who takes the conn is expected to hold the line:
 
 - **We play with Honor.** A clean win is the only win worth logging. We do not cheat, exploit bugs, or manipulate a match to move a rating.
-- **We use sanctioned code.** Rated play runs on the official Warp 12 build and its published engine. We do not tamper with the client, spoof results, or automate our turns.
+- **We use sanctioned code.** Rated play runs on the official Warp build and its published engine. We do not tamper with the client, spoof results, or automate our turns.
 - **We earn our rating.** TEI reflects genuine, unassisted skill. We do not farm it against weak opponents, collude to feed it, or sandbag to protect it.
 - **We keep the pool clean.** If we witness cheating, we name it and report it. Guarding the integrity of the leaderboard is every captain's duty, not the fleet's alone.
-- **We respect the table.** Opponents, AI officers, and hosts all deserve a fair match, played to its finish.
+- **We respect the table.** Opponents, AI officers, and hosts all deserve a fair match, played to its finish. Chatter is kept appropriate for officers on the bridge.
 
 A rated sector is a matter of record — treat it like one. Only sanctioned builds and eligible matches are ever rated; an unrated table carries no standings, but it carries the same courtesy. Play like it matters, because to a captain worth the uniform, it always does.
 
@@ -41,19 +48,19 @@ Fleet command chooses one objective before the sector opens:
 
 | Mode | Goal |
 | --- | --- |
-| **Points campaign** *(standard)* | Thirteen rounds — Spacedock descends **12-12** through **0-0**. Lowest **cumulative points total** wins the campaign. |
+| **Points campaign** *(standard)* | Thirteen rounds — Spacedock descends from the highest double (eg **12-12**) through **0-0**. Lowest **cumulative points total** wins the campaign. |
 | **Go out** | First captain to empty their hand in a single round wins the sector immediately (no thirteen-round tally). |
 
 ---
 
 ## I. Operations lexicon
 
-| Mexican Train | Warp 12 |
+| Multi-trail | Warp |
 | --- | --- |
 | Dominoes | **Navigational Coordinates** |
 | Engine / station double | **Spacedock** |
 | Personal train | **Warp Trail** |
-| Mexican Train | **Neutral Zone** |
+| Community / public train | **Neutral Zone** |
 | Train marker | **Distress Beacon** *(Shields Down)* |
 | Boneyard | **Uncharted Sectors** |
 | — | **Red Alert** — a double must be satisfied before normal play continues (cover tile, or stabilizers when Subspace Fracture applies) |
@@ -66,7 +73,7 @@ Fleet command chooses one objective before the sector opens:
 
 ## II. Mission setup
 
-Setup matches standard double-twelve Mexican Train:
+Setup matches standard double-twelve multi-trail practice:
 
 1. **Scramble** all 91 coordinates face down.
 2. **Set aside Spacedock** before dealing — **12-12** (round 1), **11-11** (round 2), … **0-0** (round 13). This tile is **not** dealt.
@@ -78,18 +85,18 @@ Setup matches standard double-twelve Mexican Train:
    | 5–6 | 12 |
    | 7–8 | 10 *(default; host may set 11 — see below)* |
 
-   > **Large fleet hand size (7–8 captains).** This is the one setup value where widely published rule sets genuinely disagree: Masters of Games and most modern/commercial sets deal **10**, while Galt (1994) and University Games deal **11**. Warp 12 defaults to **10** (it leaves a healthier Uncharted Sectors pile — 10 tiles at 8 captains versus only 2 at 11) and lets the host opt into **11** on the setup screen. It has no effect below 7 captains.
+   > **Large fleet hand size (7–8 captains).** This is the one setup value where widely published rule sets genuinely disagree: Masters of Games and most modern/commercial sets deal **10**, while Galt (1994) and University Games deal **11**. Warp defaults to **10** (it leaves a healthier Uncharted Sectors pile — 10 tiles at 8 captains versus only 2 at 11) and lets the host opt into **11** on the setup screen. It has no effect below 7 captains.
 
 4. **Place Spacedock** in the center.
 5. **Uncharted Sectors** — all remaining tiles face down.
 
 **Round starter:** Round 1 opener is designated by fleet command (typically the host). Each later round, the starter rotates clockwise. The starter charts first; Spacedock was still set aside before the deal.
 
-**Optional modules** (Section VI) and **Subspace Fracture** must be agreed before launch. Digital setup defaults to the **Official Warp 12 rules** preset (see Section VI). Hosts can change any toggle before launch.
+**Optional modules** (Section VI) and **Subspace Fracture** must be agreed before launch. Digital setup defaults to the **Official Warp rules** preset (see Section VI). Hosts can change any toggle before launch.
 
 ### Exhibition sets *(digital — Warp 9 / 15 / 18)*
 
-Sections I–V above describe the **double-twelve** game. The digital app also supports larger and smaller Mexican Train sets as **exhibition** sectors — same protocols, different bone count and fleet caps. These never update TEI (Section VIII).
+Sections I–V above describe the **double-twelve** game. The digital app also supports larger and smaller multi-trail sets as **exhibition** sectors — same protocols, different bone count and fleet caps. These never update TEI (Section VIII).
 
 | Factor | Set | Tiles | Fleet | Points campaign |
 | --- | --- | --- | --- | --- |
@@ -142,7 +149,7 @@ Deploy your beacon when — and **only** when — you cannot make a legal chart 
 
 - **Shields Down:** While your beacon is active, other captains may chart on your Warp Trail.
 - **Shields Up:** Your beacon is removed **automatically** when **you** chart on **your own** Warp Trail. Charting on the Neutral Zone or another captain's trail leaves your beacon active.
-- **You cannot** deploy a beacon voluntarily while you still have a legal chart elsewhere. *(Standard Mexican Train — no “strategic pass.”)* With **Manual shield control** (Section VI), you may drop shields voluntarily after starting your own trail — see that house rule.
+- **You cannot** deploy a beacon voluntarily while you still have a legal chart elsewhere. *(Standard multi-trail — no “strategic pass.”)* With **Manual shield control** (Section VI), you may drop shields voluntarily after starting your own trail — see that house rule.
 - **Passing:** If your beacon is already up, you cannot chart, and Uncharted Sectors are empty, you may **pass** your turn without charting; your beacon stays up.
 
 ### Red Alert pass
@@ -179,7 +186,7 @@ Captain B still holds **one tile** and later charts it legally, emptying B's han
 - **Dead double:** If every tile in the set containing that pip is already charted (all thirteen tiles showing that number in a double-twelve set), the double cannot be satisfied — Red Alert ends and normal play resumes.
 - Covering a double on another captain's open trail **does not** clear their Distress Beacon.
 
-**One double at a time.** Warp 12 resolves doubles one at a time: chart a double, satisfy it (cover tile, or three stabilizers under Subspace Fracture), and your turn ends. Because a cover must match the double's pip and no other double shares that pip, a cover is always a non-double — you never chain into a fresh Red Alert, and you do not play multiple doubles in a single turn. (Some casual house rules let a captain lay several doubles in one turn as long as the last is covered by a non-double; Warp 12 follows the tournament-style single-double resolution instead.)
+**One double at a time.** Warp resolves doubles one at a time: chart a double, satisfy it (cover tile, or three stabilizers under Subspace Fracture), and your turn ends. Because a cover must match the double's pip and no other double shares that pip, a cover is always a non-double — you never chain into a fresh Red Alert, and you do not play multiple doubles in a single turn. (Some casual house rules let a captain lay several doubles in one turn as long as the last is covered by a non-double; Warp follows the tournament-style single-double resolution instead.)
 
 ### Yellow alert and Red Alert *(digital status)*
 
@@ -221,11 +228,11 @@ The round ends when one captain charts their **last** coordinate (empty hand) **
 
 **All Stop!** When the house rule is **on** (default), a round-winning chart on the **Neutral Zone** — or any go-out while **All Stop! echo** is active — ends the sector immediately and the app **automatically** logs and announces **All Stop!** (sound + round log). No helm hold and no manual button.
 
-Turn **All Stop! ceremony** off in game options for pure standard Mexican Train: Neutral Zone go-outs end the round silently, with no announcement.
+Turn **All Stop! ceremony** off in game options for pure standard multi-trail play: Neutral Zone go-outs end the round silently, with no announcement.
 
 **All Stop! echo** (Continuum Flash Module Alpha): when active, **any** round-winning chart triggers the same auto ceremony when the house rule is on.
 
-**Drop to Impulse** *(house rule — off by default)*: when a captain charts down to **one** coordinate remaining, they are **at impulse** — their turn **continues**, but they **cannot chart again** on that turn. This matches standard Mexican Train **knock**: reaching one tile does not let you silently play that last coordinate.
+**Drop to Impulse** *(house rule — off by default)*: when a captain charts down to **one** coordinate remaining, they are **at impulse** — their turn **continues**, but they **cannot chart again** on that turn. This matches standard multi-trail **knock**: reaching one tile does not let you silently play that last coordinate.
 
 They must **Drop to Impulse!** (announce and **pass helm** with one tile still in hand) or **pass** without announcing and risk a **catch**. On a **later** turn they may chart their last coordinate under normal rules — including going out when the hand empties.
 
@@ -235,13 +242,13 @@ If they **cannot play** their last coordinate and **draw** from Uncharted Sector
 
 ### Blocked sector
 
-If Uncharted Sectors are empty and **no captain** can make a legal chart (after dead doubles are resolved), the round ends **without** a domino winner. **Every** captain scores the pip total of tiles in hand — no exempt captain. All table tiles, hands, and any remaining pile are shuffled for the next round's deal (standard Mexican Train recycle — trails are not trimmed to open ends).
+If Uncharted Sectors are empty and **no captain** can make a legal chart (after dead doubles are resolved), the round ends **without** a domino winner. **Every** captain scores the pip total of tiles in hand — no exempt captain. All table tiles, hands, and any remaining pile are shuffled for the next round's deal (standard multi-trail recycle — trails are not trimmed to open ends).
 
 ### Round scoring *(points campaign)*
 
 When a round ends with a winner, every **other** captain totals pip values in hand and adds that to their campaign score. The round winner scores **0** for that round.
 
-**Double-blank (0-0):** a double-blank caught in hand scores by the **Double-blank score** setting — **50** (tournament standard, the default for hand-built rule sets), **25**, or **0** (pips). The **Official Warp 12 rules** preset uses **0** so the 0-0 stays safe to hold as the Continuum trigger (Module Alpha). This is independent of the Salamander Penalty, which only affects **12-12**.
+**Double-blank (0-0):** a double-blank caught in hand scores by the **Double-blank score** setting — **50** (tournament standard, the default for hand-built rule sets), **25**, or **0** (pips). The **Official Warp rules** preset uses **0** so the 0-0 stays safe to hold as the Continuum trigger (Module Alpha). This is independent of the Salamander Penalty, which only affects **12-12**.
 
 **Next round:** Spacedock steps down one double (12-12 → 11-11 → … → 0-0). After round 13, lowest cumulative points total wins.
 
@@ -255,7 +262,7 @@ The app does this automatically at round end and shows a summary before the next
    - A **double counts both halves**: `9-9` = **18**, `12-12` = **24**.
    - Add every tile in the hand to get that captain's **round score**.
 3. **Apply special-tile settings** (if enabled — see Section VI):
-   - **Double-blank (0-0):** scored by the **Double-blank score** setting — **50** (tournament standard, the default for hand-built rule sets), **25**, or **0** (its 0 pips). The **Official Warp 12 rules** preset uses **0**.
+   - **Double-blank (0-0):** scored by the **Double-blank score** setting — **50** (tournament standard, the default for hand-built rule sets), **25**, or **0** (its 0 pips). The **Official Warp rules** preset uses **0**.
    - **Salamander Penalty (Module Beta):** a held **12-12** scores **double — 48** (from round 2 onward). See **Section VI → Module Beta**. It affects only the 12-12 tile.
 4. **Add to the campaign total.** Add each captain's round score to their running cumulative total. Lower is better.
 5. **Advance the round.** Step Spacedock down one double (`12-12 → 11-11 → … → 0-0`), re-deal, and play the next round. There are **13 rounds** in a full points campaign.
@@ -269,15 +276,15 @@ The app does this automatically at round end and shows a summary before the next
 
 ## VI. Optional directives and variants
 
-*Agree before launch. Unless noted, these are **not** part of standard Mexican Train tournament practice — though **Sections I–V** (trains, marker, draw, doubles, scoring) still apply underneath.*
+*Agree before launch. Unless noted, these are **not** part of standard multi-trail tournament practice — though **Sections I–V** (trails, marker, draw, doubles, scoring) still apply underneath.*
 
-### Official Warp 12 rules *(recommended preset)*
+### Official Warp rules *(recommended preset)*
 
-This is the **encouraged default** for Warp 12 — living-room tables, online sectors, and any future **Warp 12–branded** play. It is **not** a claim of sanctioned third-party tournament rules; it is the rules bundle this project recommends when you want the full Warp 12 experience without assembling toggles by hand.
+This is the **encouraged default** for Warp — living-room tables, online sectors, and any future **Warp–branded** play. It is **not** a claim of sanctioned third-party tournament rules; it is the rules bundle this project recommends when you want the full Warp experience without assembling toggles by hand.
 
-In the app, choose **Official Warp 12 rules** on the setup screen (or accept the defaults). Everything in **Sections I–V** applies; the preset only turns on the extras below.
+In the app, choose **Official Warp rules** on the setup screen (or accept the defaults). Everything in **Sections I–V** applies; the preset only turns on the extras below.
 
-| Setting | Official Warp 12 preset |
+| Setting | Official Warp preset |
 | --- | --- |
 | **Module Alpha — Continuum** | **On** |
 | **Module Beta — Salamander Penalty** | **On** |
@@ -292,7 +299,7 @@ In the app, choose **Official Warp 12 rules** on the setup screen (or accept the
 
 Hosts may mix and match any toggle; the preset is a one-click reset to the recommended bundle.
 
-### Subspace Fracture *(chicken foot — off in Official Warp 12 preset)*
+### Subspace Fracture *(chicken foot — off in Official Warp preset)*
 
 When **enabled**, choose a **fracture scope** before launch:
 
@@ -316,7 +323,7 @@ When Subspace Fracture is **off**, doubles use **Red Alert only** (one cover til
 
 **Fracture immunity** (Continuum Flash Module Alpha): the next double on your own trail opens Red Alert but **does not** open Subspace Fracture (regardless of scope).
 
-### House rules *(Deluxe-style — off in Official Warp 12 preset)*
+### House rules *(Deluxe-style — off in Official Warp preset)*
 
 Hosts may enable any combination before launch.
 
@@ -330,7 +337,7 @@ Hosts may enable any combination before launch.
 | **Pass Red Alert without draw or beacon** | Only the captain who **charted the double** gets this break, and only while the alert is still in **Yellow alert** (before it has passed to anyone). If they cannot cover their own double, they may pass responsibility to the next captain **without drawing** from Uncharted Sectors and **without** deploying their Distress Beacon. Red Alert then proceeds normally: every other captain — and the original captain when it cycles back to them — must follow standard rules (draw when tiles remain, deploy the beacon on pass). |
 | **Manual shield control** | Replaces the automatic "shields rise when you chart your own trail" behavior with manual control, all **during** your turn (never between turns). **Open (Shields down):** you may open your own Warp Trail at any time, for any reason — even with legal plays in hand and even before you've started your trail. **Close (Shields up):** after you drop shields you must chart at least one tile on **your own** Warp Trail before you may raise them again (that own-trail chart may be this turn or a later one); charting your own trail does **not** auto-raise. **One shield change per turn** — a single open **or** a single close, never both and never repeated. Shield changes never pass helm on their own; adjust, then chart or **Pass**. Standard draw/marker rules still apply when you cannot chart (a forced marker after a failed draw ends your turn). |
 
-### Module Alpha — The Continuum *(on in Official Warp 12 preset)*
+### Module Alpha — The Continuum *(on in Official Warp preset)*
 
 When **enabled**, charting **0-0 on your own Warp Trail** triggers a **Continuum Flash** before helm passes. That captain immediately chooses **one** directive for the rest of the round (cleared when the sector scores):
 
@@ -348,7 +355,7 @@ When **enabled**, charting **0-0 on your own Warp Trail** triggers a **Continuum
 
 0-0 charted on the Neutral Zone or an opponent's trail does **not** trigger Continuum Flash. A winning 0-0 on your own trail still requires Continuum Flash resolution before the sector can close.
 
-### Module Beta — The Salamander Penalty *(on in Official Warp 12 preset)*
+### Module Beta — The Salamander Penalty *(on in Official Warp preset)*
 
 If a round ends and a captain holds **12-12** in hand, that tile scores **double its pips — 48** (its normal both-ends value is 24). Round 1 never applies (12-12 is Spacedock). From round 2 onward, 12-12 is in circulation.
 
@@ -389,7 +396,7 @@ When **Lookahead** is **off**, the officer uses a fast **greedy** policy: score 
 
 When **Lookahead** is **on**, the officer **forward-searches** before acting:
 
-1. For each candidate move, it runs the move through the **real Warp 12 rules engine** a few turns ahead.
+1. For each candidate move, it runs the move through the **real Warp rules engine** a few turns ahead.
 2. Because opponent hands and the draw order are hidden, each simulation **guesses** plausible holdings: opponents receive a random assignment from the pool of tiles not on the table and not in the AI's hand, while preserving each opponent's **actual hand count**. Uncharted Sectors are filled from the same unseen pool.
 3. The search repeats that guess several times (**determinizations**), averages the outcomes, and picks the move that tends to work best across those possible worlds.
 
@@ -415,7 +422,7 @@ The same Ω neural weights can run with **extended thinking** — Commander-free
 
 Local solo sectors against **AI officers** can report results to **[iwdf.org](https://iwdf.org)** when the client is signed in to Firebase. Team campaigns, unrated lobby modes, and builds without a working stats backend do not update the public boards.
 
-Warp 12 keeps **three rating contexts**, each split into **Go-out** and **Points** tracks:
+Warp keeps **three rating contexts**, each split into **Go-out** and **Points** tracks:
 
 - **Solo pool** — unassisted matches against reference AI officers (Class IV / III / II).
 - **Human pool** — online sectors and officiated matches **without** a crew charter (global `humanTei`).
@@ -437,7 +444,7 @@ When the sector ends, every signed-in captain's TEI is updated with a single pai
 
 ### Crews & charters (group TEI)
 
-A **crew** is a persistent friend group with a **charter** — a frozen contract: Official Warp 12 rules (`warp12-official-v1`), objective (Points or Go-out), fleet size (2–8), and campaign length. When a rated match or online sector is played **under a crew charter**, TEI updates go to that crew's ladder (`groupTei`), not the global human pool.
+A **crew** is a persistent friend group with a **charter** — a frozen contract: Official Warp rules (`warp12-official-v1`), objective (Points or Go-out), fleet size (2–8), and campaign length. When a rated match or online sector is played **under a crew charter**, TEI updates go to that crew's ladder (`groupTei`), not the global human pool.
 
 - **Create / join** at [iwdf.org/crews](https://iwdf.org/crews). **Google sign-in required.** No shared crew passwords — invite links only (owner can rotate).
 - **Officiated nights:** the match official selects the crew when creating an `MT-` code. All checked-in captains must be crew members. Approval moves **crew TEI only**.
@@ -473,7 +480,7 @@ Before your first rated match in each track, the app asks for a **tactical class
 | Class | Self-description | Points TEI band | Go-out TEI band |
 | --- | --- | --- | --- |
 | **Class IV** | New to dominoes | 400–1050 | 400–1125 |
-| **Class III** | Knows Mexican Train | 1050–1300 | 1125–1375 |
+| **Class III** | Knows multi-trail | 1050–1300 | 1125–1375 |
 | **Class II** | Seasoned strategist | 1300–1800 | 1375–1800 |
 
 ### Fixed opponent reference TEI
@@ -572,11 +579,11 @@ The host can opt out of rating at any time before launch by unchecking **Rated s
 
 ---
 
-## Quick reference — standard vs Warp 12 extras
+## Quick reference — standard vs Warp extras
 
-**Official Warp 12 rules** (recommended preset) — see **Section VI** — enables Continuum, Salamander, Drop to Impulse (1-tile catch), and All Stop! ceremony on standard **Sections I–V** gameplay.
+**Official Warp rules** (recommended preset) — see **Section VI** — enables Continuum, Salamander, Drop to Impulse (1-tile catch), and All Stop! ceremony on standard **Sections I–V** gameplay.
 
-| Rule | Standard Mexican Train | Warp 12 |
+| Rule | Standard multi-trail | Warp |
 | --- | --- | --- |
 | Train marker when stuck | Required | Distress Beacon — same |
 | Voluntary marker while able to play | **No** | **No** (unless **Manual shield control** — own trail required) |
@@ -588,11 +595,11 @@ The host can opt out of rating at any time before launch by unchecking **Rated s
 | NZ after all trails | Optional Deluxe variant | House rule — opt-in |
 | Beacon clears on any play | Optional Deluxe variant | House rule — opt-in |
 | Round starter plays two | Optional Deluxe variant | House rule — opt-in |
-| 0-0 anomaly | — | Continuum — Official Warp 12 preset |
-| 12-12 Salamander Penalty | — | Salamander — Official Warp 12 preset |
-| NZ win announcement | — | All Stop! ceremony — Official Warp 12 preset |
-| One tile left announce | — | Drop to Impulse — Official Warp 12 preset (1-tile catch) |
-| Double-blank (0-0) score | 50 (tournament standard) | Setup option 50 / 25 / 0 — Official Warp 12 preset uses 0 (Continuum trigger) |
+| 0-0 anomaly | — | Continuum — Official Warp preset |
+| 12-12 Salamander Penalty | — | Salamander — Official Warp preset |
+| NZ win announcement | — | All Stop! ceremony — Official Warp preset |
+| One tile left announce | — | Drop to Impulse — Official Warp preset (1-tile catch) |
+| Double-blank (0-0) score | 50 (tournament standard) | Setup option 50 / 25 / 0 — Official Warp preset uses 0 (Continuum trigger) |
 | Blocked boneyard | Round ends, all score | Blocked sector — same |
 | AI officers / tactical advisor | — | Section VII — digital only |
 | Solo TEI vs AI | — | Section VIII — iwdf.org; unassisted matches only |
