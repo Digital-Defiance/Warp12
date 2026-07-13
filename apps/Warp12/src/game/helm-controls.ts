@@ -4,8 +4,11 @@ import {
   canPassRedAlert,
   canPassTurn,
   canRaiseShieldsManually,
+  getSpoolOptions,
+  type GameState,
   type HouseRules,
   type RoundState,
+  type SpoolOption,
 } from 'warp12-engine';
 
 export interface HelmControls {
@@ -14,6 +17,7 @@ export interface HelmControls {
   showShieldsUp: boolean;
   showPassRedAlert: boolean;
   showPass: boolean;
+  spoolOptions: readonly SpoolOption[];
 }
 
 /** Which helm control buttons should appear for the active captain. */
@@ -24,6 +28,7 @@ export function resolveHelmControls(input: {
   houseRules: HouseRules;
   dropToImpulsePending: boolean;
   legalMovesCount: number;
+  gameState?: GameState;
 }): HelmControls {
   const {
     round,
@@ -32,6 +37,7 @@ export function resolveHelmControls(input: {
     houseRules,
     dropToImpulsePending,
     legalMovesCount,
+    gameState,
   } = input;
 
   if (!round || !isMyTurn) {
@@ -41,8 +47,14 @@ export function resolveHelmControls(input: {
       showShieldsUp: false,
       showPassRedAlert: false,
       showPass: false,
+      spoolOptions: [],
     };
   }
+
+  // Get spool options if Module Delta is enabled
+  const spoolOptions = gameState
+    ? getSpoolOptions(gameState, round, handOwnerId, houseRules)
+    : [];
 
   return {
     showDraw: canDrawFromUncharted(round, handOwnerId, houseRules),
@@ -50,5 +62,6 @@ export function resolveHelmControls(input: {
     showShieldsUp: canRaiseShieldsManually(round, handOwnerId, houseRules),
     showPassRedAlert: canPassRedAlert(round, handOwnerId, { houseRules }),
     showPass: canPassTurn(round, handOwnerId, { houseRules }),
+    spoolOptions,
   };
 }

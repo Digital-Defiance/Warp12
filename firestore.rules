@@ -90,12 +90,12 @@ service cloud.firestore {
     }
 
     function ratedStatsFieldsUnchanged() {
-      return request.resource.data.get('humanTei', null) == resource.data.get('humanTei', null)
+      return request.resource.data.get('humanRating', null) == resource.data.get('humanRating', null)
         && request.resource.data.get('humanRatedGameIds', null) == resource.data.get('humanRatedGameIds', null)
-        && request.resource.data.get('groupTei', null) == resource.data.get('groupTei', null)
+        && request.resource.data.get('groupRating', null) == resource.data.get('groupRating', null)
         && request.resource.data.get('groupRatedIds', null) == resource.data.get('groupRatedIds', null)
         && request.resource.data.get('localAi', null) == resource.data.get('localAi', null)
-        && request.resource.data.get('startingTei', null) == resource.data.get('startingTei', null)
+        && request.resource.data.get('startingRating', null) == resource.data.get('startingRating', null)
         && request.resource.data.get('matchHistory', null) == resource.data.get('matchHistory', null)
         && request.resource.data.get('matchesCompleted', null) == resource.data.get('matchesCompleted', null)
         && request.resource.data.get('matchesWon', null) == resource.data.get('matchesWon', null)
@@ -113,13 +113,13 @@ service cloud.firestore {
     function clientStatsCreate() {
       return request.resource.data.uid == uid
         && !request.resource.data.keys().hasAny([
-          'humanTei',
+          'humanRating',
           'humanRatedGameIds',
-          'groupTei',
+          'groupRating',
           'groupRatedIds',
           'localAi',
           'matchHistory',
-          'startingTei',
+          'startingRating',
           'lastPlayedAt'
         ])
         && request.resource.data.get('matchesCompleted', 0) == 0

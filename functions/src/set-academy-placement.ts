@@ -1,9 +1,10 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import { defaultAcademyTei, type WarpSkillLevel } from 'warp12-engine';
+import { getAIAnchor, type WarpSkillLevel } from 'warp12-engine';
 
 import { requireVerifiedUser } from './auth';
 import { objectiveTeiKey, type RatedObjective } from './tei/rated-match-schema';
+import { toStoredRating } from './tei/rating-types.js';
 
 const db = admin.firestore();
 
@@ -12,21 +13,31 @@ function needsAcademyPlacement(
   objective: RatedObjective
 ): boolean {
   const key = objectiveTeiKey(objective);
-  if (existing?.startingTei?.[key] !== undefined) {
+  
+  // Check if starting rating already set
+  if (existing?.startingRating?.[key] !== undefined) {
     return false;
   }
-  const localAi = existing?.localAi as Record<string, Record<string, unknown>> | undefined;
+  
+  // Check OpenSkill humanRating field
+  const humanRating = existing?.humanRating as Record<string, { matches?: number }> | undefined;
+  const humanTrack = humanRating?.[key];
+  if ((humanTrack?.matches ?? 0) > 0) {
+    return false;
+  }
+  
+  // Check OpenSkill localAi field  
+  const localAi = existing?.localAi as Record<string, Record<string, { rating?: { matches?: number } }>> | undefined;
   if (localAi) {
     for (const bucket of Object.values(localAi)) {
-      const track = bucket?.[key] as { unassistedMatches?: number } | undefined;
-      if ((track?.unassistedMatches ?? 0) > 0) {
+      const track = bucket?.[key];
+      if ((track?.rating?.matches ?? 0) > 0) {
         return false;
       }
     }
   }
-  const humanTei = existing?.humanTei as Record<string, unknown> | undefined;
-  const humanTrack = humanTei?.[key] as { unassistedMatches?: number } | undefined;
-  return (humanTrack?.unassistedMatches ?? 0) === 0;
+  
+  return true;
 }
 
 /** One-time academy placement — server picks benchmark TEI from class (clients cannot). */
@@ -51,7 +62,11 @@ export const setAcademyPlacement = onCall(async (request) => {
   const ref = db.collection('playerStats').doc(uid);
   const now = new Date().toISOString();
   const key = objectiveTeiKey(data.objective);
-  const benchmarkTei = defaultAcademyTei(data.skill, data.objective);
+  
+  // Get AI anchor rating for the selected skill level
+  const track = data.objective === 'go-out' ? 'goOut' : 'points';
+  const anchorRating = getAIAnchor(track, data.skill);
+  const storedRating = toStoredRating(anchorRating);
 
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
@@ -64,9 +79,9 @@ export const setAcademyPlacement = onCall(async (request) => {
       );
     }
 
-    const startingTei = {
-      ...((existing?.startingTei as Record<string, number>) ?? {}),
-      [key]: benchmarkTei,
+    const startingRating = {
+      ...((existing?.startingRating as Record<string, unknown>) ?? {}),
+      [key]: storedRating,
     };
 
     if (!existing) {
@@ -78,14 +93,19 @@ export const setAcademyPlacement = onCall(async (request) => {
         roundsPlayed: 0,
         roundsWon: 0,
         totalPoints: 0,
-        startingTei,
+        startingRating,
         updatedAt: now,
       });
       return;
     }
 
-    tx.set(ref, { startingTei, updatedAt: now }, { merge: true });
+    tx.set(ref, { startingRating, updatedAt: now }, { merge: true });
   });
 
-  return { ok: true, tei: benchmarkTei, skill: data.skill, objective: data.objective };
+  return { 
+    ok: true, 
+    rating: storedRating,
+    skill: data.skill, 
+    objective: data.objective 
+  };
 });

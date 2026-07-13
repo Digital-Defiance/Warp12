@@ -118,7 +118,7 @@ export function explainTurnResolution(
   }
 
   if (round.continuumWagerPending?.playerId === playerId) {
-    lines.push("Resolve Q's gamble before other actions.");
+    lines.push("Resolve Continuum Wager before other actions.");
     return lines;
   }
 

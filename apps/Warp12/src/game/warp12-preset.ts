@@ -14,6 +14,14 @@ import type { CreateLobbyOptions } from '../firebase/index.js';
 /** Label for the encouraged Warp 12 rules bundle in setup screens. */
 export const WARP12_OFFICIAL_RULES_LABEL = 'Official Warp 12 rules';
 
+/** Factor-aware button label — Warp 12 keeps the historic name. */
+export function officialRulesLabel(maxPip = 12): string {
+  const factor = normalizeWarpFactor(maxPip);
+  return factor === 12
+    ? WARP12_OFFICIAL_RULES_LABEL
+    : `Official Warp ${factor} rules`;
+}
+
 /** Thirteen-round points campaign — standard Warp 12 scoring. */
 export const WARP12_OFFICIAL_OBJECTIVE: GameObjective = DEFAULT_GAME_OBJECTIVE;
 
@@ -45,6 +53,17 @@ export const WARP12_OFFICIAL_HOUSE_RULES: Readonly<HouseRulesConfig> = {
 
 export const WARP12_OFFICIAL_RULES_SUMMARY =
   'Points campaign, Salamander penalty, Continuum, Drop to Impulse (1-tile catch), and All Stop! ceremony.';
+
+/** Factor-aware summary — campaign length follows the set (10 / 13 / 16 / 19). */
+export function officialRulesSummary(maxPip = 12): string {
+  const factor = normalizeWarpFactor(maxPip);
+  const rounds = defaultCampaignRounds(factor);
+  const exhibition =
+    factor === 12
+      ? ''
+      : ' Exhibition set — TEI stays on Warp 12.';
+  return `Points campaign (${rounds} rounds), Salamander penalty, Continuum, Drop to Impulse (1-tile catch), and All Stop! ceremony.${exhibition}`;
+}
 
 /** Default online create options — Official Warp 12 rules encouraged at launch. */
 export function warp12OfficialCreateLobbyOptions(

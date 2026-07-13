@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 
 import {
   aiSkillToTacticalClass,
@@ -6,9 +7,11 @@ import {
   formatAiOfficerTacticalClass,
   formatTacticalClass,
   formatTei,
+  getTeiDisplay,
+  isTeiProvisional,
   TEI_OBJECTIVE_LABEL,
-  teiToPlayerTacticalClass,
   WARP_SKILL_LEVELS,
+  type WarpSkillLevel,
 } from 'warp12-engine';
 
 import {
@@ -16,25 +19,29 @@ import {
   recentTeiTrend,
 } from '../firebase/match-history.js';
 import {
-  isProvisionalTei,
   opponentTeiForObjective,
-  PROVISIONAL_TEI_MATCHES,
-} from '../firebase/stats-elo.js';
-import { displayPlayerObjectiveTei } from '../firebase/stats-service.js';
+  getAIAnchorStored,
+} from '../firebase/stats-openskill.js';
+import { getPlayerStoredRating } from '../firebase/stats-service.js';
 import { displayHumanObjectiveTei, humanObjectiveTeiStats } from '../firebase/human-tei.js';
 import {
-  objectiveTeiStats,
+  objectiveRatingStats as objectiveTeiStats,
   type MatchHistoryEntry,
   type PlayerStatsDocument,
   type RatedObjective,
+  type StoredRating,
 } from '../firebase/stats-schema.js';
 import { useFirebaseAuth } from '../firebase/use-firebase-auth.js';
 import { isFirebaseConfigured } from '../firebase/config.js';
 import { usePlayerStats } from '../firebase/use-player-stats.js';
 import { useCaptainProfile } from '../game/use-captain-profile.js';
+import { readUserPrefs, writeUserPrefs } from './user-prefs.js';
 import { AccountUpgradeFieldset } from './account-upgrade-fieldset.js';
 import { AcademyPlacementFieldset } from './academy-placement-fieldset';
 import { CaptainGenderFieldset } from './captain-gender-fieldset';
+import { TeiDisplay } from './components/tei-display.js';
+import { RatingHistoryChart } from './rating-history-chart.js';
+import { SigmaDecayChart } from './sigma-decay-chart.js';
 import styles from './lobby.module.scss';
 import profileStyles from './profile-page.module.scss';
 
@@ -111,69 +118,43 @@ function formatMatchOpponentLabel(entry: MatchHistoryEntry): string {
   });
 }
 
-function RatingBadge({ matches }: { matches: number }) {
-  if (matches <= 0) {
-    return null;
-  }
-  if (isProvisionalTei(matches)) {
-    const label = `Provisional — settles after ${PROVISIONAL_TEI_MATCHES} rated games (${matches}/${PROVISIONAL_TEI_MATCHES})`;
-    return (
-      <span className={profileStyles.provisionalBadge} title={label}>
-        <img
-          src="/badge-sharp-duotone-light-full.svg"
-          alt=""
-          aria-hidden
-          className={profileStyles.badgeIcon}
-        />
-        Provisional {matches}/{PROVISIONAL_TEI_MATCHES}
-      </span>
-    );
-  }
-  return (
-    <span
-      className={profileStyles.establishedBadge}
-      title={`Established rating — ${matches} rated games (${PROVISIONAL_TEI_MATCHES}+)`}
-    >
-      <img
-        src="/badge-check-duotone-light-full.svg"
-        alt=""
-        aria-hidden
-        className={profileStyles.badgeIcon}
-      />
-      Established
-    </span>
-  );
-}
-
 function TeiCell({
-  tei,
-  matches,
+  rating,
+  objective,
+  showAdvanced,
 }: {
-  tei: number | null;
-  matches: number;
+  rating: StoredRating | null;
+  objective: RatedObjective;
+  showAdvanced?: boolean;
 }) {
-  if (tei == null) {
-    return <>—</>;
+  if (!rating || rating.matches === 0) {
+    return <span className={styles.hint}>—</span>;
   }
+
   return (
-    <>
-      {tei}
-      {' · '}
-      {formatTacticalClass(teiToPlayerTacticalClass(tei), { short: true })}
-      <RatingBadge matches={matches} />
-    </>
+    <TeiDisplay
+      rating={rating}
+      currentGrade={rating.displayGrade}
+      objective={objective}
+      size="medium"
+      showAdvanced={showAdvanced}
+    />
   );
 }
 
 function HumanTeiTable({
   stats,
   objective,
+  showAdvanced,
 }: {
   stats: PlayerStatsDocument;
   objective: RatedObjective;
+  showAdvanced?: boolean;
 }) {
   const track = humanObjectiveTeiStats(stats, objective);
-  const tei = displayHumanObjectiveTei(stats, objective);
+  
+  // Get rating from new OpenSkill schema (humanRating) or fallback to constructing from old schema
+  const rating: StoredRating | null = track.rating?.matches > 0 ? track.rating : null;
 
   return (
     <table className={profileStyles.table}>
@@ -188,7 +169,15 @@ function HumanTeiTable({
         <tr>
           <td>Online human opponents</td>
           <td>
-            <TeiCell tei={tei} matches={track.unassistedMatches} />
+            {rating ? (
+              <TeiCell
+                rating={rating}
+                objective={objective}
+                showAdvanced={showAdvanced}
+              />
+            ) : (
+              <span className={styles.hint}>—</span>
+            )}
           </td>
           <td>{track.unassistedMatches}</td>
         </tr>
@@ -200,17 +189,24 @@ function HumanTeiTable({
 function TeiTable({
   stats,
   objective,
+  showAdvanced,
 }: {
   stats: PlayerStatsDocument;
   objective: RatedObjective;
+  showAdvanced?: boolean;
 }) {
-  const rows = WARP_SKILL_LEVELS.map((skill) => ({
-    skill,
-    tei: displayPlayerObjectiveTei(stats, skill, objective),
-    opponent: opponentTeiForObjective(objective, skill),
-    matches: objectiveTeiStats(stats.localAi?.[skill] ?? {}, objective)
-      .unassistedMatches,
-  }));
+  const rows = WARP_SKILL_LEVELS.map((skill) => {
+    const trackStats = objectiveTeiStats(stats.localAi?.[skill] ?? {}, objective);
+    const rating = getPlayerStoredRating(stats, skill, objective);
+    const opponentRating = getAIAnchorStored(objective, skill);
+    
+    return {
+      skill,
+      rating,
+      opponentRating,
+      matches: trackStats.rating.matches,
+    };
+  });
 
   return (
     <table className={profileStyles.table}>
@@ -231,9 +227,19 @@ function TeiTable({
                 : formatTacticalClass(aiSkillToTacticalClass(row.skill))}
             </td>
             <td>
-              <TeiCell tei={row.tei} matches={row.matches} />
+              <TeiCell
+                rating={row.rating}
+                objective={objective}
+                showAdvanced={showAdvanced}
+              />
             </td>
-            <td>{formatTei(row.opponent, true)}</td>
+            <td>
+              <TeiCell
+                rating={row.opponentRating}
+                objective={objective}
+                showAdvanced={showAdvanced}
+              />
+            </td>
             <td>{row.matches}</td>
           </tr>
         ))}
@@ -243,6 +249,15 @@ function TeiTable({
 }
 
 export function ProfilePage() {
+  const [showAdvancedStats, setShowAdvancedStats] = useState(() => 
+    readUserPrefs().showAdvancedStats
+  );
+
+  // Persist advanced stats preference when it changes
+  useEffect(() => {
+    writeUserPrefs({ showAdvancedStats });
+  }, [showAdvancedStats]);
+
   const auth = useFirebaseAuth();
   const playerStats = usePlayerStats();
   const { gender: captainGender, setCaptainGender } = useCaptainProfile();
@@ -305,11 +320,30 @@ export function ProfilePage() {
         decision-quality trends, and recent matches.
       </p>
       <p className={styles.hint}>
-        Ratings are <strong>Provisional</strong> for your first{' '}
-        {PROVISIONAL_TEI_MATCHES} rated games in a track (they swing more while
-        the system learns your strength), then become{' '}
-        <strong>Established</strong> and settle down.
+        Ratings show your <strong>TEI grade</strong> (letter = confidence, number =
+        skill) and a derived <strong>federation commission</strong> (Cadet through
+        Fleet Admiral). Hover for a plain-language readout. See{' '}
+        <Link to="/tei">How TEI works</Link> for the full story — including OpenSkill
+        for curious captains.
       </p>
+
+      <div className={profileStyles.advancedToggle}>
+        <label className={profileStyles.advancedCheck}>
+          <input
+            type="checkbox"
+            checked={showAdvancedStats}
+            onChange={(e) => setShowAdvancedStats(e.target.checked)}
+          />
+          <span>
+            <strong>Advanced Rating Statistics</strong>
+            <span className={profileStyles.advancedCheckHint}>
+              Show OpenSkill μ (skill) and σ (uncertainty) in TEI tooltips and
+              charts. Commission stays flavor over TEI — not a second ladder.{' '}
+              <Link to="/tei">How TEI works →</Link>
+            </span>
+          </span>
+        </label>
+      </div>
 
       {captainAvatarFieldset}
 
@@ -345,22 +379,38 @@ export function ProfilePage() {
         <>
           <fieldset className={styles.fieldset}>
             <legend>Go-out TEI (reference AI)</legend>
-            <TeiTable stats={stats} objective="go-out" />
+            <TeiTable
+              stats={stats}
+              objective="go-out"
+              showAdvanced={showAdvancedStats}
+            />
           </fieldset>
 
           <fieldset className={styles.fieldset}>
             <legend>Points TEI (reference AI)</legend>
-            <TeiTable stats={stats} objective="points" />
+            <TeiTable
+              stats={stats}
+              objective="points"
+              showAdvanced={showAdvancedStats}
+            />
           </fieldset>
 
           <fieldset className={styles.fieldset}>
             <legend>Go-out TEI (human pool)</legend>
-            <HumanTeiTable stats={stats} objective="go-out" />
+            <HumanTeiTable
+              stats={stats}
+              objective="go-out"
+              showAdvanced={showAdvancedStats}
+            />
           </fieldset>
 
           <fieldset className={styles.fieldset}>
             <legend>Points TEI (human pool)</legend>
-            <HumanTeiTable stats={stats} objective="points" />
+            <HumanTeiTable
+              stats={stats}
+              objective="points"
+              showAdvanced={showAdvancedStats}
+            />
           </fieldset>
 
           <div className={profileStyles.trendGrid}>
@@ -381,22 +431,56 @@ export function ProfilePage() {
             />
           </div>
 
+          {/* Rating history charts */}
+          <RatingHistoryChart
+            history={history}
+            objective="go-out"
+            title="Go-out Rating History (μ over time)"
+          />
+          
+          <RatingHistoryChart
+            history={history}
+            objective="points"
+            title="Points Rating History (μ over time)"
+          />
+
+          <SigmaDecayChart
+            history={history}
+            objective="go-out"
+            title="Go-out Confidence Convergence (σ decay)"
+          />
+
+          <SigmaDecayChart
+            history={history}
+            objective="points"
+            title="Points Confidence Convergence (σ decay)"
+          />
+
           <fieldset className={styles.fieldset}>
             <legend>Recent matches</legend>
             {history.length === 0 ? (
               <p className={styles.hint}>No matches recorded yet.</p>
             ) : (
               <ul className={profileStyles.historyList}>
-                {history.map((entry) => (
-                  <li key={entry.playedAt}>
-                    {TEI_OBJECTIVE_LABEL[entry.objective]} vs{' '}
-                    {formatMatchOpponentLabel(entry)}
-                    {' — '}
-                    {entry.won ? 'won' : 'lost'}
-                    {entry.advisorUsed ? ' · advisor' : ''}
-                    {entry.teiAfter != null ? ` · TEI ${entry.teiAfter}` : ''}
-                  </li>
-                ))}
+                {history.map((entry) => {
+                  // Use new OpenSkill rating if available, fallback to legacy TEI
+                  const teiDisplay = entry.ratingAfter
+                    ? getTeiDisplay(entry.ratingAfter, entry.ratingAfter.displayGrade).formatted
+                    : entry.teiAfter != null
+                    ? `TEI ${entry.teiAfter}`
+                    : null;
+                  
+                  return (
+                    <li key={entry.playedAt}>
+                      {TEI_OBJECTIVE_LABEL[entry.objective]} vs{' '}
+                      {formatMatchOpponentLabel(entry)}
+                      {' — '}
+                      {entry.won ? 'won' : 'lost'}
+                      {entry.advisorUsed ? ' · advisor' : ''}
+                      {teiDisplay ? ` · ${teiDisplay}` : ''}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </fieldset>

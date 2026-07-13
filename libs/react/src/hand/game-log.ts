@@ -35,7 +35,8 @@ export type GameLogEffect =
   | 'dead-double'
   | 'round-won'
   | 'round-blocked'
-  | 'return-to-warp';
+  | 'return-to-warp'
+  | 'wormhole-opened';
 
 export interface GameLogRoute {
   readonly kind: ChartRoute['kind'];
@@ -47,7 +48,8 @@ export interface GameLogRosterEntry {
   /** Omit the TEI portion (e.g. online tables, which are not TEI-rated). */
   readonly hideTei?: boolean;
   readonly captainId: string;
-  readonly tei: number | null;
+  /** TEI grade (e.g. "V67") or null if unrated. */
+  readonly tei: string | null;
   readonly tacticalClass?: string;
   /** Fixed opponent reference TEI (solo AI officers). */
   readonly reference?: boolean;
@@ -68,6 +70,10 @@ export interface GameLogEntry {
   readonly spacedockValue?: number;
   readonly roster?: readonly GameLogRosterEntry[];
   readonly effects: readonly GameLogEffect[];
+  /** For SPOOL_WARP_DRIVE: tiles played (count only, for privacy) */
+  readonly spoolDetails?: {
+    readonly tilesPlayed: number;
+  };
 }
 
 export interface GameLog {
@@ -222,6 +228,9 @@ function effectsPhrase(effects: readonly GameLogEffect[]): string {
       case 'subspace-fracture-cleared':
         parts.push('clearing the Subspace Fracture');
         break;
+      case 'wormhole-opened':
+        parts.push('opening a Wormhole — trails inverted');
+        break;
       case 'dead-double':
         parts.push('the Double is dead — no cover required');
         break;
@@ -257,12 +266,12 @@ function rosterPhrase(
       if (hideTei) {
         return `${name}${classPart}`;
       }
-      const teiPart =
-        tei == null
-          ? 'TEI unrated'
-          : reference
-            ? `~TEI ${tei}`
-            : `TEI ${tei}`;
+      
+      // Format TEI grade
+      const teiPart = tei == null 
+        ? 'TEI unrated' 
+        : reference ? `~${tei}` : tei;
+      
       return `${name} ${teiPart}${classPart}`;
     })
     .join(' · ');
@@ -271,11 +280,14 @@ function rosterPhrase(
 export function formatGameLogLine(
   entry: GameLogEntry,
   names: Readonly<Record<string, string>>,
-  options: GameLogFormatOptions
+  options: GameLogFormatOptions,
+  viewerId?: string,
+  ownHandSizeAfter?: number
 ): string {
   const time = formatLogTime(entry.at, options.roundStartedAtMs);
   const name = captainLabel(entry.captainId, names);
   const prefix = `${time} - ${name}`;
+  const isOwnAction = viewerId && entry.captainId === viewerId;
 
   switch (entry.kind) {
     case 'ROUND_STARTED':
@@ -294,6 +306,25 @@ export function formatGameLogLine(
         return `${prefix} drew from Uncharted Sectors — returned to warp${effectsPhrase(entry.effects.filter((e) => e !== 'return-to-warp'))}`;
       }
       return `${prefix} drew from Uncharted Sectors${effectsPhrase(entry.effects)}`;
+    case 'SPOOL_WARP_DRIVE': {
+      const details = entry.spoolDetails;
+      if (details && details.tilesPlayed > 0) {
+        const parts: string[] = [];
+        parts.push(`played ${details.tilesPlayed} tile${details.tilesPlayed !== 1 ? 's' : ''}`);
+        
+        // Privacy: Only show what was drawn to hand if viewing your own action
+        // AND we have the post-spool hand size to compute it from
+        if (isOwnAction && ownHandSizeAfter !== undefined) {
+          const tilesSentToHand = details.tilesPlayed > 0 ? ownHandSizeAfter : 0;
+          if (tilesSentToHand > 0) {
+            parts.push(`drew ${tilesSentToHand} to hand`);
+          }
+        }
+        
+        return `${prefix} engaged warp drive on ${trailPhrase(entry.route, entry.captainId, names)} (${parts.join(', ')})${effectsPhrase(entry.effects)}`;
+      }
+      return `${prefix} engaged warp drive on ${trailPhrase(entry.route, entry.captainId, names)}${effectsPhrase(entry.effects)}`;
+    }
     case 'PASS_RED_ALERT': {
       const nextCaptain = entry.nextCaptainId
         ? captainLabel(entry.nextCaptainId, names)
@@ -333,14 +364,18 @@ export function formatGameLogLine(
       return `${time} - ${winner} wins the round`;
     }
   }
+  // TypeScript exhaustiveness check - should never reach here
+  return `${time} - Unknown action`;
 }
 
 export function gameLogEntryToString(
   entry: GameLogEntry,
   names: Readonly<Record<string, string>>,
-  options: GameLogFormatOptions
+  options: GameLogFormatOptions,
+  viewerId?: string,
+  ownHandSizeAfter?: number
 ): string {
-  return formatGameLogLine(entry, names, options);
+  return formatGameLogLine(entry, names, options, viewerId, ownHandSizeAfter);
 }
 
 /** Round starter could not play a second own-trail tile (Deluxe opening rule). */
@@ -406,12 +441,29 @@ function chartEffects(
       action.route.kind === 'neutral-zone') &&
     isPipExhausted(after, action.coordinate.low);
 
+  // Module Lambda: Detect wormhole (trail swap)
+  const beforeNzLength = before.table.neutralZone.tiles.length;
+  const afterNzLength = after.table.neutralZone.tiles.length;
+  const beforeTrailLength = before.table.warpTrails[action.playerId]?.tiles.length ?? 0;
+  const afterTrailLength = after.table.warpTrails[action.playerId]?.tiles.length ?? 0;
+  const wormholeOpened = 
+    isDouble(action.coordinate) &&
+    action.route.kind === 'neutral-zone' &&
+    // After wormhole: player's trail contains the double they just played
+    // and NZ contains their old trail (or is empty if they had no trail)
+    Math.abs((afterTrailLength - beforeNzLength - 1)) < 2 && // Allow for rounding/edge cases
+    Math.abs((afterNzLength - beforeTrailLength)) < 2;
+
   if (playedDeadDouble) {
     effects.push('dead-double');
     if (!before.continuumPendingInvoker && after.continuumPendingInvoker) {
       effects.push('continuum-flash-pending');
     }
     return effects;
+  }
+
+  if (wormholeOpened) {
+    effects.push('wormhole-opened');
   }
 
   if (resolvedFracture) {
@@ -571,6 +623,33 @@ export function buildGameLogEntry(
         captainId: action.playerId,
         effects: drawEffects(beforeRound, afterRound, action.playerId),
       };
+    case 'SPOOL_WARP_DRIVE': {
+      // Calculate tiles played from before/after state
+      const route = action.route;
+      let tilesPlayed = 0;
+      
+      if (route.kind === 'warp-trail') {
+        const beforeTrail = beforeRound.table.warpTrails[route.playerId];
+        const afterTrail = afterRound.table.warpTrails[route.playerId];
+        tilesPlayed = (afterTrail?.tiles.length ?? 0) - (beforeTrail?.tiles.length ?? 0);
+      } else if (route.kind === 'neutral-zone') {
+        tilesPlayed = afterRound.table.neutralZone.tiles.length - beforeRound.table.neutralZone.tiles.length;
+      }
+      
+      // SECURITY: Do NOT store tilesSentToHand - it's private info that would be
+      // synced to all clients. Only store tilesPlayed count.
+      return {
+        at,
+        kind: action.type,
+        captainId: action.playerId,
+        trainId: trainIdForRoute(afterRound, action.route),
+        route: routeToLogRoute(action.route),
+        effects: [],
+        spoolDetails: {
+          tilesPlayed,
+        },
+      };
+    }
     case 'PASS_RED_ALERT':
       return {
         at,
@@ -626,6 +705,9 @@ export function buildGameLogEntry(
         captainId: action.playerId,
         effects: [],
       };
+    case 'PICK_FROM_PACK':
+      // Draft picks aren't logged to the game log (they happen before playing phase)
+      return null;
     case 'END_ROUND':
       return {
         at,
@@ -635,6 +717,8 @@ export function buildGameLogEntry(
         effects: endRoundEffects(afterRound),
       };
   }
+  // TypeScript exhaustiveness check - should never reach here
+  return null;
 }
 
 export function buildRoundStartedEntry(
@@ -683,7 +767,7 @@ export function buildRoundLogExport(
   entries: readonly GameLogEntry[],
   roundNumber: number,
   names: Readonly<Record<string, string>>,
-  options: { sectorCode?: string; exportedAt?: string; roundStartedAtMs: number }
+  options: { sectorCode?: string; exportedAt?: string; roundStartedAtMs: number; viewerId?: string }
 ): RoundLogExport {
   const exportedAt = options?.exportedAt ?? new Date().toISOString();
   const formatOptions = { roundStartedAtMs: options.roundStartedAtMs };
@@ -693,7 +777,7 @@ export function buildRoundLogExport(
     sectorCode: options?.sectorCode,
     roundStartedAtMs: options.roundStartedAtMs,
     entries,
-    lines: entries.map((entry) => formatGameLogLine(entry, names, formatOptions)),
+    lines: entries.map((entry) => formatGameLogLine(entry, names, formatOptions, options.viewerId)),
   };
 }
 

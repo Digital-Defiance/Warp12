@@ -10,7 +10,8 @@ export type GameSound =
   | 'allStop'
   | 'dropToImpulse'
   | 'returnToWarp'
-  | 'flash';
+  | 'flash'
+  | 'wormhole';
 
 const ALL_GAME_SOUNDS: readonly GameSound[] = [
   'hail',
@@ -20,6 +21,7 @@ const ALL_GAME_SOUNDS: readonly GameSound[] = [
   'dropToImpulse',
   'returnToWarp',
   'flash',
+  'wormhole',
 ];
 
 let bridgeAmbienceEnabled = false;
@@ -161,6 +163,7 @@ export const GAME_SOUND_PREVIEW_LABELS: Record<GameSound, string> = {
   dropToImpulse: 'Drop to impulse',
   returnToWarp: 'Return to warp',
   flash: 'Continuum Flash',
+  wormhole: 'Wormhole (spatial inversion)',
 };
 
 /** Play a table sound immediately — bypasses mute for intentional preview taps. */

@@ -92,7 +92,7 @@ export function useHostAiRunner(options: {
         if (!cancelled) {
           setRoster(null);
           options.onError(
-            'Could not load Class II (Ω) weights for AI officers. Check the host connection and try again.'
+            'Could not load Commander (Ω) weights for AI officers. Check the host connection and try again.'
           );
         }
       });

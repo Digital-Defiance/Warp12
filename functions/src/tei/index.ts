@@ -1,23 +1,24 @@
 export {
-  DEFAULT_UNASSISTED_TEI,
-  kFactor,
-  expectedEloScore,
-  updateTeiScore,
-  updateUnassistedTei,
-  updateTeiMultiplayerPairwise,
   rankCompetition,
-  resolveEffectivePlayerTei,
-  opponentTeiForObjective,
+  resolveEffectivePlayerRating,
+  getAIAnchorRating,
+  getAIAnchorStored,
+  formatTopPercentile,
+  PROVISIONAL_SIGMA_THRESHOLD,
+  isProvisionalRating,
   type AiSkillLevel,
   type RatedObjective,
-  type TeiRankedPlayer,
-} from './stats-elo';
+  type RatedPlayer,
+} from './stats-openskill';
 export {
   generateMatchCode,
   normalizeMatchCode,
   objectiveTeiKey,
-  humanObjectiveTeiStats,
-  startingTeiForObjective,
+  objectiveToTrackKey,
+  humanObjectiveRatingStats,
+  startingRatingForObjective,
+  toStoredRating,
+  toStoredRatingWithGrade,
   type WarpRole,
   type RatedMatchDocument,
   type RatedMatchStanding,
@@ -26,17 +27,19 @@ export {
   type RatedMatchCertificate,
   type RatedMatchCertificatePlayer,
   type PlayerStatsDocument,
-  type HumanTeiStats,
+  type HumanRatingStats,
+  type StoredRating,
+  type ObjectiveRatingStats,
 } from './rated-match-schema';
-export { buildTeiTableFromStandings, applyHumanTeiForPlayer } from './apply-human-tei';
+export { buildRatingTableFromStandings, applyHumanRatingForPlayer } from './apply-human-tei';
 export {
   buildCertificatePlayer,
   buildRatedMatchCertificate,
 } from './build-rated-match-certificate';
 export {
-  applyGroupTeiForPlayer,
+  applyGroupRatingForPlayer,
   charterMatchesRatedEvent,
-  groupObjectiveTeiStats,
+  groupObjectiveRatingStats,
 } from './apply-group-tei';
 export {
   OFFICIAL_CHARTER_HOUSE_RULES,

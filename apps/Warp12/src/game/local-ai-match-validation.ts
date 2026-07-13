@@ -88,7 +88,7 @@ export function localAiMatchRejectNotice(
     case 'pass_and_play':
       return 'Pass-and-play matches are unrated — TEI is not tracked.';
     case 'extended_thinking':
-      return 'Extended-thinking Class II officers are exhibition mode — TEI is not tracked.';
+      return 'Extended-thinking Commander officers are exhibition mode — TEI is not tracked.';
     case 'exhibition_set':
       return 'Warp 9 / 15 / 18 are exhibition sets — TEI is only tracked on Warp 12.';
     case 'missing_advisor_used':

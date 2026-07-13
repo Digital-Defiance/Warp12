@@ -17,6 +17,10 @@ import { CampaignRoundsField, ObjectivePicker } from './objective-picker';
 import { HouseRulesOptions } from './house-rules-options';
 import { DoubleZeroScoreField } from './double-zero-score-field';
 import { LargeFleetHandSizeField } from './large-fleet-hand-size-field';
+import {
+  DealHandSizeHint,
+  isLargeFleetHandSizeChoiceVisible,
+} from './deal-hand-size-hint';
 import { SubspaceFractureOptions } from './subspace-fracture-options';
 import { Warp12RulesPreset } from './warp12-rules-preset';
 import { buildAiRosterAsync, createLocalGame } from '../game/create-local-game.js';
@@ -66,6 +70,11 @@ export function PassAndPlayPage() {
   const [continuum, setContinuum] = useState(
     WARP12_OFFICIAL_MODULES.continuum ?? true
   );
+  const [sensorGrid, setSensorGrid] = useState(false);
+  const [warpDriveSpool, setWarpDriveSpool] = useState(false);
+  const [longestTrail, setLongestTrail] = useState(false);
+  const [doubleDown, setDoubleDown] = useState(false);
+  const [temporalInversion, setTemporalInversion] = useState(false);
   const [subspaceFracture, setSubspaceFracture] = useState(
     WARP12_OFFICIAL_MODULES.subspaceFracture ?? false
   );
@@ -87,6 +96,11 @@ export function PassAndPlayPage() {
     setCampaignRounds(defaultCampaignRounds(maxPip));
     setSalamander(WARP12_OFFICIAL_MODULES.salamanderPenalty ?? true);
     setContinuum(WARP12_OFFICIAL_MODULES.continuum ?? true);
+    setSensorGrid(false);
+    setWarpDriveSpool(false);
+    setLongestTrail(false);
+    setDoubleDown(false);
+    setTemporalInversion(false);
     setSubspaceFracture(WARP12_OFFICIAL_MODULES.subspaceFracture ?? false);
     setSubspaceFractureScope(
       WARP12_OFFICIAL_MODULES.subspaceFractureScope ?? DEFAULT_SUBSPACE_FRACTURE_SCOPE
@@ -136,7 +150,7 @@ export function PassAndPlayPage() {
     } catch (error) {
       console.error('[omega] pass-and-play roster failed', error);
       setLaunchError(
-        'Could not load Class II officer weights — check your connection and try again.'
+        'Could not load Commander officer weights — check your connection and try again.'
       );
     } finally {
       setLaunching(false);
@@ -157,6 +171,11 @@ export function PassAndPlayPage() {
       modules: {
         salamanderPenalty: salamander,
         continuum: continuum,
+        sensorGrid,
+        warpDriveSpool,
+        longestTrail,
+        doubleDown,
+        temporalInversion,
         subspaceFracture,
         subspaceFractureScope,
       },
@@ -286,7 +305,7 @@ export function PassAndPlayPage() {
 
       <fieldset className={styles.fieldset}>
         <legend>Rules preset</legend>
-        <Warp12RulesPreset onApply={applyOfficialWarp12Rules} />
+        <Warp12RulesPreset maxPip={maxPip} onApply={applyOfficialWarp12Rules} />
       </fieldset>
 
       <fieldset className={styles.fieldset}>
@@ -307,6 +326,46 @@ export function PassAndPlayPage() {
           />
           <span>Module Alpha — Continuum</span>
         </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={sensorGrid}
+            onChange={(e) => setSensorGrid(e.target.checked)}
+          />
+          <span>Module Gamma — Long-Range Sensor Sweep</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={warpDriveSpool}
+            onChange={(e) => setWarpDriveSpool(e.target.checked)}
+          />
+          <span>Module Delta — Hot Potato (Warp Drive Spool)</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={longestTrail}
+            onChange={(e) => setLongestTrail(e.target.checked)}
+          />
+          <span>Module Theta — Longest Trail Bonus</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={doubleDown}
+            onChange={(e) => setDoubleDown(e.target.checked)}
+          />
+          <span>Module Iota — Double Down</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={temporalInversion}
+            onChange={(e) => setTemporalInversion(e.target.checked)}
+          />
+          <span>Module Kappa — Temporal Inversion (Warped/Exhibition)</span>
+        </label>
       </fieldset>
 
       <fieldset className={styles.fieldset}>
@@ -317,7 +376,12 @@ export function PassAndPlayPage() {
             setHouseRules((current) => ({ ...current, doubleZeroScore }))
           }
         />
-        {playerCount >= 7 && (
+        <DealHandSizeHint
+          playerCount={playerCount}
+          maxPip={maxPip}
+          largeFleetHandSize={houseRules.largeFleetHandSize}
+        />
+        {isLargeFleetHandSizeChoiceVisible(playerCount) && (
           <LargeFleetHandSizeField
             value={houseRules.largeFleetHandSize}
             onChange={(largeFleetHandSize) =>
@@ -351,7 +415,7 @@ export function PassAndPlayPage() {
           disabled={launching}
           onClick={launch}
         >
-          {launching ? 'Loading Class II…' : 'Launch table'}
+          {launching ? 'Loading Commander…' : 'Launch table'}
         </button>
       </div>
     </section>

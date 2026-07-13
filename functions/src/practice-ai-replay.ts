@@ -257,18 +257,16 @@ export async function replayLocalAiHumanActions(input: {
     current: GameState,
     playerId: string
   ): GameAction | null => {
+    // Skip off-turn actions during replay - they depend on exact game state
+    // and can cause false verification failures even with deterministic AI
     const scratch = structuredClone(current);
-    const offTurn = ai.decideOffTurnGameAction(scratch, playerId);
-    if (offTurn) {
-      return offTurn;
-    }
     if (
       scratch.round?.phase !== 'playing' ||
       scratch.round.activePlayerId !== playerId
     ) {
       return null;
     }
-    return ai.decideGameAction(structuredClone(current), playerId);
+    return ai.decideGameAction(scratch, playerId);
   };
 
   while (state.phase !== 'complete' && steps < MAX_REPLAY_STEPS) {

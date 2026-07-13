@@ -4,14 +4,18 @@ import * as admin from 'firebase-admin';
 
 import { requireSignedIn, requireVerifiedUser } from './auth';
 import {
-  kFactor,
-  opponentTeiForObjective,
-  resolveEffectivePlayerTei,
-  updateUnassistedTei,
-  WARP12_OFFICIAL_RULES_PROFILE_ID,
+  getAIAnchorRating,
+  resolveEffectivePlayerRating,
   type AiSkillLevel,
-} from './tei/stats-elo';
-import { objectiveTeiKey, type RatedObjective } from './tei/rated-match-schema';
+} from './tei/stats-openskill';
+import {
+  objectiveTeiKey,
+  type RatedObjective,
+  type StoredRating,
+  type ObjectiveRatingStats,
+} from './tei/rated-match-schema';
+import { toStoredRatingWithGrade } from './tei/rating-types';
+import { updateVsAI } from 'warp12-engine';
 import {
   replayLocalAiHumanActions,
   type SerializableLocalGameConfig,
@@ -21,20 +25,15 @@ import type { GameAction } from 'warp12-engine';
 const db = admin.firestore();
 const MAX_MATCH_HISTORY = 60;
 
-function objectiveTeiStats(
+function objectiveRatingStats(
   bucket: Record<string, unknown>,
   objective: RatedObjective
-): {
-  unassistedMatches: number;
-  unassistedWins: number;
-  unassistedTei?: number;
-} {
+): ObjectiveRatingStats {
   const key = objectiveTeiKey(objective);
-  const track = (bucket[key] as Record<string, number> | undefined) ?? {};
-  return {
-    unassistedMatches: track.unassistedMatches ?? 0,
-    unassistedWins: track.unassistedWins ?? 0,
-    unassistedTei: track.unassistedTei,
+  const track = (bucket[key] as ObjectiveRatingStats | undefined);
+  return track ?? {
+    rating: { mu: 25.0, sigma: 25.0 / 3, matches: 0, displayRating: 0.0 },
+    wins: 0,
   };
 }
 
@@ -161,32 +160,44 @@ export const reportPracticeAiMatch = onCall(
     bucket.advisorWins =
       ((bucket.advisorWins as number) ?? 0) + (data.advisorUsed && won ? 1 : 0);
 
-    let teiBefore: number | null = null;
-    let teiAfter: number | null = null;
+    let ratingBefore: StoredRating | null = null;
+    let ratingAfter: StoredRating | null = null;
 
     if (!data.advisorUsed) {
       const key = objectiveTeiKey(data.objective);
-      const prior = objectiveTeiStats(bucket, data.objective);
-      const startingTei = existing?.startingTei?.[key] as number | undefined;
-      teiBefore = resolveEffectivePlayerTei(
-        prior.unassistedTei,
-        prior.unassistedMatches,
-        startingTei
+      const prior = objectiveRatingStats(bucket, data.objective);
+      const startingRating = existing?.startingRating?.[key] as { mu: number; sigma: number } | undefined;
+      
+      ratingBefore = resolveEffectivePlayerRating(
+        prior.rating,
+        prior.rating.matches,
+        startingRating
       );
-      teiAfter = updateUnassistedTei(
-        teiBefore,
-        opponentTeiForObjective(
-          data.objective,
-          data.skill,
-          data.config.rulesProfileId ?? WARP12_OFFICIAL_RULES_PROFILE_ID
-        ),
-        won ? 1 : 0,
-        kFactor(prior.unassistedMatches)
+
+      const aiAnchor = getAIAnchorRating(
+        data.objective,
+        data.skill
       );
+
+      const updatedRating = updateVsAI(
+        uid,
+        { mu: ratingBefore.mu, sigma: ratingBefore.sigma, matches: ratingBefore.matches },
+        data.skill,
+        aiAnchor,
+        won
+      );
+
+      ratingAfter = toStoredRatingWithGrade(
+        {
+          ...updatedRating,
+          matches: ratingBefore.matches + 1,
+        },
+        ratingBefore // Pass previous rating for hysteresis
+      );
+
       bucket[key] = {
-        unassistedMatches: prior.unassistedMatches + 1,
-        unassistedWins: prior.unassistedWins + (won ? 1 : 0),
-        unassistedTei: teiAfter,
+        rating: ratingAfter,
+        wins: prior.wins + (won ? 1 : 0),
       };
     }
 
@@ -200,10 +211,10 @@ export const reportPracticeAiMatch = onCall(
       advisorUsed: data.advisorUsed,
       ...(data.decisionPct !== undefined ? { decisionPct: data.decisionPct } : {}),
       ...(data.decisionGrade ? { decisionGrade: data.decisionGrade } : {}),
-      ...(teiBefore != null ? { teiBefore } : {}),
-      ...(teiAfter != null ? { teiAfter } : {}),
-      ...(teiBefore != null && teiAfter != null
-        ? { teiDelta: teiAfter - teiBefore }
+      ...(ratingBefore != null ? { ratingBefore } : {}),
+      ...(ratingAfter != null ? { ratingAfter } : {}),
+      ...(ratingBefore != null && ratingAfter != null
+        ? { muDelta: ratingAfter.mu - ratingBefore.mu }
         : {}),
       verified: true,
       replaySteps: replay.steps,
@@ -219,7 +230,7 @@ export const reportPracticeAiMatch = onCall(
         roundsPlayed: (existing?.roundsPlayed as number) ?? 0,
         roundsWon: (existing?.roundsWon as number) ?? 0,
         totalPoints: (existing?.totalPoints as number) ?? 0,
-        startingTei: existing?.startingTei,
+        startingRating: existing?.startingRating,
         localAi,
         matchHistory: appendMatchHistory(
           existing?.matchHistory as Record<string, unknown>[] | undefined,
@@ -234,10 +245,12 @@ export const reportPracticeAiMatch = onCall(
     return {
       rated: !data.advisorUsed,
       won,
-      teiBefore,
-      teiAfter,
-      teiDelta:
-        teiBefore != null && teiAfter != null ? teiAfter - teiBefore : null,
+      ratingBefore,
+      ratingAfter,
+      muDelta:
+        ratingBefore != null && ratingAfter != null
+          ? ratingAfter.mu - ratingBefore.mu
+          : null,
     };
   }
 );

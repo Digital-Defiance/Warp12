@@ -50,8 +50,8 @@ export interface CharterJoinRequestDocument {
 }
 
 export interface GroupTeiStats {
-  goOut?: import('./rated-match-schema').ObjectiveTeiStats;
-  points?: import('./rated-match-schema').ObjectiveTeiStats;
+  goOut?: import('./rated-match-schema').ObjectiveRatingStats;
+  points?: import('./rated-match-schema').ObjectiveRatingStats;
   seasonKey?: string;
 }
 

@@ -7,7 +7,7 @@ import {
   runSkillMatchup,
   SKILL_MATCHUPS,
   type SkillMatchupResult,
-} from './ai-elo-calibration.js';
+} from './ai-rating-calibration.js';
 import {
   cloneGoOutPresets,
   setGoOutPresetsOverride,

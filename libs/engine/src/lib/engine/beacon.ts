@@ -278,3 +278,28 @@ export function canRaiseShieldsManually(
   }
   return true;
 }
+
+/** Module Gamma: Sensor sweep from the visible market (alternative to blind draw). */
+export function canSensorSweep(
+  modules: import('../types/modules.js').GameModules,
+  round: RoundState,
+  playerId: PlayerId,
+  houseRules: HouseRules = DEFAULT_HOUSE_RULES
+): boolean {
+  if (!modules.sensorGrid.enabled) {
+    return false;
+  }
+  if (resolutionBlockedByQ(round, playerId)) {
+    return false;
+  }
+  if (round.drewThisTurn) {
+    return false;
+  }
+  if (round.playedThisTurn) {
+    return false;
+  }
+  if (round.sensorGrid.length === 0) {
+    return false;
+  }
+  return getLegalMoves(round, playerId, houseRules).length === 0;
+}

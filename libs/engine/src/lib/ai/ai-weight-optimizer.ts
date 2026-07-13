@@ -2,7 +2,7 @@ import {
   runCalibrationMatrix,
   runFourPlayerFocusMatchup,
   type SkillMatchupResult,
-} from './ai-elo-calibration.js';
+} from './ai-rating-calibration.js';
 import { WARP_HEURISTIC_IDS } from './heuristics.js';
 import {
   cloneGoOutPresets,

@@ -47,7 +47,7 @@ export OMEGA_OBJECTIVE="${OMEGA_OBJECTIVE:-points}"
 export OMEGA_EPOCHS="${OMEGA_EPOCHS:-4}"
 export OMEGA_BATCH="${OMEGA_BATCH:-512}"
 export OMEGA_BENCH_GAMES="${OMEGA_BENCH_GAMES:-200}"
-ELO_LOG="${OMEGA_ELO_LOG:-tools/nn/data/omega-elo-log.jsonl}"
+export OMEGA_RATING_LOG="${OMEGA_RATING_LOG:-tools/nn/data/omega-rating-log.jsonl}"
 BASE_SEED="${OMEGA_SEED:-2026}"
 PROMOTE_MARGIN="${OMEGA_PROMOTE_MARGIN:-0.0}"
 
@@ -60,7 +60,7 @@ GATE_METRIC="${OMEGA_GATE_METRIC:-mean}"
 mkdir -p "$(dirname "$ELO_LOG")" "$CANDIDATE_DIR"
 
 echo "Class Ω GATED training loop: ${ITERATIONS} iterations, ${OMEGA_GAMES} games/iter, ${OMEGA_PLAYERS}p ${OMEGA_OBJECTIVE}"
-echo "Champion: ${CHAMPION}   Elo log: ${ELO_LOG}   promote margin: ${PROMOTE_MARGIN}"
+echo "Champion: ${CHAMPION}   Rating log: ${OMEGA_RATING_LOG}   promote margin: ${PROMOTE_MARGIN}"
 echo "Train batch: ${OMEGA_BATCH}   search iters: ${OMEGA_SEARCH_ITERS:-0}   workers: ${OMEGA_WORKERS:-auto}"
 echo "Gate metric: ${GATE_METRIC}${OMEGA_GATE_WEIGHTS:+  weights=${OMEGA_GATE_WEIGHTS}}${OMEGA_GATE_FLOOR_SLICES:+  floor=${OMEGA_GATE_FLOOR_SLICES}@${OMEGA_GATE_FLOOR:-1.0}}"
 
@@ -70,7 +70,7 @@ if [ "${OMEGA_GATE_REBASE:-0}" = "1" ]; then
   REBASE_BENCH="tools/nn/data/omega-gate-rebase-bench.json"
   OMEGA_WEIGHTS="$CHAMPION" yarn omega:bench > "$REBASE_BENCH"
   tools/nn/.venv/bin/python tools/nn/omega-promote-gate.py \
-    0 "$REBASE_BENCH" "$ELO_LOG" "$CHAMPION_SCORE_FILE" 0 --seed
+    0 "$REBASE_BENCH" "$OMEGA_RATING_LOG" "$CHAMPION_SCORE_FILE" 0 --seed
 fi
 
 for ((i = 1; i <= ITERATIONS; i++)); do
@@ -103,7 +103,7 @@ for ((i = 1; i <= ITERATIONS; i++)); do
   # would otherwise abort the loop before gate_rc is captured.
   set +e
   tools/nn/.venv/bin/python tools/nn/omega-promote-gate.py \
-    "$i" "$BENCH_FILE" "$ELO_LOG" "$CHAMPION_SCORE_FILE" "$PROMOTE_MARGIN"
+    "$i" "$BENCH_FILE" "$OMEGA_RATING_LOG" "$CHAMPION_SCORE_FILE" "$PROMOTE_MARGIN"
   gate_rc=$?
   set -e
 
@@ -121,4 +121,4 @@ for ((i = 1; i <= ITERATIONS; i++)); do
 done
 
 echo ""
-echo "Done. Elo trajectory: ${ELO_LOG}"
+echo "Done. Rating trajectory: ${OMEGA_RATING_LOG}"

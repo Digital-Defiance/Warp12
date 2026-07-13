@@ -383,10 +383,19 @@ export function getWarpSkillProfile(
       ? (goOutPresetsOverride ?? GO_OUT_PRESETS)
       : POINTS_PRESETS;
   const base = presets[level] as WarpSkillProfile;
+  
+  // Always clone to avoid mutating shared preset objects
+  const cloned: WarpSkillProfile = {
+    ...base,
+    enabled: new Set(base.enabled),
+    weights: { ...base.weights },
+    goOutTuning: base.goOutTuning ? { ...base.goOutTuning } : undefined,
+  };
+  
   if (objective !== 'go-out' || playerCount === undefined) {
-    return base;
+    return cloned;
   }
-  return applyGoOutTableSize(base, level, playerCount, tableRole);
+  return applyGoOutTableSize(cloned, level, playerCount, tableRole);
 }
 
 /**
@@ -430,7 +439,7 @@ export function resolveProfileGoOutTuning(
 }
 
 /**
- * Lookahead baked into each tier for ELO calibration — not user-configurable.
+ * Lookahead baked into each tier for rating calibration — not user-configurable.
  * Beginner/lieutenant: greedy heuristics only.
  * Advanced go-out: depth 2 at 2p only; greedy at 3+ (multi-opponent race / search noise).
  * Advanced points: greedy (search hurt calibration at 2p).

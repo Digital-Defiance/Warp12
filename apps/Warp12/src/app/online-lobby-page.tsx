@@ -36,6 +36,10 @@ import { CampaignRoundsField, ObjectivePicker, ObjectiveSummary } from './object
 import { HouseRulesOptions } from './house-rules-options';
 import { DoubleZeroScoreField } from './double-zero-score-field';
 import { LargeFleetHandSizeField } from './large-fleet-hand-size-field';
+import {
+  DealHandSizeHint,
+  isLargeFleetHandSizeChoiceVisible,
+} from './deal-hand-size-hint';
 import { SubspaceFractureOptions } from './subspace-fracture-options';
 import { Warp12RulesPreset } from './warp12-rules-preset';
 import { isAiCaptain } from '../game/ai-captain.js';
@@ -493,6 +497,7 @@ export function OnlineLobbyPage() {
           <fieldset className={styles.fieldset}>
             <legend>Mission settings</legend>
             <Warp12RulesPreset
+              maxPip={sectorMaxPip}
               disabled={busy || charterLocked}
               onApply={() =>
                 void saveSettings({
@@ -560,6 +565,86 @@ export function OnlineLobbyPage() {
               />
               <span>Module Alpha — Continuum</span>
             </label>
+            <label className={styles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={lobby.modules.sensorGrid ?? false}
+                disabled={busy || charterLocked}
+                onChange={(e) =>
+                  void saveSettings({
+                    modules: {
+                      ...lobby.modules,
+                      sensorGrid: e.target.checked,
+                    },
+                  })
+                }
+              />
+              <span>Module Gamma — Long-Range Sensor Sweep</span>
+            </label>
+            <label className={styles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={lobby.modules.warpDriveSpool ?? false}
+                disabled={busy || charterLocked}
+                onChange={(e) =>
+                  void saveSettings({
+                    modules: {
+                      ...lobby.modules,
+                      warpDriveSpool: e.target.checked,
+                    },
+                  })
+                }
+              />
+              <span>Module Delta — Hot Potato (Warp Drive Spool)</span>
+            </label>
+            <label className={styles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={lobby.modules.longestTrail ?? false}
+                disabled={busy || charterLocked}
+                onChange={(e) =>
+                  void saveSettings({
+                    modules: {
+                      ...lobby.modules,
+                      longestTrail: e.target.checked,
+                    },
+                  })
+                }
+              />
+              <span>Module Theta — Longest Trail Bonus</span>
+            </label>
+            <label className={styles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={lobby.modules.doubleDown ?? false}
+                disabled={busy || charterLocked}
+                onChange={(e) =>
+                  void saveSettings({
+                    modules: {
+                      ...lobby.modules,
+                      doubleDown: e.target.checked,
+                    },
+                  })
+                }
+              />
+              <span>Module Iota — Double Down</span>
+            </label>
+            <label className={styles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={lobby.modules.temporalInversion ?? false}
+                disabled={busy || charterLocked}
+                onChange={(e) =>
+                  void saveSettings({
+                    modules: {
+                      ...lobby.modules,
+                      temporalInversion: e.target.checked,
+                    },
+                  })
+                }
+              />
+              <span>Module Kappa — Temporal Inversion (Warped/Exhibition)</span>
+            </label>
             <DoubleZeroScoreField
               value={lobby.houseRules?.doubleZeroScore}
               disabled={busy || charterLocked}
@@ -569,7 +654,12 @@ export function OnlineLobbyPage() {
                 })
               }
             />
-            {maxPlayers >= 7 ? (
+            <DealHandSizeHint
+              playerCount={maxPlayers}
+              maxPip={sectorMaxPip}
+              largeFleetHandSize={lobby.houseRules?.largeFleetHandSize}
+            />
+            {isLargeFleetHandSizeChoiceVisible(maxPlayers) ? (
               <LargeFleetHandSizeField
                 value={lobby.houseRules?.largeFleetHandSize}
                 disabled={busy || charterLocked}

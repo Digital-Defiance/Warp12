@@ -1,6 +1,7 @@
 import {
   OMEGA_MODEL_VERSION,
   OMEGA_POLICY_FEATURE_DIM,
+  OMEGA_POLICY_FEATURE_DIM_V0,
   OMEGA_STATE_FEATURE_DIM,
 } from './omega-constants.js';
 
@@ -15,7 +16,7 @@ export interface OmegaDenseLayer {
 }
 
 /**
- * Portable JSON weights for the standalone Class Ω network. Two independent MLP
+ * Portable JSON weights for the standalone Ω network. Two independent MLP
  * heads share no parameters: a policy head that scores each candidate action and
  * a value head that estimates the acting seat's outcome from the state alone.
  */
@@ -75,17 +76,61 @@ function forwardMlp(
   return 0;
 }
 
-/** Raw policy logit for one candidate's 303-dim feature vector. */
+/** Raw policy logit for one candidate's feature vector (handles both v0 and v1 dims). */
 export function forwardOmegaPolicyLogit(
   features: Float32Array,
   weights: OmegaModelWeights
 ): number {
-  if (features.length !== weights.policyFeatureDim) {
+  let input = features;
+  
+  // If model expects v0 (303) but we have v1 (304), convert by removing spool bit
+  if (weights.policyFeatureDim === OMEGA_POLICY_FEATURE_DIM_V0 && 
+      features.length === OMEGA_POLICY_FEATURE_DIM) {
+    input = convertV1FeaturesToV0(features);
+  } else if (features.length !== weights.policyFeatureDim) {
     throw new Error(
       `Omega policy feature dim mismatch: buffer ${features.length}, model ${weights.policyFeatureDim}.`
     );
   }
-  return forwardMlp(features, weights.policyLayers);
+  
+  return forwardMlp(input, weights.policyLayers);
+}
+
+/**
+ * Convert v1 (304-dim) features to v0 (303-dim) by removing the spool action bit.
+ * In v0, action kinds were: chart(0), draw(1), deploy-beacon(2), ...
+ * In v1, action kinds are: chart(0), spool(1), draw(2), deploy-beacon(3), ...
+ * So we need to remove index 1 from the action kind one-hot and shift the rest down.
+ */
+function convertV1FeaturesToV0(v1Features: Float32Array): Float32Array {
+  const v0 = new Float32Array(OMEGA_POLICY_FEATURE_DIM_V0);
+  
+  // Context + hand mask + placed mask (before action kinds)
+  const ACTION_KIND_OFFSET = 13 + 91 * 2; // CLASS1_STAR_CONTEXT_DIM + 2*TILE_COUNT
+  
+  // Copy everything before action kinds
+  v0.set(v1Features.subarray(0, ACTION_KIND_OFFSET));
+  
+  // Copy action kinds, skipping index 1 (spool)
+  const v1ActionStart = ACTION_KIND_OFFSET;
+  const v0ActionStart = ACTION_KIND_OFFSET;
+  
+  // Copy action kind index 0 (chart)
+  v0[v0ActionStart] = v1Features[v1ActionStart];
+  
+  // Copy action kinds 2-11 (draw through resolve-continuum-wager) → indices 1-10 in v0
+  for (let i = 0; i < 10; i++) {
+    v0[v0ActionStart + 1 + i] = v1Features[v1ActionStart + 2 + i];
+  }
+  
+  // Copy everything after action kinds (coordinate mask + route kind + pip values)
+  const v1AfterAction = v1ActionStart + 12; // CLASS1_STAR_ACTION_KIND_DIM
+  const v0AfterAction = v0ActionStart + 11; // CLASS1_STAR_ACTION_KIND_DIM_V0
+  const remainingSize = 91 + 4 + 2; // TILE_COUNT + ROUTE_KIND_DIM + 2
+  
+  v0.set(v1Features.subarray(v1AfterAction, v1AfterAction + remainingSize), v0AfterAction);
+  
+  return v0;
 }
 
 export function forwardOmegaPolicyBatch(
@@ -196,9 +241,12 @@ export function validateOmegaModelWeights(weights: OmegaModelWeights): void {
       `Unsupported Omega model version ${weights.version}; expected ${OMEGA_MODEL_VERSION}.`
     );
   }
-  if (weights.policyFeatureDim !== OMEGA_POLICY_FEATURE_DIM) {
+  // Accept both v0 (303 dims, before spool) and v1 (304 dims, with spool)
+  const isV0 = weights.policyFeatureDim === OMEGA_POLICY_FEATURE_DIM_V0;
+  const isV1 = weights.policyFeatureDim === OMEGA_POLICY_FEATURE_DIM;
+  if (!isV0 && !isV1) {
     throw new Error(
-      `Omega policyFeatureDim ${weights.policyFeatureDim} != ${OMEGA_POLICY_FEATURE_DIM}.`
+      `Omega policyFeatureDim ${weights.policyFeatureDim} is neither ${OMEGA_POLICY_FEATURE_DIM_V0} (v0) nor ${OMEGA_POLICY_FEATURE_DIM} (v1).`
     );
   }
   if (weights.valueFeatureDim !== OMEGA_STATE_FEATURE_DIM) {

@@ -10,6 +10,7 @@ import {
 } from './musical-chirp-synth.js';
 import {
   ALL_STOP_DURATION_SEC,
+  createColoredNoiseBuffer,
   createNoiseBuffer,
   scheduleAllStop,
   scheduleContinuumFlash,
@@ -82,6 +83,10 @@ export class Warp12SynthEngine {
     }
     if (sound === 'allStop') {
       this.playAllStop(options?.delayMs ?? 0);
+      return;
+    }
+    if (sound === 'wormhole') {
+      this.playWormhole(options?.delayMs ?? 0);
       return;
     }
   }
@@ -181,6 +186,80 @@ export class Warp12SynthEngine {
     scheduleAllStop(ctx, ctx.destination, startTime);
   }
 
+  /** Wormhole — bidirectional spatial whoosh (simultaneous engage + drop). */
+  playWormhole(delayMs = 0): void {
+    const ctx = this.ensureContext();
+    if (!ctx) {
+      return;
+    }
+    const master = ctx.createGain();
+    master.gain.value = 0.8;
+    master.connect(ctx.destination);
+    const startTime = ctx.currentTime + delayMs / 1000;
+    
+    const duration = 1.5;
+    
+    // Ascending whoosh (warp engage direction) - someone entering
+    const noiseUp = ctx.createBufferSource();
+    noiseUp.buffer = createNoiseBuffer(ctx);
+    
+    const filterUp = ctx.createBiquadFilter();
+    filterUp.type = 'bandpass';
+    filterUp.frequency.setValueAtTime(100, startTime);
+    filterUp.frequency.exponentialRampToValueAtTime(3000, startTime + duration);
+    filterUp.Q.setValueAtTime(2, startTime);
+    
+    const gainUp = ctx.createGain();
+    gainUp.gain.setValueAtTime(0, startTime);
+    gainUp.gain.linearRampToValueAtTime(0.5, startTime + 0.3);
+    gainUp.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+    
+    noiseUp.connect(filterUp);
+    filterUp.connect(gainUp);
+    gainUp.connect(master);
+    noiseUp.start(startTime);
+    noiseUp.stop(startTime + duration);
+    
+    // Descending whoosh (warp drop direction) - someone exiting
+    const noiseDown = ctx.createBufferSource();
+    noiseDown.buffer = createNoiseBuffer(ctx);
+    
+    const filterDown = ctx.createBiquadFilter();
+    filterDown.type = 'bandpass';
+    filterDown.frequency.setValueAtTime(2800, startTime);
+    filterDown.frequency.exponentialRampToValueAtTime(110, startTime + duration);
+    filterDown.Q.setValueAtTime(2, startTime);
+    
+    const gainDown = ctx.createGain();
+    gainDown.gain.setValueAtTime(0, startTime);
+    gainDown.gain.linearRampToValueAtTime(0.5, startTime + 0.3);
+    gainDown.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+    
+    noiseDown.connect(filterDown);
+    filterDown.connect(gainDown);
+    gainDown.connect(master);
+    noiseDown.start(startTime);
+    noiseDown.stop(startTime + duration);
+    
+    // Add low frequency rumble for spatial distortion
+    const rumble = ctx.createOscillator();
+    rumble.type = 'sine';
+    rumble.frequency.setValueAtTime(40, startTime);
+    rumble.frequency.exponentialRampToValueAtTime(35, startTime + duration / 2);
+    rumble.frequency.exponentialRampToValueAtTime(40, startTime + duration);
+    
+    const rumbleGain = ctx.createGain();
+    rumbleGain.gain.setValueAtTime(0, startTime);
+    rumbleGain.gain.linearRampToValueAtTime(0.4, startTime + 0.2);
+    rumbleGain.gain.linearRampToValueAtTime(0.4, startTime + duration - 0.3);
+    rumbleGain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+    
+    rumble.connect(rumbleGain);
+    rumbleGain.connect(master);
+    rumble.start(startTime);
+    rumble.stop(startTime + duration + 0.1);
+  }
+
   /** Ramp bridge ambience down over `durationSec` (e.g. during All Stop). */
   fadeAmbience(durationSec: number): void {
     const ctx = this.ctx;
@@ -215,50 +294,98 @@ export class Warp12SynthEngine {
     master.connect(ctx.destination);
     this.ambienceMasterGain = master;
 
-    const hum = ctx.createOscillator();
-    hum.type = 'sine';
-    hum.frequency.value = preset.humFreqHz;
-    const humGain = ctx.createGain();
-    humGain.gain.value = preset.humGain;
-
-    const lfo = ctx.createOscillator();
-    lfo.type = 'sine';
-    lfo.frequency.value = preset.lfoRateHz;
-    const lfoGain = ctx.createGain();
-    lfoGain.gain.value = preset.humGain * preset.lfoDepth;
-    lfo.connect(lfoGain);
-    lfoGain.connect(humGain.gain);
-
-    hum.connect(humGain);
-    humGain.connect(master);
-
-    const noise = this.createNoiseBuffer(ctx, 4);
-    const noiseSource = ctx.createBufferSource();
-    noiseSource.buffer = noise;
-    noiseSource.loop = true;
-    const noiseFilter = ctx.createBiquadFilter();
-    noiseFilter.type = 'lowpass';
-    noiseFilter.frequency.value = preset.noiseFilterHz;
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.value = preset.noiseGain;
-    noiseSource.connect(noiseFilter);
-    noiseFilter.connect(noiseGain);
-    noiseGain.connect(master);
-
+    const stoppers: Array<() => void> = [];
     const startedAt = ctx.currentTime;
-    hum.start(startedAt);
-    lfo.start(startedAt);
-    noiseSource.start(startedAt);
+
+    const startOsc = (
+      type: OscillatorType,
+      freqHz: number,
+      gainValue: number,
+      lfoDepth: number
+    ) => {
+      if (gainValue <= 0) {
+        return;
+      }
+      const osc = ctx.createOscillator();
+      osc.type = type;
+      osc.frequency.value = freqHz;
+      const gain = ctx.createGain();
+      gain.gain.value = gainValue;
+
+      if (lfoDepth > 0 && preset.engineLfoRateHz > 0) {
+        const lfo = ctx.createOscillator();
+        lfo.type = 'sine';
+        lfo.frequency.value = preset.engineLfoRateHz;
+        const lfoGain = ctx.createGain();
+        lfoGain.gain.value = gainValue * lfoDepth;
+        lfo.connect(lfoGain);
+        lfoGain.connect(gain.gain);
+        lfo.start(startedAt);
+        stoppers.push(() => {
+          try {
+            lfo.stop(ctx.currentTime + 0.05);
+          } catch {
+            /* already stopped */
+          }
+        });
+      }
+
+      osc.connect(gain);
+      gain.connect(master);
+      osc.start(startedAt);
+      stoppers.push(() => {
+        try {
+          osc.stop(ctx.currentTime + 0.05);
+        } catch {
+          /* already stopped */
+        }
+      });
+    };
+
+    // Soft triangle bed — breathes via LFO so it doesn’t read as a fixed drone.
+    startOsc('triangle', preset.engineFreqHz, preset.engineGain, preset.engineLfoDepth);
+    startOsc(
+      'triangle',
+      preset.engineFreqHz * preset.engineHarmonicRatio,
+      preset.engineHarmonicGain,
+      preset.engineLfoDepth * 0.7
+    );
+
+    if (preset.noiseGain > 0) {
+      const noise = createColoredNoiseBuffer(ctx, preset.noiseColor, 4);
+      const noiseSource = ctx.createBufferSource();
+      noiseSource.buffer = noise;
+      noiseSource.loop = true;
+
+      const highpass = ctx.createBiquadFilter();
+      highpass.type = 'highpass';
+      highpass.frequency.value = preset.noiseHighpassHz;
+
+      const lowpass = ctx.createBiquadFilter();
+      lowpass.type = 'lowpass';
+      lowpass.frequency.value = preset.noiseLowpassHz;
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.value = preset.noiseGain;
+
+      noiseSource.connect(highpass);
+      highpass.connect(lowpass);
+      lowpass.connect(noiseGain);
+      noiseGain.connect(master);
+      noiseSource.start(startedAt);
+      stoppers.push(() => {
+        try {
+          noiseSource.stop(ctx.currentTime + 0.05);
+        } catch {
+          /* already stopped */
+        }
+      });
+    }
 
     this.ambienceHandle = {
       stop: () => {
-        const end = ctx.currentTime + 0.05;
-        try {
-          hum.stop(end);
-          lfo.stop(end);
-          noiseSource.stop(end);
-        } catch {
-          /* already stopped */
+        for (const stop of stoppers) {
+          stop();
         }
         master.disconnect();
       },
@@ -273,10 +400,6 @@ export class Warp12SynthEngine {
     this.ambienceHandle?.stop();
     this.ambienceHandle = null;
     this.ambienceMasterGain = null;
-  }
-
-  private createNoiseBuffer(ctx: AudioContext, durationSec: number): AudioBuffer {
-    return createNoiseBuffer(ctx, durationSec);
   }
 }
 

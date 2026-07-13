@@ -13,7 +13,7 @@ import {
 import type { GameObjective } from '../../libs/engine/src/lib/types/objective.ts';
 
 /**
- * Head-to-head: Class Ω+ (net-guided ISMCTS) vs greedy Ω — SAME weights. Proves
+ * Head-to-head: Ω+ (net-guided ISMCTS) vs greedy Ω — SAME weights. Proves
  * the "extended thinking" lift before we wire any UI. Ω+ takes seat `a`; every
  * other seat is greedy Ω. `fairShareRatio` = Ω+ win rate ÷ (1/N): >1 means the
  * search player beats its greedy twin.

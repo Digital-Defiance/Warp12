@@ -32,6 +32,7 @@ export function makeRound(over: Partial<RoundState>): RoundState {
     table: createInitialTable([...turnOrder], spacedockValue, 'a'),
     unchartedSectors: [],
     hands: Object.fromEntries(turnOrder.map((id) => [id, []])),
+    draftState: null,
     dropToImpulseCallPending: null,
     dropToImpulseCatchable: null,
     allStopRequired: false,
@@ -46,6 +47,7 @@ export function makeRound(over: Partial<RoundState>): RoundState {
     roundStarterOpening: null,
     playedThisTurn: false,
     drewThisTurn: false,
+    sensorGrid: [],
   };
   return { ...base, ...over };
 }

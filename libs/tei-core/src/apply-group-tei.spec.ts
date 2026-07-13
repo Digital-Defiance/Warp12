@@ -5,7 +5,7 @@ import {
   charterMatchesRatedEvent,
   groupObjectiveTeiStats,
 } from './apply-group-tei.js';
-import type { TeiRankedPlayer } from './stats-elo.js';
+import type { TeiRankedPlayer } from './stats-openskill.js';
 
 const table: TeiRankedPlayer[] = [
   { playerId: 'a', rank: 1, tei: 1000, unassistedMatches: 0 },

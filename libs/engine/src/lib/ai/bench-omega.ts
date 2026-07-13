@@ -9,6 +9,11 @@ import {
   resolveWarpLookahead,
 } from './skill.js';
 import { playSelfPlayGame, type SelfPlaySeat } from './self-play.js';
+import {
+  summarizeLuckSkillMetrics,
+  type GameLuckSkillMetrics,
+  type LuckSkillSummary,
+} from './luck-skill-metrics.js';
 
 export interface BenchOmegaOptions {
   games: number;
@@ -17,13 +22,15 @@ export interface BenchOmegaOptions {
   objective?: GameObjective;
   playerCount?: number;
   houseRules?: HouseRulesConfig;
-  /** Which seat Class Ω occupies (default `a`). Swap to `b` to test symmetry. */
+  /** Which seat Ω occupies (default `a`). Swap to `b` to test symmetry. */
   omegaSeatId?: PlayerId;
   /**
    * Play a disjoint slice of games by absolute index (for parallel bench shards).
    * Seeds derive from the absolute game index so shards are reproducible.
    */
   slice?: { startGameIndex?: number; gameCount?: number };
+  /** Collect luck/skill metrics (default false). */
+  collectMetrics?: boolean;
 }
 
 export interface BenchOmegaResult {
@@ -34,14 +41,16 @@ export interface BenchOmegaResult {
   omegaSeatId: PlayerId;
   omegaWins: number;
   omegaWinRate: number | null;
-  /** Implied Elo gap vs Commander from the win rate (2-player only; null otherwise). */
-  impliedEloGap: number | null;
+  /** Implied rating gap vs Commander from the win rate (2-player only; null otherwise). */
+  impliedRatingGap: number | null;
   /**
    * Win rate ÷ fair share (1/playerCount). The correct multi-player strength
    * signal: 1.0 = parity with Commander, >1 = beats Commander, <1 = weaker.
    * (The 2p `impliedEloGap` is meaningless for N>2 — use this instead.)
    */
   fairShareRatio: number | null;
+  /** Luck/skill metrics summary (present only if collectMetrics was true). */
+  luckSkillMetrics?: LuckSkillSummary;
 }
 
 function mulberry32(seed: number): () => number {
@@ -82,7 +91,7 @@ function makeCommanderSeat(
 }
 
 /**
- * Head-to-head: Class Ω (greedy policy) vs Commander seats. Omega takes
+ * Head-to-head: Ω (greedy policy) vs Commander seats. Omega takes
  * `omegaSeatId`; every other seat is Commander. Run both seats to cancel any
  * first-mover bias, and sweep player counts / objectives for the promotion gate.
  */
@@ -96,9 +105,11 @@ export function benchOmegaVsCommander(
   const startGameIndex = options.slice?.startGameIndex ?? 0;
   const gameCount = options.slice?.gameCount ?? options.games;
   const endGameIndex = startGameIndex + gameCount;
+  const collectMetrics = options.collectMetrics ?? false;
 
   let omegaWins = 0;
   let completed = 0;
+  const gameMetrics: GameLuckSkillMetrics[] = [];
 
   for (let gameIndex = startGameIndex; gameIndex < endGameIndex; gameIndex++) {
     const seed = baseSeed + gameIndex * 7919;
@@ -108,7 +119,7 @@ export function benchOmegaVsCommander(
       if (id === omegaSeatId) {
         seats.push({
           id,
-          displayName: 'Class Ω',
+          displayName: 'Ω',
           player: createOmegaPlayer({
             net: options.net,
             temperature: 0,
@@ -133,6 +144,7 @@ export function benchOmegaVsCommander(
       seed,
       objective,
       houseRules: options.houseRules,
+      collectMetrics,
     });
 
     if (!result.completed || result.winnerId === null) {
@@ -142,9 +154,18 @@ export function benchOmegaVsCommander(
     if (result.winnerId === omegaSeatId) {
       omegaWins++;
     }
+    
+    if (result.metrics) {
+      gameMetrics.push(result.metrics);
+    }
   }
 
   const omegaWinRate = completed > 0 ? omegaWins / completed : null;
+  
+  const maxPip = 12; // Hardcoded for now; could extract from options if needed
+  const luckSkillSummary = collectMetrics && gameMetrics.length > 0
+    ? summarizeLuckSkillMetrics(gameMetrics, playerCount, maxPip, objective)
+    : undefined;
 
   return {
     games: gameCount,
@@ -154,11 +175,12 @@ export function benchOmegaVsCommander(
     omegaSeatId,
     omegaWins,
     omegaWinRate,
-    impliedEloGap:
+    impliedRatingGap:
       omegaWinRate !== null && playerCount === 2
         ? impliedEloFromWinRate(omegaWinRate)
         : null,
     fairShareRatio:
       omegaWinRate !== null ? omegaWinRate * playerCount : null,
+    luckSkillMetrics: luckSkillSummary,
   };
 }

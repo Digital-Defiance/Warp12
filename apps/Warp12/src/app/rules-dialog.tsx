@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
-import { WARP12_RULES_MARKDOWN } from '../content/rules-source';
-import { RulesMarkdown } from './rules-markdown';
+import { WARP12_RULES_HTML } from '../content/rules-source';
+import { RulesHtml } from './rules-html';
 import styles from './rules-view.module.scss';
 
 interface RulesDialogProps {
@@ -52,7 +52,7 @@ export function RulesDialog({ open, onClose }: RulesDialogProps) {
           </button>
         </header>
         <div className={styles.dialogBody}>
-          <RulesMarkdown source={WARP12_RULES_MARKDOWN} />
+          <RulesHtml source={WARP12_RULES_HTML} />
         </div>
       </div>
     </div>

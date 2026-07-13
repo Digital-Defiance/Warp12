@@ -4,22 +4,22 @@ import { logger } from 'firebase-functions/v2';
 
 import { requireVerifiedUser } from './auth';
 import {
-  opponentTeiForObjective,
+  getAIAnchorStored,
   rankCompetition,
-  resolveEffectivePlayerTei,
+  resolveEffectivePlayerRating,
   type AiSkillLevel,
   type RatedObjective,
-  type TeiRankedPlayer,
-} from './tei/stats-elo';
+  type RatedPlayer,
+} from './tei/stats-openskill';
 import {
-  applyHumanTeiForPlayer,
-  applyGroupTeiForPlayer,
-  groupObjectiveTeiStats,
+  applyHumanRatingForPlayer,
+  applyGroupRatingForPlayer,
+  groupObjectiveRatingStats,
   groupRatedClaimId,
-  humanObjectiveTeiStats,
-  startingTeiForObjective,
-  WARP12_OFFICIAL_RULES_PROFILE_ID,
+  humanObjectiveRatingStats,
+  startingRatingForObjective,
   type PlayerStatsDocument,
+  type StoredRating,
 } from './tei';
 import {
   loadCharter,
@@ -278,47 +278,41 @@ export const reportOnlineMatch = onCall(
 
     const ranks = computeOnlineRanks(game);
 
-    // Pre-match ratings snapshot. Read once so every pairwise delta is computed
+    // Pre-match ratings snapshot. Read once so every rating delta is computed
     // against the same before-match opponent ratings.
-    const teiByUid = new Map<string, { tei: number; matches: number }>();
+    const ratingByUid = new Map<string, { rating: StoredRating; matches: number }>();
     for (const human of humans) {
       const stats = await loadStats(human.id);
       const track = charter
-        ? groupObjectiveTeiStats(
+        ? groupObjectiveRatingStats(
             stats,
             charter.charterId,
             objective,
             charter.seasonKey
           )
-        : humanObjectiveTeiStats(stats, objective);
-      teiByUid.set(human.id, {
-        tei: resolveEffectivePlayerTei(
-          track.unassistedTei,
-          track.unassistedMatches,
-          startingTeiForObjective(stats, objective)
+        : humanObjectiveRatingStats(stats, objective);
+      ratingByUid.set(human.id, {
+        rating: resolveEffectivePlayerRating(
+          track.rating,
+          track.rating.matches,
+          startingRatingForObjective(stats, objective)
         ),
-        matches: track.unassistedMatches,
+        matches: track.rating.matches,
       });
     }
 
-    const table: TeiRankedPlayer[] = [
+    const table: RatedPlayer[] = [
       ...humans.map((h) => ({
         playerId: h.id,
         rank: ranks.get(h.id) ?? game.captains.length,
-        tei: teiByUid.get(h.id)!.tei,
-        unassistedMatches: teiByUid.get(h.id)!.matches,
+        rating: ratingByUid.get(h.id)!.rating,
       })),
       // AI are fixed-rating anchors (context B): they contribute to each human's
-      // pairwise sum but never receive a rating update themselves.
+      // rating calculation but never receive a rating update themselves.
       ...ais.map((a) => ({
         playerId: a.id,
         rank: ranks.get(a.id) ?? game.captains.length,
-        tei: opponentTeiForObjective(
-          objective,
-          aiSkill(a),
-          game.rulesProfileId ?? WARP12_OFFICIAL_RULES_PROFILE_ID
-        ),
-        unassistedMatches: 0,
+        rating: getAIAnchorStored(objective, aiSkill(a)),
       })),
     ];
 
@@ -326,13 +320,13 @@ export const reportOnlineMatch = onCall(
       rated: true;
       won: boolean;
       rank: number;
-      teiBefore: number;
-      teiAfter: number;
-      teiDelta: number;
+      ratingBefore: StoredRating;
+      ratingAfter: StoredRating;
+      muDelta: number;
       charterId?: string;
-      charterTeiBefore?: number;
-      charterTeiAfter?: number;
-      charterTeiDelta?: number;
+      charterRatingBefore?: StoredRating;
+      charterRatingAfter?: StoredRating;
+      charterMuDelta?: number;
     } | null = null;
 
     const groupClaim = charter
@@ -360,17 +354,17 @@ export const reportOnlineMatch = onCall(
           return null;
         }
 
-        let humanTei = fresh?.humanTei;
-        let groupTei = fresh?.groupTei;
-        let teiBefore = 0;
-        let teiAfter = 0;
+        let humanRating = fresh?.humanRating;
+        let groupRating = fresh?.groupRating;
+        let ratingBefore: StoredRating = { mu: 25.0, sigma: 8.33, matches: 0, displayRating: 0.0 };
+        let ratingAfter: StoredRating = { mu: 25.0, sigma: 8.33, matches: 0, displayRating: 0.0 };
         let won = false;
         let rank = 0;
-        let charterTeiBefore: number | undefined;
-        let charterTeiAfter: number | undefined;
+        let charterRatingBefore: StoredRating | undefined;
+        let charterRatingAfter: StoredRating | undefined;
 
         if (charter) {
-          const groupApplied = applyGroupTeiForPlayer(
+          const groupApplied = applyGroupRatingForPlayer(
             fresh,
             charter.charterId,
             objective,
@@ -381,35 +375,35 @@ export const reportOnlineMatch = onCall(
           if (!groupApplied) {
             return null;
           }
-          groupTei = groupApplied.groupTei;
-          charterTeiBefore = groupApplied.teiBefore;
-          charterTeiAfter = groupApplied.teiAfter;
-          teiBefore = groupApplied.teiBefore;
-          teiAfter = groupApplied.teiAfter;
+          groupRating = groupApplied.groupRating;
+          charterRatingBefore = groupApplied.ratingBefore;
+          charterRatingAfter = groupApplied.ratingAfter;
+          ratingBefore = groupApplied.ratingBefore;
+          ratingAfter = groupApplied.ratingAfter;
           won = groupApplied.won;
           rank = groupApplied.rank;
 
           if (charter.isGlobalOfficial) {
-            const humanApplied = applyHumanTeiForPlayer(
+            const humanApplied = applyHumanRatingForPlayer(
               fresh,
               objective,
               table,
               human.id
             );
             if (humanApplied) {
-              humanTei = humanApplied.humanTei;
-              teiBefore = humanApplied.teiBefore;
-              teiAfter = humanApplied.teiAfter;
+              humanRating = humanApplied.humanRating;
+              ratingBefore = humanApplied.ratingBefore;
+              ratingAfter = humanApplied.ratingAfter;
             }
           }
         } else {
-          const result = applyHumanTeiForPlayer(fresh, objective, table, human.id);
+          const result = applyHumanRatingForPlayer(fresh, objective, table, human.id);
           if (!result) {
             return null;
           }
-          humanTei = result.humanTei;
-          teiBefore = result.teiBefore;
-          teiAfter = result.teiAfter;
+          humanRating = result.humanRating;
+          ratingBefore = result.ratingBefore;
+          ratingAfter = result.ratingAfter;
           won = result.won;
           rank = result.rank;
         }
@@ -434,9 +428,9 @@ export const reportOnlineMatch = onCall(
           finishRank: rank,
           won,
           advisorUsed: false,
-          teiBefore,
-          teiAfter,
-          teiDelta: teiAfter - teiBefore,
+          ratingBefore,
+          ratingAfter,
+          muDelta: ratingAfter.mu - ratingBefore.mu,
           charterId: charter?.charterId,
           charterName: charter?.name,
         };
@@ -450,8 +444,8 @@ export const reportOnlineMatch = onCall(
             displayName: human.displayName || base.displayName,
             matchesCompleted: base.matchesCompleted + 1,
             matchesWon: base.matchesWon + (won ? 1 : 0),
-            humanTei,
-            groupTei,
+            humanRating,
+            groupRating,
             humanRatedGameIds:
               !charter || charter.isGlobalOfficial
                 ? [...(base.humanRatedGameIds ?? []), gameId]
@@ -473,10 +467,10 @@ export const reportOnlineMatch = onCall(
         return {
           won,
           rank,
-          teiBefore,
-          teiAfter,
-          charterTeiBefore,
-          charterTeiAfter,
+          ratingBefore,
+          ratingAfter,
+          charterRatingBefore,
+          charterRatingAfter,
         };
       });
 
@@ -485,18 +479,18 @@ export const reportOnlineMatch = onCall(
           rated: true,
           won: applied.won,
           rank: applied.rank,
-          teiBefore: applied.teiBefore,
-          teiAfter: applied.teiAfter,
-          teiDelta: applied.teiAfter - applied.teiBefore,
+          ratingBefore: applied.ratingBefore,
+          ratingAfter: applied.ratingAfter,
+          muDelta: applied.ratingAfter.mu - applied.ratingBefore.mu,
           ...(charter
             ? {
                 charterId: charter.charterId,
-                charterTeiBefore: applied.charterTeiBefore,
-                charterTeiAfter: applied.charterTeiAfter,
-                charterTeiDelta:
-                  applied.charterTeiAfter !== undefined &&
-                  applied.charterTeiBefore !== undefined
-                    ? applied.charterTeiAfter - applied.charterTeiBefore
+                charterRatingBefore: applied.charterRatingBefore,
+                charterRatingAfter: applied.charterRatingAfter,
+                charterMuDelta:
+                  applied.charterRatingAfter !== undefined &&
+                  applied.charterRatingBefore !== undefined
+                    ? applied.charterRatingAfter.mu - applied.charterRatingBefore.mu
                     : undefined,
               }
             : {}),

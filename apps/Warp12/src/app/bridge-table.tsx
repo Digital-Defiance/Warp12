@@ -14,6 +14,7 @@ import {
   countDoublesOnTable,
   isTrueRedAlert,
   trailOpenValue,
+  pickBalancedTile,
   type ActionResult,
   type AdvisorActionLogEntry,
   type AdvisorMoveReview,
@@ -83,7 +84,7 @@ import {
   type ShareRoundMetadata,
 } from '../game/share-round.js';
 import type { LocalGameConfig } from '../game/local-game-config';
-import { isPassAndPlay } from '../game/local-game-config';
+import { isPassAndPlay, neuralAiSupported } from '../game/local-game-config';
 import type { FirestoreCaptain, FirestoreRoundMove } from '../firebase/schema.js';
 import { useGameSoundEffects } from '../game/use-game-sounds.js';
 import { useBridgeAmbience } from '../game/use-bridge-ambience.js';
@@ -152,6 +153,7 @@ import { useBridgeHeaderActionRegistration } from './bridge-header-actions-conte
 import { useGameAudio } from './game-audio-context';
 import { FloatingCoachPanel } from './floating-coach-panel';
 import { CaptainTailsHud } from './captain-tails-hud';
+import { DraftPhase } from './draft-phase';
 import styles from './bridge-table.module.scss';
 import {
   ContinuumOrb,
@@ -313,6 +315,8 @@ export interface BridgeTableProps {
   onCoachSignal?: () => void | Promise<void>;
   /** Online: toggle for the subspace comms panel. */
   commsControl?: { open: boolean; onToggle: () => void };
+  /** Dev-only: pause AI turn execution. */
+  aiPaused?: boolean;
 }
 
 export function BridgeTable({
@@ -341,6 +345,7 @@ export function BridgeTable({
   coachPresence = {},
   onCoachSignal,
   commsControl,
+  aiPaused = false,
 }: BridgeTableProps) {
   const layoutTier = useLayoutTier();
   const { orientation } = useLayoutTierState();
@@ -352,6 +357,7 @@ export function BridgeTable({
     mode === 'local' && !!aiPlayers && aiPlayers.size > 0;
   const isVsAi = hasLocalAiOfficers && !isLocalPassAndPlay;
   const humanId = localConfig?.humanId ?? 'you';
+  const humanCaptainId = isVsAi ? humanId : viewerId ?? undefined;
   const humanSeatIds = useMemo(
     () => new Set(localConfig?.humanCaptains.map((human) => human.id) ?? []),
     [localConfig?.humanCaptains]
@@ -427,8 +433,14 @@ export function BridgeTable({
   );
   const [advisorConceptNet, setAdvisorConceptNet] =
     useState<AdvisorModelWeights | null>(null);
+  const neuralAdvisorOk = neuralAiSupported(game.maxPip ?? 12);
   useEffect(() => {
     let cancelled = false;
+    if (!neuralAdvisorOk) {
+      setAdvisorOmegaNet(null);
+      setAdvisorConceptNet(null);
+      return;
+    }
     void preloadOmegaWeights(game.objective, { allowZeroFallback: true })
       .then((net) => {
         if (!cancelled) {
@@ -448,7 +460,7 @@ export function BridgeTable({
     return () => {
       cancelled = true;
     };
-  }, [game.objective]);
+  }, [game.objective, neuralAdvisorOk]);
 
   const coachSuggestionOptions = useMemo(() => {
     if (advisorConceptNet) {
@@ -711,6 +723,7 @@ export function BridgeTable({
   const [actionFocus, setActionFocus] = useState<TableFocusPoint | null>(null);
   const prevRoundRef = useRef<RoundState | null>(null);
   const [selectedTile, setSelectedTile] = useState<Coordinate | null>(null);
+  const [showSpoolPicker, setShowSpoolPicker] = useState(false);
   const [lastMessage, setLastMessage] = useState<string | null>(null);
   const [coachSuggestion, setCoachSuggestion] = useState<CoachSuggestion | null>(
     null
@@ -788,13 +801,27 @@ export function BridgeTable({
   const gameLogLines = useMemo(
     () =>
       gameLogEntries
-        .map((entry) =>
-          formatGameLogLine(entry, names, {
-            roundStartedAtMs: roundStartedAtRef.current,
-          })
-        )
+        .map((entry) => {
+          // Privacy: pass viewerId and current hand size so we can show drawn tiles only for own actions
+          const ownHandSizeAfter = 
+            entry.kind === 'SPOOL_WARP_DRIVE' && 
+            entry.captainId === humanCaptainId && 
+            round?.hands[humanCaptainId]
+              ? round.hands[humanCaptainId].length
+              : undefined;
+          
+          return formatGameLogLine(
+            entry, 
+            names, 
+            {
+              roundStartedAtMs: roundStartedAtRef.current,
+            },
+            humanCaptainId,
+            ownHandSizeAfter
+          );
+        })
         .filter((line) => line.length > 0),
-    [gameLogEntries, names]
+    [gameLogEntries, names, humanCaptainId, round]
   );
   const dominoTheme = useMemo(
     () =>
@@ -872,7 +899,8 @@ export function BridgeTable({
       const rated = ratedObjective(localConfig.objective);
       if (rated && playerStats.ready) {
         const matchSkill = classifyLocalAiMatchSkill(localConfig.aiCaptains);
-        const humanTei = playerStats.displayTei(matchSkill, rated);
+        const humanTeiDisplay = playerStats.getTeiDisplay(matchSkill, rated);
+        const humanTei = humanTeiDisplay?.formatted ?? null;
         roster = buildLocalRosterTei(localConfig, humanTei, rated);
       }
     } else if (isOnline && onlineCaptains?.length) {
@@ -1078,6 +1106,7 @@ export function BridgeTable({
     dropToImpulseCallPending: round?.dropToImpulseCallPending ?? null,
     dropToImpulseCatchable: round?.dropToImpulseCatchable ?? null,
     returnedToWarp: round?.returnedToWarp === true,
+    wormholeOpened: round?.wormholeOpened === true,
     unchartedSectorCount: round?.unchartedSectors.length ?? 0,
     turnBeepsEnabled,
   });
@@ -1300,8 +1329,6 @@ export function BridgeTable({
     [names, round]
   );
 
-  const humanCaptainId = isVsAi ? humanId : viewerId ?? undefined;
-
   // Log ticker lines filtered by the Comms Log toggle. Structural entries
   // (round start, ratings, outcome) always show; "Captain only" keeps just the
   // viewer's own moves. The full log is always available via the round-log dialog.
@@ -1319,13 +1346,27 @@ export function BridgeTable({
         (entry) =>
           structural.has(entry.kind) || entry.captainId === humanCaptainId
       )
-      .map((entry) =>
-        formatGameLogLine(entry, names, {
-          roundStartedAtMs: roundStartedAtRef.current,
-        })
-      )
+      .map((entry) => {
+        // Privacy: pass viewerId and current hand size
+        const ownHandSizeAfter = 
+          entry.kind === 'SPOOL_WARP_DRIVE' && 
+          entry.captainId === humanCaptainId && 
+          round?.hands[humanCaptainId]
+            ? round.hands[humanCaptainId].length
+            : undefined;
+        
+        return formatGameLogLine(
+          entry, 
+          names, 
+          {
+            roundStartedAtMs: roundStartedAtRef.current,
+          },
+          humanCaptainId,
+          ownHandSizeAfter
+        );
+      })
       .filter((line) => line.length > 0);
-  }, [logMode, gameLogLines, gameLogEntries, humanCaptainId, names]);
+  }, [logMode, gameLogLines, gameLogEntries, humanCaptainId, names, round]);
 
   const humanCaptainTei = useMemo(() => {
     if (!humanCaptainId || !playerStats.ready) {
@@ -1338,12 +1379,16 @@ export function BridgeTable({
       return null;
     }
     if (isVsAi && localConfig) {
-      return playerStats.displayTei(
-        classifyLocalAiMatchSkill(localConfig.aiCaptains),
-        rated
+      return (
+        playerStats.getTeiDisplay(
+          classifyLocalAiMatchSkill(localConfig.aiCaptains),
+          rated
+        )?.formatted ?? null
       );
     }
-    return playerStats.displayTei('commander', rated);
+    return (
+      playerStats.getTeiDisplay('commander', rated)?.formatted ?? null
+    );
   }, [
     game.objective,
     humanCaptainId,
@@ -1375,6 +1420,40 @@ export function BridgeTable({
     [humanCaptainId, humanCaptainTei, localConfig, onlineCaptains]
   );
 
+  const teiGradeByCaptain = useMemo(() => {
+    const grades: Record<string, import('warp12-engine').TeiGrade> = {};
+    const rated = ratedObjective(
+      isVsAi && localConfig ? localConfig.objective : game.objective
+    );
+    if (!rated || !playerStats.ready) {
+      return grades;
+    }
+
+    // Add human captain's TEI grade
+    if (humanCaptainId) {
+      const skill = isVsAi && localConfig 
+        ? classifyLocalAiMatchSkill(localConfig.aiCaptains)
+        : 'commander';
+      const display = playerStats.getTeiDisplay(skill, rated);
+      if (display) {
+        grades[humanCaptainId] = display.grade;
+      }
+    }
+
+    // Add online captains' TEI grades (if available in onlineCaptains data)
+    // Note: onlineCaptains currently doesn't include TEI data, but structure
+    // is here for when that's added to the Firestore captain documents
+    
+    return grades;
+  }, [
+    humanCaptainId,
+    isVsAi,
+    localConfig,
+    game.objective,
+    playerStats,
+    onlineCaptains,
+  ]);
+
   const openTrailNames = useMemo(
     () => openTrailCaptainNames(trailSpokes),
     [trailSpokes]
@@ -1389,11 +1468,13 @@ export function BridgeTable({
     houseRules: game.houseRules,
     dropToImpulsePending,
     legalMovesCount: legalMoves.length,
+    gameState: game,
   });
   const canDeployBeacon = helmControls.showShieldsDown;
   const canPassAlert = helmControls.showPassRedAlert;
   const canPass = helmControls.showPass;
   const canRaiseShieldsExplicitly = helmControls.showShieldsUp;
+  const spoolOptions = helmControls.spoolOptions;
   const canRaiseShields =
     !!round &&
     isMyTurn &&
@@ -2076,11 +2157,80 @@ export function BridgeTable({
         round.allStopRequired,
         round.allStopDeclared,
         round.roundWinnerId ?? '',
+        round.phase,
+        round.draftState?.pickNumber ?? 0,
       ].join(':')
     : '';
 
+  // AI draft execution (drafting phase)
   useEffect(() => {
-    if (!hasLocalAiOfficers || !aiPlayers || !round || game.phase === 'complete') {
+    if (!hasLocalAiOfficers || !aiPlayers || !round || game.phase === 'complete' || aiPaused) {
+      return;
+    }
+
+    if (round.phase !== 'drafting' || !round.draftState) return;
+    if (isVsAi && round.activePlayerId === humanId) return;
+    if (isLocalPassAndPlay && humanSeatIds.has(round.activePlayerId)) return;
+
+    const activePlayerId = round.activePlayerId;
+    const ai = aiPlayers.get(activePlayerId);
+    if (!ai || aiBusy.current) return;
+
+    const pack = round.draftState.currentPacks[activePlayerId];
+    if (!pack || pack.length === 0) return;
+
+    aiBusy.current = true;
+    const timer = window.setTimeout(() => {
+      const current = gameRef.current;
+      const currentRound = current.round;
+      aiBusy.current = false;
+      if (
+        !currentRound ||
+        currentRound.phase !== 'drafting' ||
+        !currentRound.draftState ||
+        currentRound.activePlayerId !== activePlayerId
+      ) {
+        return;
+      }
+
+      const currentPack = currentRound.draftState.currentPacks[activePlayerId];
+      if (!currentPack || currentPack.length === 0) {
+        return;
+      }
+
+      // Use balanced draft pick strategy for AI
+      const picked = pickBalancedTile(activePlayerId, currentPack);
+      
+      const action: GameAction = {
+        type: 'PICK_FROM_PACK',
+        playerId: activePlayerId,
+        coordinate: picked,
+      };
+      
+      void dispatch(action, { source: 'ai' });
+    }, 450);
+
+    return () => {
+      clearTimeout(timer);
+      aiBusy.current = false;
+    };
+  }, [
+    aiPlayers,
+    aiTurnKey,
+    dispatch,
+    game.phase,
+    hasLocalAiOfficers,
+    humanId,
+    humanSeatIds,
+    isLocalPassAndPlay,
+    isVsAi,
+    round,
+    aiPaused,
+  ]);
+
+  // AI turn execution (playing phase)
+  useEffect(() => {
+    if (!hasLocalAiOfficers || !aiPlayers || !round || game.phase === 'complete' || aiPaused) {
       return;
     }
 
@@ -2104,6 +2254,9 @@ export function BridgeTable({
       ) {
         return;
       }
+      
+      
+      // Normal path: AI plays freely
       const action = ai.decideGameAction(current, activePlayerId);
       if (action) {
         void dispatch(action, { source: 'ai' });
@@ -2125,6 +2278,8 @@ export function BridgeTable({
     isLocalPassAndPlay,
     isVsAi,
     round,
+    aiPaused,
+    game.houseRules,
   ]);
 
   const dropToImpulseCatchable = round?.dropToImpulseCatchable ?? null;
@@ -2225,6 +2380,32 @@ export function BridgeTable({
         (trail) => trail.distressBeacon.active
       ).length
     : 0;
+  
+  // Module Delta: Calculate longest trail(s) for display
+  const longestTrailData = useMemo(() => {
+    if (!round || !game.modules.warpDriveSpool?.enabled) {
+      return { captains: [], length: 0, hazardHolder: null };
+    }
+    
+    const trailLengths = Object.entries(round.table.warpTrails).map(
+      ([captainId, trail]) => ({
+        captainId,
+        length: trail.tiles.length,
+      })
+    );
+    
+    const maxLength = Math.max(0, ...trailLengths.map((t) => t.length));
+    const leaders = trailLengths
+      .filter((t) => t.length > 0 && t.length === maxLength)
+      .map((t) => t.captainId);
+    
+    return {
+      captains: leaders,
+      length: maxLength,
+      hazardHolder: round.hazardMarkerHolder ?? null,
+    };
+  }, [round, game.modules.warpDriveSpool?.enabled]);
+  
   const portraitSummaryNudge =
     shouldNudgePortraitForSummary(layoutTier, orientation) &&
     ((roundAwaitingScore && roundEndSummaryOpen) ||
@@ -2279,6 +2460,24 @@ export function BridgeTable({
         data-layout-tier={layoutTier}
         data-orientation={orientation}
       >
+      {round?.phase === 'drafting' && round.draftState ? (
+        <DraftPhase
+          draftState={round.draftState}
+          myId={handOwnerId}
+          names={names}
+          tileBg={tileBg}
+          maxPip={maxPip}
+          onPickTile={(coordinate) => {
+            const action: GameAction = {
+              type: 'PICK_FROM_PACK',
+              playerId: handOwnerId,
+              coordinate,
+            };
+            void dispatch(action);
+          }}
+        />
+      ) : (
+        <>
       <div
         ref={bridgeSurfaceRef}
         className={styles.bridge}
@@ -2349,6 +2548,29 @@ export function BridgeTable({
             >
               Draw
             </button>
+            {spoolOptions.length > 0 && (
+              <button
+                type="button"
+                className={styles.controlBtn}
+                data-module-delta="true"
+                disabled={!round || !isMyTurn}
+                onClick={() => {
+                  if (spoolOptions.length === 1) {
+                    // Only one option, spool directly
+                    void dispatch({
+                      type: 'SPOOL_WARP_DRIVE',
+                      playerId: handOwnerId,
+                      route: spoolOptions[0].route,
+                    });
+                  } else {
+                    // Multiple options, show picker
+                    setShowSpoolPicker(true);
+                  }
+                }}
+              >
+                Engage warp drive
+              </button>
+            )}
             {canDeployBeacon && (
               <button
                 type="button"
@@ -2435,6 +2657,7 @@ export function BridgeTable({
           onPipPresetChange={(next) => patchTablePrefs({ pipPreset: next })}
           teachingMode={teachingMode}
           onTeachingModeChange={(next) => patchTablePrefs({ teachingMode: next })}
+          advisorNeuralAvailable={neuralAdvisorOk}
           autoFollowAction={autoFollowAction}
           onAutoFollowActionChange={(next) =>
             patchTablePrefs({ autoFollowAction: next })
@@ -2535,6 +2758,19 @@ export function BridgeTable({
           lastMessage={lastMessage}
           spacedockValue={round?.spacedockValue ?? 12}
           unchartedCount={round?.unchartedSectors.length ?? 0}
+          sensorGrid={round?.sensorGrid ?? []}
+          tileBg={tileBg}
+          maxPip={maxPip}
+          onSensorSweep={
+            isMyTurn
+              ? (coordinate) =>
+                  void dispatch({
+                    type: 'SENSOR_SWEEP',
+                    playerId: handOwnerId,
+                    coordinate,
+                  })
+              : undefined
+          }
           beaconCount={beaconCount}
           openTrailNames={openTrailNames}
           shieldsDown={shieldsDown}
@@ -2546,6 +2782,9 @@ export function BridgeTable({
           redAlertLabel={sectorRedAlertRow?.label ?? ''}
           redAlertSummary={sectorRedAlertRow?.summary ?? ''}
           redAlertTone={sectorRedAlertRow?.tone ?? 'alert'}
+          longestTrailCaptains={longestTrailData.captains}
+          longestTrailLength={longestTrailData.length}
+          hazardMarkerHolder={longestTrailData.hazardHolder}
         />
         )}
 
@@ -2586,7 +2825,9 @@ export function BridgeTable({
             tileBg={tileBg}
             tacticalClassAbbrevByCaptain={captainTacticalClassAbbrevById}
             tacticalClassLabelByCaptain={captainTacticalClassLabelById}
+            teiGradeByCaptain={teiGradeByCaptain}
             maxPip={maxPip}
+            moduleDeltaEnabled={game.modules.warpDriveSpool?.enabled ?? false}
           />
         )}
 
@@ -2949,6 +3190,36 @@ export function BridgeTable({
           </div>
         )}
 
+        {showSpoolPicker && spoolOptions.length > 0 && (
+          <div className={styles.routePicker}>
+            <p className={styles.routePrompt}>Engage warp drive on:</p>
+            {spoolOptions.map((option) => (
+              <button
+                key={routeKey(option.route)}
+                type="button"
+                className={styles.routeBtn}
+                onClick={() => {
+                  void dispatch({
+                    type: 'SPOOL_WARP_DRIVE',
+                    playerId: handOwnerId,
+                    route: option.route,
+                  });
+                  setShowSpoolPicker(false);
+                }}
+              >
+                {routeLabel(option.route, names)}
+              </button>
+            ))}
+            <button
+              type="button"
+              className={styles.routeCancel}
+              onClick={() => setShowSpoolPicker(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
         {showOwnHand ? (
           <div className={styles.handSection}>
             {!compactLayout && (
@@ -3166,6 +3437,8 @@ export function BridgeTable({
           )
         )}
       </section>
+      </>
+      )}
 
       <PortraitLockOverlay
         active={portraitSummaryNudge}

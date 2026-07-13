@@ -20,7 +20,7 @@ export function classifyLocalAiMatchSkill(
 }
 
 /**
- * Skill bucket for match reporting. Class II is neural Ω; `opponentOmega` stays
+ * Skill bucket for match reporting. Commander is neural Ω; `opponentOmega` stays
  * false so historical profile rows keep the experimental meaning if present.
  */
 export function classifyLocalAiMatchOpponent(

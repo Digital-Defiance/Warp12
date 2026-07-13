@@ -8,7 +8,7 @@ import {
 import { getWarp12SynthEngine } from '../game/warp12-synth-engine.js';
 import styles from './game-sound-preview-panel.module.scss';
 
-function previewAllStopWithBridgeHum(): void {
+function previewAllStopWithBridgeAmbience(): void {
   unlockGameAudio();
   getWarp12SynthEngine().startAmbience();
   previewGameSound('allStop');
@@ -38,9 +38,19 @@ export function GameSoundPreviewPanel() {
           <button
             type="button"
             className={styles.button}
-            onClick={() => previewAllStopWithBridgeHum()}
+            onClick={() => previewAllStopWithBridgeAmbience()}
           >
-            All Stop + bridge hum fade
+            All Stop + bridge ambience fade
+          </button>
+          <button
+            type="button"
+            className={styles.button}
+            onClick={() => {
+              unlockGameAudio();
+              getWarp12SynthEngine().startAmbience();
+            }}
+          >
+            Bridge ambience only
           </button>
           <button
             type="button"

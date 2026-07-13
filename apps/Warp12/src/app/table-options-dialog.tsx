@@ -30,6 +30,8 @@ export interface TableOptionsDialogProps {
   onPipPresetChange: (next: WarpPipPreset) => void;
   teachingMode: boolean;
   onTeachingModeChange: (next: boolean) => void;
+  /** When false, advisor is heuristics-only (Warp 9/15/18 exhibition). */
+  advisorNeuralAvailable?: boolean;
   autoFollowAction: boolean;
   onAutoFollowActionChange: (next: boolean) => void;
   captainTailsHud: boolean;
@@ -68,6 +70,7 @@ export function TableOptionsDialog({
   onPipPresetChange,
   teachingMode,
   onTeachingModeChange,
+  advisorNeuralAvailable = true,
   autoFollowAction,
   onAutoFollowActionChange,
   captainTailsHud,
@@ -291,9 +294,13 @@ export function TableOptionsDialog({
               <span>Teaching mode</span>
             </label>
             <p className={optionStyles.hint}>
-              {teachingMode
-                ? 'Tactical advisor stays on during your turn — suggestion and advice update as the board changes.'
-                : 'Turn on to keep the advisor visible with move advice every turn (you still confirm each play).'}
+              {!advisorNeuralAvailable
+                ? teachingMode
+                  ? 'Exhibition set — advisor uses heuristics only until neural weights ship for this factor.'
+                  : 'Exhibition set — advisor stays heuristics-only until neural weights ship for this factor.'
+                : teachingMode
+                  ? 'Tactical advisor stays on during your turn — suggestion and advice update as the board changes.'
+                  : 'Turn on to keep the advisor visible with move advice every turn (you still confirm each play).'}
             </p>
           </section>
 

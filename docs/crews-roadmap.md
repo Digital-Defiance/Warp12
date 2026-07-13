@@ -47,7 +47,7 @@ Warp 12 aims to be the **reference implementation** for serious Mexican Train: *
 - **Charter visible** before rated play — no surprise eligibility.
 - **Unrated is normal** — wrong fleet size, guest at the table, advisor use, experimental AI → casual sector, no shame.
 - **Provisional** until ~10 rated games in that crew bucket (reuse K-factor / TEI spec §9 guidance).
-- **Percentile + Tactical Class** on crew boards (Phase 3 UI); raw TEI on drill-down today.
+- **Percentile + Commission track** on crew boards (Phase 3 UI); raw TEI on drill-down today.
 - **No shared crew password** — membership is account-based (see below).
 
 Mexican Train will not unify on one kitchen-table ruleset. It *can* unify on: **“when we play for rating, we play Official Warp 12 under a declared charter.”**
@@ -80,7 +80,7 @@ Layer 1 — Crew ladder (primary social)          [SHIPPED]
   Sources: officiated matches, online sectors
 
 Layer 2 — Solo vs reference AI                  [SHIPPED — unchanged]
-  Scope: unassisted practice vs Class II–IV anchors
+  Scope: unassisted practice vs Ensign–Commander anchors
   Updates: localAi[σ][track]
 
 Layer 3 — Global human pool                     [SHIPPED]
@@ -246,7 +246,7 @@ Implementation: `functions/src/charters.ts`, `functions/src/tei/apply-group-tei.
 ## Relationship to Omega / AI tiers
 
 - Class **Ω** and **I\*** remain **unrated** in crew and global ladders until promotion ([RULES.md §VIII](../RULES.md), [tei-spec](./tei-spec.md)).
-- Crew matches: AI seats Class II–IV only (same as online human pool).
+- Crew matches: AI seats Ensign–Commander only (same as online human pool).
 - Omega bench `fairShareRatio` is **not** crew TEI — it gates when Ω becomes a future reference anchor.
 
 ---

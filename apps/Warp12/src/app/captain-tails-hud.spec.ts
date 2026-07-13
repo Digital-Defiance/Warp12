@@ -67,17 +67,17 @@ describe('captain-tails-hud', () => {
     },
   ] as never;
 
-  it('includes AI officer tactical class when provided', () => {
+  it('includes AI officer commission abbrev when provided', () => {
     const rows = buildTailRows(
       round,
       spokes,
       'b',
-      { a: 'Cls IV', b: 'Cls II' },
-      { a: 'Class IV', b: 'Class II' }
+      { a: 'Ens.', b: 'Cmdr.' },
+      { a: 'Ensign', b: 'Commander' }
     );
-    expect(rows[0]?.tacticalClassAbbrev).toBe('Cls IV');
-    expect(rows[0]?.tacticalClassLabel).toBe('Class IV');
-    expect(rows[1]?.tacticalClassAbbrev).toBe('Cls II');
+    expect(rows[0]?.tacticalClassAbbrev).toBe('Ens.');
+    expect(rows[0]?.tacticalClassLabel).toBe('Ensign');
+    expect(rows[1]?.tacticalClassAbbrev).toBe('Cmdr.');
   });
 
   it('lists captains in turn order with trail tails', () => {
@@ -93,6 +93,8 @@ describe('captain-tails-hud', () => {
         },
         state: 'shields',
         isActive: false,
+        hasHazardMarker: false,
+        trailLength: 1,
       },
       {
         rowId: 'b',
@@ -101,6 +103,8 @@ describe('captain-tails-hud', () => {
         lastTile: null,
         state: 'open',
         isActive: true,
+        hasHazardMarker: false,
+        trailLength: 0,
       },
     ]);
   });
@@ -118,6 +122,8 @@ describe('captain-tails-hud', () => {
         },
         state: 'shields',
         isActive: false,
+        hasHazardMarker: false,
+        trailLength: 1,
       },
       {
         rowId: 'b',
@@ -126,6 +132,8 @@ describe('captain-tails-hud', () => {
         lastTile: null,
         state: 'open',
         isActive: true,
+        hasHazardMarker: false,
+        trailLength: 0,
       },
       {
         rowId: 'neutral-zone',
@@ -138,6 +146,8 @@ describe('captain-tails-hud', () => {
         },
         state: 'neutral',
         isActive: false,
+        hasHazardMarker: false,
+        trailLength: 1,
       },
     ]);
   });

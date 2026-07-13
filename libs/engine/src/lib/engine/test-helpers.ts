@@ -86,8 +86,10 @@ export function makeRound(
     table: createInitialTable([...turnOrder], spacedockValue, starter),
     unchartedSectors: [],
     hands: Object.fromEntries(turnOrder.map((id) => [id, []])),
+    draftState: null,
     ...emptyRoundFields(),
     maxPip: 12,
+    sensorGrid: [],
     ...over,
   };
 }

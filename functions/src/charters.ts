@@ -7,7 +7,7 @@ import {
   GLOBAL_OFFICIAL_PLAYER_COUNTS,
   WARP12_OFFICIAL_RULES_PROFILE_ID,
   isSupportedOfficialRulesProfile,
-  applyGroupTeiForPlayer,
+  applyGroupRatingForPlayer,
   charterMatchesRatedEvent,
   generateCrewInviteToken,
   generateCrewInviteCodeShort,
@@ -15,7 +15,7 @@ import {
   formatCrewInviteCode,
   globalOfficialCharterId,
   globalOfficialSlug,
-  groupObjectiveTeiStats,
+  groupObjectiveRatingStats,
   groupRatedClaimId,
   isGlobalOfficialCharterId,
   normalizeCharterSlug,
@@ -560,7 +560,7 @@ export const getCharterLeaderboard = onCall(async (request) => {
   const entries: {
     uid: string;
     displayName: string;
-    tei: number | null;
+    rating: import('./tei').StoredRating;
     matches: number;
     wins: number;
   }[] = [];
@@ -575,7 +575,7 @@ export const getCharterLeaderboard = onCall(async (request) => {
       (memberSnap.data() as CharterMemberDocument | undefined)?.displayName ??
       stats?.displayName ??
       'Captain';
-    const bucket = groupObjectiveTeiStats(
+    const bucket = groupObjectiveRatingStats(
       stats,
       charter.charterId,
       charter.objective,
@@ -584,17 +584,17 @@ export const getCharterLeaderboard = onCall(async (request) => {
     entries.push({
       uid: memberUid,
       displayName: memberName,
-      tei: bucket.unassistedTei ?? null,
-      matches: bucket.unassistedMatches,
-      wins: bucket.unassistedWins,
+      rating: bucket.rating,
+      matches: bucket.rating.matches,
+      wins: bucket.wins,
     });
   }
 
   entries.sort((a, b) => {
-    const aTei = a.tei ?? 0;
-    const bTei = b.tei ?? 0;
-    if (bTei !== aTei) {
-      return bTei - aTei;
+    const aDisplay = a.rating.displayRating;
+    const bDisplay = b.rating.displayRating;
+    if (bDisplay !== aDisplay) {
+      return bDisplay - aDisplay;
     }
     return b.matches - a.matches;
   });
@@ -914,4 +914,4 @@ export async function validateCharterRatedMatch(
   }
 }
 
-export { groupObjectiveTeiStats, applyGroupTeiForPlayer, groupRatedClaimId };
+export { groupObjectiveRatingStats, applyGroupRatingForPlayer, groupRatedClaimId };

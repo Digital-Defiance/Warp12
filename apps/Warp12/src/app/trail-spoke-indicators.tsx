@@ -52,6 +52,7 @@ export function TrailSpokeIndicators({
             key={spoke.slot}
             className={styles.spokeBadge}
             data-state={spoke.state}
+            data-hazard={spoke.hasHazardMarker ? 'true' : undefined}
             style={{
               left: `${x}px`,
               top: `${y}px`,
@@ -61,6 +62,11 @@ export function TrailSpokeIndicators({
             <span className={styles.spokeIcon} aria-hidden>
               {stateIcon(spoke.state)}
             </span>
+            {spoke.hasHazardMarker && (
+              <span className={styles.hazardMarker} title="Hazard Marker (+5 per pass)">
+                ⚠️
+              </span>
+            )}
             <span className={styles.spokeLabel}>{stateLabel(spoke.state)}</span>
             <span className={styles.spokeTooltip} role="tooltip">
               {tooltipText(spoke, tacticalClass)}
@@ -137,7 +143,8 @@ function badgeAriaLabel(
 ): string {
   const who = spoke.captainId ? spoke.label : 'Neutral Zone';
   const classPart = tacticalClass ? ` · ${tacticalClass}` : '';
-  return `${who}${classPart} · ${stateTitle(spoke)} · connects on ${spoke.connectValue}${
+  const hazardPart = spoke.hasHazardMarker ? ' · Hazard Marker' : '';
+  return `${who}${classPart} · ${stateTitle(spoke)} · connects on ${spoke.connectValue}${hazardPart}${
     coach ? ' · tactical advisor engaged' : ''
   }`;
 }

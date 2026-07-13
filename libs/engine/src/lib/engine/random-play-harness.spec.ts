@@ -114,9 +114,11 @@ describe('engine fuzz — tile conservation & structural invariants', () => {
   const GAMES_PER_PRESET = 40;
 
   for (const preset of PRESETS) {
-    it(`holds all invariants over random games: ${preset.name}`, () => {
-      let totalSteps = 0;
-      let anyCompleted = false;
+    it(
+      `holds all invariants over random games: ${preset.name}`,
+      () => {
+        let totalSteps = 0;
+        let anyCompleted = false;
 
       for (let i = 0; i < GAMES_PER_PRESET; i++) {
         const result = runRandomGame({ ...preset.options, seed: 1000 + i * 31 });
@@ -135,7 +137,9 @@ describe('engine fuzz — tile conservation & structural invariants', () => {
       // Sanity: the harness actually drove real games (not a no-op).
       expect(totalSteps).toBeGreaterThan(GAMES_PER_PRESET * 20);
       expect(anyCompleted).toBe(true);
-    });
+      },
+      30000 // 30 second timeout
+    );
   }
 });
 

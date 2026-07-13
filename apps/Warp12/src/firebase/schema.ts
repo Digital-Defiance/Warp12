@@ -87,15 +87,8 @@ export interface OnlineLobbySettings {
   maxPip?: number;
   /** Host intent to play for TEI (default true). */
   rated?: boolean;
-  modules: {
-    continuum: boolean;
-    salamanderPenalty: boolean;
-    subspaceFracture: boolean;
-    subspaceFractureScope: import('warp12-engine').SubspaceFractureScope;
-  };
+  modules: import('warp12-engine').GameModuleConfig;
   houseRules?: HouseRulesConfig;
-  /** Host intent to play for TEI (default true). */
-  rated?: boolean;
   charterId?: string;
   rulesProfileId?: string;
 }

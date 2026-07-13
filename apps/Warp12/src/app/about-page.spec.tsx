@@ -17,7 +17,8 @@ describe('AboutPage', () => {
     expect(
       screen.getByText(/do not use warp 12 to settle sanctioned tournament disputes/i)
     ).toBeTruthy();
-    expect(screen.getByText(/tactical effectiveness index \(tei\)/i)).toBeTruthy();
+    expect(screen.getByText(/tactical efficiency index \(tei\)/i)).toBeTruthy();
+    expect(screen.getByRole('link', { name: /how tei works/i })).toBeTruthy();
     expect(screen.getByRole('link', { name: /back to the bridge/i })).toBeTruthy();
   });
 });

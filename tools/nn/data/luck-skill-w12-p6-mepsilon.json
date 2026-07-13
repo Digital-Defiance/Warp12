@@ -1,0 +1,27 @@
+{
+  "warpFactor": 12,
+  "playerCount": 6,
+  "moduleConfig": "epsilon",
+  "moduleLabel": "Module Epsilon (Drafting)",
+  "games": 500,
+  "objective": "points",
+  "summary": {
+    "games": 500,
+    "playerCount": 6,
+    "maxPip": 12,
+    "objective": "points",
+    "avgLegalMovesPerTurn": 44.12734560368114,
+    "avgUniqueTrainsPerTurn": 0.8080555166549986,
+    "avgConstrainedTileFraction": 0.12748739083284785,
+    "avgUniquePipsInHand": 5.359998999699912,
+    "avgMaxPipCluster": 23.92761358407521,
+    "avgHandEntropy": 1.5264072407051215,
+    "avgMoveValueSpread": 5.841308192457741,
+    "avgNearOptimalFraction": 0.6460474178661054,
+    "avgOwnTrailPlayRate": 0,
+    "avgShieldsDownRate": 0.573849354806442
+  },
+  "skillIndicators": 3,
+  "timestamp": "2026-07-13T03:22:53.342Z",
+  "durationSeconds": 3997.023
+}

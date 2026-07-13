@@ -34,8 +34,16 @@ export function FloatingPanelShell({
   panelClassName,
   children,
 }: FloatingPanelShellProps) {
-  const { panelRef, anchor, style, headerHandlers, resizeHandlers } =
-    useFloatingPanel(containerRef, storageKey, defaultAnchor, bounds);
+  const {
+    panelRef,
+    anchor,
+    style,
+    dragging,
+    touchPrimary,
+    headerHandlers,
+    panelHandlers,
+    resizeHandlers,
+  } = useFloatingPanel(containerRef, storageKey, defaultAnchor, bounds);
 
   const panel = (
     <div
@@ -44,26 +52,36 @@ export function FloatingPanelShell({
       data-anchor={anchor}
       data-accent={accent}
       data-bounds={bounds}
+      data-dragging={dragging ? 'true' : undefined}
+      data-touch-drag={touchPrimary ? 'true' : undefined}
       style={{
         ...style,
         width: `min(${width}px, calc(100vw - 24px))`,
         maxWidth: width,
       }}
+      {...panelHandlers}
     >
-      <div className={shellStyles.header} {...headerHandlers}>
+      <div
+        className={shellStyles.header}
+        data-floating-panel-header
+        {...headerHandlers}
+      >
         <span className={shellStyles.grip} aria-hidden>
           ⠿
         </span>
         {titleAdornment}
         <span className={shellStyles.headerTitle}>{title}</span>
       </div>
-      <div className={shellStyles.body}>{children}</div>
+      <div className={shellStyles.body} data-floating-panel-body>
+        {children}
+      </div>
       <div
         className={shellStyles.resizeHandle}
         role="separator"
         aria-orientation="horizontal"
         aria-label={`Resize ${title} panel`}
         title="Drag to resize"
+        data-no-panel-drag
         {...resizeHandlers}
       />
     </div>

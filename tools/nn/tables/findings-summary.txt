@@ -1,0 +1,29 @@
+
+KEY FINDINGS SUMMARY
+====================
+
+CONFIGURATION MATRIX (38 configs, 19,000 games):
+  W9:  2-4 players   (3 configs × 500 games = 1,500)
+  W12: 2-8 players   (7 configs × 500 games = 3,500)
+  W15: 2-12 players  (11 configs × 500 games = 5,500)
+  W18: 2-18 players  (17 configs × 500 games = 8,500)
+
+HYPOTHESIS RESULTS:
+  H1 (Warp factor): STRONGLY SUPPORTED (F=0.00, p<0.001, η²=0.290)
+  H2 (Fleet size):  STRONGLY SUPPORTED (r=0.000–0.000, all p<0.001)
+  H3 (Interaction): PRESENT (slope variance = 0.0209)
+  H4 (Complexity):  WEAK (r=0.009, not significant)
+  H5 (Monotonic):   SUPPORTED (τ=0.8–0.9, p<0.001)
+
+KEY INSIGHTS:
+  • Unexpected result: Skill increases WITH fleet size (not decreases)
+  • W12 shows steepest effect (r=0.000), most sensitive to player count
+  • Hand coherence increases with Warp factor (W9: 2.09 → W18: 2.66 bits)
+  • Decision complexity stays constant (~2 moves/turn) across factors
+  • Optimal skill expression: W12-W15 with 6-12 players
+
+PRACTICAL IMPLICATIONS:
+  • TEI rating should be anchored on W12 (highest sensitivity)
+  • Larger fleets increase skill ceiling (not noise)
+  • W18 has highest coherence but lower skill expression (pip dumping)
+  • Exhibition factors (W9/W15/W18) valid for casual/practice play

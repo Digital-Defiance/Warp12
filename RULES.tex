@@ -1,0 +1,2045 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{textcomp}
+\usepackage{textgreek}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage[margin=1in]{geometry}
+
+% Pandoc compatibility
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+\title{WARP/WARP 12: Navigational Operations Manual}
+\author{Interstellar Warp Dominoes Federation}
+\date{}
+
+\begin{document}
+\maketitle
+
+\emph{Multi-trail Interstellar Dominoes, with federation terminology.}
+
+\subsubsection{Warp vs Warp 12}\label{warp-vs-warp-12}
+
+Our app was initially only targeted at Double Twelve dominoes and was
+simply called Warp 12, befitting that scope. We then expanded the domino
+set capabilities to be able to play double 9 through 18 and in many
+places the game became known just as Warp or Warp Dominoes.
+
+As an aside, we like Warp 12- it has a certain ring to it.
+
+\subsubsection{A note on "official"
+rules}\label{a-note-on-official-rules}
+
+Unlike chess, multi-trail dominoes originally had no governing body and
+no single canonical ruleset. Almost every published source, commercial
+app, and family table differs on the details --- hand sizes, the value
+of the blank, when a train opens, how doubles are handled, and dozens of
+optional variants. There was no authority to appeal to; there was only
+common practice.
+
+While Warp does not claim otherwise, we have formed the Interstellar
+Warp Dominoes Federation to be a fun semi-fictional authority. We have
+studied the most widely cited sources and tournament-style conventions
+and tried to stay true to the \emph{spirit} of authentic multi-trail
+play, while making deliberate, documented choices wherever those sources
+disagree. The result is meant to be three things at once:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{A faithful, flexible base.} The most common variations are
+  supported as configurable options, so you can tune a table toward
+  whatever "standard" your group grew up with.
+\item
+  \textbf{An opinionated house standard.} The \textbf{Official Warp
+  rules} preset (Section VI) bundles our recommended choices and adds a
+  little fun on top --- much as other domino publishers have shaped
+  their own signature editions.
+\item
+  \textbf{A fun, but elevated and refined experience.} Warp combines the
+  frantic action of "Mexican Train" dominoes with the decorum of the
+  space academy and the refined future envisioned by so many science
+  fiction authors.
+\end{itemize}
+
+Where this manual says "standard" or "tournament practice," read it as
+\emph{the common multi-trail convention Warp has chosen to adopt} for
+members/players of the IWDF, not a claim of sanctioned authority across
+"Mexican Train" as a whole. This is our best attempt to honor the game,
+cover the popular variants, and establish a Warp standard worth playing.
+This is the IWDF Warp standard, but is by no means an authoritative
+standard beyond Warp players.
+
+This document is the authoritative rules reference \textbf{for Warp}
+(and Warp only). \textbf{Sections I--V} follow widely published
+multi-trail practice (double-twelve set, engine double set aside before
+the deal, personal trains, community / Neutral Zone train, train
+markers, doubles, boneyard, multi-round scoring). \textbf{Section VI}
+lists optional Warp modules and the \textbf{Official Warp rules}
+recommended preset.
+
+\begin{quote}
+\textbf{Digital implementation note:} Warp enforces these rules in
+software. Setup defaults to \textbf{Official Warp rules} (Section VI);
+hosts may change any toggle before launch. This manual describes
+behavior when modules are \textbf{on} or \textbf{off} as stated in each
+section. \textbf{Section VII} describes AI officers and the tactical
+advisor; \textbf{Section VIII} describes solo TEI and the public
+leaderboard (digital play only). The app also offers \textbf{Warp 9 / 15
+/ 18} as \textbf{exhibition} (unrated) sets --- see Section II.
+\end{quote}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{The Captain\textquotesingle s Oath --- Honor of the
+Fleet}\label{the-captains-oath--honor-of-the-fleet}
+
+Warp has no referees. Like the living-room multi-trail tables it
+descends from, it runs on the honor of the people at the table --- and
+on an older ideal, the one every officer sworn to explore the deep black
+knows by heart: that \emph{how} you serve matters as much as whether you
+win.
+
+Every captain who takes the conn is expected to hold the line:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{We play with Honor.} A clean win is the only win worth
+  logging. We do not cheat, exploit bugs, or manipulate a match to move
+  a rating.
+\item
+  \textbf{We use sanctioned code.} Rated play runs on the official Warp
+  build and its published engine. We do not tamper with the client,
+  spoof results, or automate our turns.
+\item
+  \textbf{We earn our rating.} TEI reflects genuine, unassisted skill.
+  We do not farm it against weak opponents, collude to feed it, or
+  sandbag to protect it.
+\item
+  \textbf{We keep the pool clean.} If we witness cheating, we name it
+  and report it. Guarding the integrity of the leaderboard is every
+  captain\textquotesingle s duty, not the fleet\textquotesingle s alone.
+\item
+  \textbf{We respect the table.} Opponents, AI officers, and hosts all
+  deserve a fair match, played to its finish. Chatter is kept
+  appropriate for officers on the bridge.
+\end{itemize}
+
+A rated sector is a matter of record --- treat it like one. Only
+sanctioned builds and eligible matches are ever rated; an unrated table
+carries no standings, but it carries the same courtesy. Play like it
+matters, because to a captain worth the uniform, it always does.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{Victory conditions}\label{victory-conditions}
+
+Fleet command chooses one objective before the sector opens:
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Mode & Goal \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Points campaign} \emph{(standard)} & Thirteen rounds ---
+Spacedock descends from the highest double (eg \textbf{12-12}) through
+\textbf{0-0}. Lowest \textbf{cumulative points total} wins the
+campaign. \\
+\textbf{Go out} & First captain to empty their hand in a single round
+wins the sector immediately (no thirteen-round tally). \\
+\end{longtable}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{I. Operations lexicon}\label{i-operations-lexicon}
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Multi-trail & Warp \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Dominoes & \textbf{Navigational Coordinates} \\
+Engine / station double & \textbf{Spacedock} \\
+Personal train & \textbf{Warp Trail} \\
+Community / public train & \textbf{Neutral Zone} \\
+Train marker & \textbf{Distress Beacon} \emph{(Shields Down)} \\
+Boneyard & \textbf{Uncharted Sectors} \\
+Open Market (Drafting) & \textbf{Sensor Grid} --- optional Module Gamma
+visible market \\
+--- & \textbf{Red Alert} --- a double must be satisfied before normal
+play continues (cover tile, or stabilizers when Subspace Fracture
+applies) \\
+--- & \textbf{Subspace Fracture} --- optional chicken-foot protocol on
+doubles (scope: Own Trail, All Captains, or All Doubles) \\
+--- & \textbf{Continuum Flash} --- optional Module Alpha anomaly on
+0-0 \\
+--- & \textbf{All Stop!} --- ceremony required after some round-winning
+charts (Neutral Zone, or any go-out when All Stop! echo is active) \\
+--- & \textbf{Drop to Impulse} --- optional house-rule announce when one
+coordinate remains (uno / knock) \\
+--- & \textbf{Hazard Marker} --- optional Module Delta hot potato
+transferred on Neutral Zone contact \\
+\end{longtable}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{II. Mission setup}\label{ii-mission-setup}
+
+Setup matches standard double-twelve multi-trail practice:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Scramble} all 91\(^*\) coordinates face down.
+\end{enumerate}
+
+\hspace{0pt} *Or however many are appropriate for the warp factor in
+play
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  \textbf{Set aside Spacedock} before dealing --- \textbf{12-12} (round
+  1), \textbf{11-11} (round 2), \ldots{} \textbf{0-0} (round 13). This
+  tile is \textbf{not} dealt.
+\item
+  \textbf{Deal hands} from the remainder:
+
+  \begin{longtable}[]{@{}ll@{}}
+  \toprule\noalign{}
+  Captains & Hand size \\
+  \midrule\noalign{}
+  \endhead
+  \bottomrule\noalign{}
+  \endlastfoot
+  2--4 & 15 \\
+  5--6 & 12 \\
+  7--8 & 10 \emph{(default; host may set 11 --- see below)} \\
+  \end{longtable}
+
+  \begin{quote}
+  \textbf{Large fleet hand size (7--8 captains).} This is the one setup
+  value where widely published rule sets genuinely disagree: Masters of
+  Games and most modern/commercial sets deal \textbf{10}, while Galt
+  (1994) and University Games deal \textbf{11}. Warp defaults to
+  \textbf{10} (it leaves a healthier Uncharted Sectors pile --- 10 tiles
+  at 8 captains versus only 2 at 11) and lets the host opt into
+  \textbf{11} on the setup screen. It has no effect below 7 captains.
+  \end{quote}
+\item
+  \textbf{Place Spacedock} in the center.
+\item
+  \textbf{Uncharted Sectors} --- all remaining tiles face down.
+\end{enumerate}
+
+\textbf{Round starter:} Round 1 opener is designated by fleet command
+(typically the host). Each later round, the starter rotates clockwise.
+The starter charts first; Spacedock was still set aside before the deal.
+
+\textbf{Optional modules} (Section VI) and \textbf{Subspace Fracture}
+must be agreed before launch. Digital setup defaults to the
+\textbf{Official Warp rules} preset (see Section VI). Hosts can change
+any toggle before launch.
+
+\subsubsection{\texorpdfstring{Exhibition sets \emph{(digital --- Warp 9
+/ 15 /
+18)}}{Exhibition sets (digital --- Warp 9 / 15 / 18)}}\label{exhibition-sets-digital--warp-9--15--18}
+
+Sections I--V above describe the \textbf{double-twelve} game. The
+digital app also supports larger and smaller multi-trail sets as
+\textbf{exhibition} sectors --- same protocols, different bone count and
+fleet caps. These never update TEI (Section VIII).
+
+\begin{longtable}[]{@{}lllll@{}}
+\toprule\noalign{}
+Factor & Set & Tiles & Fleet & Points campaign \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Warp 9} & Double-9 & 55 & 2--4 & 10 rounds (9-9 → 0-0) \\
+\textbf{Warp 12} & Double-12 & 91 & 2--8 & 13 rounds (12-12 → 0-0) ---
+\emph{rated} \\
+\textbf{Warp 15} & Double-15 & 136 & 2--12 & 16 rounds (15-15 → 0-0) \\
+\textbf{Warp 18} & Double-18 & 190 & 2--18 & 19 rounds (18-18 → 0-0) \\
+\end{longtable}
+
+Hand sizes for Warp 9 / 15 / 18 follow the engine's set profile. The
+\textbf{7--8 captain 10-vs-11} host choice still applies on Warp 15 / 18
+when the fleet is exactly 7 or 8; fleets of \textbf{9+} use fixed
+profile sizes (9 / 8 / 7 / 6 as the table grows). Official-rules presets
+on exhibition factors use that factor's full campaign length, not
+thirteen rounds.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{III. Standard gameplay}\label{iii-standard-gameplay}
+
+Play proceeds clockwise. Each turn, unless a special protocol applies
+(Red Alert, Subspace Fracture, Continuum Flash resolution), a captain
+does \textbf{one} of the following:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Chart} one legal coordinate, if any exist.
+\item
+  \textbf{Draw} one tile from Uncharted Sectors, then follow the draw
+  rules below.
+\item
+  \textbf{Deploy a Distress Beacon} --- after drawing your one tile and
+  still being unable to chart, your marker goes down and your turn ends.
+  (With \textbf{Manual shield control}, Section VI, you may also lower
+  shields voluntarily during your turn.)
+\item
+  \textbf{Pass} only when their Distress Beacon is already active, they
+  still cannot chart, and Uncharted Sectors are empty.
+\end{enumerate}
+
+\subsubsection{Must play when able}\label{must-play-when-able}
+
+If you hold a coordinate that can be legally charted, you \textbf{must}
+chart one tile this turn. You may \textbf{not} skip charting while legal
+moves exist.
+
+\subsubsection{Eligible routes}\label{eligible-routes}
+
+When charting, you may play on:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Your own Warp Trail} (or start it from Spacedock on your first
+  matching play).
+\item
+  \textbf{The Neutral Zone} --- communal line; any captain may start or
+  extend it with a matching end.
+\item
+  \textbf{Another captain\textquotesingle s Warp Trail} --- \textbf{only
+  while their Distress Beacon is active} (Shields Down).
+\end{enumerate}
+
+You may choose \textbf{any} eligible route when more than one is legal
+--- you are not required to chart on your own trail.
+
+\subsubsection{Opening the round}\label{opening-the-round}
+
+On the first turn of a round, a captain who can play must open
+\textbf{their own Warp Trail} or the \textbf{Neutral Zone} with a
+coordinate matching Spacedock (e.g. any tile containing twelve when
+Spacedock is 12-12). If they cannot play, they draw once; if the drawn
+tile is playable, they must chart it immediately (choosing any legal
+route). If they still cannot play, they deploy their Distress Beacon.
+
+\subsubsection{Drawing from Uncharted
+Sectors}\label{drawing-from-uncharted-sectors}
+
+When you cannot chart and tiles remain in the pile, you \textbf{must
+draw} one coordinate.
+
+\begin{itemize}
+\tightlist
+\item
+  If the drawn tile can be played, you \textbf{must} chart it
+  immediately (any legal route).
+\item
+  If it cannot be played, you deploy your \textbf{Distress Beacon}
+  (shields down) and your turn ends. You draw \textbf{one} tile per turn
+  --- you do not keep drawing, and the marker goes down after that
+  single failed draw regardless of how many tiles remain in Uncharted
+  Sectors.
+\end{itemize}
+
+\subsubsection{Distress Beacon (train
+marker)}\label{distress-beacon-train-marker}
+
+Deploy your beacon when --- and \textbf{only} when --- you cannot make a
+legal chart after drawing, or when the pile is already empty and you
+still cannot chart.
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Shields Down:} While your beacon is active, other captains may
+  chart on your Warp Trail.
+\item
+  \textbf{Shields Up:} Your beacon is removed \textbf{automatically}
+  when \textbf{you} chart on \textbf{your own} Warp Trail. Charting on
+  the Neutral Zone or another captain\textquotesingle s trail leaves
+  your beacon active.
+\item
+  \textbf{You cannot} deploy a beacon voluntarily while you still have a
+  legal chart elsewhere. \emph{(Standard multi-trail --- no ``strategic
+  pass.'')} With \textbf{Manual shield control} (Section VI), you may
+  drop shields voluntarily after starting your own trail --- see that
+  house rule.
+\item
+  \textbf{Passing:} If your beacon is already up, you cannot chart, and
+  Uncharted Sectors are empty, you may \textbf{pass} your turn without
+  charting; your beacon stays up.
+\end{itemize}
+
+\subsubsection{Red Alert pass}\label{red-alert-pass}
+
+If you cannot satisfy an active Red Alert after drawing (or with an
+empty pile), you deploy your Distress Beacon and \textbf{Red Alert
+responsibility passes} to the next captain. The alert remains until the
+double is satisfied.
+
+When \textbf{Subspace Fracture} is active (Section VI), ``satisfy''
+means \textbf{stabilizers} --- not a separate cover tile. Pass Red Alert
+only when you cannot add the next stabilizer.
+
+\emph{(Opt-in exception --- Section VI \textbf{Pass Red Alert without
+draw or beacon}: the captain who \textbf{charted} the double may pass it
+on immediately, without drawing or deploying a beacon, but only during
+\textbf{Yellow alert}. Once the alert has passed once, standard rules
+resume for everyone, including that captain when it comes back around.)}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{IV. Doubles --- Red Alert
+protocol}\label{iv-doubles--red-alert-protocol}
+
+When a \textbf{double} (matching pips on both ends) is charted on any
+eligible route --- your Warp Trail, the Neutral Zone, or an open
+opponent trail --- announce \textbf{"Red Alert!"}
+
+\begin{itemize}
+\tightlist
+\item
+  The captain who charted the double must \textbf{satisfy} it by playing
+  another valid tile on that double \textbf{in the same turn sequence},
+  unless turn rules below apply. \emph{(Standard cover: one matching
+  tile on the double. Subspace Fracture: three stabilizers --- Section
+  VI.)}
+\item
+  \textbf{Going out:} An empty hand does \textbf{not} win the round
+  while your chart left a double unsatisfied. Chart the cover (or final
+  stabilizer) first; only then may an empty hand end the sector.
+\item
+  If you cannot satisfy it, draw from Uncharted Sectors; if you still
+  cannot, deploy your Distress Beacon and pass Red Alert to the next
+  captain.
+\end{itemize}
+
+\textbf{Worked example --- pass Red Alert after already drawing.}
+Captain A draws once from Uncharted Sectors, then charts a double they
+cannot cover. The pile still has tiles, but Captain A \textbf{does not
+draw again} --- \textbf{one draw per turn}. They deploy their Distress
+Beacon and \textbf{pass Red Alert} to the next captain.
+
+\textbf{Worked example --- empty hand without going out
+(tournament-style).} Four captains, points campaign, Red Alert only (no
+Subspace Fracture). Captain A\textquotesingle s \textbf{last tile} is
+\textbf{12-12}. A charts it on Captain B\textquotesingle s open Warp
+Trail but \textbf{does not cover} the double. A\textquotesingle s hand
+is empty, but the round \textbf{does not} end --- A was \textbf{not
+officially out}.
+
+Red Alert responsibility is on A. A cannot cover the double, so A
+\textbf{passes Red Alert} (drawing first if Uncharted Sectors still hold
+tiles and A has not drawn this turn; otherwise deploy beacon and pass).
+Responsibility moves to B, then C. Captain C \textbf{covers} the double
+with \textbf{11-12}. Red Alert clears and normal play resumes.
+
+Captain B still holds \textbf{one tile} and later charts it legally,
+emptying B\textquotesingle s hand. \textbf{B wins the round} and scores
+\textbf{0} for that round. A\textquotesingle s hand is still empty, but
+A is \textbf{not} the round winner.
+
+\emph{If B had not gone out:} play would continue around the table. A is
+still \textbf{not} out of the sector. On A\textquotesingle s later turns
+with \textbf{no legal charts} and the beacon up: if Uncharted Sectors
+are \textbf{empty}, A may \textbf{pass}; if tiles \textbf{remain}, A
+\textbf{must draw one} before passing (same stuck-with-no-play rule as
+everyone else) and re-enters the round with a tile in hand. The round
+ends when someone \textbf{legally} goes out or the sector is
+\textbf{blocked} (Section V).
+
+\emph{Points campaign:} A may still win the \textbf{sector} on lowest
+cumulative penalty even when another captain wins this round ---
+\textbf{round winner} and \textbf{sector winner} are different tallies
+(Section V).
+
+\begin{itemize}
+\tightlist
+\item
+  While Red Alert is active, \textbf{no other routes} may be played
+  until the double is satisfied.
+\item
+  \textbf{Dead double:} If every tile in the set containing that pip is
+  already charted (all thirteen tiles showing that number in a
+  double-twelve set), the double cannot be satisfied --- Red Alert ends
+  and normal play resumes.
+\item
+  Covering a double on another captain\textquotesingle s open trail
+  \textbf{does not} clear their Distress Beacon.
+\end{itemize}
+
+\textbf{One double at a time.} Warp resolves doubles one at a time:
+chart a double, satisfy it (cover tile, or three stabilizers under
+Subspace Fracture), and your turn ends. Because a cover must match the
+double\textquotesingle s pip and no other double shares that pip, a
+cover is always a non-double --- you never chain into a fresh Red Alert,
+and you do not play multiple doubles in a single turn. (Some casual
+house rules let a captain lay several doubles in one turn as long as the
+last is covered by a non-double; Warp follows the tournament-style
+single-double resolution instead.)
+
+\subsubsection{\texorpdfstring{Yellow alert and Red Alert \emph{(digital
+status)}}{Yellow alert and Red Alert (digital status)}}\label{yellow-alert-and-red-alert-digital-status}
+
+The rules engine treats every uncovered double as \textbf{Red Alert} ---
+the same protocol throughout. On the bridge display and in the sector
+log, you will see two \textbf{status labels} for the same alert:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Yellow alert} --- the double was just charted; the responsible
+  captain has \textbf{not} yet passed Red Alert to someone else.
+\item
+  \textbf{Red Alert} --- responsibility has passed at least once
+  (typically after a Distress Beacon deploy and pass). The double still
+  must be satisfied.
+\end{itemize}
+
+This is presentation only. Gameplay, sounds, and scoring follow the Red
+Alert rules above in both phases.
+
+\subsubsection{\texorpdfstring{Subspace Fracture interaction
+\emph{(Section VI ---
+opt-in)}}{Subspace Fracture interaction (Section VI --- opt-in)}}\label{subspace-fracture-interaction-section-vi--opt-in}
+
+When Subspace Fracture is \textbf{enabled}, scope is chosen at launch:
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Scope & Doubles that open Subspace Fracture \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Own Trail} \emph{(default)} & Only on \textbf{your own} Warp
+Trail \\
+\textbf{All Captains} & On \textbf{any} Warp Trail (yours or an
+opponent\textquotesingle s open trail) \\
+\textbf{All Doubles} & On any Warp Trail \textbf{or} the Neutral Zone \\
+\end{longtable}
+
+When a double in scope is charted:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Subspace Fracture and Red Alert open together} on that double.
+\item
+  While the fracture is open (fewer than three stabilizers), the
+  responsible captain may play \textbf{only stabilizers} --- not a cover
+  tile, not other routes.
+\item
+  The \textbf{third stabilizer satisfies the double} and clears
+  \textbf{both} Subspace Fracture and Red Alert. No fourth tile is
+  required on the trail to ``cover'' the double.
+\item
+  If the responsible captain cannot stabilize, draw and/or pass Red
+  Alert as usual; the next responsible captain continues adding
+  stabilizers until all three are placed.
+\end{enumerate}
+
+Doubles \textbf{outside} the chosen scope never open Subspace Fracture
+--- Red Alert cover rules in this section apply unchanged.
+
+When Subspace Fracture is \textbf{off}, all doubles use \textbf{Red
+Alert only} (single cover tile).
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{V. End of round and
+scoring}\label{v-end-of-round-and-scoring}
+
+\subsubsection{Winning the round}\label{winning-the-round}
+
+The round ends when one captain charts their \textbf{last} coordinate
+(empty hand) \textbf{and} no Red Alert or Subspace Fracture on that
+chart still requires satisfaction. You \textbf{cannot} go out on an open
+double --- cover it (or complete three stabilizers when Subspace
+Fracture applies) before the sector closes. See the worked example in
+\textbf{Section IV} (empty hand without going out).
+
+\textbf{All Stop!} When the house rule is \textbf{on} (default), a
+round-winning chart on the \textbf{Neutral Zone} --- or any go-out while
+\textbf{All Stop! echo} is active --- ends the sector immediately and
+the app \textbf{automatically} logs and announces \textbf{All Stop!}
+(sound + round log). No helm hold and no manual button.
+
+Turn \textbf{All Stop! ceremony} off in game options for pure standard
+multi-trail play: Neutral Zone go-outs end the round silently, with no
+announcement.
+
+\textbf{All Stop! echo} (Continuum Flash Module Alpha): when active,
+\textbf{any} round-winning chart triggers the same auto ceremony when
+the house rule is on.
+
+\textbf{Drop to Impulse} \emph{(house rule --- off by default)}: when a
+captain charts down to \textbf{one} coordinate remaining, they are
+\textbf{at impulse} --- their turn \textbf{continues}, but they
+\textbf{cannot chart again} on that turn. This matches standard
+multi-trail \textbf{knock}: reaching one tile does not let you silently
+play that last coordinate.
+
+They must \textbf{Drop to Impulse!} (announce and \textbf{pass helm}
+with one tile still in hand) or \textbf{pass} without announcing and
+risk a \textbf{catch}. On a \textbf{later} turn they may chart their
+last coordinate under normal rules --- including going out when the hand
+empties.
+
+If they \textbf{pass} without having announced, any other captain may
+\textbf{catch} the miss while the catch window is open. A successful
+catch forces the forgetful captain to draw from Uncharted Sectors (1 or
+2 tiles per game setup, if any remain) --- they \textbf{return to warp}
+(no longer at impulse). The window opens when they pass without
+announcing and \textbf{closes} when the \textbf{next} captain passes
+helm (if no one caught). This is separate from \textbf{All Stop!}
+ceremony.
+
+If they \textbf{cannot play} their last coordinate and \textbf{draw}
+from Uncharted Sectors while at impulse, that draw \textbf{returns them
+to warp} --- there is no need to announce first; drawing already ends
+the impulse state.
+
+\subsubsection{Blocked sector}\label{blocked-sector}
+
+If Uncharted Sectors are empty and \textbf{no captain} can make a legal
+chart (after dead doubles are resolved), the round ends \textbf{without}
+a domino winner. \textbf{Every} captain scores the pip total of tiles in
+hand --- no exempt captain. All table tiles, hands, and any remaining
+pile are shuffled for the next round\textquotesingle s deal (standard
+multi-trail recycle --- trails are not trimmed to open ends).
+
+\subsubsection{\texorpdfstring{Round scoring \emph{(points
+campaign)}}{Round scoring (points campaign)}}\label{round-scoring-points-campaign}
+
+When a round ends with a winner, every \textbf{other} captain totals pip
+values in hand and adds that to their campaign score. The round winner
+scores \textbf{0} for that round.
+
+\textbf{Double-blank (0-0):} a double-blank caught in hand scores by the
+\textbf{Double-blank score} setting --- \textbf{50} (tournament
+standard, the default for hand-built rule sets), \textbf{25}, or
+\textbf{0} (pips). The \textbf{Official Warp rules} preset uses
+\textbf{0} so the 0-0 stays safe to hold as the Continuum trigger
+(Module Alpha). This is independent of the Salamander Penalty, which
+only affects \textbf{12-12}.
+
+\textbf{Next round:} Spacedock steps down one double (12-12 → 11-11 →
+\ldots{} → 0-0). After round 13, lowest cumulative points total wins.
+
+\subsubsection{\texorpdfstring{How to tally the score \emph{(step by
+step)}}{How to tally the score (step by step)}}\label{how-to-tally-the-score-step-by-step}
+
+The app does this automatically at round end and shows a summary before
+the next deal. The procedure below is for understanding the math (and
+for tabletop play with physical tiles).
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Decide who counts.} When a captain goes out (empty hand), that
+  \textbf{round winner scores 0}. Every \textbf{other} captain counts
+  the tiles left in their hand. In a \textbf{blocked sector} (no
+  winner), there is no exemption --- \textbf{every} captain counts their
+  hand.
+\item
+  \textbf{Count a hand.} A tile is worth the \textbf{total number of
+  pips on it --- both ends added together}. A blank end counts as
+  \textbf{0}. So:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{5-3} = \textbf{8}, \texttt{6-0} (blank) = \textbf{6},
+    \texttt{0-0} (double-blank) = \textbf{0 pips}.
+  \item
+    A \textbf{double counts both halves}: \texttt{9-9} = \textbf{18},
+    \texttt{12-12} = \textbf{24}.
+  \item
+    Add every tile in the hand to get that captain\textquotesingle s
+    \textbf{round score}.
+  \end{itemize}
+\item
+  \textbf{Apply special-tile settings} (if enabled --- see Section VI):
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Double-blank (0-0):} scored by the \textbf{Double-blank
+    score} setting --- \textbf{50} (tournament standard, the default for
+    hand-built rule sets), \textbf{25}, or \textbf{0} (its 0 pips). The
+    \textbf{Official Warp rules} preset uses \textbf{0}.
+  \item
+    \textbf{Salamander Penalty (Module Beta):} a held \textbf{12-12}
+    scores \textbf{double --- 48} (from round 2 onward). See
+    \textbf{Section VI → Module Beta}. It affects only the 12-12 tile.
+  \end{itemize}
+\item
+  \textbf{Add to the campaign total.} Add each captain\textquotesingle s
+  round score to their running cumulative total. Lower is better.
+\item
+  \textbf{Advance the round.} Step Spacedock down one double
+  (\texttt{12-12\ →\ 11-11\ →\ …\ →\ 0-0}), re-deal, and play the next
+  round. There are \textbf{13 rounds} in a full points campaign.
+\item
+  \textbf{Declare the winner.} After round 13, the captain with the
+  \textbf{lowest cumulative total} wins the sector. If two or more
+  captains tie on the lowest total, they \textbf{share} the victory.
+\end{enumerate}
+
+\textbf{Worked example (round 5, Salamander off).} Armstrong goes out →
+\textbf{0}. Lovell holds \texttt{5-3}, \texttt{9-9}, \texttt{6-0} → 8 +
+18 + 6 = \textbf{23}. Earhart holds \texttt{0-0} and \texttt{4-2} with
+Double-blank score = 50 → 50 + 6 = \textbf{56}. Those round scores are
+added to each captain\textquotesingle s campaign total; Armstrong adds
+nothing.
+
+\textbf{Go out mode.} There is \textbf{no pip tally} --- the first
+captain to empty their hand in any single round wins the sector
+immediately.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{VI. Optional directives and
+variants}\label{vi-optional-directives-and-variants}
+
+Warp has designed several Modules (currently 12, Alpha through Zeta)
+that add optional gameplay mechanics. We have taken extensive measures
+to keep rated play unaffected: a skill/luck quantifier and over
+171,000 game combinations across module configurations, checking for
+strange outcomes or behaviors. Some modules are marked
+\textbf{Warped} --- intentional chaos that throws the game on its
+head, leans into luck, or can give an edge to lesser competitors.
+Those are exhibition-only and never rated.
+
+\medskip
+
+\emph{Agree before launch. Unless noted, these are \textbf{not} part of
+standard multi-trail tournament practice --- though \textbf{Sections
+I--V} (trails, marker, draw, doubles, scoring) still apply underneath.}
+
+\subsubsection{\texorpdfstring{Official Warp rules \emph{(recommended
+preset)}}{Official Warp rules (recommended preset)}}\label{official-warp-rules-recommended-preset}
+
+This is the \textbf{encouraged default} for Warp --- living-room tables,
+online sectors, and any future \textbf{Warp--branded} play. It is
+\textbf{not} a claim of sanctioned third-party tournament rules; it is
+the rules bundle this project recommends when you want the full Warp
+experience without assembling toggles by hand.
+
+In the app, choose \textbf{Official Warp rules} on the setup screen (or
+accept the defaults). Everything in \textbf{Sections I--V} applies; the
+preset only turns on the extras below.
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Setting & Official Warp preset \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Module Alpha --- Continuum} & \textbf{On} \\
+\textbf{Module Beta --- Salamander Penalty} & \textbf{On} \\
+\textbf{Drop to Impulse} & \textbf{On} --- \textbf{1-tile catch} when
+opponents catch a missed announce \\
+\textbf{All Stop! ceremony} & \textbf{On} --- auto log/sound after
+Neutral Zone wins and All Stop! echo go-outs \\
+\textbf{Subspace Fracture} & \textbf{Off} (hosts may enable
+separately) \\
+\textbf{Deluxe house rules} & \textbf{Off} (own trail first, NZ after
+all trails, beacon on any play, round starter plays two) \\
+\textbf{Manual shield control} & \textbf{Off} \\
+\textbf{Pass Red Alert without draw or beacon} & \textbf{Off} \\
+\textbf{Double-blank (0-0) score} & \textbf{0} (pips) ---
+hand-built/standard rule sets default to \textbf{50} (tournament
+standard) \\
+\textbf{Objective} & \textbf{Points campaign} (thirteen rounds) ---
+\emph{Go out} remains an optional lobby mode \\
+\end{longtable}
+
+Hosts may mix and match any toggle; the preset is a one-click reset to
+the recommended bundle.
+
+\subsubsection{\texorpdfstring{Subspace Fracture \emph{(chicken foot ---
+off in Official Warp
+preset)}}{Subspace Fracture (chicken foot --- off in Official Warp preset)}}\label{subspace-fracture-chicken-foot--off-in-official-warp-preset}
+
+When \textbf{enabled}, choose a \textbf{fracture scope} before launch:
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Scope & Doubles that open Subspace Fracture \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Own Trail} \emph{(default)} & Only on \textbf{your own} Warp
+Trail \\
+\textbf{All Captains} & On \textbf{any} Warp Trail \\
+\textbf{All Doubles} & On any Warp Trail \textbf{or} the Neutral Zone \\
+\end{longtable}
+
+When a double in scope is charted, \textbf{Subspace Fracture} and
+\textbf{Red Alert} open together:
+
+\begin{itemize}
+\tightlist
+\item
+  Fleet navigation halts until the fracture is \textbf{stabilized}
+  (three branches from the double).
+\item
+  While the fracture is open, the captain holding Red Alert
+  responsibility may play \textbf{only stabilizers} matching the
+  fracture pip --- no cover tile, no other routes.
+\item
+  Each stabilizer must match the double\textquotesingle s pip (e.g. any
+  tile containing nine on a 9-9 fracture).
+\item
+  If you cannot add a stabilizer, draw; if still unable, deploy your
+  Distress Beacon and pass Red Alert. The next responsible captain
+  continues stabilizing.
+\item
+  Layout: the first two stabilizers branch from the double; the
+  \textbf{third stabilizer is the center foot} and continues the warp
+  trail from the double.
+\item
+  The \textbf{third stabilizer satisfies the double} --- it clears both
+  Subspace Fracture and Red Alert. \textbf{No separate cover tile} is
+  required afterward.
+\item
+  When the third stabilizer is placed, normal play resumes across all
+  routes from the center foot\textquotesingle s open end.
+\end{itemize}
+
+When Subspace Fracture is \textbf{off}, doubles use \textbf{Red Alert
+only} (one cover tile on the double).
+
+\textbf{Fracture immunity} (Continuum Flash Module Alpha): the next
+double on your own trail opens Red Alert but \textbf{does not} open
+Subspace Fracture (regardless of scope).
+
+\subsubsection{\texorpdfstring{House rules \emph{(Deluxe-style --- off
+in Official Warp
+preset)}}{House rules (Deluxe-style --- off in Official Warp preset)}}\label{house-rules-deluxe-style--off-in-official-warp-preset}
+
+Hosts may enable any combination before launch.
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Toggle & When enabled \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Require own trail first} & You must chart at least one tile on
+\textbf{your own} Warp Trail before playing on an
+opponent\textquotesingle s open trail. The Neutral Zone and your own
+trail are unaffected. \\
+\textbf{Neutral Zone after all trails started} & The Neutral Zone cannot
+be started until \textbf{every} captain has at least one tile on their
+own Warp Trail. \\
+\textbf{Beacon clears on any play} & Any legal chart removes
+\textbf{your} Distress Beacon --- not only a chart on your own trail. \\
+\textbf{Round starter plays two} & The round starter must chart
+\textbf{two tiles on their own Warp Trail} on their opening turn
+(Spacedock + two from hand). If the first tile is a double, the Red
+Alert cover counts as the second. If you cannot play the second tile,
+deploy your Distress Beacon --- no extra draw. Cannot start the Neutral
+Zone or opponent trails until both are played. \\
+\textbf{Drop to Impulse} & At one coordinate left (\textbf{at impulse}),
+your turn continues but you \textbf{cannot chart} until you \textbf{Drop
+to Impulse!} (announce and pass helm) or \textbf{pass} without
+announcing (opponents may \textbf{catch} --- 1 or 2 tile penalty per
+setup). Draw while stuck at impulse → \textbf{return to warp}. Catch
+window closes when the next captain passes helm. \\
+\textbf{Pass Red Alert without draw or beacon} & Only the captain who
+\textbf{charted the double} gets this break, and only while the alert is
+still in \textbf{Yellow alert} (before it has passed to anyone). If they
+cannot cover their own double, they may pass responsibility to the next
+captain \textbf{without drawing} from Uncharted Sectors and
+\textbf{without} deploying their Distress Beacon. Red Alert then
+proceeds normally: every other captain --- and the original captain when
+it cycles back to them --- must follow standard rules (draw when tiles
+remain, deploy the beacon on pass). \\
+\textbf{Manual shield control} & Replaces the automatic "shields rise
+when you chart your own trail" behavior with manual control, all
+\textbf{during} your turn (never between turns). \textbf{Open (Shields
+down):} you may open your own Warp Trail at any time, for any reason ---
+even with legal plays in hand and even before you\textquotesingle ve
+started your trail. \textbf{Close (Shields up):} after you drop shields
+you must chart at least one tile on \textbf{your own} Warp Trail before
+you may raise them again (that own-trail chart may be this turn or a
+later one); charting your own trail does \textbf{not} auto-raise.
+\textbf{One shield change per turn} --- a single open \textbf{or} a
+single close, never both and never repeated. Shield changes never pass
+helm on their own; adjust, then chart or \textbf{Pass}. Standard
+draw/marker rules still apply when you cannot chart (a forced marker
+after a failed draw ends your turn). \\
+\end{longtable}
+
+\subsubsection{\texorpdfstring{Module Alpha --- The Continuum \emph{(on
+in Official Warp
+preset)}}{Module Alpha --- The Continuum (on in Official Warp preset)}}\label{module-alpha--the-continuum-on-in-official-warp-preset}
+
+When \textbf{enabled}, charting \textbf{0-0 on your own Warp Trail}
+triggers a \textbf{Continuum Flash} before helm passes. That captain
+immediately chooses \textbf{one} directive for the rest of the round
+(cleared when the sector scores):
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Continuum Flash & Effect \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Reverse turn order} & Helm passes counter-clockwise for the rest
+of the round. \\
+\textbf{Skip lowest points} & The captain with the lowest campaign
+points score skips their next turn. \\
+\textbf{Peek Uncharted Sector} & The invoker sees the top tile in
+Uncharted Sectors (hidden from others). \\
+\textbf{Temporal inversion} & Turn order reverses until the next double
+is charted on the table. \\
+\textbf{Distress amplification} & All warp trails are open to every
+captain without a Distress Beacon. \\
+\textbf{Fracture immunity} & The next double on an own trail will not
+open Subspace Fracture (Red Alert still applies). \\
+\textbf{Salamander swap} \emph{(requires Module Beta)} & If anyone holds
+12-12 at round end, the full 48-point Salamander penalty lands on the
+highest-points captain instead --- the holder pays nothing for that
+tile. \\
+\textbf{All Stop! echo} & Any captain going out this round must call All
+Stop! before the sector closes. \\
+\textbf{Continuum Wager} & Draw two tiles from Uncharted
+Sectors --- keep one, return the other face-down. \\
+\end{longtable}
+
+0-0 charted on the Neutral Zone or an opponent\textquotesingle s trail
+does \textbf{not} trigger Continuum Flash. A winning 0-0 on your own
+trail still requires Continuum Flash resolution before the sector can
+close.
+
+\subsubsection{\texorpdfstring{Module Beta --- The Salamander Penalty
+\emph{(on in Official Warp
+preset)}}{Module Beta --- The Salamander Penalty (on in Official Warp preset)}}\label{module-beta--the-salamander-penalty-on-in-official-warp-preset}
+
+If a round ends and a captain holds \textbf{12-12} in hand, that tile
+scores \textbf{double its pips --- 48} (its normal both-ends value is
+24). Round 1 never applies (12-12 is Spacedock). From round 2 onward,
+12-12 is in circulation.
+
+With \textbf{Salamander swap} (Continuum, Module Alpha), the
+\textbf{entire 48-point penalty} transfers to the highest-points captain
+instead --- the 12-12 holder pays \textbf{nothing} for that tile, and
+the leader eats the full 48.
+
+\subsubsection{Module Gamma --- Long-Range Sensor
+Sweep}\label{module-gamma--long-range-sensor-sweep}
+
+High-density sectors demand high-fidelity intel. When DecisionQ metrics
+spike, captains cannot rely on intuition alone; they require real-time
+tactical awareness to optimize their navigational throughput.
+
+When \textbf{enabled}, navigating the Uncharted Sectors is augmented by
+a \textbf{Sensor Grid} to manage the increased decision density of
+large-fleet engagements.
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{The Sensor Grid:} A market of 4 to 5 face-up coordinates is
+  dealt face-up next to the Uncharted Sectors.
+\item
+  \textbf{Sensor Sweep vs. Blind Jump:} When a captain is required to
+  draw a coordinate, they may perform a \textbf{Sensor Sweep} (select
+  from the Sensor Grid) to maintain optimal decision quality, or execute
+  a \textbf{Blind Jump} (draw a random face-down coordinate from the
+  Uncharted Sectors) if the tactical situation requires an uncharted
+  coordinate.
+\item
+  \textbf{Real-Time Updates:} The grid provides a constant, refreshing
+  view of the immediate navigational environment, allowing for precise
+  hand-management in complex, high-skill sectors.
+\end{itemize}
+
+\subsection{Module Delta: Hot Potato (Neutral Zone
+Hazard)}\label{module-delta-hot-potato-neutral-zone-hazard}
+
+The Neutral Zone is highly unstable subspace. Playing there is
+convenient but dangerous---every contact transfers custody of a volatile
+\textbf{Hazard Marker}, and captains stuck holding it when they pass
+suffer immediate penalties.
+
+\subsubsection{The Hazard Marker (Hot
+Potato)}\label{the-hazard-marker-hot-potato}
+
+\textbf{Transfer Rule:} Whenever a captain charts a coordinate onto the
+\textbf{Neutral Zone}, they immediately take custody of the
+\textbf{Hazard Marker}.
+
+\textbf{Pass Penalty:} If you \textbf{pass} your turn while holding the
+Hazard Marker (cannot chart, drew or pile is empty, beacon already
+deployed), you suffer a \textbf{+5 point penalty} added to your round
+score.
+
+\begin{itemize}
+\tightlist
+\item
+  The penalty applies \textbf{each time} you pass while holding the
+  marker
+\item
+  Multiple passes in a round stack: 2 passes = +10 points, 3 passes =
+  +15 points, etc.
+\item
+  The marker stays with you until someone else plays to the Neutral Zone
+\end{itemize}
+
+\textbf{Round Initialization:} The round starter receives the Hazard
+Marker at the beginning of each round (they got the "privilege" of the
+opening tile).
+
+\textbf{Tactical Impact:} The Neutral Zone becomes a strategic dumping
+ground with real risk. Captains must weigh convenience against the
+danger of getting stuck with the marker and being forced to pass.
+
+\subsubsection{Scoring}\label{scoring}
+
+When the round ends, each captain\textquotesingle s score is:
+
+\[\text{Final Score} = \text{Hand Pips} + \text{Pass Penalties}\]
+
+\textbf{Pass Penalties:} +5 points for each time you passed while
+holding the Hazard Marker during this round.
+
+\textbf{Worked Example (Module Delta enabled, 3 captains, Points
+campaign):}
+
+Round 5 ends. Captain Armstrong goes out (empty hand). Captain Lovell
+and Captain Earhart remain:
+
+\begin{itemize}
+\item
+  \textbf{Lovell\textquotesingle s hand:} \texttt{{[}5-3{]}},
+  \texttt{{[}9-9{]}}, \texttt{{[}6-0{]}} = 8 + 18 + 6 = \textbf{32 pips}
+\item
+  \textbf{Lovell passed once with marker:} +5 penalty
+\item
+  \textbf{Lovell\textquotesingle s round score:} 32 + 5 = \textbf{37}
+\item
+  \textbf{Earhart\textquotesingle s hand:} \texttt{{[}0-0{]}},
+  \texttt{{[}4-2{]}}, \texttt{{[}11-8{]}} = 0 + 6 + 19 = \textbf{25
+  pips} (assuming Double-blank score = 0)
+\item
+  \textbf{Earhart never held marker / never passed:} +0 penalty
+\item
+  \textbf{Earhart\textquotesingle s round score:} 25 + 0 = \textbf{25}
+\item
+  \textbf{Armstrong (went out):} \textbf{0} round score
+\end{itemize}
+
+Armstrong adds 0, Earhart adds 25, Lovell adds 37 to their respective
+campaign totals.
+
+\subsubsection{Module Theta: Longest Trail
+Bonus}\label{module-theta-longest-trail-bonus}
+
+Strategic long-range navigation rewards extended personal trails.
+Captains who invest in building the longest continuous warp trail
+receive a tactical advantage at round end.
+
+\textbf{Warp Drive Engagement:} On your turn (when not blocked by Red Alert
+or Subspace Fracture), you may \textbf{engage warp drive} to draw coordinates from Uncharted
+Sectors---draw tiles one at a time until you draw a tile that cannot be
+charted to your chosen route. All matching tiles are charted; the
+mismatch (and any remaining tiles) go to your hand.
+
+\textbf{Longest Trail Bonus:} At round end, the captain(s) with the
+longest personal Warp Trail receive a \textbf{-3 bonus} (negative =
+fewer points). If multiple captains tie for longest, all tied captains
+receive the bonus.
+
+\textbf{Tactical Impact:} Creates opposing incentives with Module Delta
+(hot potato pushes toward Neutral Zone, longest trail pulls toward own
+trail). Engaging warp drive introduces resource management risk---you might draw
+the Salamander (12-12) while chasing trail length.
+
+\textbf{Status:} Rated --- preserves skill ordering (78.5\% higher-skill
+win rate in calibration).
+
+\subsubsection{Module Iota: Double Down}\label{module-iota-double-down}
+
+Doubles become tactical weapons. When you chart a double, the next
+captain must immediately draw additional coordinates---forcing hand
+bloat on opponents.
+
+\textbf{Mechanic:} When any captain charts a double to any eligible
+route (own trail, Neutral Zone, or opponent\textquotesingle s open
+trail), the \textbf{next captain} draws \textbf{2 tiles} from Uncharted
+Sectors (or Sensor Grid if uncharted exhausted) before their turn
+begins.
+
+\textbf{Tactical Impact:} Doubles shift from liability (Red Alert) to
+weapon (burden next player). Encourages double hoarding or strategic
+timing. Adds variance through forced draws.
+
+\textbf{Status:} Rated --- excellent skill preservation (81.4\%
+higher-skill win rate in calibration).
+
+\subsubsection{Module Eta: Temporal Debt}\label{module-eta-temporal-debt}
+
+Drawing from the unknown carries consequences. Each time you reach into
+Uncharted Sectors, you accumulate Temporal Debt---a penalty due at
+round\textquotesingle s end.
+
+\textbf{Mechanic:}
+
+\begin{itemize}
+\tightlist
+\item
+  Each blind draw from \textbf{Uncharted Sectors} accumulates
+  \textbf{+1 debt token}
+\item
+  At round end, each debt token adds \textbf{+2 points} to your final
+  score (regardless of whether you went out or were caught holding)
+\item
+  Debt tokens \textbf{reset to zero} at the start of each new round
+\item
+  \textbf{Sensor Sweep draws (Module Gamma)} do NOT accumulate
+  debt---you\textquotesingle re drawing from visible market, not blind
+  chance
+\end{itemize}
+
+\textbf{Example:} You make 3 blind draws from uncharted during the
+round. At scoring, you\textquotesingle re caught with 18 pips in hand +
+3 debt tokens (\texttimes2) = \textbf{24 points total}.
+
+\textbf{Tactical Impact:}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Punishes excessive drawing} --- the classic "draw until you
+  can play" strategy becomes costly
+\item
+  \textbf{Rewards playing from hand} --- skilled tile management
+  (holding versatile tiles, planning ahead) gains an edge
+\item
+  \textbf{Strategic drawing} --- you must weigh: is drawing worth +2
+  penalty? Can I play from hand instead?
+\item
+  \textbf{Sensor Grid synergy} --- Module Gamma\textquotesingle s
+  visible market becomes even more valuable (no debt penalty for
+  targeted draws)
+\end{itemize}
+
+\textbf{Status:} Rated --- preserves skill ordering by rewarding hand
+management and strategic restraint (calibration pending).
+
+\subsubsection{\texorpdfstring{Module Kappa: Temporal Inversion
+\emph{(Warped --- exhibition
+only)}}{Module Kappa: Temporal Inversion (Warped --- exhibition only)}}\label{module-kappa-temporal-inversion-warped--exhibition-only}
+
+Reality bends. Scoring objectives invert every other round, forcing
+constant strategic adaptation.
+
+\textbf{Mechanic:}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Odd rounds} (1, 3, 5...): Normal scoring---lowest hand wins
+\item
+  \textbf{Even rounds} (2, 4, 6...): Inverted scoring---highest hand
+  wins, going out = maximum penalty
+\end{itemize}
+
+\textbf{Tactical Impact:} Going out in even rounds is catastrophic (you
+wanted to KEEP tiles). Medium hands become optimal. AI struggles to
+adapt, creating opportunities for human players. Lower-skilled players
+win \textasciitilde65\% of the time (35.6\% higher-skill win rate in
+calibration --- intentionally inverts skill ordering).
+
+\textbf{Status:} Exhibition/Warped mode only---\textbf{intentionally
+breaks skill ordering} for casual chaos play. Never rated.
+
+\subsubsection{\texorpdfstring{Module Lambda: Wormholes
+\emph{(Warped --- exhibition
+only)}}{Module Lambda: Wormholes (Warped --- exhibition only)}}\label{module-lambda-wormholes-warped--exhibition-only}
+
+Spatial instability permits topological manipulation. Captains can open
+\textbf{Wormholes} that transpose their personal Warp Trail with the
+Neutral Zone, fundamentally altering board state ownership.
+
+\textbf{Mechanic:}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Wormhole Trigger:} Playing a \textbf{double} onto the
+  \textbf{Neutral Zone} opens a Wormhole
+\item
+  \textbf{Spatial Inversion:} The captain\textquotesingle s personal
+  trail and the Neutral Zone \textbf{immediately swap ownership}
+  \begin{itemize}
+  \tightlist
+  \item
+    Your former trail becomes the new public Neutral Zone (open to all)
+  \item
+    The former Neutral Zone becomes your new private trail
+  \end{itemize}
+\item
+  \textbf{Distress Beacon:} If you had a beacon active before the swap,
+  it is \textbf{destroyed during transit} (fresh start)
+\item
+  \textbf{Red Alert Resolution:} The double triggers Red Alert on your
+  \textbf{newly acquired} trail. You must satisfy it from your hand; if
+  you cannot, you deploy a beacon on your new trail.
+\end{itemize}
+
+\textbf{Strategic Implications:}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{The Escape Pod:} Dump a dead-end trail full of blocked
+  doubles into the public sphere and claim the Neutral Zone\textquotesingle s
+  momentum
+\item
+  \textbf{Risk Assessment:} Before opening a Wormhole, ensure you can
+  answer the Red Alert after the swap; otherwise you beacon your stolen
+  trail open to everyone
+\end{itemize}
+
+\textbf{Tactical Impact:} Fundamentally rewrites the game from linear
+tile shedding to aggressive board state hijacking. High-skill
+players\textquotesingle{} long-term trail building becomes a
+vulnerability (theft target). AI heuristics must weigh theft
+opportunities against defense. Lower-skilled players benefit from the
+randomness of dynamic ownership (\textasciitilde50-60\% expected skill
+preservation).
+
+\textbf{Status:} Exhibition/Warped mode only---\textbf{predicted to
+significantly reduce skill ordering} (untested; awaiting calibration).
+Never rated.
+
+\subsubsection{Module Epsilon --- Tactical Requisition (The
+Captain\textquotesingle s
+Draft)}\label{module-epsilon--tactical-requisition-the-captains-draft}
+
+In top-tier Warp 18 engagements, victory is determined at the drafting
+table. Pre-mission optimization is essential; captains must requisition
+their tactical loadout to match the projected skill ceiling of the
+sector.
+
+When \textbf{enabled}, the random blind deal is replaced by a drafting
+phase, allowing captains to engage in strategic loadout optimization
+before the sector launch.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Requisition Packs:} Uncharted Sectors are scrambled. Each
+  captain receives a Requisition Pack.
+\item
+  \textbf{First Selection:} Captains analyze their initial intel,
+  selecting one coordinate to lock into their permanent tactical
+  loadout.
+\item
+  \textbf{Data Transfer:} Remaining coordinates are passed clockwise,
+  forcing captains to adapt their strategy based on the available data
+  pool.
+\item
+  \textbf{Strategic Depth:} This phase transforms the start of the
+  sector from a luck-based event into a high-skill predictive challenge,
+  ensuring that every captain enters the sector with a coherent,
+  optimized navigation strategy.
+\end{enumerate}
+
+\subsubsection{Module Zeta --- Fleet Squadrons (Warp
+Crews)}\label{module-zeta--fleet-squadrons-warp-crews}
+
+The DecisionQ requirement of 18-captain sectors is extreme. To maintain
+peak operational performance, the fleet forms localized task forces,
+pooling their cognitive resources to manage the massive navigational
+complexity of the board.
+
+When \textbf{enabled}, the fleet divides into equal squadrons before the
+sector launches. Squadrons are the professional standard for managing
+high-complexity 18-captain sectors.
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Squadron Formation:} Captains divide into equal teams. This
+  structure allows for shared cognitive load and collaborative
+  high-level strategy.
+\item
+  \textbf{Bridge Seating:} Teammates alternate turns with opposing
+  squadrons to ensure balanced tactical pressure.
+\item
+  \textbf{The Shared Trail:} Each squadron shares a single Warp Trail
+  and a single Distress Beacon, creating a unified navigational front.
+\item
+  \textbf{Shield Protocols:} The squadron's shields remain "Up" as long
+  as \emph{any} member of the team maintains forward momentum on their
+  shared trail.
+\item
+  \textbf{Collaborative Command:} Teammates may openly discuss
+  high-level strategy and coordinate moves, effectively leveraging
+  shared brainpower to master the complex decision trees of the Warp 18
+  board.
+\item
+  \textbf{Scoring:} Victory is a team achievement; a squadron goes out
+  when \emph{one} captain clears their hand, with the team penalty
+  calculated by the aggregate remaining pips.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{\texorpdfstring{VII. AI officers \& tactical advisor
+\emph{(digital)}}{VII. AI officers \& tactical advisor (digital)}}\label{vii-ai-officers--tactical-advisor-digital}
+
+Local simulation and online sectors can fill empty chairs with
+\textbf{AI officers}. The in-game \textbf{tactical advisor} uses the
+same decision stack to suggest moves and explain reasoning. This section
+describes what those systems know and how \textbf{Lookahead} works.
+
+\subsubsection{What an AI officer can
+see}\label{what-an-ai-officer-can-see}
+
+An AI captain has the same \textbf{public} information you do:
+
+\begin{itemize}
+\tightlist
+\item
+  Its \textbf{own} hand (coordinates held).
+\item
+  Every coordinate already \textbf{charted} on the table (all Warp
+  Trails, Neutral Zone, fracture stabilizers).
+\item
+  How many tiles each opponent is \textbf{holding} (hand count only ---
+  not which coordinates).
+\item
+  How many tiles remain in \textbf{Uncharted Sectors}.
+\end{itemize}
+
+An AI officer \textbf{cannot} see which specific coordinates are in an
+opponent\textquotesingle s hand. It does not read hidden tiles from the
+game state when choosing a move.
+
+\subsubsection{AI officers (Ensign / Lieutenant /
+Commander)}\label{ai-officers-ensign--lieutenant--commander}
+
+Everyone at the table is a \textbf{Captain} (seat role).
+\textbf{Ensign}, \textbf{Lieutenant}, and \textbf{Commander} are
+opponent / placement tracks --- commission flavor for AI difficulty, not
+a separate ladder from TEI:
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Track & Profile \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Ensign} & Provisional / new profile --- more blunders, lighter
+heuristics \\
+\textbf{Lieutenant} & Competent / standard \\
+\textbf{Commander} & Veteran / sharp --- self-play neural policy ($\Omega$):
+greedy inference, ms/move. Same Commander / $\sigma$=\texttt{commander} label
+--- not a separate ``Commander+'' tier. \\
+\end{longtable}
+
+Controls how often the officer blunders and how sharply it prefers
+high-scoring lines. All tracks still obey the same legal-move and
+rules-engine constraints.
+
+\subsubsection{Lookahead (per-officer
+opt-in)}\label{lookahead-per-officer-opt-in}
+
+When \textbf{Lookahead} is \textbf{off}, the officer uses a fast
+\textbf{greedy} policy: score each legal move for this turn with
+heuristics (shed heavy pips, own-trail pressure, Red Alert safety,
+objective mode, modules, and so on) and pick among them.
+
+When \textbf{Lookahead} is \textbf{on}, the officer
+\textbf{forward-searches} before acting:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  For each candidate move, it runs the move through the \textbf{real
+  Warp rules engine} a few turns ahead.
+\item
+  Because opponent hands and the draw order are hidden, each simulation
+  \textbf{guesses} plausible holdings: opponents receive a random
+  assignment from the pool of tiles not on the table and not in the
+  AI\textquotesingle s hand, while preserving each
+  opponent\textquotesingle s \textbf{actual hand count}. Uncharted
+  Sectors are filled from the same unseen pool.
+\item
+  The search repeats that guess several times
+  (\textbf{determinizations}), averages the outcomes, and picks the move
+  that tends to work best across those possible worlds.
+\end{enumerate}
+
+Lookahead is \textbf{imperfect-information search} --- not clairvoyance.
+It is slower but can reason about consequences (for example, whether a
+play sets up an opponent to go out). Commission track still applies on top
+(blunders and noisy tie-breaking).
+
+\subsubsection{Tactical advisor}\label{tactical-advisor}
+
+The tactical advisor suggests one move plus plain-language reasons so
+humans can see \emph{why} a line is strong, not only what to play.
+
+\textbf{Today:} it uses the \textbf{Commander} simulation profile with
+\textbf{Lookahead} enabled (heuristic stack).
+
+\textbf{Planned:} a hybrid neural--heuristic model \textbf{distilled
+from $\Omega$} --- trained to agree with the Commander neural
+officer\textquotesingle s picks and explain them in named game concepts.
+It does \textbf{not} imitate legacy Commander heuristics. Assisted play
+remains unrated (below).
+
+Invoking the tactical advisor \textbf{during live play} marks the match
+as \textbf{assisted} for rating purposes (Section VIII). Post-match
+advisor reports and campaign downloads do \textbf{not} affect whether a
+match is rated.
+
+\subsubsection{\texorpdfstring{$\Omega$+ extended thinking \emph{(planned,
+exhibition)}}{$\Omega$+ extended thinking (planned, exhibition)}}\label{omega-plus-extended-thinking-planned-exhibition}
+
+The same $\Omega$ neural weights can run with \textbf{extended thinking} ---
+Commander-free PUCT search (Omega policy prior + value leaves) with a
+per-move iteration budget. Stronger than greedy Commander play when the
+value head is competent; slower. Intended for exhibition / casual hard
+mode, not as a separate rated anchor.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{\texorpdfstring{VIII. TEI \& leaderboard
+\emph{(digital)}}{VIII. TEI \& leaderboard (digital)}}\label{viii-tei--leaderboard-digital}
+
+Local solo sectors against \textbf{AI officers} can report results to
+\textbf{\href{https://iwdf.org}{iwdf.org}} when the client is signed in
+to Firebase. Team campaigns, unrated lobby modes, and builds without a
+working stats backend do not update the public boards.
+
+\begin{quote}
+\textbf{In-person play:} While we encourage Warp to be played in person with physical dominoes --- around a table, with friends and family --- the TEI rating system requires digital tracking to compute and maintain ratings accurately. For tabletop games, use the \href{https://iwdf.org/calculator}{TEI calculator} or officiated match codes to report results and update your rating. The full online app (\href{https://warp.iwdf.org}{warp.iwdf.org}) and the leaderboards (\href{https://iwdf.org}{iwdf.org}) handle all TEI computation automatically.
+\end{quote}
+
+Warp keeps \textbf{three rating contexts}, each split into
+\textbf{Go-out} and \textbf{Points} tracks:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Solo pool} --- unassisted matches against reference AI
+  officers (Ensign / Lieutenant / Commander).
+\item
+  \textbf{Human pool} --- online sectors and officiated matches
+  \textbf{without} a crew charter (global \texttt{humanTei}).
+\item
+  \textbf{Crew charters} --- friend-group ladders on
+  \href{https://iwdf.org/crews}{iwdf.org/crews}; scoped \textbf{group
+  TEI} per charter. See \href{docs/crews-roadmap.md}{Crews \& charters}.
+\end{itemize}
+
+TEI is displayed as a \textbf{grade} (letter + score, like ``V67'')
+combining your skill estimate and rating confidence. For how that
+grade relates to the underlying OpenSkill model, see the in-app page
+\textbf{How TEI works} (linked from Profile and About), or the
+normative write-up in \textbf{\url{docs/tei-spec.md}}.
+
+\subsubsection{Online sectors (human
+pool)}\label{online-sectors-human-pool}
+
+A completed online sector is rated into the \textbf{human pool} when it
+meets every condition below; otherwise it plays out normally but changes
+no ratings. The lobby shows a live \textbf{rated / unrated} banner so
+the fleet knows before launch.
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{The set is double-twelve (Warp 12).} Warp 9 / 15 / 18 are
+  \textbf{exhibition} --- the lobby forces unrated and the server
+  rejects TEI reports for those sets.
+\item
+  \textbf{Two or more captains are signed in with an account.} Guests
+  (anonymous sign-in) can play, but a guest at the table makes the whole
+  sector unrated --- a rating that can\textquotesingle t persist across
+  devices isn\textquotesingle t a rating.
+\item
+  \textbf{Every AI officer is Ensign / Lieutenant / Commander.} These have fixed
+  reference strength and serve as rating \textbf{anchors}: finishing
+  above or below them moves your TEI, which keeps online results on the
+  same scale as solo play. An experimental \textbf{Class I*} search
+  officer makes the sector unrated. (Commander is a neural policy ---
+  still rated, same \textsigma=\texttt{commander} anchor.)
+\item
+  \textbf{The objective is Points or Go-out.} Other modes are unrated.
+\item
+  \textbf{No captain consulted the tactical advisor.} Just as in solo
+  play, invoking the in-game advisor during live turns makes a match
+  \emph{assisted} --- and online, one assisted captain leaves the
+  \textbf{whole} sector unrated. You are warned the moment you engage
+  it.
+\end{itemize}
+
+When the sector ends, every signed-in captain\textquotesingle s TEI is
+updated with a single pairwise pass over the final standings (see the
+spec, §6.5 / §10). The server re-derives the result from the
+authoritative game record and re-checks each seat, so no captain can
+report a score they didn\textquotesingle t earn. Ratings are applied
+once per sector.
+
+\subsubsection{Crews \& charters (group
+TEI)}\label{crews--charters-group-tei}
+
+A \textbf{crew} is a persistent friend group with a \textbf{charter} ---
+a frozen contract: Official Warp rules (\texttt{warp12-official-v1}),
+objective (Points or Go-out), fleet size (2--8), and campaign length.
+When a rated match or online sector is played \textbf{under a crew
+charter}, TEI updates go to that crew\textquotesingle s ladder
+(\texttt{groupTei}), not the global human pool.
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Create / join} at
+  \href{https://iwdf.org/crews}{iwdf.org/crews}. \textbf{Google sign-in
+  required.} No shared crew passwords --- invite links only (owner can
+  rotate).
+\item
+  \textbf{Officiated nights:} the match official selects the crew when
+  creating an \texttt{MT-} code. All checked-in captains must be crew
+  members. Approval moves \textbf{crew TEI only}.
+\item
+  \textbf{Online sectors:} the host selects a crew in the lobby waiting
+  room; fleet size, objective, and rules lock to the charter. Sector
+  must match exactly or it stays unrated (\texttt{charter\_mismatch}).
+\item
+  \textbf{Guests} at the table do not earn crew TEI (same as global
+  human pool).
+\item
+  \textbf{Global Official} is a special open charter
+  (\texttt{global-official}). Rated play under it updates \textbf{both}
+  the Global Official crew ladder \textbf{and} global human-pool TEI.
+\end{itemize}
+
+The \href{https://iwdf.org/calculator}{TEI calculator} can preview
+crew-ladder outcomes without saving anything. Full design:
+\url{docs/crews-roadmap.md}.
+
+\subsubsection{Lexicon}\label{lexicon}
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Term & Meaning \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Captain} & Seat at the table --- every player is a Captain \\
+\textbf{TEI} (Tactical Efficiency Index) & Your rating, displayed as a grade (letter + score, like ``V67'') \\
+\textbf{TEI Grade} & Letter indicating rating confidence: \textbf{E} (Elite), \textbf{V} (Veteran), \textbf{C} (Consistent), \textbf{I} (Improving), \textbf{P} (Provisional) \\
+\textbf{TEI Score} & 0--99 number showing conservative skill on one global scale --- not restarted per letter \\
+\textbf{Commission track} & Opponent / placement tier on file: \textbf{Ensign}, \textbf{Lieutenant}, \textbf{Commander}. Personal \textbf{federation commission} (Cadet--Fleet Admiral) is derived from your TEI. \textbf{Flag Officer} prestige covers Rear Admiral and above \\
+\end{longtable}
+
+\subsubsection{Federation commission
+(ranks)}\label{federation-commission-ranks}
+
+Your TEI maps to a \textbf{federation commission} --- Cadet through Fleet
+Admiral --- so a grade like ``V67'' also reads as a naval rank on the HUD
+and profile. It is \textbf{flavor over TEI}, not a second rating: same
+grade string, same update rules.
+
+\textbf{Seat vs commission:} every player at the table is still a
+\textbf{Captain} (seat role). Commission ranks never replace that word.
+
+\textbf{Opponent tracks vs personal commission:} rated AI buckets and
+Academy placement use three coarse tracks --- \textbf{Ensign /
+Lieutenant / Commander}. Your \emph{personal} commission is finer
+(Cadet through Fleet Admiral) and updates whenever your TEI does.
+
+\textbf{Lieutenant Junior Grade (Lt.~JG)} is the naval rung between
+\textbf{Ensign} and full \textbf{Lieutenant} --- an early Improver who
+has cleared Ensign territory but is not yet mid-trail Lieutenant
+strength. The app may show \textbf{Lt.~JG} in tight HUDs; tooltips and
+this manual use the full name.
+
+\begin{longtable}[]{@{}lll@{}}
+\toprule\noalign{}
+Commission & Short & Typical TEI band \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Cadet} & Cdt. & Below P25 \\
+\textbf{Ensign} & Ens. & P25--I25 \\
+\textbf{Lieutenant Junior Grade} & Lt.~JG & I25--I40 \\
+\textbf{Lieutenant} & Lt. & I40--C45 \\
+\textbf{Lieutenant Commander} & Lt.~Cmdr. & C45--C55 \\
+\textbf{Commander} & Cmdr. & C55--V63 \\
+\textbf{Commodore} & Cdore. & V63--V70 \\
+\textbf{Rear Admiral} & R.~Adm. & V70--V80 \\
+\textbf{Vice Admiral} & V.~Adm. & V80--V90 \\
+\textbf{Admiral} & Adm. & V90--V99 \\
+\textbf{Fleet Admiral} & F.~Adm. & V99 (and top Elite scores) \\
+\end{longtable}
+
+Bands follow letter order \textbf{P $<$ I $<$ C $<$ V $<$ E}, then score.
+\textbf{Elite (E)} uses the same score thresholds as \textbf{Veteran
+(V)} for commission (so E73 sits with high admiralty).
+\textbf{Rear Admiral} and above are \textbf{Flag Officer} prestige
+territory --- earned through TEI, never selected at Academy.
+
+\subsubsection{Two independent tracks}\label{two-independent-tracks}
+
+Your solo TEI is \textbf{not} one number --- the app keeps separate
+ratings for each \textbf{objective} and each \textbf{AI commission track}
+you face:
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Track & When it applies \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Go-out TEI} & First captain to empty their hand wins the
+sector \\
+\textbf{Points TEI} & Lowest cumulative points total when the campaign
+ends \emph{(or the round, in single-round solo)} \\
+\end{longtable}
+
+Each track is further split by opponent profile: \textbf{Ensign},
+\textbf{Lieutenant}, and \textbf{Commander}. Beating Commander officers
+does not move your Ensign bucket.
+
+\subsubsection{Federation Academy
+placement}\label{federation-academy-placement}
+
+Before your first rated match in each track, the app asks for a
+\textbf{commission track} separately for \textbf{go-out} and
+\textbf{points}. Choose \textbf{Ensign}, \textbf{Lieutenant}, or
+\textbf{Commander} on each track (with a short self-description), then
+fine-tune a \textbf{starting TEI} within that track's band. You might
+place as Commander for go-out and Ensign for points. Each track is
+saved \textbf{once}; after you save placement for a track --- or after
+your first unassisted rated match in that track --- its starting TEI
+field locks. \textbf{Flag Officer} is not selectable at onboarding --- it is
+earned.
+
+\begin{longtable}[]{@{}lllll@{}}
+\toprule\noalign{}
+Track & Self-description & Points TEI band & Go-out TEI band & Example \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Ensign} & New to dominoes & P0--I25 & P0--I25 & P0, I9 \\
+\textbf{Lieutenant} & Knows multi-trail & I25--C45 & I25--C45 & C21, C30 \\
+\textbf{Commander} & Seasoned strategist & C45--V70 & C45--V70 & V53, V62 \\
+\end{longtable}
+
+\subsubsection{Fixed opponent reference
+ratings}\label{fixed-opponent-reference-ratings}
+
+Unassisted matches are scored against \textbf{fixed} reference ratings
+--- not the other chairs\textquotesingle{} live TEI. AI officers have calibrated skill estimates that serve as stable anchors:
+
+\begin{longtable}[]{@{}llll@{}}
+\toprule\noalign{}
+Track & Ensign & Lieutenant & Commander \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Points} & Conservative baseline & Competent player & Sharp strategist \\
+\textbf{Go-out} & Conservative baseline & Competent player & Sharp strategist \\
+\end{longtable}
+
+Your TEI grade reflects how you perform relative to these anchors. Consistently beating Commander officers will push your rating into Veteran (V) or Elite (E) territory, while struggling against Ensign keeps you in Provisional (P) or Improving (I) grades. The leaderboard also shows \textbf{percentile} (top X\%)
+within each board so rank stays meaningful across the rating distribution.
+
+\subsubsection{How your TEI moves}\label{how-your-tei-moves}
+
+After each \textbf{rated} match, your TEI grade updates to reflect both
+\textbf{how well you play} and \textbf{how confident the system is} about
+your skill level.
+
+Your TEI is shown as \textbf{two parts}:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Letter grade (E/V/C/I/P)} --- How established / confident the
+  rating is. More consistent rated play over time tends to tighten
+  confidence.
+\item
+  \textbf{Number score (0--99)} --- Conservative skill on one global
+  scale. Same number $\approx$ same skill even across different
+  letters.
+\end{itemize}
+
+\textbf{The Letter Grade (Confidence):}
+
+Your letter shows how \textbf{established} your rating is --- how sure the
+system is that the score is in the right neighborhood. More rated play
+usually tightens confidence, but a new module or long break can widen it
+again:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{P (Provisional)} --- Still establishing; high uncertainty.
+\item
+  \textbf{I (Improving)} --- Estimate is moving; not locked in yet.
+\item
+  \textbf{C (Consistent)} --- Reliable enough for everyday comparison.
+\item
+  \textbf{V (Veteran)} --- Highly reliable estimate.
+\item
+  \textbf{E (Elite)} --- Tightly anchored rating.
+\end{itemize}
+
+\textbf{The Number Score (Skill):}
+
+Your score is \textbf{conservative skill on one global 0--99 scale}. Same
+number $\approx$ same skill even across letters --- \textbf{I40} and
+\textbf{C40} are equally strong estimates; C is simply more established.
+The score stays deliberately cautious: until confidence rises, the
+displayed number sits a bit below a raw ``best guess.''
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Win games} against strong opponents → score tends to go up
+\item
+  \textbf{Lose games} against weaker opponents → score tends to go down
+\item
+  \textbf{Play more rated matches} → confidence tends to rise, which
+  often lifts the conservative score as well
+\end{itemize}
+
+\textbf{Two ways to improve your TEI:}
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Play more rated matches} so confidence tightens (letter tends
+  to climb P → I → C → V → E)
+\item
+  \textbf{Win more games} so skill climbs (number toward 99)
+\end{enumerate}
+
+\textbf{Example progression:}
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Week 1:} P15 · Cadet (still learning)
+\item
+  \textbf{Week 3:} I28 · Lieutenant Junior Grade (settling in)
+\item
+  \textbf{Month 2:} C42 · Lieutenant (stable estimate)
+\item
+  \textbf{Month 4:} V58 · Commander (highly reliable)
+\item
+  \textbf{Year 1:} E76 · Rear Admiral (anchored elite confidence)
+\end{itemize}
+
+\textbf{What happens when you try new modules?}
+
+When you play with a new module or rule variant, your \textbf{letter
+grade may temporarily drop} (e.g., V→I) and the conservative score may
+dip with it. This is intentional --- the system is
+\textbf{re-evaluating} your skill under new conditions, not punishing
+you. Play more games with that module and confidence climbs back once
+the estimate settles.
+
+\subsubsection{\texorpdfstring{Starting TEI
+\emph{(Academy)}}{Starting TEI (Academy)}}\label{starting-tei-academy}
+
+Before your \textbf{first rated} match in each track, complete
+\textbf{Federation Academy placement} for that track: pick Ensign,
+Lieutenant, or Commander, then save a starting TEI within that track's
+band. Tracks are independent --- strong at go-out but new to points
+campaigns is fine. If you skip placement and play unassisted, the first
+match in that track's bucket begins from the \textbf{default starting rating} (P25 --- Ensign commission floor).
+
+\subsubsection{What counts as rated}\label{what-counts-as-rated}
+
+\textbf{Solo pool} --- only \textbf{unassisted double-twelve} matches
+update TEI:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Rated:} Warp 12, played without invoking the in-game
+  \textbf{tactical advisor} during live turns.
+\item
+  \textbf{Assisted:} you requested a coach suggestion during play. The
+  win or loss still appears in your profile and general stats, but
+  \textbf{TEI does not move}. Assisted wins are tracked separately
+  (\texttt{advisorMatches} / \texttt{advisorWins}).
+\item
+  \textbf{Exhibition:} Warp 9 / 15 / 18 never update TEI, with or
+  without the advisor.
+\end{itemize}
+
+Downloading a post-match advisor report or campaign analysis does
+\textbf{not} disqualify a match.
+
+\textbf{Human pool} --- an online sector is rated when it clears the
+eligibility bar above (Warp 12, two or more signed-in captains, only
+Ensign / Lieutenant / Commander AI, Points or Go-out, \textbf{and no captain used
+the advisor}). Any guest, experimental Class I* seat, exhibition set, or
+advisor consult leaves the whole sector unrated.
+
+\textbf{Crew charter} --- same eligibility bar, plus: host attached a
+\texttt{charterId}; sector settings match the charter (fleet size,
+objective, campaign length, rules profile); every human captain is a
+signed-in \textbf{member} of that crew. Private crew matches update crew
+TEI only. \textbf{Global Official} also updates global human-pool TEI.
+
+\begin{quote}
+\textbf{Commander is neural $\Omega$.} Greedy \texttt{createOmegaPlayer} is the
+Commander officer (local, online host, pass-and-play). TEI still uses
+$\sigma$=\texttt{commander}; publish \texttt{warp12-official-v2} when
+recalibrated \texttt{REF\_TEI} ships. $\Omega$+ extended thinking (PUCT) is
+unrated exhibition. See \url{docs/omega-handoff.md} and
+\url{docs/tei-spec.md} §7.1.3.
+\end{quote}
+
+\subsubsection{After the sector}\label{after-the-sector}
+
+When a rated match completes, the sector summary shows your TEI grade \textbf{before → after}. 
+
+\textbf{What the display shows:}
+\begin{itemize}
+\tightlist
+\item
+  \textbf{``I52 → I55 (+3)''} --- Your score went up by 3 points (same letter grade)
+\item
+  \textbf{``I55 → C55''} --- Your letter improved from I to C! (more experience = more reliable)
+\item
+  \textbf{``V72 → V68 (-4)''} --- Your score dropped 4 points after a loss (letter unchanged)
+\end{itemize}
+
+\textbf{Reading a TEI grade:}
+\begin{itemize}
+\tightlist
+\item
+  \textbf{V67} = Veteran (experienced, reliable rating) with skill score 67 out of 99
+\item
+  \textbf{C42} = Consistent (established rating) with skill score 42 out of 99
+\item
+  \textbf{I35} = Improving (still learning, fewer games) with skill score 35 out of 99
+\item
+  \textbf{P28} = Provisional (new player, rating not yet stable) with skill score 28 out of 99
+\end{itemize}
+
+\textbf{Want more details?} Hover over your TEI grade in the app to see:
+\begin{itemize}
+\tightlist
+\item
+  How many rated games you've played
+\item
+  Your exact skill level and confidence values
+\item
+  What your grade means
+\end{itemize}
+
+If Firebase is unavailable, local decision-quality feedback may still run, but your TEI won't be saved to the leaderboard.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{\texorpdfstring{IX. Subspace messaging \emph{(digital ---
+online
+sectors)}}{IX. Subspace messaging (digital --- online sectors)}}\label{ix-subspace-messaging-digital--online-sectors}
+
+Online sectors include a persistent comms channel --- \textbf{subspace
+messaging} --- so captains can coordinate before launch, react during
+play, and debrief afterward. Messaging is designed to preserve the
+integrity of rated sectors while keeping casual games social.
+
+\subsubsection{Comms modes}\label{comms-modes}
+
+\begin{longtable}[]{@{}lll@{}}
+\toprule\noalign{}
+Context & Mode & What\textquotesingle s available \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Lobby} (rated or casual) & Full & Quick-phrase hails, free-form
+text, DMs \\
+\textbf{Active play --- casual sector} & Full & Quick-phrase hails,
+free-form text, DMs \\
+\textbf{Active play --- rated sector} & Quick-only & Public quick-phrase
+hails only. No free text, no DMs. \\
+\textbf{Post-game} (rated or casual) & Full & All comms re-open once
+standings are final \\
+\end{longtable}
+
+The restriction during rated active play exists to prevent collusion ---
+free text or private messages between opponents could be used to
+coordinate play, which would undermine TEI. The quick-phrase catalog is
+intentionally social and expressive, never strategic.
+
+\subsubsection{Quick-phrase hails}\label{quick-phrase-hails}
+
+Five groups, each with a category icon:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Acknowledge} --- Aye Captain · Acknowledged · Make it so ·
+  Course laid in
+\item
+  \textbf{Get moving} --- Engage! · Punch it · Warp speed · Ahead full ·
+  Steady as she goes
+\item
+  \textbf{Sportsmanship} --- Well played · A fine maneuver · The needs
+  of the many\ldots{} · Fly well, Captain
+\item
+  \textbf{Drama} --- Red Alert! · Shields up! · All Stop! · Distress
+  beacon away · She\textquotesingle s breaking up! · Fascinating\ldots{}
+  · Bold. Very bold.
+\item
+  \textbf{Cheeky} --- You\textquotesingle re playing a dangerous game ·
+  Persistence is futile · Resistance is\ldots{} noted · I have the conn
+  now · Q would be proud
+\end{itemize}
+
+Phrases are broadcast publicly and logged in the sector record. They
+cannot convey hand information or coordinate play, only camaraderie and
+table talk.
+
+\subsubsection{Free-form text and DMs}\label{free-form-text-and-dms}
+
+Available in the lobby, casual active play, and after the sector
+completes. Messages are visible to all sector members (including DMs ---
+transparency over privacy, consistent with The Captain\textquotesingle s
+Oath). A per-recipient picker lets you direct a message, but every
+captain at the table can read it.
+
+\subsubsection{Moderation}\label{moderation}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Per-user mute:} hide a captain\textquotesingle s messages for
+  the remainder of the session.
+\item
+  \textbf{Rate limiting:} a cooldown prevents message flooding (burst of
+  3, then 3 seconds between sends).
+\item
+  Future: report action tied to The Captain\textquotesingle s
+  Oath\textquotesingle s "we identify cheaters and bad actors."
+\end{itemize}
+
+\subsubsection{Rated sector toggle}\label{rated-sector-toggle}
+
+The host can opt out of rating at any time before launch by unchecking
+\textbf{Rated sector} in the lobby. When unchecked:
+
+\begin{itemize}
+\tightlist
+\item
+  TEI will not change regardless of the sector\textquotesingle s
+  outcome.
+\item
+  Full comms (text + DMs) remain available during active play.
+\item
+  The lobby and bridge show a "Casual sector" banner so all captains
+  know the match is unrated.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{Quick reference --- standard vs Warp
+extras}\label{quick-reference--standard-vs-warp-extras}
+
+\textbf{Official Warp rules} (recommended preset) --- see
+\textbf{Section VI} --- enables Continuum, Salamander, Drop to Impulse
+(1-tile catch), and All Stop! ceremony on standard \textbf{Sections
+I--V} gameplay.
+
+\begin{longtable}[]{@{}lll@{}}
+\toprule\noalign{}
+Rule & Standard multi-trail & Warp \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Train marker when stuck & Required & Distress Beacon --- same \\
+Voluntary marker while able to play & \textbf{No} & \textbf{No} (unless
+\textbf{Manual shield control} --- own trail required) \\
+Play elsewhere while marked & Allowed; marker stays & Same \\
+Play on own trail while marked & Marker \textbf{must} come off & Shields
+Up --- same \\
+Doubles & Must satisfy / cover & Red Alert --- same \\
+Chicken foot on doubles & Optional house variant & Subspace Fracture ---
+opt-in; scope: Own Trail / All Captains / All Doubles \\
+Own trail before opponents & Optional Deluxe variant & House rule ---
+opt-in \\
+NZ after all trails & Optional Deluxe variant & House rule --- opt-in \\
+Beacon clears on any play & Optional Deluxe variant & House rule ---
+opt-in \\
+Round starter plays two & Optional Deluxe variant & House rule ---
+opt-in \\
+0-0 anomaly & --- & Continuum --- Official Warp preset \\
+12-12 Salamander Penalty & --- & Salamander --- Official Warp preset \\
+NZ win announcement & --- & All Stop! ceremony --- Official Warp
+preset \\
+One tile left announce & --- & Drop to Impulse --- Official Warp preset
+(1-tile catch) \\
+Double-blank (0-0) score & 50 (tournament standard) & Setup option 50 /
+25 / 0 --- Official Warp preset uses 0 (Continuum trigger) \\
+Blocked boneyard & Round ends, all score & Blocked sector --- same \\
+AI officers / tactical advisor & --- & Section VII --- digital only \\
+Solo TEI vs AI & --- & Section VIII --- iwdf.org; unassisted matches
+only \\
+Online TEI (human pool) & --- & Section VIII --- auto-rated when all
+captains are signed in and any AI are Ensign--Commander \\
+Crew / charter TEI & --- & Section VIII --- group TEI via leaderboard
+crews + officiated or online rated sectors \\
+Global Official TEI & --- & Section VIII --- open charter; updates crew
++ global human pool \\
+Subspace messaging & --- & Section IX --- quick hails always;
+free-form/DMs in lobby, casual, and post-game only \\
+\end{longtable}
+
+
+\end{document}

@@ -2,6 +2,7 @@ import type {
   RatedMatchCertificate,
   RatedMatchCertificatePlayer,
   RatedObjective,
+  StoredRating,
 } from './rated-match-schema.js';
 
 export interface CertificateCharterInput {
@@ -19,16 +20,18 @@ export interface CertificatePlayerInput {
   displayName: string;
   rank: number;
   score: number;
-  teiBefore: number;
-  teiAfter: number;
+  ratingBefore: StoredRating;
+  ratingAfter: StoredRating;
   charterId?: string;
-  globalTeiBefore?: number;
-  globalTeiAfter?: number;
+  globalRatingBefore?: StoredRating;
+  globalRatingAfter?: StoredRating;
 }
 
 export function buildCertificatePlayer(
   input: CertificatePlayerInput
 ): RatedMatchCertificatePlayer {
+  const muDelta = input.ratingAfter.mu - input.ratingBefore.mu;
+
   const player: RatedMatchCertificatePlayer = {
     uid: input.uid,
     displayName: input.displayName,
@@ -37,21 +40,22 @@ export function buildCertificatePlayer(
   };
 
   if (input.charterId) {
-    player.crewTeiBefore = input.teiBefore;
-    player.crewTeiAfter = input.teiAfter;
-    player.crewTeiDelta = input.teiAfter - input.teiBefore;
-    if (
-      input.globalTeiBefore !== undefined &&
-      input.globalTeiAfter !== undefined
-    ) {
-      player.globalTeiBefore = input.globalTeiBefore;
-      player.globalTeiAfter = input.globalTeiAfter;
-      player.globalTeiDelta = input.globalTeiAfter - input.globalTeiBefore;
+    // Charter/crew match
+    player.crewRatingBefore = input.ratingBefore;
+    player.crewRatingAfter = input.ratingAfter;
+    player.crewMuDelta = muDelta;
+    if (input.globalRatingBefore && input.globalRatingAfter) {
+      // Also track global human pool rating if available
+      player.humanRatingBefore = input.globalRatingBefore;
+      player.humanRatingAfter = input.globalRatingAfter;
+      player.humanMuDelta =
+        input.globalRatingAfter.mu - input.globalRatingBefore.mu;
     }
   } else {
-    player.humanTeiBefore = input.teiBefore;
-    player.humanTeiAfter = input.teiAfter;
-    player.humanTeiDelta = input.teiAfter - input.teiBefore;
+    // Human pool match
+    player.humanRatingBefore = input.ratingBefore;
+    player.humanRatingAfter = input.ratingAfter;
+    player.humanMuDelta = muDelta;
   }
 
   return player;
@@ -73,3 +77,4 @@ export function buildRatedMatchCertificate(input: {
     players: input.players,
   };
 }
+

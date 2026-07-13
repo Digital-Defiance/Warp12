@@ -95,7 +95,7 @@ export function AboutPage() {
               edge cases and house variants abound. Report bugs; do not assume infallibility.
             </li>
             <li>
-              <strong>Not “strongest AI on Earth.”</strong> Class II officers run a
+              <strong>Not “strongest AI on Earth.”</strong> Commander officers run a
               calibrated neural policy (Ω) — strong tournament-style play, not
               solved dominoes. Optional <strong>extended thinking</strong> (Ω+)
               adds search for exhibition matches. Experimental Class I* remains
@@ -139,16 +139,16 @@ export function AboutPage() {
                   <td>Spec + tests; not externally benchmarked</td>
                 </tr>
                 <tr>
-                  <td>AI tiers (Class IV–II)</td>
+                  <td>AI tiers (Ensign–Commander)</td>
                   <td>
-                    Class IV–III heuristics; Class II = neural Ω (greedy).
+                    Ensign–Lieutenant heuristics; Commander = neural Ω (greedy).
                     TEI anchors recalibrated in v2 (1520 pts / 1550 go-out).
                   </td>
                 </tr>
                 <tr>
                   <td>Extended thinking (Ω+)</td>
                   <td>
-                    Optional on Class II in local play — search-backed, unrated
+                    Optional on Commander in local play — search-backed, unrated
                     exhibition
                   </td>
                 </tr>
@@ -170,12 +170,12 @@ export function AboutPage() {
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Class II — neural officers (Ω)</h2>
+          <h2 className={styles.sectionTitle}>Commander — neural officers (Ω)</h2>
           <p className={styles.p}>
-            <strong>Class II</strong> is the rated strong AI tier. Under the hood it
+            <strong>Commander</strong> is the rated strong AI tier. Under the hood it
             runs <strong>Ω</strong> — a self-play neural policy trained on the real
             engine (Distress Beacons, Red Alert, modules, both objectives). Players
-            still see “Class II” in the lobby; there is no separate “pick Omega”
+            still see “Commander” / “Cmdr.” in the lobby; there is no separate “pick Omega”
             switch for rated play.
           </p>
           <p className={styles.p}>
@@ -197,7 +197,7 @@ export function AboutPage() {
           <p className={styles.p}>
             <strong>Class I*</strong> is our experimental search/residual track for
             local play: expectimax or ISMCTS on top of heuristics, plus optional
-            learned residuals. It is <strong>not</strong> the same as Class II Ω and
+            learned residuals. It is <strong>not</strong> the same as Commander Ω and
             is <strong>not</strong> on the TEI ladder. Early benches showed imitation
             nets near 50% vs legacy Commander — useful R&amp;D, not a promotion
             candidate yet.
@@ -206,33 +206,34 @@ export function AboutPage() {
             Results land in the{' '}
             <Link to="/paper/log">calibration log</Link> and{' '}
             <Link to="/paper">research outline</Link> — including negative results.
-            <strong>Class I</strong> on TEI remains the human prestige band.
+            <strong>Flag Officer</strong> on TEI remains the human prestige band.
           </p>
         </section>
 
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>TEI — for captains and for us</h2>
           <p className={styles.p}>
-            <strong>Tactical Effectiveness Index (TEI)</strong> is our Elo-style skill
-            rating on the leaderboard. Two independent tracks —{' '}
-            <strong>points</strong> and <strong>go-out</strong> — because they are
-            strategically different games on the same table. Each track splits by the
-            tactical class of AI you face (Class IV / III / II reference officers).
-            Only <strong>Warp 12</strong> (double-twelve) is rated; Warp 9 / 15 / 18
-            are exhibition sectors and never move TEI.
+            <strong>Tactical Efficiency Index (TEI)</strong> is the leaderboard rating —
+            a letter + score (like <strong>V67</strong>) plus a derived federation
+            commission. Two independent tracks — <strong>points</strong> and{' '}
+            <strong>go-out</strong> — because they are strategically different games on
+            the same table. Each track splits by the AI commission track you face
+            (Ensign / Lieutenant / Commander). Only <strong>Warp 12</strong>{' '}
+            (double-twelve) is rated; Warp 9 / 15 / 18 are exhibition and never move
+            TEI.
           </p>
           <p className={styles.p}>
             TEI is not just for captains. It is how <em>we</em> grow the fleet:
           </p>
           <ul className={styles.list}>
             <li>
-              <strong>Calibration feedback.</strong> Fixed reference bands (~TEI 1000 /
-              1200 / 1520 points; wider for go-out with Class II at ~1550) tell us
-              whether Class IV–II ordering matches design intent.
+              <strong>Calibration feedback.</strong> Fixed reference anchors tell us
+              whether Ensign–Commander ordering matches design intent, tracking both
+              skill and confidence.
             </li>
             <li>
               <strong>Honest variance.</strong> Go-out compresses skill gaps — we
-              show percentiles as well as raw TEI so ranks stay meaningful.
+              show TEI grades and percentiles so ranks stay meaningful.
             </li>
             <li>
               <strong>Advisor integrity.</strong> Matches where you used the tactical
@@ -240,12 +241,13 @@ export function AboutPage() {
               — only unassisted wins are rated.
             </li>
             <li>
-              <strong>Federation Academy.</strong> Pick a starting class and TEI band
+              <strong>Federation Academy.</strong> Pick a starting commission track and TEI band
               once per track before your first rated mission — go-out and points are
               independent.
             </li>
           </ul>
           <p className={styles.p}>
+            Want the OpenSkill μ/σ story? See <Link to="/tei">How TEI works</Link>.
             When captains climb the board, we learn whether our officers and engine
             still feel fair. When calibration drifts, we retune — that loop is the
             point. See the living{' '}
@@ -269,7 +271,7 @@ export function AboutPage() {
               it.
             </li>
             <li>
-              <strong>Stronger officers.</strong> Class II ships as neural Ω; Ω+
+              <strong>Stronger officers.</strong> Commander ships as neural Ω; Ω+
               extended thinking for exhibition; Class I* research continues on the
               side — without sacrificing explainability for casual tables.
             </li>

@@ -1,0 +1,19 @@
+{
+  "metadata": {
+    "objective": "points",
+    "gamesPerConfig": 1,
+    "baseSeed": 9001,
+    "collectedAt": "2026-07-12T22:51:39.446Z",
+    "warpFactors": [
+      3,
+      6,
+      9,
+      12,
+      15,
+      18
+    ],
+    "totalConfigs": 52,
+    "totalGames": 52
+  },
+  "results": []
+}

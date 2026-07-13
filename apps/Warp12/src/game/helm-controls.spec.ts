@@ -28,6 +28,7 @@ describe('resolveHelmControls', () => {
       showShieldsUp: false,
       showPassRedAlert: false,
       showPass: false,
+      spoolOptions: [],
     });
   });
 
@@ -80,6 +81,7 @@ describe('resolveHelmControls', () => {
       showShieldsUp: false,
       showPassRedAlert: false,
       showPass: true,
+      spoolOptions: [],
     });
   });
 
@@ -128,6 +130,7 @@ describe('resolveHelmControls', () => {
       showShieldsUp: false,
       showPassRedAlert: false,
       showPass: true,
+      spoolOptions: [],
     });
   });
 

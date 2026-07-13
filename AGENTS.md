@@ -12,7 +12,7 @@ Warp is multiplayer, federation-themed **multi-trail Interstellar Dominoes** acr
 - Two objectives, chosen before launch:
   - **Points campaign** (default): Spacedock double descends maxPip→0 (10 / 13 / 16 / 19 rounds), lowest cumulative pip total wins.
   - **Go out**: first captain to empty their hand wins immediately.
-- **TEI** = the Elo-like leaderboard rating — **Warp 12 only**. Warp 9 / 15 / 18 are **exhibition** (unrated). Independent **Go-out** and **Points** tracks, each split by AI **Tactical Class** (IV / III / II). Solo unassisted matches and online human-pool sectors are rated on double-12. Using the tactical advisor disqualifies a match from TEI. Online sectors are auto-rated (context B: humans anchored against Class II–IV AI) when all human seats are verified, no Class I\* is aboard, the host opts in (rated=true), maxPip is 12, and no captain used the advisor. The host may toggle **Rated sector** before launch on Warp 12; casual / exhibition sectors never update TEI.
+- **TEI** = the OpenSkill-based leaderboard rating — **Warp 12 only**. Warp 9 / 15 / 18 are **exhibition** (unrated). Independent **Go-out** and **Points** tracks, each split by AI **commission track** (Ensign / Lieutenant / Commander). Solo unassisted matches and online human-pool sectors are rated on double-12. Using the tactical advisor disqualifies a match from TEI. Online sectors are auto-rated (context B: humans anchored against Ensign–Commander AI) when all human seats are verified, no Class I\* is aboard, the host opts in (rated=true), maxPip is 12, and no captain used the advisor. The host may toggle **Rated sector** before launch on Warp 12; casual / exhibition sectors never update TEI.
 - **Subspace messaging** = in-game comms. Quick-phrase hails (five category groups) are always available. Free-form text + DMs are allowed in the lobby, casual active play, and post-game — but restricted to hails only during live rated play to prevent collusion. Per-user mute and rate-limiting are client-enforced; comms rules are also enforced server-side via Firestore security rules.
 
 Authoritative rules: `RULES.md` (Sections I–V = multi-trail core, VI = modules + Official Warp preset, VII = AI/advisor, VIII = TEI/leaderboard, IX = Subspace messaging). Full architecture/setup: `README.md`.
@@ -56,7 +56,21 @@ Scripts call Vite/Vitest **directly** and avoid `nx run` orchestration (which ca
 
 **Deploy** (Firebase project `warp-12`): `deploy:firestore | deploy:functions | deploy:hosting | deploy:firebase`.
 
-**AI training/calibration:** `calibrate:ai-tei`, `optimize:ai-weights`, `class1-star:*` (PyTorch pipeline in `tools/nn/`), `fleet-admiral:bench*`.
+**AI training/calibration:** 
+- `calibrate:ai-tei` — AI tier calibration (points objective, 200 games)
+- `calibrate:ai-tei-dti` — with Drop to Impulse house rule
+- `calibrate:modules` — Module balance testing (500 games, **verbose reporter**, runs with parallelism)
+- `calibrate:modules:quick` — Quick module test (100 games, verbose reporter)
+- `calibrate:modules:dot` — Dot reporter (compact, shows dots for each completed test)
+- `optimize:ai-weights` — Heuristic weight optimization
+- `class1-star:*` — Neural training pipeline (PyTorch in `tools/nn/`)
+- `fleet-admiral:bench*` — Search algorithm benchmarks
+
+**Parallel execution:**
+- Module calibration automatically uses 8-14 threads on M4 Max (configured in `libs/engine/vite.config.mts`)
+- Vitest 4 uses top-level thread options: `minThreads`, `maxThreads` (not nested under `poolOptions`)
+- Luck/skill studies use explicit worker pools (15 workers default, see `tools/nn/run-comprehensive-parallel-fine.sh`)
+- To modify thread count for vitest, edit `minThreads` and `maxThreads` in the engine's vite config
 
 ### If builds hang / terminal goes black
 Orphaned Nx processes block runs. Recover with:
@@ -65,6 +79,33 @@ yarn nx:unlock                          # stop daemon + clear cache
 pkill -f "Warp12/node_modules/nx"       # kill leftovers (safe, repo-scoped)
 ```
 Then use the direct `yarn build:* / test:* / serve:bridge` scripts.
+
+### Running calibrations efficiently
+**Module calibration** (via vitest) automatically uses parallel threads (4-8 workers):
+```bash
+# Full calibration (500 games per config, ~15-25 min with parallelism)
+MODULE_CALIBRATION_REPORT=1 yarn calibrate:modules
+
+# Quick test (100 games per config, ~3-5 min)
+yarn calibrate:modules:quick
+```
+
+**Luck/skill analysis** uses explicit worker pools (15 default, configurable):
+```bash
+# Full study (500 games × 38 configs = 19K games, ~40 min with 15 workers)
+COMPREHENSIVE_GAMES=500 COMPREHENSIVE_WORKERS=15 \
+  bash tools/nn/run-comprehensive-parallel-fine.sh
+
+# Adjust worker count for your hardware
+COMPREHENSIVE_WORKERS=8 bash tools/nn/run-comprehensive-parallel-fine.sh  # conservative
+COMPREHENSIVE_WORKERS=32 bash tools/nn/run-comprehensive-parallel-fine.sh  # high-end
+```
+
+**Thread pool configuration:**
+- Module tests: Edit `libs/engine/vite.config.mts` → `test.minThreads` and `test.maxThreads` (Vitest 4 top-level API)
+- Luck/skill: Use `COMPREHENSIVE_WORKERS` environment variable
+- Rule of thumb: Use (CPU cores - 2) for worker count to avoid thrashing
+- M4 Max: 12-16 cores → use 14 maxThreads for calibration
 
 ---
 
@@ -78,7 +119,7 @@ libs/
   engine/            warp12-engine — rules state machine, AI, advisor (published)
   react/             warp12-react  — RoundState→trains adapters, tactical coach, hand layout (published)
   theme/             warp12-theme  — federation domino skins (published)
-  tei-core/          @warp12/tei-core — TEI/Elo core (private, src-only)
+  tei-core/          @warp12/tei-core — TEI/OpenSkill core (private, src-only)
 vendor/
   double-eighteen/      git submodule, own Nx workspace — domino rendering (opaque dependency)
 functions/           @warp12/functions — Firebase Cloud Functions
@@ -89,7 +130,7 @@ docs/                Jekyll docs site (calibration log, TEI paper)
 
 ### Client app layout (`apps/Warp12/src/`)
 - `app/` — UI: pages, dialogs, HUD, table view, coach panel, comms panel, contexts (`*-context.tsx`).
-- `firebase/` — auth, `game-service`, sync, `schema`, stats/Elo, serialize, `messages` (subspace comms).
+- `firebase/` — auth, `game-service`, sync, `schema`, stats/rating, serialize, `messages` (subspace comms).
 - `game/` — local game orchestration, AI captain wiring, sounds, match stats, presets, `quick-comms` (phrase catalog), `comms-mode`, `message-rate-limit`.
 - `ai/` — ONNX Class I* model loading (`ort-session`, `load-class1-star-scorer`).
 - `content/` — rules/paper/privacy markdown sources. `theme/`, `test/`.
@@ -123,7 +164,7 @@ Deterministic, immutable rules engine. **Never mutate state in place** — pure 
 | Train marker | Distress Beacon (Shields Down) |
 | Boneyard | Uncharted Sectors |
 
-Warp-specific mechanics: **Red Alert** (unsatisfied double), **Subspace Fracture** (optional chicken-foot on doubles; scope Own Trail / All Captains / All Doubles), **Flash / Continuum** (Module Alpha anomaly on 0-0), **All Stop!** (round-win ceremony), **Drop to Impulse** (uno/knock announce). "Warp 12" = the double-twelve set (max pip). AI officers rated **Tactical Class IV/III/II**; experimental neural tier is **Class I\***; **Fleet Admiral** is the benchmark harness.
+Warp-specific mechanics: **Red Alert** (unsatisfied double), **Subspace Fracture** (optional chicken-foot on doubles; scope Own Trail / All Captains / All Doubles), **Flash / Continuum** (Module Alpha anomaly on 0-0), **All Stop!** (round-win ceremony), **Drop to Impulse** (uno/knock announce). "Warp 12" = the double-twelve set (max pip). AI officers rated **Ensign / Lieutenant / Commander** (Commander runs the Ω neural policy); experimental neural tier is **Class I\***; **Fleet Admiral** is the benchmark harness.
 
 ---
 

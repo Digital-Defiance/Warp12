@@ -1,39 +1,53 @@
+/**
+ * Apply OpenSkill rating updates for human vs human matches.
+ */
+
+import { updateFFARatings, type PlayerRating } from 'warp12-engine';
 import {
-  humanObjectiveTeiStats,
-  objectiveTeiKey,
-  startingTeiForObjective,
-  type HumanTeiStats,
+  humanObjectiveRatingStats,
+  objectiveToTrackKey,
+  startingRatingForObjective,
+  type HumanRatingStats,
   type PlayerStatsDocument,
   type RatedMatchDocument,
   type RatedObjective,
-} from './rated-match-schema';
+  type StoredRating,
+} from './rated-match-schema.js';
 import {
-  resolveEffectivePlayerTei,
-  updateTeiMultiplayerPairwise,
-  type TeiRankedPlayer,
-} from './stats-elo';
+  resolveEffectivePlayerRating,
+  type RatedPlayer,
+} from './stats-openskill.js';
+import { toStoredRatingWithGrade } from './rating-types.js';
 
-export function buildTeiTableFromStandings(
+export function buildRatingTableFromStandings(
   match: RatedMatchDocument,
-  teiByUid: ReadonlyMap<string, { tei: number; matches: number }>
-): TeiRankedPlayer[] {
+  ratingByUid: ReadonlyMap<
+    string,
+    { rating: StoredRating; matches: number }
+  >
+): RatedPlayer[] {
   return match.standings.map((row) => ({
     playerId: row.uid,
     rank: row.rank,
-    tei: teiByUid.get(row.uid)?.tei ?? 1000,
-    unassistedMatches: teiByUid.get(row.uid)?.matches ?? 0,
+    rating:
+      ratingByUid.get(row.uid)?.rating ?? {
+        mu: 25.0,
+        sigma: 25.0 / 3,
+        matches: 0,
+        displayRating: 0.0,
+      },
   }));
 }
 
-export function applyHumanTeiForPlayer(
+export function applyHumanRatingForPlayer(
   doc: PlayerStatsDocument | null,
   objective: RatedObjective,
-  table: readonly TeiRankedPlayer[],
+  table: readonly RatedPlayer[],
   uid: string
 ): {
-  humanTei: HumanTeiStats;
-  teiBefore: number;
-  teiAfter: number;
+  humanRating: HumanRatingStats;
+  ratingBefore: StoredRating;
+  ratingAfter: StoredRating;
   won: boolean;
   rank: number;
 } | null {
@@ -42,31 +56,54 @@ export function applyHumanTeiForPlayer(
     return null;
   }
 
-  const key = objectiveTeiKey(objective);
-  const prior = humanObjectiveTeiStats(doc, objective);
-  const teiBefore = resolveEffectivePlayerTei(
-    prior.unassistedTei,
-    prior.unassistedMatches,
-    startingTeiForObjective(doc, objective)
+  const key = objectiveToTrackKey(objective);
+  const prior = humanObjectiveRatingStats(doc, objective);
+  const ratingBefore = resolveEffectivePlayerRating(
+    prior.rating,
+    prior.rating.matches,
+    startingRatingForObjective(doc, objective)
   );
-  const playerRow: TeiRankedPlayer = { ...player, tei: teiBefore };
-  const tableWithCurrent = table.map((entry) =>
-    entry.playerId === uid ? playerRow : entry
+
+  // Build player list for OpenSkill FFA update
+  const players: Array<{ playerId: string; rating: PlayerRating; rank: number }> =
+    table.map((p) => ({
+      playerId: p.playerId,
+      rating: {
+        mu: p.playerId === uid ? ratingBefore.mu : p.rating.mu,
+        sigma: p.playerId === uid ? ratingBefore.sigma : p.rating.sigma,
+        matches: p.playerId === uid ? ratingBefore.matches : p.rating.matches,
+      },
+      rank: p.rank,
+    }));
+
+  // Update ratings using OpenSkill FFA
+  const updatedRatings = updateFFARatings(players);
+  const newRating = updatedRatings.get(uid);
+
+  if (!newRating) {
+    return null;
+  }
+
+  const ratingAfter = toStoredRatingWithGrade(
+    {
+      ...newRating,
+      matches: ratingBefore.matches + 1,
+    },
+    ratingBefore // Pass previous rating for hysteresis
   );
-  const teiAfter = updateTeiMultiplayerPairwise(playerRow, tableWithCurrent);
 
   return {
-    humanTei: {
-      ...(doc?.humanTei ?? {}),
+    humanRating: {
+      ...(doc?.humanRating ?? {}),
       [key]: {
-        unassistedMatches: prior.unassistedMatches + 1,
-        unassistedWins: prior.unassistedWins + (player.rank === 1 ? 1 : 0),
-        unassistedTei: teiAfter,
+        rating: ratingAfter,
+        wins: prior.wins + (player.rank === 1 ? 1 : 0),
       },
     },
-    teiBefore,
-    teiAfter,
+    ratingBefore,
+    ratingAfter,
     won: player.rank === 1,
     rank: player.rank,
   };
 }
+

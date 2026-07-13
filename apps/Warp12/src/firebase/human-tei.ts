@@ -1,24 +1,32 @@
-import type { GameObjective, GameState } from 'warp12-engine';
+import {
+  type GameObjective,
+  type GameState,
+  getTeiDisplay,
+  updateFFARatings,
+  type PlayerRating,
+} from 'warp12-engine';
 
 import { sectorStandings } from '../game/sector-outcome.js';
 import { isAiCaptain } from '../game/ai-captain.js';
 import type { FirestoreCaptain } from './schema.js';
 import {
-  rankCompetition,
-  DEFAULT_UNASSISTED_TEI,
-  resolveEffectivePlayerTei,
-  updateTeiMultiplayerPairwise,
-  type TeiRankedPlayer,
-} from './stats-elo.js';
-import {
-  emptyObjectiveTeiStats,
-  objectiveTeiKey,
-  startingTeiForObjective,
-  type HumanTeiStats,
-  type ObjectiveTeiStats,
+  emptyObjectiveRatingStats as emptyObjectiveTeiStats,
+  objectiveToTrackKey as objectiveTeiKey,
+  startingRatingForObjective as startingTeiForObjective,
+  type HumanRatingStats as HumanTeiStats,
+  type ObjectiveRatingStats as ObjectiveTeiStats,
   type PlayerStatsDocument,
   type RatedObjective,
+  type StoredRating,
 } from './stats-schema.js';
+
+/** Player entry for FFA rating preview. */
+export interface TeiRankedPlayer {
+  playerId: string;
+  rank: number;
+  rating: StoredRating;
+  matches: number;
+}
 
 export function isHumanOnlySector(
   captains: readonly Pick<FirestoreCaptain, 'id' | 'isAi'>[]
@@ -51,8 +59,8 @@ type EligibilityCaptain = Pick<
 
 /**
  * Whether a completed/lobby online sector qualifies for human-pool TEI under
- * context B: two or more verified humans, and any AI seats are Class II–IV
- * anchors (no Class Ω / Class I* / other neural opponents). Mirrors the authoritative server
+ * context B: two or more verified humans, and any AI seats are Ensign–Commander
+ * anchors (no Ω / Class I* / other neural opponents). Mirrors the authoritative server
  * gate in `functions/src/report-online-match.ts`; the lobby uses it to warn
  * captains before launch.
  *
@@ -111,7 +119,7 @@ export function onlineUnratedNotice(reason: string | undefined): string {
     case 'unrated_participant':
       return 'Unrated sector — a captain played as a guest. Sign in with an account to earn TEI.';
     case 'unrated_ai':
-      return 'Unrated sector — an experimental Class I* officer was aboard. TEI is rated only against Class II–IV AI.';
+      return 'Unrated sector — an experimental Class I* officer was aboard. TEI is rated only against Ensign–Commander AI.';
     case 'objective_not_rated':
       return 'Unrated sector — this objective does not affect TEI.';
     case 'not_enough_humans':
@@ -151,7 +159,7 @@ export function onlineRatingWarning(
       } playing as a guest. Sign in with an account to earn TEI.`;
     }
     case 'unrated_ai':
-      return 'Unrated match — a Class Ω or other experimental officer is aboard. TEI is only rated against Class II–IV AI.';
+      return 'Unrated match — an Ω or other experimental officer is aboard. TEI is only rated against Ensign–Commander AI.';
     default:
       return 'This match will be unrated.';
   }
@@ -168,7 +176,11 @@ export function humanObjectiveTeiStats(
   objective: RatedObjective
 ): ObjectiveTeiStats {
   const key = objectiveTeiKey(objective);
-  return { ...emptyObjectiveTeiStats(), ...doc?.humanTei?.[key] };
+  const humanRating = doc?.humanRating?.[key];
+  if (!humanRating) {
+    return emptyObjectiveTeiStats();
+  }
+  return humanRating;
 }
 
 export function displayHumanObjectiveTei(
@@ -176,11 +188,15 @@ export function displayHumanObjectiveTei(
   objective: RatedObjective
 ): number | null {
   const track = humanObjectiveTeiStats(doc, objective);
-  if (track.unassistedMatches <= 0) {
+  if (track.rating.matches <= 0) {
     const seed = startingTeiForObjective(doc ?? null, objective);
-    return seed ?? null;
+    if (seed) {
+      // Use conservative estimate: μ - 3σ
+      return Math.max(0, seed.mu - 3 * seed.sigma);
+    }
+    return null;
   }
-  return track.unassistedTei ?? DEFAULT_UNASSISTED_TEI;
+  return track.rating.displayRating;
 }
 
 export function hasRatedHumanSector(
@@ -194,50 +210,68 @@ export function hasRatedHumanSector(
 export function buildHumanSectorRankTable(
   game: GameState,
   humanUids: readonly string[],
-  teiByUid: ReadonlyMap<string, { tei: number; matches: number }>
+  ratingByUid: ReadonlyMap<string, { rating: StoredRating; matches: number }>
 ): TeiRankedPlayer[] | null {
-  if (game.phase !== 'complete' || humanUids.length < 2) {
+  if (game.phase !== 'complete') {
     return null;
   }
 
-  const standings = sectorStandings(game, Object.fromEntries(
-    humanUids.map((uid) => [uid, uid])
-  ));
-  const scoreByUid = new Map(
-    standings
-      .filter((row) => humanUids.includes(row.id))
-      .map((row) => [row.id, row.value])
-  );
-
-  if (scoreByUid.size < humanUids.length) {
-    return null;
+  const standings = sectorStandings(game, {});
+  
+  // Build rank map (1-indexed for winners, ties get same rank)
+  const rankMap = new Map<string, number>();
+  let currentRank = 1;
+  for (let i = 0; i < standings.length; i++) {
+    const standing = standings[i]!;
+    
+    // Check if this player tied with previous
+    if (i > 0 && standings[i - 1]!.value === standing.value) {
+      rankMap.set(standing.id, rankMap.get(standings[i - 1]!.id)!);
+    } else {
+      rankMap.set(standing.id, currentRank);
+    }
+    currentRank++;
   }
 
-  const lowerIsBetter = game.objective !== 'go-out' ? true : true;
-  const ranks = rankCompetition(
-    humanUids.map((uid) => ({
-      playerId: uid,
-      score: scoreByUid.get(uid) ?? Number.MAX_SAFE_INTEGER,
-    })),
-    lowerIsBetter
-  );
+  // Build table for human players only
+  return humanUids
+    .map((uid) => {
+      const rank = rankMap.get(uid);
+      if (rank === undefined) {
+        return null;
+      }
+      
+      const ratingData = ratingByUid.get(uid);
+      const rating = ratingData?.rating ?? {
+        mu: 25.0,
+        sigma: 8.33,
+        matches: 0,
+        displayRating: 0.0,
+        displayGrade: 'P00',
+      };
+      const matches = ratingData?.matches ?? 0;
 
-  return humanUids.map((uid) => ({
-    playerId: uid,
-    rank: ranks.get(uid) ?? humanUids.length,
-    tei: teiByUid.get(uid)?.tei ?? DEFAULT_UNASSISTED_TEI,
-    unassistedMatches: teiByUid.get(uid)?.matches ?? 0,
-  }));
+      return {
+        playerId: uid,
+        rank,
+        rating,
+        matches,
+      };
+    })
+    .filter((entry): entry is TeiRankedPlayer => entry !== null);
 }
 
 export interface HumanTeiSelfUpdate {
-  readonly teiBefore: number;
-  readonly teiAfter: number;
+  readonly ratingBefore: StoredRating;
+  readonly ratingAfter: StoredRating;
   readonly rank: number;
   readonly won: boolean;
 }
 
-/** Apply pairwise TEI update for one captain (TEI spec §6.5). */
+/** 
+ * Preview rating change for one captain (client-side only).
+ * Mirrors the server-side logic in apply-human-tei.ts.
+ */
 export function applyHumanTeiSelfUpdate(
   doc: PlayerStatsDocument | null,
   objective: RatedObjective,
@@ -254,31 +288,78 @@ export function applyHumanTeiSelfUpdate(
 
   const key = objectiveTeiKey(objective);
   const prior = humanObjectiveTeiStats(doc, objective);
-  const teiBefore = resolveEffectivePlayerTei(
-    prior.unassistedTei,
-    prior.unassistedMatches,
-    startingTeiForObjective(doc, objective)
-  );
-  const playerRow: TeiRankedPlayer = { ...player, tei: teiBefore };
-  const tableWithCurrent = table.map((entry) =>
-    entry.playerId === uid ? playerRow : entry
-  );
-  const teiAfter = updateTeiMultiplayerPairwise(playerRow, tableWithCurrent);
+  
+  // Resolve effective rating (use starting rating if no matches)
+  let ratingBefore: StoredRating;
+  if (prior.rating.matches > 0) {
+    ratingBefore = prior.rating;
+  } else {
+    const seed = startingTeiForObjective(doc, objective);
+    if (seed) {
+      ratingBefore = {
+        mu: seed.mu,
+        sigma: seed.sigma,
+        matches: 0,
+        displayRating: Math.max(0, seed.mu - 3 * seed.sigma),
+        displayGrade: getTeiDisplay({ mu: seed.mu, sigma: seed.sigma, matches: 0 }).formatted,
+      };
+    } else {
+      // Default rating
+      ratingBefore = {
+        mu: 25.0,
+        sigma: 8.33,
+        matches: 0,
+        displayRating: 0.0,
+        displayGrade: 'P00',
+      };
+    }
+  }
+
+  // Build player list for OpenSkill FFA update
+  const players: Array<{ playerId: string; rating: PlayerRating; rank: number }> =
+    table.map((p) => ({
+      playerId: p.playerId,
+      rating: {
+        mu: p.playerId === uid ? ratingBefore.mu : p.rating.mu,
+        sigma: p.playerId === uid ? ratingBefore.sigma : p.rating.sigma,
+        matches: p.playerId === uid ? ratingBefore.matches : p.rating.matches,
+      },
+      rank: p.rank,
+    }));
+
+  // Update ratings using OpenSkill FFA
+  const updatedRatings = updateFFARatings(players);
+  const newRating = updatedRatings.get(uid);
+
+  if (!newRating) {
+    return null;
+  }
+
+  // Apply display rating and grade with hysteresis
+  const ratingAfter: StoredRating = {
+    mu: newRating.mu,
+    sigma: newRating.sigma,
+    matches: ratingBefore.matches + 1,
+    displayRating: newRating.mu - 3 * newRating.sigma,
+    displayGrade: getTeiDisplay(
+      newRating,
+      ratingBefore.displayGrade
+    ).formatted,
+  };
 
   return {
     humanTei: {
-      ...(doc?.humanTei ?? {}),
+      ...(doc?.humanRating ?? {}),
       [key]: {
-        unassistedMatches: prior.unassistedMatches + 1,
-        unassistedWins: prior.unassistedWins + (player.rank === 1 ? 1 : 0),
-        unassistedTei: teiAfter,
+        rating: ratingAfter,
+        wins: prior.wins + (player.rank === 1 ? 1 : 0),
       },
     },
     update: {
-      teiBefore,
-      teiAfter,
-      rank: player.rank,
+      ratingBefore,
+      ratingAfter,
       won: player.rank === 1,
+      rank: player.rank,
     },
   };
 }

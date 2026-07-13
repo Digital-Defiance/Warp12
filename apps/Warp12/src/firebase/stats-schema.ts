@@ -1,9 +1,29 @@
 import type { GameObjective, WarpSkillLevel } from 'warp12-engine';
 
 import type { CaptainGender } from '../game/captain-profile.js';
+import type {
+  ObjectiveRatingStats,
+  RatedObjective,
+  RatingTrackKey,
+  StoredRating,
+} from './rating-types.js';
+import {
+  emptyObjectiveRatingStats,
+  objectiveToTrackKey,
+  toStoredRating,
+} from './rating-types.js';
 
 export type AiSkillLevel = WarpSkillLevel;
-export type RatedObjective = Extract<GameObjective, 'go-out' | 'points'>;
+export type { RatedObjective, StoredRating, ObjectiveRatingStats };
+
+// Type aliases for backward compatibility with human-pool rating system
+export type HumanRatingStats = {
+  goOut?: ObjectiveRatingStats;
+  points?: ObjectiveRatingStats;
+};
+
+export type HumanTeiStats = HumanRatingStats; // Alias for legacy code
+export type ObjectiveTeiStats = ObjectiveRatingStats; // Alias for legacy code
 
 /** One completed local-AI match for profile trend charts. */
 export interface MatchHistoryEntry {
@@ -11,7 +31,7 @@ export interface MatchHistoryEntry {
   readonly objective: RatedObjective;
   /** Present for reference-AI matches; omitted for human-opponent pool. */
   readonly opponentSkill?: WarpSkillLevel;
-  /** True when top-tier AI opponents were Class Ω (experimental neural policy). */
+  /** True when top-tier AI opponents were Ω (experimental neural policy). */
   readonly opponentOmega?: boolean;
   /** Legacy — Class I* search opponents in older match history. */
   readonly opponentClass1Star?: boolean;
@@ -23,6 +43,15 @@ export interface MatchHistoryEntry {
   readonly advisorUsed: boolean;
   readonly decisionPct?: number;
   readonly decisionGrade?: string;
+  /** Rating before match (OpenSkill) */
+  readonly ratingBefore?: StoredRating;
+  /** Rating after match (OpenSkill) */
+  readonly ratingAfter?: StoredRating;
+  /** Change in μ */
+  readonly muDelta?: number;
+  /** Change in σ (usually negative as confidence improves) */
+  readonly sigmaDelta?: number;
+  /** Legacy integer TEI fields (deprecated) */
   readonly teiBefore?: number;
   readonly teiAfter?: number;
   readonly teiDelta?: number;
@@ -33,28 +62,17 @@ export interface MatchOutcomeStats {
   matchesWon: number;
 }
 
-/** Solo (unassisted) rated record for one objective mode. */
-export interface ObjectiveTeiStats {
-  unassistedMatches: number;
-  unassistedWins: number;
-  unassistedTei?: number;
-}
-
 /** Per-skill local stats, split by tactical advisor use. */
 export interface LocalAiSkillStats extends MatchOutcomeStats {
   advisorMatches: number;
   advisorWins: number;
-  goOut?: ObjectiveTeiStats;
-  penalty?: ObjectiveTeiStats;
+  /** Go-out campaign rating (unassisted only) */
+  goOut?: ObjectiveRatingStats;
+  /** Points campaign rating (unassisted only) */
+  points?: ObjectiveRatingStats;
 }
 
 export type LocalAiStats = Record<AiSkillLevel, LocalAiSkillStats>;
-
-/** Human-vs-human pool TEI (one rating per objective track). */
-export interface HumanTeiStats {
-  goOut?: ObjectiveTeiStats;
-  points?: ObjectiveTeiStats;
-}
 
 export interface PlayerStatsDocument {
   uid: string;
@@ -66,11 +84,13 @@ export interface PlayerStatsDocument {
   roundsPlayed: number;
   roundsWon: number;
   totalPoints: number;
-  /** Optional self-reported seed before the first rated game per objective. */
-  startingTei?: Partial<Record<'goOut' | 'points', number>>;
-  /** Human-opponent pool TEI (online rated sectors, humans only). */
-  humanTei?: HumanTeiStats;
-  /** Idempotency — sector game ids already applied to humanTei. */
+  /** Optional self-reported starting rating before first rated game per objective. */
+  startingRating?: Partial<
+    Record<RatingTrackKey, { mu: number; sigma: number }>
+  >;
+  /** Human-opponent pool rating (online rated sectors, humans only). */
+  humanRating?: HumanRatingStats;
+  /** Idempotency — sector game ids already applied to humanRating. */
   humanRatedGameIds?: string[];
   /** Recent local-AI matches for profile trends (newest first). */
   matchHistory?: MatchHistoryEntry[];
@@ -80,16 +100,12 @@ export interface PlayerStatsDocument {
   updatedAt: string;
 }
 
-export function emptyHumanTeiStats(): HumanTeiStats {
+export function emptyHumanRatingStats(): HumanRatingStats {
   return {};
 }
 
 export function emptyMatchOutcomeStats(): MatchOutcomeStats {
   return { matchesCompleted: 0, matchesWon: 0 };
-}
-
-export function emptyObjectiveTeiStats(): ObjectiveTeiStats {
-  return { unassistedMatches: 0, unassistedWins: 0 };
 }
 
 export function emptyLocalAiSkillStats(): LocalAiSkillStats {
@@ -109,24 +125,21 @@ export function emptyLocalAiStats(): LocalAiStats {
   };
 }
 
-export function objectiveTeiKey(objective: RatedObjective): 'goOut' | 'points' {
-  return objective === 'go-out' ? 'goOut' : 'points';
-}
-
-export function startingTeiForObjective(
+export function startingRatingForObjective(
   doc: PlayerStatsDocument | null | undefined,
   objective: RatedObjective
-): number | undefined {
-  const key = objectiveTeiKey(objective);
-  return doc?.startingTei?.[key];
+): { mu: number; sigma: number } | undefined {
+  const key = objectiveToTrackKey(objective);
+  return doc?.startingRating?.[key];
 }
 
-export function objectiveTeiStats(
+export function objectiveRatingStats(
   stats: LocalAiSkillStats,
   objective: RatedObjective
-): ObjectiveTeiStats {
-  const key = objectiveTeiKey(objective);
-  return { ...emptyObjectiveTeiStats(), ...stats[key] };
+): ObjectiveRatingStats {
+  const key = objectiveToTrackKey(objective);
+  const existing = stats[key];
+  return existing ?? emptyObjectiveRatingStats();
 }
 
 export function unassistedMatchStats(
@@ -154,37 +167,58 @@ export function matchWinRate(stats: MatchOutcomeStats): number {
   return stats.matchesWon / stats.matchesCompleted;
 }
 
-export const DEFAULT_UNASSISTED_TEI = 1000;
-
-export function displayUnassistedTei(
-  tei: number | undefined,
-  unassistedMatches: number
+/**
+ * Get display rating for UI (μ - 3σ).
+ * Returns null if no matches played yet.
+ */
+export function displayRatingValue(
+  rating: StoredRating | undefined,
+  matches: number
 ): number | null {
-  if (unassistedMatches <= 0) {
+  if (matches <= 0 || !rating) {
     return null;
   }
-  return tei ?? DEFAULT_UNASSISTED_TEI;
+  return rating.displayRating;
 }
 
-export function displayObjectiveTei(
+/**
+ * Get display rating for a specific objective.
+ */
+export function displayObjectiveRating(
   stats: LocalAiSkillStats,
   objective: RatedObjective
 ): number | null {
-  const bucket = objectiveTeiStats(stats, objective);
-  return displayUnassistedTei(bucket.unassistedTei, bucket.unassistedMatches);
+  const bucket = objectiveRatingStats(stats, objective);
+  return displayRatingValue(bucket.rating, bucket.rating.matches);
 }
 
 export function objectiveWinRate(
   stats: LocalAiSkillStats,
   objective: RatedObjective
 ): number | null {
-  const bucket = objectiveTeiStats(stats, objective);
-  if (bucket.unassistedMatches <= 0) {
+  const bucket = objectiveRatingStats(stats, objective);
+  if (bucket.rating.matches <= 0) {
     return null;
   }
-  return bucket.unassistedWins / bucket.unassistedMatches;
+  return bucket.wins / bucket.rating.matches;
 }
 
 export function localAiWinRate(stats: LocalAiSkillStats): number {
   return matchWinRate(stats);
 }
+
+/**
+ * Check if a rating is provisional (high uncertainty, not yet settled).
+ * Provisional threshold: σ > 6.0 (corresponds to ~10-15 matches)
+ */
+export function isProvisionalRating(rating: StoredRating): boolean {
+  return rating.sigma > 6.0;
+}
+
+// Re-export rating utilities for convenience
+export {
+  cacheDisplayRating,
+  emptyObjectiveRatingStats,
+  objectiveToTrackKey,
+  toStoredRating,
+} from './rating-types.js';

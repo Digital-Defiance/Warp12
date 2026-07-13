@@ -1,6 +1,6 @@
-# Class Ω — Next Steps (ISMCTS + Beyond)
+# Ω — Next Steps (ISMCTS + Beyond)
 
-**North star (2026-07):** read [`omega-handoff.md`](./omega-handoff.md) first for honest status and the target architecture. Ω **replaces** heuristic Class II (not “Commander+”). **Ω+** = extended thinking (same weights). **Advisor** = distilled explainable layer on Ω. **TEI** = two human ratings (points + go-out), not per table size. Training gates on **champion vs champion**, not legacy Commander everywhere.
+**North star (2026-07):** read [`omega-handoff.md`](./omega-handoff.md) first for honest status and the target architecture. Ω **replaces** heuristic Commander (not “Commander+”). **Ω+** = extended thinking (same weights). **Advisor** = distilled explainable layer on Ω. **TEI** = two human ratings (points + go-out), not per table size. Training gates on **champion vs champion**, not legacy Commander everywhere.
 
 Handoff document for any AI assistant continuing this work. Written 2026-07-04; north star added 2026-07-07.
 
@@ -10,7 +10,7 @@ Handoff document for any AI assistant continuing this work. Written 2026-07-04; 
 
 > **Status check (2026-07-07):** the Jul 5 run **plateaued** (25 straight REJECTs after champion 1.4188 mean fair-share; points-only). Shipped weights in `apps/Warp12/public/models/` may be newer than `omega-elo-log.jsonl`. See handoff for the authoritative snapshot.
 
-A pure self-play policy/value net ("Class Ω") trains via an automated loop:
+A pure self-play policy/value net ("Ω") trains via an automated loop:
 
 ```
 yarn omega:loop   # or: scripts/omega-train-loop.sh
@@ -24,7 +24,7 @@ Each iteration:
 **Journey so far (2026-07-04):**
 1. **2p REINFORCE** — worked after fixing collapse (champion gating) and, decisively, **per-round credit assignment** (below). Reached 2p parity with Commander in 3 iterations. 2p specialist archived at `tools/nn/data/omega-2p-champion.json`.
 2. **Pivot to fleets (2–8p)** — the product. Pure REINFORCE stalled at ~random across fleet sizes: `policy_top1≈0.94` (ample capacity) but `value` loss stuck ~0.5 — the value baseline can't predict placement with 7 hidden hands (the imperfect-information wall). Not a capacity problem; a signal problem.
-3. **ISMCTS-guided targets (current)** — value-net-guided search cold-started to near-uniform visits (top-move share ~0.28 at 300 iters) because the value net is too weak to concentrate. So we adopted **Path B**: Commander-heuristic rollouts as the search leaf signal (AlphaGo-style scaffolding). This produces sharp targets (top-move share ~0.90) and **distills search-improved play into the net via cross-entropy** — stable, and able to exceed greedy Commander (search beats Class II, cf. Fleet Admiral 64% at 2p). Commander is a rollout *simulator* only; the shipped net runs pure, no Commander at inference. Not the Class I\* trap (target = search visit distribution, not Commander's picks).
+3. **ISMCTS-guided targets (current)** — value-net-guided search cold-started to near-uniform visits (top-move share ~0.28 at 300 iters) because the value net is too weak to concentrate. So we adopted **Path B**: Commander-heuristic rollouts as the search leaf signal (AlphaGo-style scaffolding). This produces sharp targets (top-move share ~0.90) and **distills search-improved play into the net via cross-entropy** — stable, and able to exceed greedy Commander (search beats Commander, cf. Fleet Admiral 64% at 2p). Commander is a rollout *simulator* only; the shipped net runs pure, no Commander at inference. Not the Class I\* trap (target = search visit distribution, not Commander's picks).
 
 Current run: **20 iterations × 500 mixed-fleet games × 8 epochs**, ISMCTS 160 iters/decision, gate on fleet slices (3/4/6/8).
 
@@ -144,7 +144,7 @@ This replaces the per-sample REINFORCE gradient with a per-distribution target. 
 
 1. **ISMCTS-guided iterations (this doc)** — the single biggest quality multiplier. Gate on value loss <0.5.
 2. **Multi-player + go-out collection** — once 2p points Elo is rising, expand `OMEGA_PLAYERS=3,4` and `OMEGA_OBJECTIVE=go-out` iterations. Mix data across configurations per iteration (or alternate) so the net learns broadly.
-3. **Promotion gate** — when `omega:bench` shows >60% win rate across 2p/3p/4p, both objectives, on 500-game runs, the net clears the +300 implied-Elo bar and can be promoted to a rated tier. Wire a reference TEI band into `stats-elo.ts`, flip `local-ai-match-validation.ts` from rejecting Class Ω matches to rating them.
+3. **Promotion gate** — when `omega:bench` shows >60% win rate across 2p/3p/4p, both objectives, on 500-game runs, the net clears the +300 implied-Elo bar and can be promoted to a rated tier. Wire a reference TEI band into `stats-elo.ts`, flip `local-ai-match-validation.ts` from rejecting Ω matches to rating them.
 4. **Production integration** — the Omega agent (`createOmegaPlayer`) is already a valid `WarpAiPlayer`. Wire it into the client game config as a selectable opponent tier (similar to how `createClass1StarPlayer` is wired). Load `omega-v1.json` or the ONNX files via the existing ORT session loader.
 5. **Optional: ONNX-backed inference during self-play** — if MLP forward becomes a collection bottleneck (unlikely at 303-dim), swap the TS matmul in the worker for ONNX Runtime Node (`onnxruntime-node`), which uses CoreML on Apple Silicon. Only if profiling shows the TS forward is >50% of collection wall-time.
 6. **Longer-term: larger net with attention** — if the MLP saturates (training loss plateaus, Elo stops climbing despite more data), upgrade to a small transformer over the candidate set (self-attention over candidate embeddings before scoring). This would require changing the encoder and trainer but not the pipeline structure.
@@ -154,7 +154,7 @@ This replaces the per-sample REINFORCE gradient with a per-distribution target. 
 ## The explainable tier — "Omega Advisor" (the middle we'll find)
 
 **Decision:** build this *after* Omega establishes the strength ceiling. We won't
-know how much room exists between Commander (Class II) and Omega until Omega's
+know how much room exists between Commander (Commander) and Omega until Omega's
 numbers land, and the concept vocabulary for a bottleneck should be chosen with
 that gap in view.
 
@@ -218,24 +218,24 @@ obsoletes both as the top opponent: stronger (trained to win, not imitate), fast
 
 | Tier | What it is | Explainable? | Rated? |
 |------|-----------|--------------|--------|
-| Class IV / III / II | Heuristic officers (ensign/lieutenant/commander) | Yes | Yes (fixed anchors 1000/1200/1400 pts) |
-| **Class I** | **Human prestige** — earned at **TEI ≥ 1450** (was 1650; lowered so beating Commander ≈ Class I) | — | — |
-| **Class Ω** | Self-play neural opponent | No | Yes, once promoted (provisional band **~1700** pts) |
+| Ensign / Lieutenant / Commander | Heuristic officers (ensign/lieutenant/commander) | Yes | Yes (fixed anchors 1000/1200/1400 pts) |
+| **Class I** | **Human prestige** — earned at **TEI ≥ 1450** (was 1650; lowered so beating Commander ≈ Flag Officer) | — | — |
+| **Ω** | Self-play neural opponent | No | Yes, once promoted (provisional band **~1700** pts) |
 | Advisor / Coach | Heuristic today; later Omega-distilled concept net or post-hoc attribution | Yes | N/A (advisor use disqualifies a match) |
 
 **TEI is extended, not broken.** Omega becomes a new fixed reference anchor above
 Commander; a human beating Omega rates 1800+. Add one entry to
 `AI_OPPONENT_TEI_POINTS` and flip `local-ai-match-validation.ts` from rejecting
-Class Ω to rating it against the new anchor. No existing anchor moves.
+Ω to rating it against the new anchor. No existing anchor moves.
 
-**Threshold change already shipped:** `teiToPlayerTacticalClass` Class I cutoff
-1650 → **1450**; mirrored in `docs/tei-spec.md` §7.2 and `RULES.md`. Class Ω
+**Threshold change already shipped:** `teiToPlayerTacticalClass` Flag Officer cutoff
+1650 → **1450**; mirrored in `docs/tei-spec.md` §7.2 and `RULES.md`. Ω
 reserved (experimental/unrated) in `tei-spec.md`, `RULES.md`, and
 `tei-paper-outline.md`.
 
 **No external benchmark exists.** There is no open-source Mexican Train AI to
-compare against — the internal ladder (Commander → Fleet Admiral search → Class Ω
-self-play) *is* the bar. If Class Ω beats Fleet Admiral's 2p-points expectimax
+compare against — the internal ladder (Commander → Fleet Admiral search → Ω
+self-play) *is* the bar. If Ω beats Fleet Admiral's 2p-points expectimax
 (~64%) broadly, it's a genuinely novel result (first self-play RL agent for a
 multi-player imperfect-information tile game at this complexity).
 
@@ -243,7 +243,7 @@ multi-player imperfect-information tile game at this complexity).
 
 ## Path to legendary status — the "Deep Blue of Mexican Train"
 
-The endgame, once Class Ω is strong and stable across 2–8 players:
+The endgame, once Ω is strong and stable across 2–8 players:
 
 1. **Break the parity wall with the self-play net.** Push the standalone
    actor-critic past the early policy collapses (done: champion gating +
@@ -272,7 +272,7 @@ The endgame, once Class Ω is strong and stable across 2–8 players:
    *defines* the title.
 
 Status against step 1: 2p parity reached; fleet distillation (Path B) in progress.
-Steps 2–4 unlock once Class Ω clears Class II broadly and earns its rated band.
+Steps 2–4 unlock once Ω clears Commander broadly and earns its rated band.
 
 ---
 

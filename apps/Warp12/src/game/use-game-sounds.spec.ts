@@ -46,7 +46,7 @@ describe('detectGameSoundTransitions', () => {
     ).toEqual({ play: ['consoleWarning'], stop: [] });
   });
 
-  it('does not play red alert when a double first opens red alert', () => {
+  it('plays red alert when a double first opens red alert', () => {
     expect(
       detectGameSoundTransitions(base, {
         ...base,
@@ -54,17 +54,17 @@ describe('detectGameSoundTransitions', () => {
         trueRedAlert: true,
         redAlertResponsibleId: 'a',
       })
-    ).toEqual({ play: ['consoleWarning'], stop: [] });
+    ).toEqual({ play: ['consoleWarning', 'redAlert'], stop: [] });
   });
 
-  it('plays red alert when red alert is passed and a beacon deploys', () => {
+  it('plays red alert when red alert becomes active', () => {
     expect(
       detectGameSoundTransitions(
         {
           ...base,
           doublesOnTable: 1,
-          trueRedAlert: true,
-          redAlertResponsibleId: 'a',
+          trueRedAlert: false,
+          redAlertResponsibleId: null,
           activeBeaconCount: 0,
         },
         {
@@ -76,6 +76,25 @@ describe('detectGameSoundTransitions', () => {
         }
       )
     ).toEqual({ play: ['redAlert'], stop: [] });
+  });
+
+  it('keeps red alert playing when the responsible player changes', () => {
+    expect(
+      detectGameSoundTransitions(
+        {
+          ...base,
+          trueRedAlert: true,
+          redAlertResponsibleId: 'a',
+          activeBeaconCount: 1,
+        },
+        {
+          ...base,
+          trueRedAlert: true,
+          redAlertResponsibleId: 'b',
+          activeBeaconCount: 2,
+        }
+      )
+    ).toEqual({ play: [], stop: [] });
   });
 
   it('stops red alert when red alert is cleared', () => {
@@ -97,19 +116,19 @@ describe('detectGameSoundTransitions', () => {
     ).toEqual({ play: [], stop: ['redAlert'] });
   });
 
-  it('does not play red alert when a beacon deploys without passing red alert', () => {
+  it('does not play red alert when a beacon deploys without red alert being active', () => {
     expect(
       detectGameSoundTransitions(
         {
           ...base,
-          trueRedAlert: true,
-          redAlertResponsibleId: 'a',
+          trueRedAlert: false,
+          redAlertResponsibleId: null,
           activeBeaconCount: 0,
         },
         {
           ...base,
-          trueRedAlert: true,
-          redAlertResponsibleId: 'a',
+          trueRedAlert: false,
+          redAlertResponsibleId: null,
           activeBeaconCount: 1,
         }
       )

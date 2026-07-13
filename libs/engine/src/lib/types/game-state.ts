@@ -9,7 +9,24 @@ import type { ChartRoute } from './actions.js';
 
 export type GamePhase = 'lobby' | 'active' | 'round-end' | 'complete';
 
-export type RoundPhase = 'setup' | 'playing' | 'ended';
+export type RoundPhase = 'setup' | 'drafting' | 'playing' | 'ended';
+
+/**
+ * Module Epsilon: Drafting phase state.
+ * Captains receive packs of tiles, pick one, and pass the rest clockwise.
+ */
+export interface DraftState {
+  /** Current drafter (picks from their pack, then passes). */
+  readonly currentDrafter: PlayerId;
+  /** Draft turn order (may differ from play turn order). */
+  readonly draftOrder: readonly PlayerId[];
+  /** Current pick number (1-based). When pickNumber > packSize, draft ends. */
+  readonly pickNumber: number;
+  /** Tiles each captain is currently holding (their pack). */
+  readonly currentPacks: Readonly<Record<PlayerId, readonly Coordinate[]>>;
+  /** Tiles each captain has permanently picked. */
+  readonly pickedTiles: Readonly<Record<PlayerId, readonly Coordinate[]>>;
+}
 
 export interface TableState {
   readonly spacedock: Spacedock;
@@ -27,7 +44,11 @@ export interface RoundState {
   readonly turnOrder: readonly PlayerId[];
   readonly table: TableState;
   readonly unchartedSectors: readonly Coordinate[];
+  /** Module Gamma: visible market of tiles for strategic draws. */
+  readonly sensorGrid: readonly Coordinate[];
   readonly hands: Readonly<Record<PlayerId, readonly Coordinate[]>>;
+  /** Module Epsilon: Draft state when drafting is enabled. */
+  readonly draftState: DraftState | null;
   readonly allStopRequired: boolean;
   readonly allStopDeclared: boolean;
   readonly roundWinnerId: PlayerId | null;
@@ -35,7 +56,7 @@ export interface RoundState {
   readonly continuumPendingInvoker: PlayerId | null;
   /** Active Continuum Flash mechanical effects for this round. */
   readonly continuumEffects: RoundEffects | null;
-  /** Awaiting keep/discard after Q's gamble. */
+  /** Awaiting keep/discard after Continuum Wager. */
   readonly continuumWagerPending: GamblePending | null;
   /** After a draw, this tile must be charted immediately if playable. */
   readonly mandatoryPlay: { readonly playerId: PlayerId; readonly coordinate: Coordinate } | null;
@@ -72,10 +93,30 @@ export interface RoundState {
    */
   readonly returnedToWarp?: boolean;
   /**
+   * Engine signal: a wormhole opened (double played on Neutral Zone, trails swapped).
+   * Drives the wormhole sound effect. Reset on the next action.
+   */
+  readonly wormholeOpened?: boolean;
+  /**
    * Double-N max pip for this sector (9 / 12 / 15 / 18). Used for dead-double
    * pip exhaustion. Omit for legacy fixtures (treated as 12).
    */
   readonly maxPip?: number;
+  /**
+   * Module Delta: Captain currently holding the Hazard Marker (touched NZ last).
+   * If they pass while holding it, they get +5 penalty at round end.
+   */
+  readonly hazardMarkerHolder?: PlayerId | null;
+  /**
+   * Module Delta: Number of times the current hazard marker holder has passed.
+   * Resets when marker transfers. Each pass costs +5 points.
+   */
+  readonly hazardMarkerPassCount?: number;
+  /**
+   * Module Eta (Temporal Debt): Track debt tokens per captain from drawing.
+   * Each draw from uncharted accumulates +1 debt. Pay costPerToken at round end.
+   */
+  readonly debtTokens?: Readonly<Record<PlayerId, number>>;
 }
 
 export interface GameState {

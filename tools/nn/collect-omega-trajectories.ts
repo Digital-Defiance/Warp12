@@ -79,7 +79,7 @@ function loadNet(): OmegaModelWeights {
 const net = loadNet();
 
 console.log(
-  `Collecting Class Ω self-play: ${games} games, ${
+  `Collecting Ω self-play: ${games} games, ${
     mixedTable ? `mixed tables [${playerCounts.join(',')}]` : `${playerCount}p`
   }, ${objective}, temperature=${temperature}${
     searchIterations > 0 ? `, ISMCTS ${searchIterations} iters/decision` : ''

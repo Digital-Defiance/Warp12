@@ -80,7 +80,7 @@ function usesOmegaSearch(ai: AiCaptainConfig): boolean {
   return usesOmegaNet(ai) && ai.extendedThinking === true;
 }
 
-/** Class II (commander) — and legacy `omega: true` — load neural Ω weights. */
+/** Commander (commander) — and legacy `omega: true` — load neural Ω weights. */
 export function rosterNeedsOmegaNet(
   aiCaptains: readonly AiCaptainConfig[]
 ): boolean {
@@ -98,7 +98,7 @@ export function buildAiRosterFromConfigs(
   const allowOmega = neuralAiSupported(maxPip);
   if (allowOmega && rosterNeedsOmegaNet(aiCaptains) && !omegaNet) {
     throw new Error(
-      'Class II (Ω) officers require loaded model weights — call buildAiRosterFromConfigsAsync.'
+      'Commander (Ω) officers require loaded model weights — call buildAiRosterFromConfigsAsync.'
     );
   }
 
@@ -116,13 +116,8 @@ export function buildAiRosterFromConfigs(
         : useOmega
           ? createOmegaPlayer({ net: omegaNet!, rng })
           : createWarpAiPlayer({
-              skill: useOmega
-                ? skill
-                : getWarpSkillProfile(
-                    ai.skill === 'commander' ? 'ensign' : ai.skill,
-                    objective,
-                    playerCount
-                  ),
+              // No shipped weights for this factor yet — Commander = commander heuristics.
+              skill,
               objective,
               rng,
             })

@@ -49,10 +49,9 @@ export function canChartOnNeutralZone(
 
 export type RoundStarterOpeningObligation =
   | 'none'
-  | 'first-own-trail'
-  | 'second-own-trail';
+  | 'second-tile-required';
 
-/** Whether the round starter still owes Deluxe-style opening charts this turn. */
+/** Whether the round starter still owes a second tile this turn (not route-restricted). */
 export function roundStarterOpeningObligation(
   round: RoundState,
   playerId: PlayerId,
@@ -68,13 +67,15 @@ export function roundStarterOpeningObligation(
     return 'none';
   }
 
+  // If roundStarterOpening is set, they owe a second tile
   if (round.roundStarterOpening?.playerId === playerId) {
-    return 'second-own-trail';
+    return 'second-tile-required';
   }
 
+  // On first tile of the round, require second (but don't restrict route)
   const ownTiles = round.table.warpTrails[playerId]?.tiles.length ?? 0;
   if (ownTiles === 0) {
-    return 'first-own-trail';
+    return 'second-tile-required';
   }
   return 'none';
 }
@@ -84,6 +85,13 @@ export function mustRestrictToOwnTrailForOpening(
   playerId: PlayerId,
   houseRules: HouseRules
 ): boolean {
+  // Only restrict if both flags are enabled:
+  // 1. roundStarterPlaysTwo must be on
+  // 2. roundStarterOwnTrailOnly must be on
+  if (!houseRules.roundStarterPlaysTwo || !houseRules.roundStarterOwnTrailOnly) {
+    return false;
+  }
+
   const obligation = roundStarterOpeningObligation(round, playerId, houseRules);
-  return obligation === 'first-own-trail' || obligation === 'second-own-trail';
+  return obligation === 'second-tile-required';
 }

@@ -52,6 +52,7 @@ import {
 import {
   canDeployDistressBeacon,
   canDrawFromUncharted,
+  canSensorSweep,
   canPassRedAlert,
   canPassTurn,
   canRaiseShieldsManually,
@@ -69,6 +70,18 @@ import {
   isDropToImpulseAnnouncePending,
   maybeMarkDropToImpulsePending,
 } from './drop-to-impulse.js';
+import {
+  removeFromSensorGrid,
+  refillSensorGrid,
+} from './sensor-grid.js';
+import {
+  executeWarpDriveSpool,
+} from './warp-drive-spool.js';
+import {
+  processDraftPick,
+  isDraftComplete,
+  collectRemainingTiles,
+} from './drafting.js';
 
 function appendToTrail(
   trail: WarpTrail,
@@ -92,6 +105,51 @@ function deployBeaconOnTrail(trail: WarpTrail): WarpTrail {
   return {
     ...trail,
     distressBeacon: { active: true, chartedOwnTrailSinceDown: false },
+  };
+}
+
+/**
+ * Module Lambda: Wormhole swap. When a double is played on Neutral Zone,
+ * the captain's personal trail swaps with the Neutral Zone.
+ * Distress beacon on the captain's trail is destroyed during transit.
+ */
+function executeWormholeSwap(
+  round: RoundState,
+  playerId: string
+): RoundState {
+  const table = round.table;
+  const captainTrail = table.warpTrails[playerId];
+  const neutralZone = table.neutralZone;
+
+  if (!captainTrail) {
+    // No trail to swap (shouldn't happen in practice)
+    return round;
+  }
+
+  // Swap the trails
+  const newCaptainTrail: WarpTrail = {
+    playerId,
+    tiles: neutralZone.tiles,
+    distressBeacon: { active: false, chartedOwnTrailSinceDown: false }, // Beacon destroyed during transit
+  };
+
+  const newNeutralZone = {
+    tiles: captainTrail.tiles,
+  };
+
+  const newTable: TableState = {
+    ...table,
+    warpTrails: {
+      ...table.warpTrails,
+      [playerId]: newCaptainTrail,
+    },
+    neutralZone: newNeutralZone,
+  };
+
+  return {
+    ...round,
+    table: newTable,
+    wormholeOpened: true, // Signal for sound effect
   };
 }
 
@@ -158,7 +216,8 @@ function resolvePostChartAnomalies(
   route: ChartRoute,
   wasCover: boolean,
   subspaceFracture: { enabled: boolean; scope: SubspaceFractureScope },
-  maxPip?: number
+  maxPip?: number,
+  wormholeSwapped?: boolean
 ): RoundState {
   let table = round.table;
   let redAlert = table.redAlert;
@@ -184,11 +243,17 @@ function resolvePostChartAnomalies(
         maxPip
       );
       if (!doubleIsDead) {
+        // After wormhole, treat neutral-zone play as warp-trail play for Red Alert
+        const effectiveTrailPlayerId = wormholeSwapped 
+          ? playerId 
+          : (route.kind === 'warp-trail' ? route.playerId : '');
+        const effectiveNeutralZone = wormholeSwapped ? false : (route.kind === 'neutral-zone');
+        
         redAlert = openRedAlert(
           placed,
           playerId,
-          route.kind === 'warp-trail' ? route.playerId : '',
-          route.kind === 'neutral-zone'
+          effectiveTrailPlayerId,
+          effectiveNeutralZone
         );
         const { round: afterImmunity, consumed } = consumeFractureImmunity(nextRound);
         nextRound = afterImmunity;
@@ -233,6 +298,7 @@ function applyChartToRoute(
     qContinuumEnabled: boolean;
     houseRules: HouseRules;
     maxPip?: number;
+    modules?: import('../types/modules.js').GameModules;
   }
 ): RoundState {
   const { hand, removed } = removeCoordinateFromHand(
@@ -320,6 +386,8 @@ function applyChartToRoute(
             tiles: [...table.neutralZone.tiles, tile],
           },
         };
+        // Module Delta: Transfer hazard marker when touching neutral zone
+        nextRound = { ...nextRound, hazardMarkerHolder: playerId };
         break;
       }
 
@@ -348,12 +416,44 @@ function applyChartToRoute(
         table.neutralZone.tiles.length,
         connectingValue
       )!;
-      table = {
-        ...table,
-        neutralZone: {
-          tiles: [...table.neutralZone.tiles, placed],
-        },
-      };
+      
+      // Module Lambda: Wormhole trigger - swap trails BEFORE placing the double
+      const wormholesEnabled = options.modules?.wormholes?.enabled ?? false;
+      const playedDouble = isDouble(placed.coordinate);
+      const wormholeSwapped = wormholesEnabled && playedDouble;
+      
+      if (wormholeSwapped) {
+        // Execute swap BEFORE placing the tile
+        nextRound = executeWormholeSwap(nextRound, playerId);
+        // Get updated table after swap
+        table = nextRound.table;
+        
+        // Place the tile on the captain's NEW trail (which is the old NZ after swap)
+        table = {
+          ...table,
+          warpTrails: {
+            ...table.warpTrails,
+            [playerId]: appendToTrail(table.warpTrails[playerId]!, placed),
+          },
+        };
+      } else {
+        // No wormhole - place normally on neutral zone
+        table = {
+          ...table,
+          neutralZone: {
+            tiles: [...table.neutralZone.tiles, placed],
+          },
+        };
+      }
+      
+      // Apply the table update to nextRound
+      nextRound = updateTable(nextRound, table);
+      
+      // Module Delta: Transfer hazard marker when touching neutral zone
+      nextRound = { ...nextRound, hazardMarkerHolder: playerId };
+      
+      // Store wormhole flag for Red Alert handling
+      (nextRound as any)._wormholeSwapped = wormholeSwapped;
       break;
     }
     case 'warp-trail': {
@@ -415,8 +515,12 @@ function applyChartToRoute(
     route,
     wasCover,
     options.subspaceFracture,
-    options.maxPip
+    options.maxPip,
+    (nextRound as any)._wormholeSwapped || false
   );
+  
+  // Clean up temporary flag
+  delete (nextRound as any)._wormholeSwapped;
 
   nextRound = resolveDeadRedAlert(nextRound, options.maxPip);
 
@@ -486,11 +590,11 @@ function applyChartToRoute(
       nextRound.table.redAlert
     )
   ) {
-    const ownTiles = nextRound.table.warpTrails[playerId]?.tiles.length ?? 0;
+    // Round Starter Plays Two: after first tile, keep the turn for second tile
     if (
       options.houseRules.roundStarterPlaysTwo &&
       playerId === nextRound.table.spacedock.placedBy &&
-      ownTiles === 1
+      !nextRound.roundStarterOpening // First tile hasn't set the flag yet
     ) {
       nextRound = {
         ...nextRound,
@@ -511,17 +615,6 @@ function applyChartToRoute(
     nextRound,
     playerId,
     options.houseRules
-  );
-}
-
-function ownTrailChartMoves(
-  round: RoundState,
-  playerId: string,
-  houseRules: HouseRules
-) {
-  return getLegalMoves(round, playerId, houseRules).filter(
-    (move) =>
-      move.route.kind === 'warp-trail' && move.route.playerId === playerId
   );
 }
 
@@ -571,16 +664,13 @@ function resolveRoundStarterOpeningTurn(
     return finishRoutineChartTurn(nextRound, houseRules);
   }
 
-  const ownTiles = nextRound.table.warpTrails[playerId]?.tiles.length ?? 0;
-  if (ownTiles >= 2) {
+  // If roundStarterOpening is set, this is the second tile - clear flag and advance
+  if (nextRound.roundStarterOpening?.playerId === playerId) {
     nextRound = { ...nextRound, roundStarterOpening: null };
     return finishRoutineChartTurn(nextRound, houseRules);
   }
 
-  if (ownTiles !== 1) {
-    return finishRoutineChartTurn(nextRound, houseRules);
-  }
-
+  // This is the first tile - set flag to keep turn
   nextRound = {
     ...nextRound,
     roundStarterOpening: { playerId },
@@ -597,7 +687,8 @@ function resolveRoundStarterOpeningTurn(
     return nextRound;
   }
 
-  if (ownTrailChartMoves(nextRound, playerId, houseRules).length > 0) {
+  // Check if player has any legal moves for second tile
+  if (getLegalMoves(nextRound, playerId, houseRules).length > 0) {
     return nextRound;
   }
 
@@ -636,6 +727,18 @@ function handleDraw(
     drawn,
   ]);
   nextRound = { ...nextRound, unchartedSectors: remaining, drewThisTurn: true };
+
+  // Module Eta (Temporal Debt): Increment debt tokens when drawing from uncharted
+  if (state.modules.temporalDebt?.enabled && nextRound.debtTokens) {
+    const currentDebt = nextRound.debtTokens[playerId] ?? 0;
+    nextRound = {
+      ...nextRound,
+      debtTokens: {
+        ...nextRound.debtTokens,
+        [playerId]: currentDebt + 1,
+      },
+    };
+  }
 
   // Return to warp: an at-impulse hand (exactly one tile) drew back up. This
   // holds across every impulse path (announced, caught, or same-turn) because it
@@ -685,6 +788,290 @@ function handleDraw(
     ok: true,
     state: withRound(state, maybeEndBlockedRound(advanceTurn(nextRound, state.houseRules), state.houseRules)),
   };
+}
+
+function handleSensorSweep(
+  state: GameState,
+  round: RoundState,
+  playerId: string,
+  coordinate: Coordinate
+): ActionResult {
+  if (round.sensorGrid.length === 0) {
+    return fail('EMPTY_SENSOR_GRID');
+  }
+
+  // Verify the coordinate is in the sensor grid
+  const { sensorGrid: gridAfterRemove, found } = removeFromSensorGrid(
+    round.sensorGrid,
+    coordinate
+  );
+
+  if (!found) {
+    return fail('COORDINATE_NOT_IN_SENSOR_GRID');
+  }
+
+  // Same logic as handleDraw: add to hand, check for mandatory play
+  const handBefore = round.hands[playerId]?.length ?? 0;
+  let nextRound = updateHands(round, playerId, [
+    ...(round.hands[playerId] ?? []),
+    coordinate,
+  ]);
+  
+  nextRound = { ...nextRound, sensorGrid: gridAfterRemove, drewThisTurn: true };
+
+  // Refill the sensor grid from uncharted sectors
+  const { sensorGrid: refilled, unchartedSectors: remaining } = refillSensorGrid(
+    nextRound.sensorGrid,
+    nextRound.unchartedSectors,
+    state.modules.sensorGrid.gridSize
+  );
+  nextRound = { ...nextRound, sensorGrid: refilled, unchartedSectors: remaining };
+
+  // Return to warp: an at-impulse hand (exactly one tile) drew back up
+  if (state.houseRules.dropToImpulseCall && handBefore === 1) {
+    nextRound = { ...nextRound, returnedToWarp: true };
+  }
+
+  if ((nextRound.hands[playerId]?.length ?? 0) !== 1) {
+    if (nextRound.dropToImpulseCallPending === playerId) {
+      nextRound = { ...nextRound, dropToImpulseCallPending: null };
+    }
+    if (nextRound.dropToImpulseCatchable === playerId) {
+      nextRound = { ...nextRound, dropToImpulseCatchable: null };
+    }
+  }
+
+  const legalWithDrawn = getLegalMoves(nextRound, playerId, state.houseRules).filter(
+    (move) =>
+      move.coordinate.low === coordinate.low &&
+      move.coordinate.high === coordinate.high
+  );
+
+  if (legalWithDrawn.length > 0) {
+    nextRound = {
+      ...nextRound,
+      mandatoryPlay: { playerId, coordinate },
+    };
+    return { ok: true, state: withRound(state, nextRound) };
+  }
+
+  if (isRedAlertBlocking(nextRound.table.redAlert, playerId)) {
+    if (canPassRedAlert(nextRound, playerId, { afterDraw: true, houseRules: state.houseRules })) {
+      return handlePassRedAlert(state, nextRound, playerId, { afterDraw: true });
+    }
+  }
+
+  if (canDeployDistressBeacon(nextRound, playerId, { afterDraw: true, houseRules: state.houseRules })) {
+    return handleDeployBeacon(state, nextRound, playerId, { afterDraw: true });
+  }
+
+  if (canPassTurn(nextRound, playerId, { afterDraw: true, houseRules: state.houseRules })) {
+    return handlePassTurn(state, nextRound, playerId, { afterDraw: true });
+  }
+
+  return {
+    ok: true,
+    state: withRound(state, maybeEndBlockedRound(advanceTurn(nextRound, state.houseRules), state.houseRules)),
+  };
+}
+
+function handleWarpDriveSpool(
+  state: GameState,
+  round: RoundState,
+  playerId: string,
+  route: Exclude<ChartRoute, { kind: 'fracture-stabilizer' } | { kind: 'red-alert-cover' }>
+): ActionResult {
+  // Determine the starting endpoint for the spool
+  let startEndpoint: number;
+
+  if (route.kind === 'warp-trail') {
+    const trail = round.table.warpTrails[route.playerId];
+    if (!trail) {
+      return fail('INVALID_ROUTE');
+    }
+    
+    // Check shields if playing on opponent's trail
+    if (route.playerId !== playerId && !trailsOpenToOthers(round, route.playerId)) {
+      return fail('SHIELDS_UP');
+    }
+
+    const openValue = trailOpenValue(trail, round.spacedockValue);
+    if (openValue === null) {
+      return fail('INVALID_ROUTE');
+    }
+    startEndpoint = openValue;
+  } else if (route.kind === 'neutral-zone') {
+    const openValue = neutralZoneOpenValue(round.table.neutralZone, round.spacedockValue);
+    if (openValue === null) {
+      return fail('INVALID_ROUTE');
+    }
+    startEndpoint = openValue;
+  } else {
+    return fail('INVALID_ROUTE');
+  }
+
+  // Execute the warp drive spool
+  // IMPORTANT: Combine uncharted sectors AND sensor grid for spool draw pool
+  // The sensor grid tiles should be available for spooling
+  const drawPool = [...round.unchartedSectors, ...round.sensorGrid];
+  const spoolResult = executeWarpDriveSpool(
+    startEndpoint,
+    drawPool,
+    state.modules,
+    route,
+    playerId
+  );
+
+  // Update round state with spool results
+  let nextRound = round;
+  let currentConnectingValue = startEndpoint;
+
+  // Add played tiles to the appropriate trail
+  for (let i = 0; i < spoolResult.tilesPlayed.length; i++) {
+    const tile = spoolResult.tilesPlayed[i];
+    
+    if (route.kind === 'warp-trail') {
+      const trail = nextRound.table.warpTrails[route.playerId];
+      if (!trail) {
+        return fail('INVALID_ROUTE');
+      }
+      
+      const placed = placedTile(tile, trail.tiles.length, currentConnectingValue);
+      if (!placed) {
+        return fail('INVALID_ROUTE');
+      }
+      
+      // Clear beacon if playing on own trail
+      let updatedTrail = trail;
+      if (route.playerId === playerId && trail.distressBeacon.active) {
+        updatedTrail = clearDistressBeacon(trail);
+      }
+      
+      nextRound = {
+        ...nextRound,
+        table: {
+          ...nextRound.table,
+          warpTrails: {
+            ...nextRound.table.warpTrails,
+            [route.playerId]: appendToTrail(updatedTrail, placed),
+          },
+        },
+      };
+      
+      currentConnectingValue = placed.openValue;
+    } else if (route.kind === 'neutral-zone') {
+      const nz = nextRound.table.neutralZone;
+      const placed = placedTile(tile, nz.tiles.length, currentConnectingValue);
+      if (!placed) {
+        return fail('INVALID_ROUTE');
+      }
+      
+      nextRound = {
+        ...nextRound,
+        table: {
+          ...nextRound.table,
+          neutralZone: {
+            ...nextRound.table.neutralZone,
+            tiles: [...nz.tiles, placed],
+          },
+        },
+      };
+      
+      // Module Delta: NZ contact tracking (no penalty in this version)
+      // Just clears hazard if present (backwards compatibility)
+      if (nextRound.hazardMarkerHolder === playerId) {
+        nextRound = { ...nextRound, hazardMarkerHolder: null };
+      }
+      
+      currentConnectingValue = placed.openValue;
+    }
+  }
+
+  // Add mismatched tiles to player's hand
+  if (spoolResult.tilesSentToHand.length > 0) {
+    nextRound = updateHands(nextRound, playerId, [
+      ...(nextRound.hands[playerId] ?? []),
+      ...spoolResult.tilesSentToHand,
+    ]);
+  }
+
+  // Update uncharted sectors AND sensor grid
+  // After spool, remaining tiles go back to uncharted (sensor grid depleted during spool)
+  nextRound = { 
+    ...nextRound, 
+    unchartedSectors: spoolResult.unchartedRemaining,
+    sensorGrid: [], // Sensor grid is depleted during spool - refill on next draw action
+  };
+
+  // Handle Red Alert state if spool ended with uncovered double
+  if (spoolResult.redAlertActive && spoolResult.tilesPlayed.length > 0) {
+    const lastPlayed = spoolResult.tilesPlayed[spoolResult.tilesPlayed.length - 1];
+    const isDouble = lastPlayed.low === lastPlayed.high;
+    
+    if (isDouble) {
+      const tileIndex = (route.kind === 'warp-trail' 
+        ? (nextRound.table.warpTrails[route.playerId]?.tiles.length ?? 1) - 1
+        : nextRound.table.neutralZone.tiles.length - 1);
+      
+      const anchor: PlacedCoordinate = {
+        coordinate: lastPlayed,
+        index: tileIndex,
+        openValue: lastPlayed.low,
+      };
+      
+      nextRound = {
+        ...nextRound,
+        table: {
+          ...nextRound.table,
+          redAlert: {
+            active: true,
+            anchor,
+            trailPlayerId: route.kind === 'warp-trail' ? route.playerId : '',
+            neutralZone: route.kind === 'neutral-zone',
+            responsiblePlayerId: playerId,
+            passed: false,
+          },
+        },
+      };
+    }
+  }
+
+  // Handle Subspace Fracture state if spool ended mid-fracture
+  if (spoolResult.fractureActive && spoolResult.tilesPlayed.length > 0) {
+    const lastPlayed = spoolResult.tilesPlayed[spoolResult.tilesPlayed.length - 1];
+    const tileIndex = (route.kind === 'warp-trail' 
+      ? (nextRound.table.warpTrails[route.playerId]?.tiles.length ?? 1) - 1
+      : nextRound.table.neutralZone.tiles.length - 1);
+    
+    const anchor: PlacedCoordinate = {
+      coordinate: lastPlayed,
+      index: tileIndex,
+      openValue: lastPlayed.low,
+    };
+    
+    nextRound = {
+      ...nextRound,
+      table: {
+        ...nextRound.table,
+        subspaceFracture: {
+          active: true,
+          anchor,
+          stabilizers: [],
+          requiredValue: lastPlayed.low,
+          neutralZone: route.kind === 'neutral-zone',
+          trailCaptainId: route.kind === 'warp-trail' ? route.playerId : undefined,
+        },
+      },
+    };
+  }
+
+  // Mark that we played this turn
+  nextRound = { ...nextRound, playedThisTurn: true };
+
+  // Advance turn after spool completes
+  nextRound = advanceTurn(nextRound, state.houseRules);
+
+  return { ok: true, state: withRound(state, nextRound) };
 }
 
 function handlePassRedAlert(
@@ -757,7 +1144,18 @@ function handlePassTurn(
   if (!canPassTurn(round, playerId, { ...options, houseRules: state.houseRules })) {
     return fail('PASS_NOT_ALLOWED');
   }
-  let nextRound = maybeEndBlockedRound(advanceTurn(round, state.houseRules), state.houseRules);
+  
+  let nextRound = round;
+  
+  // Module Delta: Track pass while holding hazard marker
+  if (state.modules.warpDriveSpool?.enabled && round.hazardMarkerHolder === playerId) {
+    nextRound = {
+      ...nextRound,
+      hazardMarkerPassCount: (nextRound.hazardMarkerPassCount ?? 0) + 1,
+    };
+  }
+  
+  nextRound = maybeEndBlockedRound(advanceTurn(nextRound, state.houseRules), state.houseRules);
   return { ok: true, state: withRound(state, nextRound) };
 }
 
@@ -1025,6 +1423,63 @@ function handleQGamble(
   return { ok: true, state: withRound(state, nextRound) };
 }
 
+/**
+ * Handle a draft pick: move coordinate from pack to hand, rotate packs,
+ * advance drafter. If draft completes, transition to playing phase.
+ */
+function handleDraftPick(
+  state: GameState,
+  round: RoundState,
+  playerId: string,
+  coordinate: Coordinate
+): ActionResult {
+  if (!round.draftState) {
+    return fail('MODULE_NOT_ENABLED');
+  }
+
+  // Process the pick
+  const newDraftState = processDraftPick(
+    round.draftState,
+    playerId,
+    coordinate
+  );
+
+  // Check if draft is complete
+  if (isDraftComplete(newDraftState)) {
+    // Transition to playing phase
+    const finalHands: Record<string, readonly Coordinate[]> = {};
+    round.turnOrder.forEach((id) => {
+      finalHands[id] = newDraftState.pickedTiles[id] || [];
+    });
+
+    // Collect remaining tiles to uncharted
+    const remaining = collectRemainingTiles(newDraftState);
+
+    // Set activePlayerId to spacedock holder (standard game start)
+    const spacedockHolder = round.table.spacedock.placedBy;
+
+    const nextRound: RoundState = {
+      ...round,
+      phase: 'playing',
+      activePlayerId: spacedockHolder,
+      draftState: null,
+      hands: finalHands,
+      unchartedSectors: [...round.unchartedSectors, ...remaining],
+    };
+
+    return { ok: true, state: withRound(state, nextRound) };
+  }
+
+  // Draft continues
+  const nextRound: RoundState = {
+    ...round,
+    activePlayerId: newDraftState.currentDrafter,
+    draftState: newDraftState,
+  };
+
+  return { ok: true, state: withRound(state, nextRound) };
+}
+
 export function applyAction(state: GameState, action: GameAction): ActionResult {
   // Clear the transient return-to-warp signal from the prior action so it is
   // only ever true on the state produced by the draw that caused it.
@@ -1050,6 +1505,37 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
       return fail('ROUND_NOT_PLAYING');
     }
     return scoreRound(state, round);
+  }
+
+  // PICK_FROM_PACK is valid during 'drafting' phase, handle it before requireActiveRound
+  if (action.type === 'PICK_FROM_PACK') {
+    if (state.phase !== 'active' || !state.round) {
+      return fail('GAME_NOT_ACTIVE');
+    }
+    const round = state.round;
+    
+    if (round.phase !== 'drafting') {
+      return fail('ROUND_NOT_DRAFTING');
+    }
+
+    if (!round.draftState) {
+      return fail('MODULE_NOT_ENABLED');
+    }
+
+    if (round.draftState.currentDrafter !== action.playerId) {
+      return fail('NOT_YOUR_TURN');
+    }
+
+    const pack = round.draftState.currentPacks[action.playerId];
+    if (!pack) {
+      return fail('COORDINATE_NOT_IN_PACK');
+    }
+
+    if (!handContains(pack, action.coordinate)) {
+      return fail('COORDINATE_NOT_IN_PACK');
+    }
+
+    return handleDraftPick(state, round, action.playerId, action.coordinate);
   }
 
   const roundOrViolation = requireActiveRound(state);
@@ -1140,7 +1626,52 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
           qContinuumEnabled: state.modules.continuum.enabled,
           houseRules: state.houseRules,
           maxPip: state.maxPip ?? state.round?.maxPip ?? 12,
+          modules: state.modules,
         });
+        
+        // Module Delta: Transfer hazard marker when playing to Neutral Zone
+        if (state.modules.warpDriveSpool?.enabled && action.route.kind === 'neutral-zone') {
+          round = {
+            ...round,
+            hazardMarkerHolder: action.playerId,
+            hazardMarkerPassCount: 0, // Reset pass count on transfer
+          };
+        }
+        
+        // Module Iota: Double Down - next player draws tiles when double is played
+        if (state.modules.doubleDown?.enabled && isDouble(action.coordinate)) {
+          const drawCount = state.modules.doubleDown.drawCount ?? 2;
+          const { nextId } = advanceToNextPlayer(round, action.playerId);
+          
+          // Draw from uncharted first, then sensor grid if available
+          const availableToDraw: Coordinate[] = [];
+          let remainingUncharted = [...round.unchartedSectors];
+          let remainingSensorGrid: Coordinate[] | null = round.sensorGrid ? [...round.sensorGrid] : null;
+          
+          for (let i = 0; i < drawCount; i += 1) {
+            if (remainingUncharted.length > 0) {
+              const drawn = remainingUncharted.shift()!;
+              availableToDraw.push(drawn);
+            } else if (remainingSensorGrid && remainingSensorGrid.length > 0) {
+              const drawn = remainingSensorGrid.shift()!;
+              availableToDraw.push(drawn);
+            } else {
+              break; // No more tiles available
+            }
+          }
+          
+          if (availableToDraw.length > 0) {
+            round = {
+              ...round,
+              unchartedSectors: remainingUncharted,
+              sensorGrid: remainingSensorGrid ?? [],
+              hands: {
+                ...round.hands,
+                [nextId]: [...(round.hands[nextId] ?? []), ...availableToDraw],
+              },
+            };
+          }
+        }
       } catch {
         return fail('INVALID_ROUTE');
       }
@@ -1160,6 +1691,56 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
         return fail('DRAW_NOT_ALLOWED');
       }
       return handleDraw(state, round, action.playerId);
+    }
+
+    case 'SENSOR_SWEEP': {
+      const turnCheck = requirePlayerTurn(round, action.playerId);
+      if (turnCheck !== true) {
+        return fail(turnCheck);
+      }
+      if (qResolutionBlocksAction(round, action.playerId)) {
+        return fail('CONTINUUM_FLASH_NOT_PENDING');
+      }
+      if (!canSensorSweep(state.modules, round, action.playerId, state.houseRules)) {
+        return fail('DRAW_NOT_ALLOWED');
+      }
+      return handleSensorSweep(state, round, action.playerId, action.coordinate);
+    }
+
+    case 'SPOOL_WARP_DRIVE': {
+      const turnCheck = requirePlayerTurn(round, action.playerId);
+      if (turnCheck !== true) {
+        return fail(turnCheck);
+      }
+      if (qResolutionBlocksAction(round, action.playerId)) {
+        return fail('CONTINUUM_FLASH_NOT_PENDING');
+      }
+      // Spool is available with either Module Delta (warpDriveSpool) or Module Theta (longestTrail)
+      if (!state.modules.warpDriveSpool?.enabled && !state.modules.longestTrail?.enabled) {
+        return fail('MODULE_NOT_ENABLED');
+      }
+      // Can't spool with empty uncharted sectors
+      if (round.unchartedSectors.length === 0) {
+        return fail('EMPTY_UNCHARTED');
+      }
+      if (
+        isDropToImpulseAnnouncePending(round, action.playerId, state.houseRules)
+      ) {
+        return fail('DROP_TO_IMPULSE_CHART_BLOCKED');
+      }
+      // Can't spool during fracture or Red Alert - these require specific handling
+      if (
+        isNavigationHaltedByFracture(
+          round.table.subspaceFracture,
+          round.table.redAlert
+        )
+      ) {
+        return fail('FRACTURE_REQUIRES_STABILIZER');
+      }
+      if (isRedAlertBlocking(round.table.redAlert, action.playerId)) {
+        return fail('RED_ALERT_REQUIRED');
+      }
+      return handleWarpDriveSpool(state, round, action.playerId, action.route);
     }
 
     case 'PASS_RED_ALERT': {

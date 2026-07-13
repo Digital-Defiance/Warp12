@@ -49,6 +49,26 @@ function buildSections(game: GameState): { title: string; rows: SettingRow[] }[]
           value: onOff(modules.salamanderPenalty.enabled),
         },
         {
+          label: 'Module Gamma — Sensor Grid',
+          value: onOff(modules.sensorGrid.enabled),
+        },
+        {
+          label: 'Module Delta — Hot Potato (Warp Drive Spool)',
+          value: onOff(modules.warpDriveSpool.enabled),
+        },
+        {
+          label: 'Module Theta — Longest Trail Bonus',
+          value: onOff(modules.longestTrail.enabled),
+        },
+        {
+          label: 'Module Iota — Double Down',
+          value: onOff(modules.doubleDown.enabled),
+        },
+        {
+          label: 'Module Kappa — Temporal Inversion',
+          value: onOff(modules.temporalInversion.enabled),
+        },
+        {
           label: 'Subspace Fracture',
           value: modules.subspaceFracture.enabled
             ? `On — ${SCOPE_LABELS[modules.subspaceFracture.scope] ?? modules.subspaceFracture.scope}`
@@ -103,6 +123,12 @@ function buildSections(game: GameState): { title: string; rows: SettingRow[] }[]
         {
           label: 'Round starter plays two',
           value: onOff(houseRules.roundStarterPlaysTwo),
+        },
+        {
+          label: '  → Own trail only',
+          value: houseRules.roundStarterPlaysTwo
+            ? onOff(houseRules.roundStarterOwnTrailOnly)
+            : '—',
         },
       ],
     },

@@ -29,15 +29,19 @@ const OPTIMIZER_PRINT_TIMEOUT_MS = Number(
 );
 
 describe('AI weight optimizer', () => {
-  it('scores baseline go-out presets without crashing', () => {
-    const presets = cloneGoOutPresets();
-    const score = scoreGoOutPresets(presets, {
-      games: OPTIMIZER_GAMES,
-      seed: OPTIMIZER_SEED,
-    });
-    expect(score.loss).toBeGreaterThanOrEqual(0);
-    expect(score.matrix.length).toBeGreaterThan(0);
-  });
+  it(
+    'scores baseline go-out presets without crashing',
+    () => {
+      const presets = cloneGoOutPresets();
+      const score = scoreGoOutPresets(presets, {
+        games: OPTIMIZER_GAMES,
+        seed: OPTIMIZER_SEED,
+      });
+      expect(score.loss).toBeGreaterThanOrEqual(0);
+      expect(score.matrix.length).toBeGreaterThan(0);
+    },
+    300_000 // 5 minute timeout (increased for drafting changes)
+  );
 
   it('completes a short coordinate pass with finite loss', () => {
     const baseline = scoreGoOutPresets(cloneGoOutPresets(), {

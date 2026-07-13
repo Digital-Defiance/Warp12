@@ -11,6 +11,38 @@
   min-width: 52px;
 }
 
+.hazardMarker {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  font-size: 1rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 3px rgba(251, 191, 36, 0.8)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+  animation: hubHazardPulse 2s ease-in-out infinite;
+  z-index: 1;
+}
+
+@keyframes hubHazardPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.85;
+  }
+}
+
+.spokeBadge[data-hazard='true'] .spokeIcon {
+  box-shadow: 
+    0 0 12px rgba(251, 191, 36, 0.5),
+    0 0 24px rgba(251, 191, 36, 0.25);
+}
+
+.spokeBadge[data-hazard='true'][data-state='shields'] .spokeIcon {
+  border-color: rgba(251, 191, 36, 0.6);
+}
+
 .spokeIcon {
   display: grid;
   place-items: center;

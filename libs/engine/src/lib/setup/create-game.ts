@@ -19,6 +19,12 @@ import type { Captain, PlayerId } from '../types/player.js';
 import { DEFAULT_GAME_OBJECTIVE } from '../types/objective.js';
 import { resolveModules } from '../types/modules.js';
 import { resolveHouseRules } from '../types/house-rules.js';
+import { applySensorGridToRound } from '../engine/sensor-grid.js';
+import {
+  executeSyncDraft,
+  calculatePackSize,
+  initializeDraftState,
+} from '../engine/drafting.js';
 
 export function createCaptain(
   id: string,
@@ -129,6 +135,68 @@ export function dealRoundFromShuffled(input: {
   };
 }
 
+/**
+ * Deal a round with Module Epsilon drafting: pack-and-pass instead of random deal.
+ * Spacedock is still set aside first (same as standard).
+ */
+export function dealRoundFromDraft(input: {
+  readonly shuffledCoordinates: readonly Coordinate[];
+  readonly roundNumber: number;
+  readonly captains: readonly Captain[];
+  readonly turnOrder: readonly PlayerId[];
+  readonly roundStarterId?: PlayerId;
+  readonly largeFleetHandSize?: LargeFleetHandSize;
+  readonly maxPip?: number;
+  readonly draftPackSize?: number;
+  /** Pick function for each captain (AI or manual). */
+  readonly pickFn: (playerId: PlayerId, pack: readonly Coordinate[]) => Coordinate;
+}): RoundDealResult {
+  const maxPip = normalizeWarpFactor(input.maxPip ?? DOUBLE_TWELVE_MAX_PIPS);
+  const spacedockValue = spacedockValueForRound(input.roundNumber, maxPip);
+  const spacedockCoordinate = normalizeCoordinate(
+    spacedockValue,
+    spacedockValue
+  );
+  const spacedockKey = coordinateKey(spacedockCoordinate);
+  const pile = [...input.shuffledCoordinates];
+
+  // Remove spacedock first (same as standard)
+  const spacedockIndex = pile.findIndex(
+    (coordinate) => coordinateKey(coordinate) === spacedockKey
+  );
+  if (spacedockIndex === -1) {
+    throw new Error(
+      `Spacedock coordinate ${spacedockKey} is missing from the shuffled set.`
+    );
+  }
+  pile.splice(spacedockIndex, 1);
+
+  const packSize = input.draftPackSize ?? calculatePackSize(input.captains.length, pile.length);
+
+  // Execute synchronous draft
+  const { hands, remaining } = executeSyncDraft(
+    pile,
+    input.turnOrder,
+    packSize,
+    input.pickFn
+  );
+
+  const spacedockPlacedBy =
+    input.roundStarterId ??
+    roundStarterForRound(input.turnOrder, input.roundNumber);
+
+  return {
+    roundNumber: input.roundNumber,
+    captains: input.captains,
+    turnOrder: input.turnOrder,
+    spacedockValue,
+    spacedockPlacedBy,
+    hands,
+    unchartedSectors: remaining,
+    maxPip,
+  };
+}
+
 export function createRoundStateFromDeal(deal: RoundDealResult): RoundState {
   return {
     roundNumber: deal.roundNumber,
@@ -142,7 +210,9 @@ export function createRoundStateFromDeal(deal: RoundDealResult): RoundState {
       deal.spacedockPlacedBy
     ),
     unchartedSectors: [...deal.unchartedSectors],
+    sensorGrid: [], // Initialized when Module Gamma is enabled
     hands: { ...deal.hands },
+    draftState: null, // No drafting in standard deal
     allStopRequired: false,
     allStopDeclared: false,
     roundWinnerId: null,
@@ -160,6 +230,97 @@ export function createRoundStateFromDeal(deal: RoundDealResult): RoundState {
     maxPip: deal.maxPip,
   };
 }
+
+/**
+ * Create a round state with drafting enabled (Module Epsilon).
+ * Round starts in 'drafting' phase with empty hands.
+ */
+export function createRoundStateWithDraft(input: {
+  readonly roundNumber: number;
+  readonly captains: readonly Captain[];
+  readonly shuffledCoordinates: readonly Coordinate[];
+  readonly turnOrder: readonly PlayerId[];
+  readonly roundStarterId?: PlayerId;
+  readonly maxPip?: number;
+  readonly packSize?: number; // Optional - will be calculated if omitted
+}): RoundState {
+  const maxPip = normalizeWarpFactor(input.maxPip ?? DOUBLE_TWELVE_MAX_PIPS);
+  const spacedockValue = spacedockValueForRound(input.roundNumber, maxPip);
+  const spacedockCoordinate = normalizeCoordinate(
+    spacedockValue,
+    spacedockValue
+  );
+  const spacedockKey = coordinateKey(spacedockCoordinate);
+  const pile = [...input.shuffledCoordinates];
+
+  // Remove spacedock first
+  const spacedockIndex = pile.findIndex(
+    (coordinate) => coordinateKey(coordinate) === spacedockKey
+  );
+  if (spacedockIndex === -1) {
+    throw new Error(
+      `Spacedock coordinate ${spacedockKey} is missing from the shuffled set.`
+    );
+  }
+  pile.splice(spacedockIndex, 1);
+
+  const spacedockPlacedBy =
+    input.roundStarterId ??
+    roundStarterForRound(input.turnOrder, input.roundNumber);
+
+  // Calculate pack size if not provided
+  const packSize = input.packSize ?? calculatePackSize(input.turnOrder.length, pile.length);
+
+  // Initialize draft state
+  const draftState = initializeDraftState(
+    input.turnOrder,
+    pile,
+    packSize
+  );
+
+  // Calculate remaining tiles after draft packs are distributed
+  const tilesInPacks = packSize * input.turnOrder.length;
+  const remaining = pile.slice(tilesInPacks);
+
+  // Initialize empty hands (will be filled during draft)
+  const emptyHands: Record<string, Coordinate[]> = {};
+  input.turnOrder.forEach((id) => {
+    emptyHands[id] = [];
+  });
+
+  return {
+    roundNumber: input.roundNumber,
+    spacedockValue,
+    phase: 'drafting',
+    activePlayerId: draftState.currentDrafter,
+    turnOrder: input.turnOrder,
+    table: createInitialTable(
+      input.turnOrder,
+      spacedockValue,
+      spacedockPlacedBy
+    ),
+    unchartedSectors: remaining,
+    sensorGrid: [],
+    hands: emptyHands,
+    draftState,
+    allStopRequired: false,
+    allStopDeclared: false,
+    roundWinnerId: null,
+    continuumPendingInvoker: null,
+    continuumEffects: null,
+    continuumWagerPending: null,
+    mandatoryPlay: null,
+    pendingRoundWin: null,
+    roundBlocked: false,
+    roundStarterOpening: null,
+    dropToImpulseCallPending: null,
+    dropToImpulseCatchable: null,
+    playedThisTurn: false,
+    drewThisTurn: false,
+    maxPip,
+  };
+}
+
 
 /** @deprecated Use dealRoundFromShuffled — Spacedock is set aside before dealing. */
 export interface DealRoundInput {
@@ -195,6 +356,51 @@ export function startGame(
 ): GameState {
   const lobby = createLobbyState(input);
   const turnOrder = lobby.captains.map((c) => c.id);
+  
+  // Module Epsilon: Drafting
+  if (lobby.modules.drafting.enabled) {
+    const draftRound = createRoundStateWithDraft({
+      shuffledCoordinates: deal.shuffledCoordinates,
+      roundNumber: 1,
+      captains: lobby.captains,
+      turnOrder,
+      roundStarterId: deal.roundStarterId,
+      maxPip: lobby.maxPip,
+      // packSize omitted - will be calculated automatically to leave tiles for uncharted
+    });
+
+    let roundWithModules = draftRound;
+
+    // Module Delta: Initialize hazard marker with round starter
+    if (lobby.modules.warpDriveSpool.enabled) {
+      const starterId = deal.roundStarterId ?? roundStarterForRound(turnOrder, 1);
+      roundWithModules = {
+        ...roundWithModules,
+        hazardMarkerHolder: starterId,
+        hazardMarkerPassCount: 0,
+      };
+    }
+
+    // Module Eta: Initialize debt tokens for all captains
+    if (lobby.modules.temporalDebt.enabled) {
+      const debtTokens: Record<string, number> = {};
+      for (const captain of lobby.captains) {
+        debtTokens[captain.id] = 0;
+      }
+      roundWithModules = {
+        ...roundWithModules,
+        debtTokens,
+      };
+    }
+
+    return {
+      ...lobby,
+      phase: 'active',
+      round: roundWithModules,
+    };
+  }
+
+  // Standard deal (no drafting)
   const roundDeal = dealRoundFromShuffled({
     shuffledCoordinates: deal.shuffledCoordinates,
     roundNumber: 1,
@@ -205,10 +411,34 @@ export function startGame(
     maxPip: lobby.maxPip,
   });
 
+  const baseRound = createRoundStateFromDeal(roundDeal);
+  let roundWithModules = applySensorGridToRound(baseRound, lobby.modules);
+
+  // Module Delta: Initialize hazard marker with round starter
+  if (lobby.modules.warpDriveSpool.enabled) {
+    roundWithModules = {
+      ...roundWithModules,
+      hazardMarkerHolder: roundDeal.spacedockPlacedBy,
+      hazardMarkerPassCount: 0,
+    };
+  }
+
+  // Module Eta: Initialize debt tokens for all captains
+  if (lobby.modules.temporalDebt.enabled) {
+    const debtTokens: Record<string, number> = {};
+    for (const captain of lobby.captains) {
+      debtTokens[captain.id] = 0;
+    }
+    roundWithModules = {
+      ...roundWithModules,
+      debtTokens,
+    };
+  }
+
   return {
     ...lobby,
     phase: 'active',
-    round: createRoundStateFromDeal(roundDeal),
+    round: roundWithModules,
   };
 }
 
@@ -217,6 +447,23 @@ export function collectRoundCoordinatesForRecycle(
   round: RoundState
 ): Coordinate[] {
   const recycled: Coordinate[] = [...round.unchartedSectors];
+
+  // Collect sensor grid tiles (Module Gamma)
+  if (round.sensorGrid) {
+    recycled.push(...round.sensorGrid);
+  }
+
+  // Collect continuum wager tiles (Module Alpha)
+  if (round.continuumWagerPending) {
+    recycled.push(...round.continuumWagerPending.options);
+  }
+
+  // Module Epsilon: Collect any tiles remaining in draft packs
+  if (round.draftState) {
+    for (const pack of Object.values(round.draftState.currentPacks)) {
+      recycled.push(...pack);
+    }
+  }
 
   for (const playerId of round.turnOrder) {
     recycled.push(...(round.hands[playerId] ?? []));

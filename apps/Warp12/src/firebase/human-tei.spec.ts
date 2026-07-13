@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { resolveHouseRules, type GameState } from 'warp12-engine';
+import type { GameState } from 'warp12-engine';
+import { resolveHouseRules } from 'warp12-engine';
 
 import type { FirestoreCaptain } from './schema.js';
 import {
@@ -11,7 +12,7 @@ import {
   onlineRatingWarning,
   onlineUnratedNotice,
 } from './human-tei.js';
-import type { PlayerStatsDocument } from './stats-schema.js';
+import type { PlayerStatsDocument, StoredRating } from './stats-schema.js';
 
 function completePointsGame(
   scores: Record<string, number>,
@@ -65,28 +66,116 @@ describe('isHumanOnlySector', () => {
 describe('buildHumanSectorRankTable', () => {
   it('ranks captains by points score ascending', () => {
     const game = completePointsGame({ u1: 12, u2: 40 });
-    const teiByUid = new Map([
-      ['u1', { tei: 1200, matches: 5 }],
-      ['u2', { tei: 1100, matches: 3 }],
+    const ratingByUid = new Map<string, { rating: StoredRating; matches: number }>([
+      ['u1', { rating: { mu: 32.0, sigma: 3.0, matches: 5, displayRating: 23.0, displayGrade: 'V23' }, matches: 5 }],
+      ['u2', { rating: { mu: 28.0, sigma: 4.0, matches: 3, displayRating: 16.0, displayGrade: 'V16' }, matches: 3 }],
     ]);
-    const table = buildHumanSectorRankTable(game, ['u1', 'u2'], teiByUid);
+    const table = buildHumanSectorRankTable(game, ['u1', 'u2'], ratingByUid);
     expect(table).toEqual([
-      expect.objectContaining({ playerId: 'u1', rank: 1, tei: 1200 }),
-      expect.objectContaining({ playerId: 'u2', rank: 2, tei: 1100 }),
+      expect.objectContaining({ playerId: 'u1', rank: 1 }),
+      expect.objectContaining({ playerId: 'u2', rank: 2 }),
     ]);
+    expect(table?.[0]?.rating.mu).toBe(32.0);
+    expect(table?.[1]?.rating.mu).toBe(28.0);
+  });
+  
+  it('handles ties in score (same rank)', () => {
+    const game = completePointsGame({ u1: 20, u2: 20, u3: 30 });
+    const ratingByUid = new Map<string, { rating: StoredRating; matches: number }>([
+      ['u1', { rating: { mu: 30.0, sigma: 3.0, matches: 10, displayRating: 21.0, displayGrade: 'V21' }, matches: 10 }],
+      ['u2', { rating: { mu: 28.0, sigma: 3.5, matches: 8, displayRating: 17.5, displayGrade: 'V17' }, matches: 8 }],
+      ['u3', { rating: { mu: 26.0, sigma: 4.0, matches: 5, displayRating: 14.0, displayGrade: 'V14' }, matches: 5 }],
+    ]);
+    const table = buildHumanSectorRankTable(game, ['u1', 'u2', 'u3'], ratingByUid);
+    expect(table?.[0]?.rank).toBe(1);
+    expect(table?.[1]?.rank).toBe(1); // Tied with u1
+    expect(table?.[2]?.rank).toBe(3); // u3 gets rank 3 (not 2)
   });
 });
 
 describe('applyHumanTeiSelfUpdate', () => {
-  it('raises TEI for winner vs weaker field', () => {
+  it('increases rating for winner vs weaker field', () => {
     const table = [
-      { playerId: 'u1', rank: 1, tei: 1200, unassistedMatches: 2 },
-      { playerId: 'u2', rank: 2, tei: 1000, unassistedMatches: 2 },
+      { 
+        playerId: 'u1', 
+        rank: 1, 
+        rating: { mu: 32.0, sigma: 3.0, matches: 10, displayRating: 23.0, displayGrade: 'V23' },
+        matches: 10,
+      },
+      { 
+        playerId: 'u2', 
+        rank: 2, 
+        rating: { mu: 26.0, sigma: 4.0, matches: 8, displayRating: 14.0, displayGrade: 'V14' },
+        matches: 8,
+      },
     ];
-    const result = applyHumanTeiSelfUpdate(null, 'points', table, 'u1');
+    const doc: PlayerStatsDocument = {
+      uid: 'u1',
+      displayName: 'U1',
+      matchesCompleted: 10,
+      matchesWon: 5,
+      roundsPlayed: 50,
+      roundsWon: 25,
+      totalPoints: 300,
+      humanRating: {
+        points: {
+          rating: { mu: 32.0, sigma: 3.0, matches: 10, displayRating: 23.0, displayGrade: 'V23' },
+          wins: 5,
+        },
+      },
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    
+    const result = applyHumanTeiSelfUpdate(doc, 'points', table, 'u1');
     expect(result?.update.won).toBe(true);
-    expect(result?.update.teiAfter).toBeGreaterThan(result!.update.teiBefore);
-    expect(result?.humanTei.points?.unassistedMatches).toBe(1);
+    expect(result?.update.rank).toBe(1);
+    // Rating should increase (beat weaker opponent)
+    expect(result?.update.ratingAfter.mu).toBeGreaterThan(result!.update.ratingBefore.mu);
+    // Sigma should decrease slightly (more confidence)
+    expect(result?.update.ratingAfter.sigma).toBeLessThan(result!.update.ratingBefore.sigma);
+    // Matches should increment
+    expect(result?.update.ratingAfter.matches).toBe(11);
+  });
+  
+  it('decreases rating for loser vs stronger field', () => {
+    const table = [
+      { 
+        playerId: 'u1', 
+        rank: 1, 
+        rating: { mu: 35.0, sigma: 2.5, matches: 20, displayRating: 27.5, displayGrade: 'V27' },
+        matches: 20,
+      },
+      { 
+        playerId: 'u2', 
+        rank: 2, 
+        rating: { mu: 28.0, sigma: 3.5, matches: 8, displayRating: 17.5, displayGrade: 'V17' },
+        matches: 8,
+      },
+    ];
+    const doc: PlayerStatsDocument = {
+      uid: 'u2',
+      displayName: 'U2',
+      matchesCompleted: 8,
+      matchesWon: 3,
+      roundsPlayed: 40,
+      roundsWon: 15,
+      totalPoints: 400,
+      humanRating: {
+        points: {
+          rating: { mu: 28.0, sigma: 3.5, matches: 8, displayRating: 17.5, displayGrade: 'V17' },
+          wins: 3,
+        },
+      },
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    
+    const result = applyHumanTeiSelfUpdate(doc, 'points', table, 'u2');
+    expect(result?.update.won).toBe(false);
+    expect(result?.update.rank).toBe(2);
+    // Rating should decrease (lost to stronger opponent)
+    expect(result?.update.ratingAfter.mu).toBeLessThan(result!.update.ratingBefore.mu);
+    // But not by much (expected to lose)
+    expect(result!.update.ratingBefore.mu - result!.update.ratingAfter.mu).toBeLessThan(2.0);
   });
 });
 
@@ -123,7 +212,7 @@ describe('onlineMatchRatingEligibility', () => {
     expect(onlineRatingWarning(result, [])).toMatch(/Exhibition set/i);
   });
 
-  it('rates verified humans anchored against Class II–IV AI', () => {
+  it('rates verified humans anchored against Ensign–Commander AI', () => {
     const captains: FirestoreCaptain[] = [
       verifiedHuman('u1'),
       verifiedHuman('u2'),
@@ -170,7 +259,7 @@ describe('onlineMatchRatingEligibility', () => {
     );
   });
 
-  it('rates sectors that include Class II (neural Ω) AI', () => {
+  it('rates sectors that include Commander (neural Ω) AI', () => {
     const captains = [
       verifiedHuman('u1'),
       verifiedHuman('u2'),

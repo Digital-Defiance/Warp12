@@ -3,17 +3,17 @@ import { CLASS1_STAR_DISPLAY_NAME } from './class1-star-constants.js';
 import { OMEGA_DISPLAY_NAME, OMEGA_SHORT_DISPLAY_NAME } from './omega-constants.js';
 import type { WarpSkillLevel } from './skill.js';
 
-/** Engine AI profile keys — map to Tactical Class IV / III / II in all player-facing UI. */
+/** Engine AI profile keys — map to Ensign / Lieutenant / Commander in player-facing UI. */
 export const WARP_SKILL_LEVELS: readonly WarpSkillLevel[] = [
   'ensign',
   'lieutenant',
   'commander',
 ];
 
-/** AI simulation tiers shown to players (Class I is human prestige only). */
+/** AI simulation tiers shown to players (Flag Officer is human prestige only). */
 export type AiTacticalClass = 'IV' | 'III' | 'II';
 
-/** Full tactical classification including elite human tier. */
+/** Full classification including elite human prestige tier. */
 export type TacticalClass = 'I' | AiTacticalClass;
 
 export const AI_SKILL_TACTICAL_CLASS: Record<WarpSkillLevel, AiTacticalClass> =
@@ -22,6 +22,17 @@ export const AI_SKILL_TACTICAL_CLASS: Record<WarpSkillLevel, AiTacticalClass> =
     lieutenant: 'III',
     commander: 'II',
   };
+
+/** Commission / opponent labels (Ensign / Lieutenant / Commander / Flag Officer). */
+const TACTICAL_CLASS_LABELS: Record<
+  TacticalClass,
+  { readonly short: string; readonly long: string }
+> = {
+  IV: { short: 'Ens.', long: 'Ensign' },
+  III: { short: 'Lt.', long: 'Lieutenant' },
+  II: { short: 'Cmdr.', long: 'Commander' },
+  I: { short: 'Flag', long: 'Flag Officer' },
+};
 
 export const TACTICAL_CLASS_TAGLINES: Record<AiTacticalClass, string> = {
   IV: 'Provisional / New Profile',
@@ -39,13 +50,11 @@ export function formatTacticalClass(
   tacticalClass: TacticalClass | AiTacticalClass,
   options?: { short?: boolean }
 ): string {
-  if (options?.short) {
-    return `Cls ${tacticalClass}`;
-  }
-  return `Class ${tacticalClass}`;
+  const labels = TACTICAL_CLASS_LABELS[tacticalClass];
+  return options?.short ? labels.short : labels.long;
 }
 
-/** Player-facing label for an AI officer (Class IV–II or experimental neural tiers). */
+/** Player-facing label for an AI officer (or experimental neural tiers). */
 export function formatAiOfficerTacticalClass(
   skill: WarpSkillLevel,
   options?: { short?: boolean; class1Star?: boolean; omega?: boolean }
@@ -54,7 +63,7 @@ export function formatAiOfficerTacticalClass(
     return options.short ? OMEGA_SHORT_DISPLAY_NAME : OMEGA_DISPLAY_NAME;
   }
   if (options?.class1Star) {
-    return options.short ? 'Cls I*' : CLASS1_STAR_DISPLAY_NAME;
+    return options.short ? 'I*' : CLASS1_STAR_DISPLAY_NAME;
   }
   return formatTacticalClass(aiSkillToTacticalClass(skill), {
     short: options?.short,
@@ -65,13 +74,13 @@ export function formatTei(tei: number, reference = false): string {
   return reference ? `~TEI ${tei}` : `TEI ${tei}`;
 }
 
-/** Unrated setup — class plus human-readable profile tagline. */
+/** Unrated setup — rank plus human-readable profile tagline. */
 export function formatAiSkillUnratedLabel(skill: WarpSkillLevel): string {
   const tacticalClass = aiSkillToTacticalClass(skill);
   return `${formatTacticalClass(tacticalClass)} — ${TACTICAL_CLASS_TAGLINES[tacticalClass]}`;
 }
 
-/** Rated setup — class anchored to reference matchmaking TEI. */
+/** Rated setup — rank anchored to reference matchmaking TEI. */
 export function formatAiSkillRatedLabel(
   skill: WarpSkillLevel,
   referenceTei: number
@@ -80,7 +89,7 @@ export function formatAiSkillRatedLabel(
   return `${formatTacticalClass(tacticalClass)} (${formatTei(referenceTei, true)})`;
 }
 
-/** Player tactical class from solo TEI (not chain-of-command rank). */
+/** Player commission tier from solo TEI (legacy numeric bands until grade-based mapping lands). */
 export function teiToPlayerTacticalClass(tei: number | null): TacticalClass {
   if (tei == null) {
     return 'IV';

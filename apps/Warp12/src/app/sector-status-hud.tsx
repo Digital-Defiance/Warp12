@@ -1,5 +1,7 @@
-import { GAME_OBJECTIVE_LABELS, formatCampaignRoundProgress, type GameState, type RoundState } from 'warp12-engine';
+import { GAME_OBJECTIVE_LABELS, formatCampaignRoundProgress, type Coordinate, type GameState, type RoundState } from 'warp12-engine';
 import type { RefObject } from 'react';
+import { DominoTile } from 'double-eighteen';
+import { WARP_PIP_COLORS, WARP_TILE_SURFACE, type WarpTileBg } from 'warp12-theme';
 import { sectorWinnerName } from '../game/sector-outcome.js';
 import { ActiveContinuumFlashBanner, PeekedSectorBanner } from './flash-panel.js';
 import { FloatingPanelShell } from './floating-panel-shell';
@@ -25,6 +27,10 @@ export interface SectorStatusHudProps {
   lastMessage: string | null;
   spacedockValue: number;
   unchartedCount: number;
+  sensorGrid?: readonly Coordinate[];
+  tileBg: WarpTileBg;
+  maxPip: number;
+  onSensorSweep?: (coordinate: Coordinate) => void;
   beaconCount: number;
   openTrailNames: readonly string[];
   shieldsDown: boolean;
@@ -36,6 +42,9 @@ export interface SectorStatusHudProps {
   redAlertLabel: string;
   redAlertSummary: string;
   redAlertTone: 'yellow' | 'alert';
+  longestTrailCaptains?: readonly string[];
+  longestTrailLength?: number;
+  hazardMarkerHolder?: string | null;
 }
 
 export function shouldShowAiThinking(props: {
@@ -135,6 +144,10 @@ export function SectorStatusHud({
   lastMessage,
   spacedockValue,
   unchartedCount,
+  sensorGrid = [],
+  tileBg,
+  maxPip,
+  onSensorSweep,
   beaconCount,
   openTrailNames,
   shieldsDown,
@@ -146,6 +159,9 @@ export function SectorStatusHud({
   redAlertLabel,
   redAlertSummary,
   redAlertTone,
+  longestTrailCaptains = [],
+  longestTrailLength = 0,
+  hazardMarkerHolder = null,
 }: SectorStatusHudProps) {
   const showAiThinking = shouldShowAiThinking({
     activePlayerIsAi,
@@ -212,6 +228,38 @@ export function SectorStatusHud({
           <dt>Uncharted</dt>
           <dd>{unchartedCount}</dd>
         </div>
+        {sensorGrid.length > 0 && (
+          <div className={`${styles.row} ${styles.sensorGrid}`}>
+            <dt>Sensor Grid</dt>
+            <dd className={styles.gridTiles}>
+              {sensorGrid.map((tile, i) => {
+                const tileSurface = WARP_TILE_SURFACE[tileBg];
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    className={styles.gridTile}
+                    title={`Sensor sweep: ${tile.low}:${tile.high}`}
+                    onClick={() => onSensorSweep?.(tile)}
+                    disabled={!onSensorSweep}
+                  >
+                    <DominoTile
+                      maxPips={maxPip}
+                      value1={tile.low}
+                      value2={tile.high}
+                      width={20}
+                      height={40}
+                      rotation={0}
+                      backgroundColor={tileSurface.fill}
+                      borderColor={tileSurface.border}
+                      pipColors={WARP_PIP_COLORS}
+                    />
+                  </button>
+                );
+              })}
+            </dd>
+          </div>
+        )}
         <div className={styles.row}>
           <dt>Beacons</dt>
           <dd>
@@ -247,6 +295,46 @@ export function SectorStatusHud({
           >
             <dt>{redAlertLabel}</dt>
             <dd>{redAlertSummary}</dd>
+          </div>
+        )}
+        {game.modules.warpDriveSpool?.enabled && longestTrailLength > 0 && (
+          <div className={`${styles.row} ${styles.moduleDelta}`}>
+            <dt>Longest trail</dt>
+            <dd>
+              {longestTrailCaptains.length === 1
+                ? `${names[longestTrailCaptains[0]] ?? 'Unknown'} (${longestTrailLength})`
+                : longestTrailCaptains.length > 1
+                  ? `Tied (${longestTrailLength})`
+                  : `None yet`}
+            </dd>
+          </div>
+        )}
+        {game.modules.warpDriveSpool?.enabled && hazardMarkerHolder && (
+          <div className={`${styles.row} ${styles.hazardWarning}`}>
+            <dt>Hazard marker</dt>
+            <dd>
+              {names[hazardMarkerHolder] ?? 'Unknown'}
+              {game.round?.hazardMarkerPassCount && game.round.hazardMarkerPassCount > 0
+                ? ` (passed ×${game.round.hazardMarkerPassCount} = +${game.round.hazardMarkerPassCount * 5} penalty)`
+                : ' (not yet passed)'}
+            </dd>
+          </div>
+        )}
+        {game.modules.temporalDebt?.enabled && round && (
+          <div className={`${styles.row} ${styles.temporalDebt}`}>
+            <dt>Debt tokens</dt>
+            <dd>
+              {Object.entries(round.debtTokens ?? {})
+                .filter(([, count]) => count > 0)
+                .map(([playerId, count]) => `${names[playerId]}: ${count}`)
+                .join(', ') || 'None yet'}
+            </dd>
+          </div>
+        )}
+        {game.modules.temporalInversion?.enabled && round && round.roundNumber % 2 === 0 && (
+          <div className={`${styles.row} ${styles.temporalInversion}`}>
+            <dt>⚠️ Inverted!</dt>
+            <dd>HIGHEST hand wins this round</dd>
           </div>
         )}
         <ActiveContinuumFlashBanner game={game} names={names} className={styles.row} />

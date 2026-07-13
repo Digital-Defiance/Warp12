@@ -13,9 +13,9 @@ Coach/advisor path never uses the model — only `scoreWithHeuristics`.
 
 ---
 
-# Class Ω neural training (standalone self-play)
+# Ω neural training (standalone self-play)
 
-**Class Ω ("Omega")** is a *different animal* from Class I*. Class I* is a residual
+**Ω ("Omega")** is a *different animal* from Class I*. Class I* is a residual
 bolted onto Commander and trained to imitate Commander — which is why it converged
 to a Commander clone (~parity, 98% top-1). Omega throws that out:
 
@@ -50,8 +50,8 @@ OMEGA_BENCH_GAMES=500 yarn omega:bench
 
 Early iterations will look **worse** than Commander before they surpass it — that
 is expected for from-scratch self-play. Gate promotion on `omega:bench` holding
-above Class II *across all player counts and both objectives* (the bench prints
-implied Elo per slice), not on a single 2p mode.
+above Commander *across all player counts and both objectives* (the bench prints
+implied rating deltas per slice), not on a single 2p mode.
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
