@@ -7,6 +7,7 @@ import type {
 } from 'warp12-engine';
 import {
   defaultCampaignRounds,
+  neuralWeightsAvailable,
   normalizeWarpFactor,
   warpSetProfile,
 } from 'warp12-engine';
@@ -34,11 +35,11 @@ export interface AiCaptainConfig {
   readonly displayName: string;
   readonly skill: WarpSkillLevel;
   /**
-   * @deprecated Class II (`commander`) is neural Ω. Kept as a synonym for older
+   * @deprecated Commander (`commander`) is neural Ω. Kept as a synonym for older
    * saved configs; prefer `skill: 'commander'` alone.
    */
   readonly omega?: boolean;
-  /** Class II only — net-guided ISMCTS (Ω+). Unrated exhibition; not for TEI. */
+  /** Commander only — net-guided ISMCTS (Ω+). Unrated exhibition; not for TEI. */
   readonly extendedThinking?: boolean;
   /** Officer pool slot when the captain was created from {@link AI_OFFICER_POOL}. */
   readonly poolId?: string;
@@ -177,7 +178,7 @@ export function localMatchHasExtendedThinking(
 
 /**
  * Solo vs-AI local matches may report TEI when signed in and unassisted.
- * Non-12 factors are exhibition-only until TEI tracks exist per set.
+ * TEI ladders are Warp 12 only (product rule) — exhibition sets never rate.
  */
 export function isRatedLocalGame(config: LocalGameConfig): boolean {
   return (
@@ -187,9 +188,12 @@ export function isRatedLocalGame(config: LocalGameConfig): boolean {
   );
 }
 
-/** Neural Ω / Class I* are trained on double-12 feature schemas only. */
+/**
+ * Whether neural Ω / Class I* / advisor nets can load for this set.
+ * Independent of TEI — today only Warp 12 ships weights.
+ */
 export function neuralAiSupported(maxPip: number): boolean {
-  return normalizeWarpFactor(maxPip) === 12;
+  return neuralWeightsAvailable(maxPip);
 }
 
 export function buildHumanCaptains(

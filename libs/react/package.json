@@ -1,7 +1,8 @@
 {
   "name": "warp12-react",
-  "version": "0.4.23",
-  "description": "React adapters for Warp 12 — state to trains, coach, hand layout",
+  "version": "0.4.25",
+  "description": "React adapters for Warp — state to trains, tactical coach, and hand layout for multi-trail Interstellar Dominoes (Warp 9/12/15/18)",
+  "homepage": "https://warp.iwdf.org",
   "license": "MIT",
   "author": "Digital Defiance",
   "type": "module",
@@ -23,11 +24,15 @@
     "README.md"
   ],
   "keywords": [
+    "warp",
     "warp12",
+    "warp-dominoes",
+    "interstellar-dominoes",
     "react",
     "mexican-train",
     "dominoes",
-    "game"
+    "game",
+    "react-hooks"
   ],
   "repository": {
     "type": "git",
@@ -44,7 +49,7 @@
   "peerDependencies": {
     "double-eighteen": ">=0.3.3",
     "react": ">=18.0.0",
-    "warp12-engine": ">=0.4.23"
+    "warp12-engine": ">=0.4.25"
   },
   "devDependencies": {
     "double-eighteen": "workspace:*",

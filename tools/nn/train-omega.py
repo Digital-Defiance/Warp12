@@ -302,7 +302,6 @@ def train(args: argparse.Namespace) -> None:
     optimizer = torch.optim.Adam(
         list(policy.parameters()) + list(value.parameters()), lr=args.lr
     )
-    neg_inf = torch.tensor(float("-inf"), device=device)
 
     for epoch in range(args.epochs):
         policy.train()
@@ -335,33 +334,41 @@ def train(args: argparse.Namespace) -> None:
             advantage = advantage.clamp(-args.adv_clip, args.adv_clip)
 
             logits = policy(features.reshape(b * c, POLICY_FEATURE_DIM)).reshape(b, c)
-            logits = torch.where(mask, logits, neg_inf)
+            # Finite mask fill — `-inf` + soft/log_softmax is fine, but `0 * -inf`
+            # later (padded search targets) becomes NaN on MPS/CPU.
+            logits = logits.masked_fill(~mask, -1e9)
             log_probs = F.log_softmax(logits, dim=1)  # [B, C]
-            probs = log_probs.exp()
+            # Zero padded slots so CE/entropy never multiply mass×(-inf).
+            safe_log_probs = torch.where(mask, log_probs, torch.zeros_like(log_probs))
+            probs = torch.where(mask, log_probs.exp(), torch.zeros_like(log_probs))
 
             search_target = batch["search_target"].to(device)  # [B, C]
             has_search = batch["has_search"].to(device)  # [B] bool
 
             # REINFORCE loss (sampled move, advantage-weighted) — used where no search.
-            chosen_log_prob = log_probs.gather(1, chosen.unsqueeze(1)).squeeze(1)
+            chosen_log_prob = safe_log_probs.gather(1, chosen.unsqueeze(1)).squeeze(1)
             reinforce = -(chosen_log_prob * advantage)  # [B]
 
             # AlphaZero cross-entropy against the ISMCTS visit distribution — used
             # where search targets exist. Far lower variance than REINFORCE.
-            ce = -(search_target * log_probs).sum(dim=1)  # [B]
+            ce = -(search_target * safe_log_probs).sum(dim=1)  # [B]
 
             per_group = torch.where(has_search, ce, reinforce)
             policy_loss = per_group.mean()
 
-            # Masked entropy (padding contributes 0 since probs there are 0).
-            entropy = -(probs * torch.where(mask, log_probs, torch.zeros_like(log_probs)))
-            entropy = entropy.sum(dim=1).mean()
+            entropy = -(probs * safe_log_probs).sum(dim=1).mean()
 
             loss = (
                 policy_loss
                 + args.value_coef * value_loss
                 - args.entropy_coef * entropy
             )
+            if not torch.isfinite(loss):
+                print(
+                    f"  !! non-finite loss (policy={float(policy_loss):.4g} "
+                    f"value={float(value_loss):.4g} entropy={float(entropy):.4g}); skipping batch"
+                )
+                continue
             loss.backward()
             torch.nn.utils.clip_grad_norm_(
                 list(policy.parameters()) + list(value.parameters()),

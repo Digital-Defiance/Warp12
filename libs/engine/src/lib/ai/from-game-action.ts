@@ -74,9 +74,13 @@ export function gameActionToWarpAi(
       return { kind: 'invoke-continuum-flash', effect: action.effect };
     case 'RESOLVE_CONTINUUM_WAGER':
       return { kind: 'resolve-continuum-wager', keepIndex: action.keepIndex };
+    case 'SPOOL_WARP_DRIVE':
+      return { kind: 'spool', option: { route: action.route } };
     case 'END_ROUND':
       return null;
   }
+  // TypeScript exhaustiveness check - should never reach here
+  return null;
 }
 
 export function coordinateLabel(coordinate: Coordinate): string {

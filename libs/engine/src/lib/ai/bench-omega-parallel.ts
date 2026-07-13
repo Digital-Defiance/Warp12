@@ -83,7 +83,7 @@ export function mergeBenchOmegaResults(
     omegaSeatId: first.omegaSeatId,
     omegaWins,
     omegaWinRate,
-    impliedEloGap:
+    impliedRatingGap:
       omegaWinRate !== null && first.playerCount === 2
         ? impliedEloFromWinRate(omegaWinRate)
         : null,

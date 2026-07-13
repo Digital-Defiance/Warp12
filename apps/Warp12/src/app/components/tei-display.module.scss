@@ -1,0 +1,196 @@
+/**
+ * TEI Display Component Styles
+ */
+
+.tei-display {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  &__label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary, #666);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__rank {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--text-secondary, rgba(255, 255, 255, 0.75));
+    line-height: 1.2;
+  }
+
+  &__rating {
+    position: relative;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    cursor: help;
+
+    &:hover .tei-tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+  }
+
+  // Size variants
+  &--size-small {
+    .tei-grade {
+      font-size: 1rem;
+    }
+    .tei-score {
+      font-size: 0.875rem;
+    }
+    .tei-display__rank {
+      font-size: 0.625rem;
+    }
+  }
+
+  &--size-medium {
+    .tei-grade {
+      font-size: 1.5rem;
+    }
+    .tei-score {
+      font-size: 1.25rem;
+    }
+    .tei-display__rank {
+      font-size: 0.75rem;
+    }
+  }
+
+  &--size-large {
+    .tei-grade {
+      font-size: 2rem;
+    }
+    .tei-score {
+      font-size: 1.75rem;
+    }
+    .tei-display__rank {
+      font-size: 0.875rem;
+    }
+  }
+}
+
+.tei-grade {
+  font-weight: bold;
+  font-family: var(--font-display, system-ui);
+  line-height: 1;
+
+  // Grade colors - WCAG AA compliant (4.5:1 contrast on dark bg, 3:1 on light bg)
+  &--elite {
+    color: var(--grade-elite, #ffeb3b); // Brighter gold for better contrast
+    text-shadow: 0 0 8px rgba(255, 235, 59, 0.4);
+  }
+
+  &--veteran {
+    color: var(--grade-veteran, #64b5f6); // Lighter blue for better contrast
+  }
+
+  &--consistent {
+    color: var(--grade-consistent, #66bb6a); // Lighter green for better contrast
+  }
+
+  &--improving {
+    color: var(--grade-improving, #ffb74d); // Lighter orange for better contrast
+  }
+
+  &--provisional {
+    color: var(--grade-provisional, #bdbdbd); // Lighter gray for better contrast
+  }
+}
+
+.tei-score {
+  font-weight: normal;
+  font-family: var(--font-mono, monospace);
+  color: var(--text-primary, #fff);
+  line-height: 1;
+}
+
+// Tooltip
+.tei-tooltip {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translate(-50%, 0.5rem);
+  z-index: 1000;
+  
+  min-width: 250px;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  
+  background: var(--tooltip-bg, rgba(0, 0, 0, 0.95));
+  border: 1px solid var(--tooltip-border, rgba(255, 255, 255, 0.1));
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  
+  font-size: 0.875rem;
+  color: var(--tooltip-text, #fff);
+  text-align: left;
+  
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s, transform 0.2s;
+  pointer-events: none;
+
+  // Arrow
+  &::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-bottom-color: var(--tooltip-bg, rgba(0, 0, 0, 0.95));
+  }
+
+  &__title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--tooltip-title, #fff);
+  }
+
+  &__divider {
+    height: 1px;
+    background: var(--tooltip-divider, rgba(255, 255, 255, 0.1));
+    margin: 0.5rem 0;
+  }
+
+  &__stat {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.25rem 0;
+  }
+
+  &__label {
+    color: var(--tooltip-label, rgba(255, 255, 255, 0.7));
+  }
+
+  &__value {
+    font-weight: 600;
+    font-family: var(--font-mono, monospace);
+    color: var(--tooltip-value, #fff);
+  }
+
+  &__formula {
+    font-size: 0.8125rem;
+    font-family: var(--font-mono, monospace);
+    color: var(--tooltip-formula, rgba(255, 255, 255, 0.6));
+    margin-top: 0.25rem;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .tei-tooltip {
+    position: fixed;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    min-width: min(300px, 90vw);
+  }
+}

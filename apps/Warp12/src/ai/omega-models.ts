@@ -5,8 +5,8 @@ import {
 } from 'warp12-engine';
 
 /**
- * Shipped Class Ω weights by objective. Points and go-out are separate champions
- * for Class II play; encoder still one-hots objective inside each net.
+ * Shipped Ω weights by objective. Points and go-out are separate champions
+ * for Commander play; encoder still one-hots objective inside each net.
  */
 export const OMEGA_WEIGHTS_URL_BY_OBJECTIVE: Readonly<
   Record<'points' | 'go-out', string>

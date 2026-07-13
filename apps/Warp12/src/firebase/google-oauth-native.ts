@@ -186,6 +186,11 @@ async function pkceChallenge(verifier: string): Promise<string> {
 /**
  * Wait for the OAuth redirect to re-open the app via the custom scheme.
  * Resolves with the `code` once the matching `state` arrives.
+ *
+ * The returned Promise does not resolve until the native listener is fully
+ * registered (IPC round-trip complete), so the caller may safely open the
+ * browser immediately after awaiting this function without risking a race
+ * where the deep-link fires before the listener is active.
  */
 async function awaitRedirectCode(
   expectedState: string,
@@ -194,51 +199,90 @@ async function awaitRedirectCode(
   const { onOpenUrl, getCurrent } = await import('@tauri-apps/plugin-deep-link');
 
   const extract = (urls: readonly string[]): string | null => {
+    oauthLog('awaitRedirectCode: checking URLs', {
+      count: urls.length,
+      schemes: urls.map(u => u.split(':')[0]),
+    });
     for (const raw of urls) {
+      oauthLog('awaitRedirectCode: examining URL', {
+        matchesScheme: raw.startsWith(`${expectedScheme}:`),
+        url: raw.replace(/code=[^&]+/, 'code=<redacted>'),
+      });
       if (!raw.startsWith(`${expectedScheme}:`)) {
         continue;
       }
       const code = parseRedirectCode(raw, expectedState);
       if (code) {
+        oauthLog('awaitRedirectCode: code extracted successfully');
         return code;
       }
+      oauthLog('awaitRedirectCode: URL matched scheme but no valid code', {
+        hasQueryString: raw.includes('?'),
+      });
     }
     return null;
   };
 
   // A redirect that arrived before we started listening (cold launch).
+  oauthLog('awaitRedirectCode: checking for cold launch URL');
   const initial = await getCurrent().catch(() => null);
   if (initial) {
+    oauthLog('awaitRedirectCode: cold launch URLs found', { count: initial.length });
     const code = extract(initial);
     if (code) {
+      oauthLog('awaitRedirectCode: resolved from cold launch');
       return code;
     }
+  } else {
+    oauthLog('awaitRedirectCode: no cold launch URLs');
   }
 
-  return new Promise<string>((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
-      unlisten?.();
-      reject(new GoogleNativeAuthError('Sign-in timed out.'));
-    }, 5 * 60 * 1000);
+  oauthLog('awaitRedirectCode: registering deep link listener');
 
-    let unlisten: (() => void) | undefined;
-    void onOpenUrl((urls) => {
-      try {
-        const code = extract(urls);
-        if (code) {
-          window.clearTimeout(timeout);
-          unlisten?.();
-          resolve(code);
-        }
-      } catch (err) {
-        window.clearTimeout(timeout);
-        unlisten?.();
-        reject(err);
-      }
-    }).then((fn) => {
-      unlisten = fn;
-    });
+  // Capture resolve/reject outside the Promise constructor so the deep-link
+  // handler can call them after the Promise is constructed.
+  let resolveCode!: (code: string) => void;
+  let rejectCode!: (err: unknown) => void;
+  const listenerPromise = new Promise<string>((resolve, reject) => {
+    resolveCode = resolve;
+    rejectCode = reject;
   });
+
+  // CRITICAL: await onOpenUrl() so the native IPC round-trip completes and the
+  // listener is active BEFORE runMobileDeepLinkOAuth opens the browser.
+  // The old code used `void onOpenUrl(...).then(fn => { unlisten = fn })` which
+  // returned control to the caller before the Rust handler was registered,
+  // causing a race: fast redirects (cached login / one-tap) fired before the
+  // listener was ready, dropping the deep-link event silently.
+  const unlisten = await onOpenUrl((urls) => {
+    oauthLog('awaitRedirectCode: deep link event received');
+    try {
+      const code = extract(urls);
+      if (code) {
+        oauthLog('awaitRedirectCode: code extracted from event');
+        window.clearTimeout(timeoutHandle);
+        unlisten();
+        resolveCode(code);
+      }
+    } catch (err) {
+      oauthLog('awaitRedirectCode: error extracting code', err);
+      window.clearTimeout(timeoutHandle);
+      unlisten();
+      rejectCode(err);
+    }
+  });
+
+  oauthLog('awaitRedirectCode: listener registered — safe to open browser');
+
+  // Arm the timeout after registration so it only counts wait time,
+  // not the IPC setup time.
+  const timeoutHandle = window.setTimeout(() => {
+    oauthLog('awaitRedirectCode: TIMEOUT after 5 minutes');
+    unlisten();
+    rejectCode(new GoogleNativeAuthError('Sign-in timed out.'));
+  }, 5 * 60 * 1000);
+
+  return listenerPromise;
 }
 
 async function exchangeCodeForTokens(

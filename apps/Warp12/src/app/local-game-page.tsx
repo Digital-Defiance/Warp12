@@ -25,6 +25,10 @@ import { CampaignRoundsField, ObjectivePicker } from './objective-picker';
 import { HouseRulesOptions } from './house-rules-options';
 import { DoubleZeroScoreField } from './double-zero-score-field';
 import { LargeFleetHandSizeField } from './large-fleet-hand-size-field';
+import {
+  DealHandSizeHint,
+  isLargeFleetHandSizeChoiceVisible,
+} from './deal-hand-size-hint';
 import { SubspaceFractureOptions } from './subspace-fracture-options';
 import { Warp12RulesPreset } from './warp12-rules-preset';
 import {
@@ -49,10 +53,11 @@ import {
 } from '../game/local-game-config.js';
 import { drawMatchSeed } from '../game/match-seed.js';
 import { classifyLocalAiMatchSkill } from '../game/local-match-stats.js';
-import { opponentTeiForObjective } from '../firebase/stats-elo.js';
+import { opponentTeiForObjective } from '../firebase/stats-openskill.js';
 import { WARP12_OFFICIAL_RULES_PROFILE_ID } from '../firebase/rules-profile.js';
 import type { RatedObjective } from '../firebase/stats-schema.js';
 import { usePlayerStats } from '../firebase/use-player-stats.js';
+import { MatchRatingPreview } from './match-rating-preview.js';
 import { requireWarpFactor } from './warp-factor.js';
 
 type SetupPhase = 'configure' | 'playing';
@@ -68,12 +73,15 @@ interface LocalLaunchSession {
 function applyAiTierOverrides(
   aiCaptains: readonly AiCaptainConfig[],
   tiers: Record<string, AiOfficerTier>,
-  extendedThinking: Record<string, boolean>
+  extendedThinking: Record<string, boolean>,
+  allowNeural: boolean
 ): AiCaptainConfig[] {
   return aiCaptains.map((ai) => {
     const tier = tiers[ai.id] ?? ai.skill;
     const thinking =
-      tier === 'commander' ? extendedThinking[ai.id] === true : false;
+      allowNeural && tier === 'commander'
+        ? extendedThinking[ai.id] === true
+        : false;
     return { ...ai, skill: tier, omega: false, extendedThinking: thinking };
   });
 }
@@ -112,6 +120,14 @@ export function LocalGamePage() {
   const [continuum, setContinuum] = useState(
     WARP12_OFFICIAL_MODULES.continuum ?? true
   );
+  const [sensorGrid, setSensorGrid] = useState(false);
+  const [warpDriveSpool, setWarpDriveSpool] = useState(false);
+  const [longestTrail, setLongestTrail] = useState(false);
+  const [doubleDown, setDoubleDown] = useState(false);
+  const [temporalDebt, setTemporalDebt] = useState(false);
+  const [drafting, setDrafting] = useState(false);
+  const [temporalInversion, setTemporalInversion] = useState(false);
+  const [wormholes, setWormholes] = useState(false);
   const [subspaceFracture, setSubspaceFracture] = useState(
     WARP12_OFFICIAL_MODULES.subspaceFracture ?? false
   );
@@ -137,11 +153,24 @@ export function LocalGamePage() {
     });
   }, [objective, maxPip]);
 
+  useEffect(() => {
+    if (neuralAiSupported(maxPip)) return;
+    setExtendedThinkingByAi({});
+  }, [maxPip]);
+
   const applyOfficialWarp12Rules = () => {
     setObjective(WARP12_OFFICIAL_OBJECTIVE);
     setCampaignRounds(defaultCampaignRounds(maxPip));
     setSalamander(WARP12_OFFICIAL_MODULES.salamanderPenalty ?? true);
     setContinuum(WARP12_OFFICIAL_MODULES.continuum ?? true);
+    setSensorGrid(false);
+    setWarpDriveSpool(false);
+    setLongestTrail(false);
+    setDoubleDown(false);
+    setTemporalDebt(false);
+    setDrafting(false);
+    setTemporalInversion(false);
+    setWormholes(false);
     setSubspaceFracture(WARP12_OFFICIAL_MODULES.subspaceFracture ?? false);
     setSubspaceFractureScope(
       WARP12_OFFICIAL_MODULES.subspaceFractureScope ?? DEFAULT_SUBSPACE_FRACTURE_SCOPE
@@ -163,8 +192,14 @@ export function LocalGamePage() {
   const aiCount = aiCaptains.length;
   const rulesProfileId = WARP12_OFFICIAL_RULES_PROFILE_ID;
   const configuredAiCaptains = useMemo(
-    () => applyAiTierOverrides(aiCaptains, aiTiers, extendedThinkingByAi),
-    [aiCaptains, aiTiers, extendedThinkingByAi]
+    () =>
+      applyAiTierOverrides(
+        aiCaptains,
+        aiTiers,
+        extendedThinkingByAi,
+        neuralAiSupported(maxPip)
+      ),
+    [aiCaptains, aiTiers, extendedThinkingByAi, maxPip]
   );
   const matchSkill = useMemo(
     () => classifyLocalAiMatchSkill(configuredAiCaptains),
@@ -197,7 +232,7 @@ export function LocalGamePage() {
     } catch (error) {
       console.error('[omega] failed to load roster', error);
       setLaunchError(
-        'Could not load Class II officer weights — check your connection and try again.'
+        'Could not load Commander officer weights — check your connection and try again.'
       );
     } finally {
       setLaunching(false);
@@ -217,6 +252,14 @@ export function LocalGamePage() {
       modules: {
         salamanderPenalty: salamander,
         continuum: continuum,
+        sensorGrid,
+        warpDriveSpool,
+        longestTrail,
+        doubleDown,
+        temporalDebt,
+        drafting,
+        temporalInversion,
+        wormholes,
         subspaceFracture,
         subspaceFractureScope,
       },
@@ -224,7 +267,8 @@ export function LocalGamePage() {
       aiCaptains: applyAiTierOverrides(
         buildAiCaptains(count - 1, maxPip),
         aiTiers,
-        extendedThinkingByAi
+        extendedThinkingByAi,
+        neuralAiSupported(maxPip)
       ),
       rulesProfileId,
       maxPip,
@@ -236,6 +280,71 @@ export function LocalGamePage() {
     if (!launchSession) return;
     startSession(launchSession.config, drawMatchSeed());
   };
+
+  // Dev-only console tools for match seed debugging (only in dev mode)
+  const [aiPaused, setAiPaused] = useState(false);
+  
+  useEffect(() => {
+    if (!import.meta.env.DEV || typeof window === 'undefined') {
+      return;
+    }
+    
+    interface LocalGameDevTools {
+      getMatchSeed: () => number | null;
+      resetMatchWithSeed: (seed: number) => void;
+      getHand: () => any[] | null;
+      getGame: () => any | null;
+      pauseAI: () => void;
+      resumeAI: () => void;
+      isAIPaused: () => boolean;
+    }
+    
+    (window as any).localGame = {
+      getMatchSeed: () => {
+        if (!launchSession) {
+          console.log('No active match - start a game first');
+          return null;
+        }
+        console.log('Current match seed:', launchSession.seed);
+        return launchSession.seed;
+      },
+      resetMatchWithSeed: (seed: number) => {
+        if (!launchSession) {
+          console.log('No active match - start a game first');
+          return;
+        }
+        console.log('Resetting match with seed:', seed);
+        void startSession(launchSession.config, seed);
+      },
+      getHand: () => {
+        if (!game?.round?.hands) {
+          console.log('No active round');
+          return null;
+        }
+        const humanId = launchSession?.config.humanId || 'you';
+        return game.round.hands[humanId] || null;
+      },
+      getGame: () => {
+        return game;
+      },
+      pauseAI: () => {
+        setAiPaused(true);
+        console.log('🛑 AI paused - they will not take turns');
+      },
+      resumeAI: () => {
+        setAiPaused(false);
+        console.log('▶️ AI resumed - they will continue playing');
+      },
+      isAIPaused: () => {
+        console.log('AI paused:', aiPaused);
+        return aiPaused;
+      },
+    } as LocalGameDevTools;
+    
+    return () => {
+      delete (window as any).localGame;
+    };
+  }, [launchSession, startSession, game, aiPaused]);
 
   if (phase === 'playing' && game && launchSession) {
     return (
@@ -251,6 +360,7 @@ export function LocalGamePage() {
           setLaunchSession(null);
           setPhase('configure');
         }}
+        aiPaused={aiPaused}
       />
     );
   }
@@ -267,8 +377,9 @@ export function LocalGamePage() {
       </p>
       {exhibitionSet ? (
         <p className={styles.notice} role="status">
-          Exhibition set — Warp {maxPip} does not update TEI. Switch to Warp 12
-          for rated ladders.
+          Exhibition set — Warp {maxPip} does not update TEI. Commander officers and the
+          tactical advisor use heuristics only until neural weights ship for this
+          set (Warp 12 has Ω today). Switch to Warp 12 for rated ladders.
         </p>
       ) : null}
 
@@ -324,11 +435,19 @@ export function LocalGamePage() {
 
       <fieldset className={styles.fieldset}>
         <legend>Rules preset</legend>
-        <Warp12RulesPreset onApply={applyOfficialWarp12Rules} />
+        <Warp12RulesPreset maxPip={maxPip} onApply={applyOfficialWarp12Rules} />
       </fieldset>
 
       <fieldset className={styles.fieldset}>
         <legend>Optional directives</legend>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={continuum}
+            onChange={(e) => setContinuum(e.target.checked)}
+          />
+          <span>Module Alpha — Continuum</span>
+        </label>
         <label className={styles.checkboxRow}>
           <input
             type="checkbox"
@@ -340,10 +459,66 @@ export function LocalGamePage() {
         <label className={styles.checkboxRow}>
           <input
             type="checkbox"
-            checked={continuum}
-            onChange={(e) => setContinuum(e.target.checked)}
+            checked={sensorGrid}
+            onChange={(e) => setSensorGrid(e.target.checked)}
           />
-          <span>Module Alpha — Continuum</span>
+          <span>Module Gamma — Long-Range Sensor Sweep</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={warpDriveSpool}
+            onChange={(e) => setWarpDriveSpool(e.target.checked)}
+          />
+          <span>Module Delta — Hot Potato (Warp Drive Spool)</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={longestTrail}
+            onChange={(e) => setLongestTrail(e.target.checked)}
+          />
+          <span>Module Theta — Longest Trail Bonus</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={doubleDown}
+            onChange={(e) => setDoubleDown(e.target.checked)}
+          />
+          <span>Module Iota — Double Down</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={temporalDebt}
+            onChange={(e) => setTemporalDebt(e.target.checked)}
+          />
+          <span>Module Eta — Temporal Debt</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={drafting}
+            onChange={(e) => setDrafting(e.target.checked)}
+          />
+          <span>Module Epsilon — Tactical Requisition (Drafting)</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={temporalInversion}
+            onChange={(e) => setTemporalInversion(e.target.checked)}
+          />
+          <span>Module Kappa — Temporal Inversion (Warped/Exhibition)</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={wormholes}
+            onChange={(e) => setWormholes(e.target.checked)}
+          />
+          <span>Module Lambda — Wormholes (Warped/Exhibition)</span>
         </label>
       </fieldset>
 
@@ -355,7 +530,14 @@ export function LocalGamePage() {
             setHouseRules((current) => ({ ...current, doubleZeroScore }))
           }
         />
-        {clampLocalPlayerCount(playerCount, maxPip) >= 7 && (
+        <DealHandSizeHint
+          playerCount={clampLocalPlayerCount(playerCount, maxPip)}
+          maxPip={maxPip}
+          largeFleetHandSize={houseRules.largeFleetHandSize}
+        />
+        {isLargeFleetHandSizeChoiceVisible(
+          clampLocalPlayerCount(playerCount, maxPip)
+        ) && (
           <LargeFleetHandSizeField
             value={houseRules.largeFleetHandSize}
             onChange={(largeFleetHandSize) =>
@@ -420,6 +602,22 @@ export function LocalGamePage() {
             Tactical advisor use does not update TEI. Unassisted wins and losses
             move your index toward the reference profile shown above.
           </p>
+          
+          {playerTei !== null && (() => {
+            const storedRating = playerStats.getStoredRating(matchSkill, teiTrack);
+            const teiDisplay = playerStats.getTeiDisplay(matchSkill, teiTrack);
+            if (storedRating && teiDisplay) {
+              return (
+                <MatchRatingPreview
+                  currentRating={storedRating}
+                  currentGrade={teiDisplay.grade}
+                  objective={teiTrack}
+                  compact={false}
+                />
+              );
+            }
+            return null;
+          })()}
         </fieldset>
       )}
 
@@ -433,7 +631,7 @@ export function LocalGamePage() {
           <div key={ai.id} className={styles.aiRow}>
             <span className={styles.aiName}>{ai.displayName}</span>
             <select
-              aria-label={`${ai.displayName} tactical class`}
+              aria-label={`${ai.displayName} commission track`}
               value={tier}
               onChange={(e) => {
                 const nextTier = e.target.value as AiOfficerTier;
@@ -470,12 +668,14 @@ export function LocalGamePage() {
                     {formatAiSkillUnratedLabel('lieutenant')}
                   </option>
                   <option value="commander">
-                    {formatAiSkillUnratedLabel('commander')}
+                    {exhibitionSet
+                      ? `${formatAiSkillUnratedLabel('commander')} · heuristics`
+                      : formatAiSkillUnratedLabel('commander')}
                   </option>
                 </>
               )}
             </select>
-            {tier === 'commander' ? (
+            {tier === 'commander' && neuralAiSupported(maxPip) ? (
               <label className={styles.checkboxRow}>
                 <input
                   type="checkbox"
@@ -507,7 +707,11 @@ export function LocalGamePage() {
           disabled={launching}
           onClick={launch}
         >
-          {launching ? 'Loading Class II…' : 'Launch simulation'}
+          {launching
+            ? neuralAiSupported(maxPip)
+              ? 'Loading Commander…'
+              : 'Launching…'
+            : 'Launch simulation'}
         </button>
       </div>
     </section>

@@ -19,8 +19,10 @@ export interface HouseRules {
   readonly neutralZoneAfterAllTrails: boolean;
   /** Deluxe-style: any chart removes your Distress Beacon (not only your own trail). */
   readonly beaconClearsOnAnyPlay: boolean;
-  /** Deluxe-style: round starter must chart two tiles on their own trail before helm passes. */
+  /** Round starter must chart two tiles before helm passes (can be on any legal route). */
   readonly roundStarterPlaysTwo: boolean;
+  /** When roundStarterPlaysTwo is enabled, restrict both tiles to own trail only (Deluxe variant). */
+  readonly roundStarterOwnTrailOnly: boolean;
   /** Announce Drop to Impulse when one coordinate remains (uno / knock). */
   readonly dropToImpulseCall: boolean;
   /** Draw penalty when caught forgetting to announce (1 = standard; 2 = house rule). */
@@ -42,6 +44,7 @@ export interface HouseRulesConfig {
   neutralZoneAfterAllTrails?: boolean;
   beaconClearsOnAnyPlay?: boolean;
   roundStarterPlaysTwo?: boolean;
+  roundStarterOwnTrailOnly?: boolean;
   dropToImpulseCall?: boolean;
   dropToImpulseCatchPenalty?: DropToImpulseCatchPenalty;
   allStopCeremony?: boolean;
@@ -56,6 +59,7 @@ export const DEFAULT_HOUSE_RULES: HouseRules = {
   neutralZoneAfterAllTrails: false,
   beaconClearsOnAnyPlay: false,
   roundStarterPlaysTwo: false,
+  roundStarterOwnTrailOnly: false,
   dropToImpulseCall: false,
   dropToImpulseCatchPenalty: 1,
   allStopCeremony: true,
@@ -85,6 +89,7 @@ export function resolveHouseRules(
     neutralZoneAfterAllTrails: config.neutralZoneAfterAllTrails ?? false,
     beaconClearsOnAnyPlay: config.beaconClearsOnAnyPlay ?? false,
     roundStarterPlaysTwo: config.roundStarterPlaysTwo ?? false,
+    roundStarterOwnTrailOnly: config.roundStarterOwnTrailOnly ?? false,
     dropToImpulseCall: config.dropToImpulseCall ?? false,
     dropToImpulseCatchPenalty:
       config.dropToImpulseCatchPenalty === 2 ? 2 : 1,

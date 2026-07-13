@@ -24,15 +24,15 @@ describe('buildOnlineRosterClasses', () => {
     expect(roster[1]).toMatchObject({
       captainId: 'lovell',
       reference: true,
-      tacticalClass: 'Class II',
+      tacticalClass: 'Commander',
     });
-    expect(typeof roster[1]?.tei).toBe('number');
+    expect(typeof roster[1]?.tei).toBe('string');
     expect(roster[2]).toMatchObject({
       captainId: 'earhart',
       reference: true,
-      tacticalClass: 'Class III',
+      tacticalClass: 'Lieutenant',
     });
-    expect(typeof roster[2]?.tei).toBe('number');
+    expect(typeof roster[2]?.tei).toBe('string');
     expect(rosterHasTacticalClasses(roster)).toBe(true);
   });
 
@@ -42,7 +42,7 @@ describe('buildOnlineRosterClasses', () => {
     expect(points[0]?.tei).not.toBe(goOut[0]?.tei);
   });
 
-  it('reports no tactical classes when the table is all-human', () => {
+  it('reports no commission trackes when the table is all-human', () => {
     const roster = buildOnlineRosterClasses(
       ['you', 'data'],
       [
@@ -79,6 +79,6 @@ describe('buildLocalRosterTei', () => {
       'points'
     );
 
-    expect(roster[1]?.tacticalClass).toMatch(/Class II/);
+    expect(roster[1]?.tacticalClass).toMatch(/Commander/);
   });
 });

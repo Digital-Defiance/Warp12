@@ -1,0 +1,27 @@
+{
+  "warpFactor": 18,
+  "playerCount": 11,
+  "moduleConfig": "all",
+  "moduleLabel": "All Modules (stress test)",
+  "games": 500,
+  "objective": "points",
+  "summary": {
+    "games": 500,
+    "playerCount": 11,
+    "maxPip": 18,
+    "objective": "points",
+    "avgLegalMovesPerTurn": 2.583562168131087,
+    "avgUniqueTrainsPerTurn": 0.8979040499533266,
+    "avgConstrainedTileFraction": 0.5429009390261659,
+    "avgUniquePipsInHand": 7.843135940386475,
+    "avgMaxPipCluster": 2.1923660011529984,
+    "avgHandEntropy": 2.6821073953584884,
+    "avgMoveValueSpread": 5.132411154835847,
+    "avgNearOptimalFraction": 0.7694776255777689,
+    "avgOwnTrailPlayRate": 0,
+    "avgShieldsDownRate": 0.364430101354621
+  },
+  "skillIndicators": 3,
+  "timestamp": "2026-07-13T00:25:05.271Z",
+  "durationSeconds": 398.432
+}

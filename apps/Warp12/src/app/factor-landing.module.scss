@@ -109,6 +109,18 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   line-height: 1;
+
+  &[data-kind='recommended'] {
+    border-color: rgba(56, 189, 248, 0.55);
+    background: rgba(14, 116, 144, 0.35);
+    color: #7dd3fc;
+  }
+
+  &[data-kind='exhibition'] {
+    border-color: rgba(148, 163, 184, 0.45);
+    background: rgba(30, 41, 59, 0.85);
+    color: #94a3b8;
+  }
 }
 
 .stats {

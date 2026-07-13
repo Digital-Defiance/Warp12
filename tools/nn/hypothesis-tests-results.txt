@@ -1,0 +1,122 @@
+================================================================================
+HYPOTHESIS TESTING: LUCK VS SKILL ACROSS WARP CONFIGURATIONS
+================================================================================
+
+================================================================================
+H1: WARP FACTOR EFFECT (2-4 players, all factors)
+================================================================================
+
+Mean Skill Index by Warp Factor (2-4p):
+  W9: M=1.533, SD=0.087, n=1500
+  W12: M=1.950, SD=0.330, n=1500
+  W15: M=1.829, SD=0.272, n=1500
+  W18: M=1.802, SD=0.192, n=1500
+
+One-way ANOVA: F=817.14, p=0.0000e+00
+*** HIGHLY SIGNIFICANT: Warp factor strongly affects skill expression
+Effect size (η²): 0.290
+
+Post-hoc pairwise comparisons (Tukey HSD):
+  W9 vs W12: t=-47.37, p=0.0000e+00, d=-1.730 ***
+  W9 vs W15: t=-40.10, p=6.2534e-282, d=-1.465 ***
+  W9 vs W18: t=-49.44, p=0.0000e+00, d=-1.806 ***
+  W12 vs W15: t=10.95, p=2.1189e-27, d=0.400 ***
+  W12 vs W18: t=15.06, p=1.7246e-49, d=0.550 ***
+  W15 vs W18: t=3.18, p=1.4682e-03, d=0.116 **
+
+================================================================================
+H2: FLEET SIZE EFFECT (within each Warp factor)
+================================================================================
+
+W9 (n=1500 games, 3 fleet sizes):
+  Pearson r: 0.051, p=4.9193e-02
+  Spearman ρ: 0.058, p=2.5255e-02
+  Linear trend: slope=0.0054, R²=0.003, p=4.9193e-02
+  ** SIGNIFICANT positive fleet size effect
+
+W12 (n=3500 games, 7 fleet sizes):
+  Pearson r: 0.875, p=0.0000e+00
+  Spearman ρ: 0.874, p=0.0000e+00
+  Linear trend: slope=0.1580, R²=0.766, p=0.0000e+00
+  *** HIGHLY SIGNIFICANT POSITIVE fleet size effect
+
+W15 (n=5500 games, 11 fleet sizes):
+  Pearson r: 0.893, p=0.0000e+00
+  Spearman ρ: 0.905, p=0.0000e+00
+  Linear trend: slope=0.1154, R²=0.798, p=0.0000e+00
+  *** HIGHLY SIGNIFICANT POSITIVE fleet size effect
+
+W18 (n=8500 games, 17 fleet sizes):
+  Pearson r: 0.840, p=0.0000e+00
+  Spearman ρ: 0.827, p=0.0000e+00
+  Linear trend: slope=0.0725, R²=0.706, p=0.0000e+00
+  *** HIGHLY SIGNIFICANT POSITIVE fleet size effect
+
+================================================================================
+H3: INTERACTION EFFECT (Warp Factor × Fleet Size)
+================================================================================
+
+Testing interaction on 2-4p data (balanced design):
+
+Mean Skill Index by Factor × Fleet Size:
+playerCount      2      3      4
+warpFactor                      
+9            1.517  1.553  1.528
+12           1.564  1.944  2.341
+15           1.532  1.788  2.167
+18           1.631  1.725  2.048
+
+Slope comparison (skillIndex ~ playerCount):
+  W9: slope = 0.0054
+  W12: slope = 0.3889
+  W15: slope = 0.3172
+  W18: slope = 0.2085
+
+Slope variance: 0.0209
+  *** INTERACTION PRESENT: Fleet size effects differ by Warp factor
+
+================================================================================
+H4: DECISION COMPLEXITY VS HAND COHERENCE
+================================================================================
+
+Correlation (avgLegalMoves vs avgHandEntropy):
+  Pearson r: 0.009, p=2.3222e-01
+  Spearman ρ: -0.152, p=5.3650e-98
+
+Correlation (avgValueSpread vs avgNearOptimalFraction):
+  Pearson r: -0.711, p=0.0000e+00
+  Interpretation: Surprising negative relationship
+
+================================================================================
+H5: STRATEGIC DEPTH TRENDS (monotonicity tests)
+================================================================================
+
+Kendall's τ (playerCount vs skillIndex):
+  W9: τ=0.044, p=2.5276e-02
+  W12: τ=0.727, p=0.0000e+00
+    *** STRONG INCREASING monotonic trend
+  W15: τ=0.767, p=0.0000e+00
+    *** STRONG INCREASING monotonic trend
+  W18: τ=0.672, p=0.0000e+00
+    *** STRONG INCREASING monotonic trend
+
+Threshold analysis (where skill drops significantly):
+  W12: Largest skill drop at 7 players
+  W15: Largest skill drop at 11 players
+  W18: Largest skill drop at 17 players
+
+================================================================================
+SUMMARY OF FINDINGS
+================================================================================
+
+H1 (Warp Factor Effect): SUPPORTED - Higher factors show higher skill indices
+H2 (Fleet Size Effect): STRONGLY SUPPORTED - More players correlates with higher skill index  
+H3 (Interaction): PRESENT - Fleet size effects vary by Warp factor
+H4 (Complexity-Coherence): NEEDS VISUALIZATION - Complex relationship
+H5 (Monotonic Trends): SUPPORTED - Consistent positive trends with fleet size
+
+KEY INSIGHT: W12 shows the steepest fleet size effect (r=0.875), suggesting
+it's the most sensitive to player count for skill expression.
+
+
+✓ Hypothesis testing complete. Results saved to hypothesis-tests-results.txt

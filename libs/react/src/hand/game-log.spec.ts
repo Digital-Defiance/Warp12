@@ -205,11 +205,11 @@ describe('game-log', () => {
     const ratings = formatGameLogLine(
       buildRoundRatingsEntry(
         [
-          { captainId: 'armstrong', tei: 1180 },
+          { captainId: 'armstrong', tei: 'I15' },
           {
             captainId: 'lovell',
-            tei: 1200,
-            tacticalClass: 'Class III',
+            tei: 'C27',
+            tacticalClass: 'Lieutenant',
             reference: true,
           },
         ],
@@ -220,7 +220,7 @@ describe('game-log', () => {
       formatOptions
     );
     expect(ratings).toBe(
-      '00:00 - Ratings · Armstrong TEI 1180 · Lovell ~TEI 1200 · Class III'
+      '00:00 - Ratings · Armstrong I15 · Lovell ~C27 · Lieutenant'
     );
 
     // hideTei renders captain classes without the TEI portion.
@@ -232,7 +232,7 @@ describe('game-log', () => {
             captainId: 'lovell',
             tei: null,
             hideTei: true,
-            tacticalClass: 'Class II',
+            tacticalClass: 'Commander',
           },
         ],
         1,
@@ -241,7 +241,7 @@ describe('game-log', () => {
       { armstrong: 'Armstrong', lovell: 'Lovell' },
       formatOptions
     );
-    expect(onlineRatings).toBe('00:00 - Ratings · Armstrong · Lovell · Class II');
+    expect(onlineRatings).toBe('00:00 - Ratings · Armstrong · Lovell · Commander');
 
     const pass = formatGameLogLine(
       {

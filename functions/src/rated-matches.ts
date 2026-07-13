@@ -11,24 +11,25 @@ import {
   requireVerifiedUser,
 } from './auth';
 import {
-  applyHumanTeiForPlayer,
-  applyGroupTeiForPlayer,
+  applyHumanRatingForPlayer,
+  applyGroupRatingForPlayer,
   buildCertificatePlayer,
   buildRatedMatchCertificate,
-  buildTeiTableFromStandings,
+  buildRatingTableFromStandings,
   generateMatchCode,
-  groupObjectiveTeiStats,
+  groupObjectiveRatingStats,
   groupRatedClaimId,
-  humanObjectiveTeiStats,
+  humanObjectiveRatingStats,
   normalizeMatchCode,
-  resolveEffectivePlayerTei,
-  startingTeiForObjective,
+  resolveEffectivePlayerRating,
+  startingRatingForObjective,
   WARP12_OFFICIAL_RULES_PROFILE_ID,
   type PlayerStatsDocument,
   type RatedMatchCertificatePlayer,
   type RatedMatchDocument,
   type RatedMatchStanding,
   type RatedObjective,
+  type StoredRating,
   type WarpRole,
 } from './tei';
 import {
@@ -90,45 +91,45 @@ function validateStandings(
   }
 }
 
-async function applyTeiForApprovedMatch(
+async function applyRatingForApprovedMatch(
   match: RatedMatchDocument
 ): Promise<void> {
   const charter = match.charterId
     ? await loadCharter(match.charterId)
     : null;
 
-  const teiByUid = new Map<string, { tei: number; matches: number }>();
+  const ratingByUid = new Map<string, { rating: StoredRating; matches: number }>();
   for (const row of match.standings) {
     const stats = await loadStats(row.uid);
     if (charter) {
-      const track = groupObjectiveTeiStats(
+      const track = groupObjectiveRatingStats(
         stats,
         charter.charterId,
         match.objective,
         charter.seasonKey
       );
-      teiByUid.set(row.uid, {
-        tei: resolveEffectivePlayerTei(
-          track.unassistedTei,
-          track.unassistedMatches,
-          startingTeiForObjective(stats, match.objective)
+      ratingByUid.set(row.uid, {
+        rating: resolveEffectivePlayerRating(
+          track.rating,
+          track.rating.matches,
+          startingRatingForObjective(stats, match.objective)
         ),
-        matches: track.unassistedMatches,
+        matches: track.rating.matches,
       });
     } else {
-      const track = humanObjectiveTeiStats(stats, match.objective);
-      teiByUid.set(row.uid, {
-        tei: resolveEffectivePlayerTei(
-          track.unassistedTei,
-          track.unassistedMatches,
-          startingTeiForObjective(stats, match.objective)
+      const track = humanObjectiveRatingStats(stats, match.objective);
+      ratingByUid.set(row.uid, {
+        rating: resolveEffectivePlayerRating(
+          track.rating,
+          track.rating.matches,
+          startingRatingForObjective(stats, match.objective)
         ),
-        matches: track.unassistedMatches,
+        matches: track.rating.matches,
       });
     }
   }
 
-  const table = buildTeiTableFromStandings(match, teiByUid);
+  const table = buildRatingTableFromStandings(match, ratingByUid);
   const now = new Date().toISOString();
   const claims: Record<string, boolean> = { ...(match.teiClaims ?? {}) };
   const groupClaim = charter
@@ -158,18 +159,18 @@ async function applyTeiForApprovedMatch(
     const base =
       existing ?? emptyStats(row.uid, participant?.displayName ?? 'Captain');
 
-    let teiBefore = 0;
-    let teiAfter = 0;
+    let ratingBefore: StoredRating = { mu: 25.0, sigma: 8.33, matches: 0, displayRating: 0.0 };
+    let ratingAfter: StoredRating = { mu: 25.0, sigma: 8.33, matches: 0, displayRating: 0.0 };
     let won = false;
     let rank = row.rank;
-    let humanTei = base.humanTei;
-    let groupTei = base.groupTei;
+    let humanRating = base.humanRating;
+    let groupRating = base.groupRating;
     const groupRatedIds = [...(base.groupRatedIds ?? [])];
-    let globalTeiBefore: number | undefined;
-    let globalTeiAfter: number | undefined;
+    let globalRatingBefore: StoredRating | undefined;
+    let globalRatingAfter: StoredRating | undefined;
 
     if (charter) {
-      const groupApplied = applyGroupTeiForPlayer(
+      const groupApplied = applyGroupRatingForPlayer(
         existing,
         charter.charterId,
         match.objective,
@@ -180,30 +181,30 @@ async function applyTeiForApprovedMatch(
       if (!groupApplied) {
         continue;
       }
-      teiBefore = groupApplied.teiBefore;
-      teiAfter = groupApplied.teiAfter;
+      ratingBefore = groupApplied.ratingBefore;
+      ratingAfter = groupApplied.ratingAfter;
       won = groupApplied.won;
       rank = groupApplied.rank;
-      groupTei = groupApplied.groupTei;
+      groupRating = groupApplied.groupRating;
       if (groupClaim && !groupRatedIds.includes(groupClaim)) {
         groupRatedIds.push(groupClaim);
       }
 
       if (charter.isGlobalOfficial) {
-        const humanApplied = applyHumanTeiForPlayer(
+        const humanApplied = applyHumanRatingForPlayer(
           existing,
           match.objective,
           table,
           row.uid
         );
         if (humanApplied) {
-          humanTei = humanApplied.humanTei;
-          globalTeiBefore = humanApplied.teiBefore;
-          globalTeiAfter = humanApplied.teiAfter;
+          humanRating = humanApplied.humanRating;
+          globalRatingBefore = humanApplied.ratingBefore;
+          globalRatingAfter = humanApplied.ratingAfter;
         }
       }
     } else {
-      const applied = applyHumanTeiForPlayer(
+      const applied = applyHumanRatingForPlayer(
         existing,
         match.objective,
         table,
@@ -212,11 +213,11 @@ async function applyTeiForApprovedMatch(
       if (!applied) {
         continue;
       }
-      teiBefore = applied.teiBefore;
-      teiAfter = applied.teiAfter;
+      ratingBefore = applied.ratingBefore;
+      ratingAfter = applied.ratingAfter;
       won = applied.won;
       rank = applied.rank;
-      humanTei = applied.humanTei;
+      humanRating = applied.humanRating;
     }
 
     const historyEntry = {
@@ -228,9 +229,9 @@ async function applyTeiForApprovedMatch(
       finishRank: rank,
       won,
       advisorUsed: false,
-      teiBefore,
-      teiAfter,
-      teiDelta: teiAfter - teiBefore,
+      ratingBefore,
+      ratingAfter,
+      muDelta: ratingAfter.mu - ratingBefore.mu,
       charterId: charter?.charterId,
       charterName: charter?.name,
     };
@@ -248,8 +249,8 @@ async function applyTeiForApprovedMatch(
         displayName: participant?.displayName ?? base.displayName,
         matchesCompleted: base.matchesCompleted + 1,
         matchesWon: base.matchesWon + (won ? 1 : 0),
-        humanTei,
-        groupTei,
+        humanRating,
+        groupRating,
         humanRatedGameIds: ratedIds,
         groupRatedIds,
         matchHistory,
@@ -268,11 +269,11 @@ async function applyTeiForApprovedMatch(
         displayName: participant?.displayName ?? base.displayName,
         rank,
         score: standing?.score ?? 0,
-        teiBefore,
-        teiAfter,
+        ratingBefore,
+        ratingAfter,
         charterId: charter?.charterId,
-        globalTeiBefore,
-        globalTeiAfter,
+        globalRatingBefore,
+        globalRatingAfter,
       })
     );
   }
@@ -542,7 +543,7 @@ export const approveRatedMatch = onCall(async (request) => {
   });
 
   const approved = { ...match, status: 'approved' as const, approvedAt: now, approvedBy: approverId };
-  await applyTeiForApprovedMatch(approved);
+  await applyRatingForApprovedMatch(approved);
 
   return { ok: true, status: 'approved' };
 });

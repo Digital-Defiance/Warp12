@@ -53,6 +53,14 @@ export const WARP_HEURISTIC_IDS = {
   dropToImpulseDeclare: 'drop-to-impulse-declare',
   dropToImpulseCatch: 'catch-drop-to-impulse',
   dropToImpulseForget: 'drop-to-impulse-forget',
+  /** Module Delta: Warp Drive Spool strategy (risk/reward, NZ vs own trail, game phase). */
+  spoolStrategy: 'spool-strategy',
+  /** Module Kappa: Temporal Inversion - hand size management on inverted rounds. */
+  temporalInversion: 'temporal-inversion',
+  /** Module Theta: Longest Trail bonus value. */
+  longestTrailBonus: 'longest-trail-bonus',
+  /** Module Iota: Double Down timing strategy. */
+  doubleDownTiming: 'double-down-timing',
 } as const;
 
 const H = WARP_HEURISTIC_IDS;
@@ -68,9 +76,12 @@ function newOpenEndValue(
 }
 
 /**
- * Keep play moving. Charting beats everything but a mandatory all stop; drawing is
+ * Keep play moving. Charting/spooling beats everything but a mandatory all stop; drawing is
  * neutral; deploying a beacon / passing a Red Alert are last resorts. Competent
- * profiles thus always chart when they can — mistakes come from the blunder rate.
+ * profiles thus always chart/spool when they can — mistakes come from the blunder rate.
+ * 
+ * Module Epsilon (Drafting): During drafting phase, pick-from-pack actions are scored by
+ * coordinate quality (handled by tile-specific heuristics like dumpPips, openValue, etc).
  */
 const preferChart: WarpHeuristic = {
   id: H.preferChart,
@@ -82,8 +93,12 @@ const preferChart: WarpHeuristic = {
         return 180;
       case 'chart':
         return 100;
+      case 'spool':
+        return 95; // Slightly below chart (spool heuristic adds detail)
       case 'drop-to-impulse':
         return 55;
+      case 'pick-from-pack':
+        return 0; // Neutral; actual value comes from tile quality heuristics
       case 'draw':
         return 0;
       case 'pass-red-alert':
@@ -105,9 +120,24 @@ const preferChart: WarpHeuristic = {
 const dumpPips: WarpHeuristic = {
   id: H.dumpPips,
   score(action: WarpAiAction, ctx: WarpEvalContext): number {
-    if (action.kind !== 'chart') return 0;
+    if (action.kind !== 'chart' && action.kind !== 'pick-from-pack') return 0;
     if (ctx.obs.objective === 'go-out') return 0;
-    return coordinatePipValue(action.move.coordinate);
+    
+    const coordinate = action.kind === 'chart' ? action.move.coordinate : action.coordinate;
+    
+    // Module Kappa: Temporal Inversion - on even rounds, KEEP pips instead of dumping
+    const temporalInversion = ctx.obs.modules?.temporalInversion?.enabled ?? false;
+    const isInvertedRound = temporalInversion && ctx.obs.round.roundNumber % 2 === 0;
+    
+    const pipValue = coordinatePipValue(coordinate);
+    
+    // Even rounds with Kappa: NEGATIVE score for high pips (we want to keep them!)
+    if (isInvertedRound) {
+      return -pipValue * 0.8; // Slightly less penalty than normal bonus to allow some flexibility
+    }
+    
+    // Normal rounds: positive score for high pips (dump them)
+    return pipValue;
   },
 };
 
@@ -117,7 +147,18 @@ const goOutWin: WarpHeuristic = {
   score(action: WarpAiAction, ctx: WarpEvalContext): number {
     if (ctx.obs.objective !== 'go-out') return 0;
     if (action.kind !== 'chart') return 0;
+    
     const tilesAfter = ctx.hand.length - 1;
+    
+    // Module Kappa: Temporal Inversion - NEVER go out on even rounds!
+    const temporalInversion = ctx.obs.modules?.temporalInversion?.enabled ?? false;
+    const isInvertedRound = temporalInversion && ctx.obs.round.roundNumber % 2 === 0;
+    
+    if (isInvertedRound && tilesAfter === 0) {
+      // Going out on inverted round is CATASTROPHIC - you get maximum penalty
+      return -1000; // Massive negative score to prevent this
+    }
+    
     if (tilesAfter === 0) return 200;
     const opponents = Math.max(1, ctx.obs.captains.length - 1);
     const tuning = ctx.goOutTuning;
@@ -537,6 +578,422 @@ const dropToImpulseForget: WarpHeuristic = {
   },
 };
 
+/**
+ * Module Delta: Warp Drive Spool strategy.
+ * Uses the detailed spool-strategy.ts logic to evaluate when spooling makes sense.
+ */
+const spoolStrategy: WarpHeuristic = {
+  id: H.spoolStrategy,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (action.kind !== 'spool') return 0;
+    
+    // Import estimateSpoolValue inline to avoid circular dependency
+    // This heuristic applies the full spool strategy evaluation
+    const { round, playerId, objective } = ctx.obs;
+    const hand = ctx.hand;
+    const unchartedSize = round.unchartedSectors.length;
+    
+    const route = action.option.route;
+    const routePlayerId = route.kind === 'warp-trail' ? route.playerId : null;
+    const isOwnTrail = routePlayerId === playerId;
+    const isNeutralZone = routePlayerId === null;
+    const isOpponentTrail = routePlayerId !== null && !isOwnTrail;
+    
+    // FLEET EMBARGO: Never spool on opponent trails
+    if (isOpponentTrail) {
+      return -1000;
+    }
+    
+    // Basic safety checks
+    if (objective === 'points' && hand.length <= 2) return -150;
+    if (unchartedSize < 4) return -80;
+    
+    // Calculate trail lengths
+    const trails = Object.entries(round.table.warpTrails).map(([id, trail]) => ({
+      playerId: id,
+      length: trail.tiles.length,
+    }));
+    
+    const ourTrailLength = trails.find((t) => t.playerId === playerId)?.length ?? 0;
+    const maxOpponentLength = Math.max(
+      ...trails.filter((t) => t.playerId !== playerId).map((t) => t.length),
+      0
+    );
+    const neutralZoneLength = round.table.neutralZone.tiles.length;
+    
+    // Game phase
+    const totalTilesInPlay = trails.reduce((sum, t) => sum + t.length, 0) + neutralZoneLength;
+    const earlyGame = totalTilesInPlay < 20;
+    const midGame = totalTilesInPlay >= 20 && totalTilesInPlay < 50;
+    const lateGame = totalTilesInPlay >= 50;
+    
+    let value = unchartedSize * 1.5;
+    
+    // NEUTRAL ZONE STRATEGY
+    if (isNeutralZone) {
+      if (earlyGame) value += 40;
+      if (midGame) value += 15;
+      if (lateGame) value -= 25;
+      
+      if (round.hazardMarkerHolder === playerId) value += 30;
+      if (round.hazardMarkerHolder && round.hazardMarkerHolder !== playerId) value -= 10;
+      if (ourTrailLength < maxOpponentLength - 2) value -= 40;
+      
+      return value;
+    }
+    
+    // OWN TRAIL STRATEGY
+    if (isOwnTrail) {
+      if (ourTrailLength < maxOpponentLength) {
+        const gap = maxOpponentLength - ourTrailLength;
+        value += gap * 12;
+      }
+      if (ourTrailLength > maxOpponentLength + 4) value -= 40;
+      if (round.hazardMarkerHolder === playerId) value += 20;
+      if (lateGame && Math.abs(ourTrailLength - maxOpponentLength) <= 2) value += 50;
+    }
+    
+    // Objective adjustments
+    if (objective === 'go-out') {
+      value += 25;
+      if (isNeutralZone) value += 15;
+    }
+    if (objective === 'points' && hand.length > 7) value += 25;
+    if (objective === 'points' && hand.length <= 4) value -= 30;
+    
+    // Uncharted size adjustments
+    if (unchartedSize > 30) value += 20;
+    if (unchartedSize >= 10 && unchartedSize <= 20) value += 5;
+    if (unchartedSize < 10) value -= 30;
+    
+    return value;
+  },
+};
+
+/**
+ * Module Kappa: Temporal Inversion - on even rounds, scoring inverts (highest wins).
+ * Strategy: maintain medium hand size (~30-50 pips), avoid going out, prefer drawing.
+ */
+const temporalInversionStrategy: WarpHeuristic = {
+  id: H.temporalInversion,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    const temporalInversion = ctx.obs.modules?.temporalInversion?.enabled ?? false;
+    if (!temporalInversion) return 0;
+    
+    const isInvertedRound = ctx.obs.round.roundNumber % 2 === 0;
+    if (!isInvertedRound) return 0;
+    
+    const currentHandPips = ctx.hand.reduce((sum, coord) => sum + coordinatePipValue(coord), 0);
+    const targetPips = 40; // Target ~40 pips for medium hand
+    
+    // Draw action: encourage drawing on inverted rounds to build hand
+    if (action.kind === 'draw') {
+      if (currentHandPips < targetPips) {
+        return 30; // Strong bonus for drawing when hand is small
+      }
+      if (currentHandPips < 55) {
+        return 15; // Moderate bonus for drawing when hand is medium
+      }
+      return -5; // Small penalty if hand is already large
+    }
+    
+    // Chart action: prefer LOW-pip plays on inverted rounds (keep the high pips!)
+    if (action.kind === 'chart') {
+      const pipValue = coordinatePipValue(action.move.coordinate);
+      const tilesAfter = ctx.hand.length - 1;
+      const pipsAfter = currentHandPips - pipValue;
+      
+      // Penalize plays that would leave us with very few pips
+      if (pipsAfter < 25 && tilesAfter > 0) {
+        return -25; // Strong penalty - we're dumping too many pips!
+      }
+      
+      // Bonus for playing low-value tiles (0-6 pips)
+      if (pipValue <= 6) {
+        return 8;
+      }
+      
+      // Moderate penalty for playing medium tiles (7-15 pips)  
+      if (pipValue <= 15) {
+        return -3;
+      }
+      
+      // Strong penalty for playing high-value tiles (16+ pips)
+      return -10;
+    }
+    
+    return 0;
+  },
+};
+
+/**
+ * Module Theta: Longest Trail Bonus - captain with longest trail gets -3 at round end.
+ * Strategy: value own-trail plays higher, especially when behind in length or in late game.
+ */
+const longestTrailBonus: WarpHeuristic = {
+  id: H.longestTrailBonus,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    const longestTrail = ctx.obs.modules?.longestTrail?.enabled ?? false;
+    if (!longestTrail) return 0;
+    if (action.kind !== 'chart') return 0;
+    if (ctx.obs.objective === 'go-out') return 0; // Only relevant for points campaigns
+    
+    const route = action.move.route;
+    const playerId = ctx.obs.playerId;
+    const onOwnTrail = route.kind === 'warp-trail' && route.playerId === playerId;
+    
+    if (!onOwnTrail) return 0;
+    
+    // Calculate trail lengths
+    const ownTrailLen = ctx.obs.round.table.warpTrails[playerId]?.tiles.length ?? 0;
+    let maxOpponentTrailLen = 0;
+    for (const captain of ctx.obs.captains) {
+      if (captain.id === playerId) continue;
+      const oppLen = ctx.obs.round.table.warpTrails[captain.id]?.tiles.length ?? 0;
+      maxOpponentTrailLen = Math.max(maxOpponentTrailLen, oppLen);
+    }
+    
+    // Early game: moderate bonus for building trail
+    const unchartedCount = ctx.obs.round.unchartedSectors.length;
+    const lateGame = unchartedCount < 15;
+    
+    let value = 5; // Base bonus for own trail play
+    
+    // Behind in trail length: stronger incentive to catch up
+    if (ownTrailLen < maxOpponentTrailLen) {
+      value += (maxOpponentTrailLen - ownTrailLen) * 3;
+    }
+    
+    // Leading in trail length: maintain lead
+    if (ownTrailLen > maxOpponentTrailLen) {
+      value += 8;
+    }
+    
+    // Late game: aggressive trail building for bonus
+    if (lateGame) {
+      value += 12;
+      
+      // Very late game (< 8 tiles left): -3 bonus is worth ~3 good plays
+      if (unchartedCount < 8 && ownTrailLen >= maxOpponentTrailLen) {
+        value += 15;
+      }
+    }
+    
+    return value;
+  },
+};
+
+/**
+ * Module Iota: Double Down - playing a double forces next player to draw 2 tiles.
+ * Strategy: time doubles to maximize burden (play when opponent has few tiles).
+ */
+const doubleDownTiming: WarpHeuristic = {
+  id: H.doubleDownTiming,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    const doubleDown = ctx.obs.modules?.doubleDown?.enabled ?? false;
+    if (!doubleDown) return 0;
+    if (action.kind !== 'chart') return 0;
+    if (!isDouble(action.move.coordinate)) return 0;
+    
+    // Find next player's hand size
+    const captains = ctx.obs.captains;
+    const myIndex = captains.findIndex(c => c.id === ctx.obs.playerId);
+    if (myIndex === -1) return 0;
+    
+    const nextIndex = (myIndex + 1) % captains.length;
+    const nextPlayer = captains[nextIndex];
+    const nextHandSize = nextPlayer ? (ctx.obs.round.hands[nextPlayer.id]?.length ?? 10) : 10;
+    
+    // Go-out mode: maximize burden on opponents with small hands
+    if (ctx.obs.objective === 'go-out') {
+      // Opponent has few tiles: great time to burden them!
+      if (nextHandSize <= 3) {
+        return 25; // Strong bonus - double down is very disruptive
+      }
+      if (nextHandSize <= 6) {
+        return 12; // Moderate bonus
+      }
+      // Opponent has many tiles: less impact
+      return 0;
+    }
+    
+    // Points mode: moderate timing advantage
+    if (nextHandSize <= 5) {
+      return 8; // Small bonus for good timing
+    }
+    
+    // Early game: slight penalty (don't waste doubles too early)
+    const unchartedCount = ctx.obs.round.unchartedSectors.length;
+    if (unchartedCount > 40 && nextHandSize > 8) {
+      return -5; // Small penalty for early waste
+    }
+    
+    return 0;
+  },
+};
+
+/**
+ * Module Epsilon (Drafting): Prefer doubles during draft.
+ * Doubles are universally valuable - they start trails, satisfy spacedock,
+ * and create Red Alert pressure/chaos on opponents.
+ */
+const draftDoubles: WarpHeuristic = {
+  id: 'draft-doubles',
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (action.kind !== 'pick-from-pack') return 0;
+    if (!isDouble(action.coordinate)) return 0;
+    
+    // Doubles are HIGHLY valuable in draft
+    const pipValue = coordinatePipValue(action.coordinate);
+    
+    // High doubles (8-12) are premium - can cause mayhem late game
+    if (pipValue >= 16) return 50; // Double-12, double-11, double-10, etc
+    
+    // Mid doubles (4-7) are flexible connectors
+    if (pipValue >= 8) return 40; // Double-7 down to double-4
+    
+    // Low doubles (0-3) are still useful for variety
+    return 30; // Double-3, double-2, double-1, double-0
+  },
+};
+
+/**
+ * Module Epsilon (Drafting): Prefer tiles with common pip values (connectors).
+ * Tiles with 5-7 pips connect to more tiles in the set, increasing flexibility.
+ */
+const draftConnectors: WarpHeuristic = {
+  id: 'draft-connectors',
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (action.kind !== 'pick-from-pack') return 0;
+    
+    const { low, high } = action.coordinate;
+    
+    // Count how many tiles this connects to (simplified heuristic)
+    // Mid-range values (4-8) appear most frequently in W12 set
+    const commonValue = (pip: number): number => {
+      if (pip >= 4 && pip <= 8) return 3; // Very common
+      if (pip >= 2 && pip <= 10) return 2; // Common
+      if (pip >= 0 && pip <= 12) return 1; // Less common
+      return 0;
+    };
+    
+    const connectivity = commonValue(low) + commonValue(high);
+    return connectivity * 2; // 0-12 bonus range
+  },
+};
+
+/**
+ * Module Epsilon (Drafting): Hand diversity during draft.
+ * Prefer tiles that give us coverage across different pip values.
+ */
+const draftDiversity: WarpHeuristic = {
+  id: 'draft-diversity',
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (action.kind !== 'pick-from-pack') return 0;
+    
+    const { low, high } = action.coordinate;
+    const round = ctx.obs.round;
+    
+    // During drafting, hand is being built in round.hands[playerId]
+    const currentHand = round.hands[ctx.obs.playerId] || [];
+    
+    // Count unique pip values we already have
+    const existingPips = new Set<number>();
+    for (const tile of currentHand) {
+      existingPips.add(tile.low);
+      existingPips.add(tile.high);
+    }
+    
+    // Bonus for adding NEW pip values we don't have yet
+    let novelty = 0;
+    if (!existingPips.has(low)) novelty += 3;
+    if (!existingPips.has(high) && high !== low) novelty += 3;
+    
+    return novelty;
+  },
+};
+
+/**
+ * Module Epsilon (Drafting): Strategic pip management for points objective.
+ * During draft, balance high-pip tiles (to dump) with low-pip safety.
+ * This works WITH dumpPips heuristic but considers draft context.
+ */
+const draftPipBalance: WarpHeuristic = {
+  id: 'draft-pip-balance',
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (action.kind !== 'pick-from-pack') return 0;
+    if (ctx.obs.objective === 'go-out') return 0; // Only for points
+    
+    const round = ctx.obs.round;
+    const currentHand = round.hands[ctx.obs.playerId] || [];
+    const draftState = round.draftState;
+    
+    if (!draftState) return 0;
+    
+    // How far into draft are we?
+    const pickNumber = draftState.pickedTiles[ctx.obs.playerId]?.length ?? 0;
+    const playerCount = ctx.obs.captains.length;
+    const desiredHandSize = playerCount <= 4 ? 15 : playerCount <= 6 ? 12 : 10;
+    const draftProgress = pickNumber / desiredHandSize;
+    
+    // Calculate current hand pip average
+    let totalPips = 0;
+    for (const tile of currentHand) {
+      totalPips += coordinatePipValue(tile);
+    }
+    const avgPips = currentHand.length > 0 ? totalPips / currentHand.length : 8;
+    
+    const tilePips = coordinatePipValue(action.coordinate);
+    
+    // Early draft (first 1/3): prefer LOWER pips for safety
+    if (draftProgress < 0.33) {
+      if (tilePips <= 6) return 8; // Low-pip tiles are safe
+      if (tilePips >= 18) return -5; // Avoid very high early
+    }
+    
+    // Mid draft (middle 1/3): balance
+    if (draftProgress < 0.67) {
+      // If we're pip-heavy, prefer lower; if pip-light, prefer higher
+      if (avgPips > 10 && tilePips <= 8) return 6;
+      if (avgPips < 7 && tilePips >= 14) return 6;
+    }
+    
+    // Late draft (final 1/3): grab remaining high-value targets
+    // At this point dumpPips heuristic handles most of it
+    return 0;
+  },
+};
+
+/**
+ * Module Epsilon (Drafting): Go-out tile count strategy.
+ * For go-out objective, prefer tiles that maximize playability.
+ */
+const draftGoOutTiles: WarpHeuristic = {
+  id: 'draft-go-out',
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (action.kind !== 'pick-from-pack') return 0;
+    if (ctx.obs.objective !== 'go-out') return 0;
+    
+    const { low, high } = action.coordinate;
+    
+    // For go-out, we want tiles that play easily (mid-range connectors)
+    // and avoid high-pip "anchors"
+    
+    // Doubles are still great (can start/satisfy)
+    if (isDouble(action.coordinate)) return 15;
+    
+    // Mid-range non-doubles connect well
+    const avgPip = (low + high) / 2;
+    if (avgPip >= 4 && avgPip <= 8) return 10; // Sweet spot
+    if (avgPip >= 2 && avgPip <= 10) return 5; // OK
+    
+    // Very high tiles (11-12) are risky in go-out
+    if (low >= 10 || high >= 10) return -3;
+    
+    return 0;
+  },
+};
+
 /** The stock Warp 12 heuristic set. Append/replace by `id` to add house tactics. */
 export const DEFAULT_WARP_HEURISTICS: WarpHeuristic[] = [
   preferChart,
@@ -561,4 +1018,14 @@ export const DEFAULT_WARP_HEURISTICS: WarpHeuristic[] = [
   dropToImpulseDeclare,
   dropToImpulseCatch,
   dropToImpulseForget,
+  spoolStrategy,
+  temporalInversionStrategy,
+  longestTrailBonus,
+  doubleDownTiming,
+  // Drafting heuristics (Module Epsilon)
+  draftDoubles,
+  draftConnectors,
+  draftDiversity,
+  draftPipBalance,
+  draftGoOutTiles,
 ];

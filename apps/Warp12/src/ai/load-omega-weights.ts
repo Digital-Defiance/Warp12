@@ -46,7 +46,7 @@ async function fetchOmegaModelWeights(
   }
 }
 
-/** Load Class Ω weights for an objective. Throws if missing/invalid (rated Class II must not soft-fail to zeros). */
+/** Load Ω weights for an objective. Throws if missing/invalid (rated Commander must not soft-fail to zeros). */
 export async function loadOmegaWeights(
   objective: GameObjective = 'points'
 ): Promise<OmegaModelWeights> {

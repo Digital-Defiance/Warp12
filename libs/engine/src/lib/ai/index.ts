@@ -13,6 +13,25 @@ export {
 
 export { warpCandidateGenerator, warpOffTurnCandidateGenerator } from './candidate-generator.js';
 
+export type {
+  TurnDecisionMetrics,
+  HandCoherenceMetrics,
+  MoveValueMetrics,
+  TrailDevelopmentMetrics,
+  GameLuckSkillMetrics,
+  LuckSkillSummary,
+} from './luck-skill-metrics.js';
+export {
+  measureTurnDecisionComplexity,
+  measureHandCoherence,
+  measureMoveValueSpread,
+  categorizeChartTarget,
+  initTrailDevelopment,
+  updateTrailDevelopment,
+  LuckSkillMetricsSampler,
+  summarizeLuckSkillMetrics,
+} from './luck-skill-metrics.js';
+
 export type { WarpHeuristic } from './heuristics.js';
 export { WARP_HEURISTIC_IDS, DEFAULT_WARP_HEURISTICS } from './heuristics.js';
 
@@ -72,6 +91,15 @@ export {
   CLASS1_STAR_ROUTE_KIND_DIM,
   CLASS1_STAR_TILE_COUNT,
 } from './class1-star-constants.js';
+export {
+  neuralFeatureSchema,
+  neuralWeightsAvailable,
+  SHIPPED_NEURAL_FACTORS,
+} from './neural-schema.js';
+export type {
+  NeuralFeatureSchema,
+  ShippedNeuralFactor,
+} from './neural-schema.js';
 export {
   encodeClass1StarFeatureBatch,
   encodeClass1StarFeatures,
@@ -292,19 +320,19 @@ export type {
   FourPlayerFocusResult,
   CalibrationPlayerCount,
   CalibrationRunOptions,
-} from './ai-elo-calibration.js';
+} from './ai-rating-calibration.js';
 export {
   AI_SKILL_LEVELS,
   CALIBRATION_PLAYER_COUNTS,
-  GO_OUT_REFERENCE_AI_ELO,
-  REFERENCE_AI_ELO,
-  referenceEloForObjective,
+  GO_OUT_REFERENCE_AI_RATING,
+  REFERENCE_AI_RATING,
+  referenceRatingForObjective,
   SKILL_MATCHUPS,
   expectedWinRate,
   formatFocusMatchupResult,
   formatFourPlayerFocusResult,
   formatMatchupResult,
-  impliedEloGap,
+  impliedRatingGap,
   makeFocusSeats,
   makeFourPlayerFocusSeats,
   makeHeadToHeadSeats,
@@ -312,5 +340,5 @@ export {
   runFocusMatchup,
   runFourPlayerFocusMatchup,
   runSkillMatchup,
-} from './ai-elo-calibration.js';
+} from './ai-rating-calibration.js';
 

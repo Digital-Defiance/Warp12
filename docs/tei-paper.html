@@ -1,0 +1,2774 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.10" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Digital Defiance https://github.com/digitaldefiance/warp12" />
+  <meta name="dcterms.date" content="2026-07-13" />
+  <title>Self-Play Calibration of Heuristic Agents for Mexican Train Under Competing Objectives</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    div.abstract {
+      margin: 2em 2em 2em 2em;
+      text-align: left;
+      font-size: 85%;
+    }
+    div.abstract-title {
+      font-weight: bold;
+      text-align: center;
+      padding: 0;
+      margin-bottom: 0.5em;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Self-Play Calibration of Heuristic Agents for Mexican
+Train Under Competing Objectives</h1>
+<p class="author">Digital Defiance<br />
+<code>https://github.com/digitaldefiance/warp12</code></p>
+<p class="date">2026-07-13</p>
+<div class="abstract">
+<div class="abstract-title">Abstract</div>
+<p>Mexican Train dominoes is commonly played under two incompatible
+victory conditions: <strong>points</strong> (lowest pip total when the
+round ends) and <strong>go-out</strong> (first player to empty their
+hand). This paper describes the development, calibration, and empirical
+validation of AI agents for both objectives in Warp 12, an open-source
+Mexican Train implementation. We introduce the <strong>Tactical
+Effectiveness Index (TEI)</strong>, a dual-track OpenSkill-based rating
+system with gamified grade display, anchored to fixed AI reference
+tiers.</p>
+<p>Empirical results from thousands of self-play games show that
+<strong>skill ordering is stable under the points objective</strong>
+(consistent rating gaps between tiers), while <strong>go-out exhibits
+higher variance</strong> and compressed skill gaps. We demonstrate that
+search algorithms provide different advantages depending on context:
+expectimax wins in 2-player points (64% vs heuristics), while ISMCTS
+excels in 4+ player go-out (31% vs 23% baseline).</p>
+<p>A comprehensive 19,000-game empirical study across 38 configurations
+(4 Warp factors
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+2–18 players) reveals that <strong>skill expression increases with both
+tile set size and player count</strong>, contradicting the intuition
+that larger games devolve into luck. We show that Warp factor 12
+(double-twelve dominoes) is the empirically optimal choice for
+competitive rating, exhibiting the highest sensitivity to player
+skill.</p>
+<p>Finally, we report on <strong>Class
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math></strong>,
+a neural self-play agent that achieves parity with heuristic baselines
+in small games and outperforms in large fleets, demonstrating that pure
+self-play can produce competitive agents without hand-crafted
+heuristics. All code, data, and reproduction scripts are available as
+open source.</p>
+</div>
+</header>
+<h1 data-number="1" id="introduction"><span
+class="header-section-number">1</span> Introduction</h1>
+<h2 data-number="1.1" id="mexican-train-dominoes"><span
+class="header-section-number">1.1</span> Mexican Train Dominoes</h2>
+<p>Mexican Train is a popular multi-player domino game typically played
+with a double-twelve set (91 tiles with pips ranging from 0 to 12).
+Players build linear sequences called <em>trains</em> from a central
+<em>engine</em> (starting double), attempting to minimize their hand’s
+pip count. The game features both private trains (one per player) and a
+shared public train (the “Mexican Train” or Neutral Zone), creating
+strategic tension between building one’s own position and blocking
+opponents.</p>
+<p>Unlike classic domino games with a single win condition, Mexican
+Train is commonly played under two incompatible objectives:</p>
+<ul>
+<li><p><strong>Points campaign:</strong> Play continues for multiple
+rounds (descending from engine double-12 down to double-0). After each
+round, players accumulate penalty points equal to the pips remaining in
+their hand. Lowest cumulative score after all rounds wins.</p></li>
+<li><p><strong>Go-out:</strong> The first player to empty their hand
+wins immediately, ending the round.</p></li>
+</ul>
+<p>These objectives create fundamentally different strategic games on
+the same rules engine: points rewards consistent pip minimization and
+flexible play across many turns, while go-out rewards tempo,
+connectivity, and race dynamics.</p>
+<h2 data-number="1.2" id="warp-12-terminology-and-presentation"><span
+class="header-section-number">1.2</span> Warp 12: Terminology and
+Presentation</h2>
+<p>This paper describes work conducted in the context of Warp 12, an
+open-source Mexican Train implementation with a Star Trek-themed
+presentation layer. Throughout this paper, we use <strong>standard
+Mexican Train terminology</strong> in formal discussion, but introduce
+Warp 12’s thematic terminology where relevant to implementation details.
+The table below provides a complete mapping.</p>
+<div class="tabular">
+<p><span>@lll@</span> <strong>Mexican Train</strong> &amp; <strong>Warp
+12</strong> &amp; <strong>Technical</strong><br />
+<br />
+Domino / tile &amp; Navigational Coordinate &amp;
+<code>Coordinate</code><br />
+Engine (starting double) &amp; Spacedock &amp; <code>engine</code><br />
+Player’s private train &amp; Warp Trail &amp;
+<code>ownTrail</code><br />
+Mexican Train (public) &amp; Neutral Zone &amp;
+<code>neutralZone</code><br />
+Train marker / forced play &amp; Distress Beacon &amp;
+<code>beacon</code> / <code>shieldsDown</code><br />
+Unsatisfied double &amp; Red Alert &amp; <code>redAlert</code><br />
+Draw pile &amp; Uncharted Sectors &amp; <code>pile</code><br />
+<br />
+Player &amp; Captain &amp; <code>PlayerId</code><br />
+Skill rating &amp; TEI &amp; <code>tei</code> (integer)<br />
+Game table &amp; Sector / Fleet &amp; <code>game</code><br />
+<br />
+Easy AI &amp; Class IV (Ensign) &amp; <code>ensign</code><br />
+Medium AI &amp; Class III (Lieutenant) &amp;
+<code>lieutenant</code><br />
+Hard AI &amp; Class II (Commander) &amp; <code>commander</code><br />
+Expert (human only) &amp; Class I &amp; TEI
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>≥</mo><annotation encoding="application/x-tex">\geq</annotation></semantics></math>
+1450<br />
+</p>
+</div>
+<p><strong>Warp factors</strong> refer to the maximum pip value in the
+domino set: Warp 9 (W9) uses double-nine tiles (55 tiles total), Warp 12
+(W12) uses double-twelve (91 tiles), etc. Throughout this paper, we use
+compact notation <strong>WX/Yp</strong> to denote configurations: W12/4p
+means Warp factor 12 (double-twelve) with 4 players. This paper focuses
+on W12 as the primary rated configuration, with analysis of W9, W15, and
+W18 in Section 8.</p>
+<h2 data-number="1.3" id="motivation"><span
+class="header-section-number">1.3</span> Motivation</h2>
+<p>Despite Mexican Train’s popularity, it remains under-studied in the
+game AI literature compared to chess, Go, or poker. Several challenges
+make it interesting for AI research:</p>
+<ul>
+<li><p><strong>Imperfect information:</strong> Opponent hands and draw
+pile order are hidden, requiring belief-state reasoning rather than
+perfect-information tree search.</p></li>
+<li><p><strong>Multi-player dynamics:</strong> Unlike 2-player zero-sum
+games, Mexican Train typically involves 3–8 players with complex
+coalition and blocking incentives.</p></li>
+<li><p><strong>Dual objectives:</strong> The same rule set produces two
+strategically distinct games depending on win condition.</p></li>
+<li><p><strong>Stochastic elements:</strong> Random draws from the pile,
+variable starting hands, and opponent action uncertainty all contribute
+to outcome variance.</p></li>
+</ul>
+<p>For online play, these challenges create practical design questions:
+How do we measure player skill fairly? How do we provide appropriately
+challenging AI opponents? How do we ensure coaching tools don’t
+contaminate competitive ratings?</p>
+<h2 data-number="1.4" id="contributions"><span
+class="header-section-number">1.4</span> Contributions</h2>
+<p>This paper makes the following contributions:</p>
+<ol>
+<li><p><strong>Dual-track TEI rating system</strong> — We describe an
+OpenSkill-based rating with independent tracks for points and go-out
+objectives, anchored to fixed AI reference tiers rather than floating
+human populations. The system uses Bayesian inference with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi><mo>±</mo><mi>σ</mi></mrow><annotation encoding="application/x-tex">\mu \pm \sigma</annotation></semantics></math>
+skill estimates and presents ratings as gamified grades (E/V/C/I/P +
+0-99 score).</p></li>
+<li><p><strong>Self-play calibration methodology</strong> — We present a
+systematic approach to validating AI skill levels through tier-vs-tier
+matrices, symmetric seating tests, and multi-player focus
+matchups.</p></li>
+<li><p><strong>Empirical objective comparison</strong> — Through
+thousands of self-play games, we demonstrate that points calibrates
+cleanly with consistent rating gaps between tiers, while go-out exhibits
+compression and higher variance due to its racing mechanics.</p></li>
+<li><p><strong>Search algorithm analysis</strong> — We show that
+different search methods (expectimax, ISMCTS) provide advantages in
+different contexts: expectimax excels in 2-player points (64% win rate),
+while ISMCTS works better in 4+ player go-out (31% vs 23%
+baseline).</p></li>
+<li><p><strong>Luck vs skill across configurations</strong> — A
+19,000-game empirical study across 38 configurations reveals that skill
+expression increases with both tile set size and player count, with Warp
+12 (double-twelve) emerging as the empirically optimal choice for
+competitive rating.</p></li>
+<li><p><strong>Module balance and competitive integrity</strong> —
+Pending empirical validation of optional game mechanics and their impact
+on skill expression in competitive play.</p></li>
+<li><p><strong>Neural self-play agent (Class
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>)</strong>
+— We demonstrate that a pure self-play neural policy can achieve
+competitive performance (parity in small games, advantages in large
+fleets) without hand-crafted heuristics, and discuss the challenges of
+mapping training performance to appropriate rating anchors.</p></li>
+<li><p><strong>Open-source implementation</strong> — All code, data, and
+reproduction scripts are available through the warp12-engine package and
+associated repositories.</p></li>
+</ol>
+<h1 data-number="2" id="related-work"><span
+class="header-section-number">2</span> Related Work</h1>
+<p>This section briefly surveys prior work in domino game AI, game AI
+paradigms relevant to Mexican Train, and skill rating systems. We
+identify the specific gap this work fills.</p>
+<h2 data-number="2.1" id="domino-and-tile-games"><span
+class="header-section-number">2.1</span> Domino and Tile Games</h2>
+<p>Domino games have received limited attention in the game AI
+literature compared to board games like chess and Go or card games like
+poker. Most prior work focuses on simpler variants like straight
+dominoes or block dominoes, which lack Mexican Train’s multi-player
+train mechanics and dual objectives. The DoubleEighteen rendering
+library <span class="citation" data-cites="doubleighteen2024"></span>
+provides visualization for domino games but does not include AI agents.
+To our knowledge, this is the first published calibration study of AI
+agents for Mexican Train specifically.</p>
+<h2 data-number="2.2" id="game-ai-paradigms"><span
+class="header-section-number">2.2</span> Game AI Paradigms</h2>
+<p>Several AI approaches are relevant to imperfect-information
+multi-player games like Mexican Train:</p>
+<p><strong>Heuristic policies:</strong> Hand-crafted evaluation
+functions and decision rules remain competitive in many domains,
+especially where interpretability matters for player trust and coaching
+features. Our Class IV–II agents follow this tradition with weighted
+heuristics for pip dumping, trail pressure, and blocking.</p>
+<p><strong>Monte Carlo Tree Search (MCTS):</strong> MCTS and its
+variants <span class="citation" data-cites="browne2012mcts"></span> have
+achieved strong results in perfect-information games (Go, Hex) and some
+imperfect-information settings. Information Set MCTS (ISMCTS) <span
+class="citation" data-cites="cowling2012ismcts"></span> handles hidden
+information by sampling determinizations and maintaining search trees
+over information sets rather than individual states. We use ISMCTS for
+our Fleet Admiral and Class
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>+
+search backends.</p>
+<p><strong>Deep reinforcement learning and self-play:</strong> The
+AlphaZero family <span class="citation"
+data-cites="silver2017alphazero silver2018alphazero"></span>
+demonstrated that pure self-play with neural networks can surpass human
+expertise in chess, Go, and shogi. However, these successes required
+massive computational resources and perfect information. Our Class
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>
+agent represents a more modest self-play approach suitable for
+imperfect-information games with limited training compute.</p>
+<p><strong>Counterfactual regret minimization:</strong> CFR and its
+variants have achieved superhuman performance in poker <span
+class="citation" data-cites="bowling2015heads"></span>, another
+imperfect-information game. However, CFR typically requires extensive
+offline precomputation and works best in 2-player zero-sum settings,
+making it less applicable to multi-player cooperative-competitive games
+like Mexican Train.</p>
+<h2 data-number="2.3" id="skill-rating-systems"><span
+class="header-section-number">2.3</span> Skill Rating Systems</h2>
+<p>Several rating systems are widely used in competitive games:</p>
+<p><strong>Elo rating <span class="citation"
+data-cites="elo1978rating"></span>:</strong> Originally developed for
+chess, Elo computes expected win probabilities based on rating
+differences and updates ratings based on actual outcomes. It assumes
+transitive skill relationships and works best for 2-player zero-sum
+games.</p>
+<p><strong>Glicko <span class="citation"
+data-cites="glickman1999glicko"></span>:</strong> Extends Elo by
+modeling rating uncertainty (RD), allowing ratings to drift during
+inactivity periods and providing confidence intervals.</p>
+<p><strong>TrueSkill <span class="citation"
+data-cites="herbrich2006trueskill"></span>:</strong> Microsoft’s rating
+system extends to multi-player and team games using Bayesian inference.
+It models each player’s skill as a Gaussian distribution and updates
+beliefs after each match.</p>
+<p><strong>OpenSkill:</strong> An open-source implementation of rating
+systems inspired by TrueSkill and Weng-Lin ranking <span
+class="citation" data-cites="wenglin2011"></span>, designed for
+multi-player and team-based games. Like TrueSkill, it uses Gaussian
+skill models with mean
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>μ</mi><annotation encoding="application/x-tex">\mu</annotation></semantics></math>)
+and standard deviation
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>)
+parameters, updated through Bayesian inference. We adopt OpenSkill as
+the foundation for TEI due to its multi-player support, open
+implementation, and flexible team rating capabilities.</p>
+<p>Most online game platforms (Chess.com, Lichess, etc.) use Elo or
+Glicko variants. Some platforms that offer AI opponents (e.g., Lichess’s
+Stockfish bots) provide fixed rating estimates for bot difficulty
+levels, similar to our TEI anchor approach. However, we are unaware of
+prior work that systematically calibrates and validates AI skill tiers
+through self-play specifically for the purpose of providing stable
+rating anchors.</p>
+<h2 data-number="2.4" id="contribution-relative-to-prior-work"><span
+class="header-section-number">2.4</span> Contribution Relative to Prior
+Work</h2>
+<p>This work makes several novel contributions relative to the existing
+literature:</p>
+<ol>
+<li><p><strong>Dual-objective calibration:</strong> We systematically
+compare points and go-out objectives on the same rules engine, showing
+empirically that they require different strategic optimization and
+exhibit different skill/variance tradeoffs.</p></li>
+<li><p><strong>Fixed AI reference anchors:</strong> Rather than deriving
+ratings entirely from human populations (which can drift over time), we
+anchor rating bands to validated AI tiers with measured performance
+characteristics.</p></li>
+<li><p><strong>Multi-player self-play methodology:</strong> Most game AI
+calibration focuses on 2-player matchups. We include 3–8 player
+configurations and focus matchups (one strong player vs multiple weaker
+opponents) to validate skill expression in realistic play
+scenarios.</p></li>
+<li><p><strong>Luck vs skill empirics:</strong> The 19,000-game study
+across 38 configurations provides the first systematic measurement of
+how tile set size and player count affect skill expression in domino
+games.</p></li>
+<li><p><strong>Open-source implementation:</strong> All code (rules
+engine, AI agents, calibration scripts) and data are publicly available
+for reproduction and extension.</p></li>
+</ol>
+<h1 data-number="3" id="game-model-and-rules-engine"><span
+class="header-section-number">3</span> Game Model and Rules Engine</h1>
+<h2 data-number="3.1" id="core-mexican-train-rules"><span
+class="header-section-number">3.1</span> Core Mexican Train Rules</h2>
+<p>Mexican Train follows standard multi-trail domino game mechanics:</p>
+<ol>
+<li><p><strong>Setup:</strong> All players draw a fixed hand size
+(typically 15 tiles for 2–4 players, fewer for larger games). The engine
+double (e.g., 12-12 for Warp 12) is placed in the center. Remaining
+tiles form the draw pile.</p></li>
+<li><p><strong>Turn structure:</strong> On each turn, a player must play
+one tile that matches the open end of any available train (their own,
+another player’s with a marker, or the public Mexican Train). If unable
+to play, they draw one tile from the pile and may play it immediately if
+legal.</p></li>
+<li><p><strong>Doubles:</strong> When a double is played, it must be
+“satisfied” (another tile played on it) before anyone can play
+elsewhere. This creates a <em>Red Alert</em> state that forces immediate
+resolution.</p></li>
+<li><p><strong>Train markers:</strong> When a player cannot play on
+their turn, they place a marker on their train, making it public for one
+round. In Warp 12 terminology, this is called a <em>Distress Beacon</em>
+and the state is <em>Shields Down</em>.</p></li>
+<li><p><strong>Mexican Train:</strong> The public train is always
+available to all players, providing a release valve when private trains
+are blocked.</p></li>
+<li><p><strong>Round end:</strong> A round ends when a player empties
+their hand (go-out objective) or when the pile is exhausted and no legal
+plays remain (points objective).</p></li>
+</ol>
+<h2 data-number="3.2" id="implementation-as-state-machine"><span
+class="header-section-number">3.2</span> Implementation as State
+Machine</h2>
+<p>Our implementation models the game as an immutable state machine with
+pure functions:</p>
+<ul>
+<li><p><strong>State:</strong> Readonly data structures
+(<code>GameState</code>, <code>RoundState</code>,
+<code>TableState</code>) containing all game information: player hands,
+visible tiles, pile size, train states, alert conditions.</p></li>
+<li><p><strong>Actions:</strong> Typed events (<code>PlayAction</code>,
+<code>DrawAction</code>, etc.) representing legal moves.</p></li>
+<li><p><strong>Transitions:</strong> Pure function
+<code>applyAction(state, action) -&gt; newState</code> implements all
+rules.</p></li>
+<li><p><strong>Legal moves:</strong> Function
+<code>getLegalMoves(state, playerId) -&gt; Action[]</code> computes all
+valid plays for the current state.</p></li>
+</ul>
+<p>This design ensures that AI agents, human players, and replay
+validation all use identical game logic. No special-case code paths
+exist for AI vs human play.</p>
+<h2 data-number="3.3" id="house-rules-and-modules"><span
+class="header-section-number">3.3</span> House Rules and Modules</h2>
+<p>Beyond core rules, Mexican Train has many common variants. Warp 12
+implements these as runtime configuration rather than hard-coded
+variants:</p>
+<p><strong>House rules</strong> (boolean toggles):</p>
+<ul>
+<li><p><code>requireOwnTrailFirst</code>: Must play on own train before
+playing elsewhere</p></li>
+<li><p><code>neutralZoneAfterAllTrails</code>: Mexican Train only
+available after personal train started</p></li>
+<li><p><code>dropToImpulse</code>: “Uno”-style announce requirement when
+down to one tile</p></li>
+</ul>
+<p><strong>Modules</strong> (optional mechanics):</p>
+<ul>
+<li><p><strong>Alpha (Continuum):</strong> Special rules for 0-0 tile
+(Q-gamble mechanic)</p></li>
+<li><p><strong>Beta (Salamander Penalty):</strong> Pip penalty for
+holding double-zero at round end</p></li>
+<li><p><strong>Gamma (Sensor Grid):</strong> Tiles visible for potential
+recycling</p></li>
+<li><p><strong>Delta (Hot Potato):</strong> Hazard marker transfers on
+Neutral Zone play (+5 per pass while holding)</p></li>
+<li><p><strong>Theta (Longest Trail):</strong> Bonus for longest
+personal train with chain-draw mechanic</p></li>
+<li><p><strong>Iota (Double Down):</strong> Playing a double forces next
+player to draw 2 tiles</p></li>
+<li><p><strong>Kappa (Temporal Inversion):</strong> Odd rounds score
+normally, even rounds invert (highest wins)</p></li>
+</ul>
+<p>All modules affect legal move generation and scoring through the same
+<code>applyAction</code> code path, ensuring AI agents see exactly the
+same game mechanics as human players.</p>
+<h2 data-number="3.4"
+id="information-structure-and-game-complexity"><span
+class="header-section-number">3.4</span> Information Structure and Game
+Complexity</h2>
+<p>Mexican Train is an <strong>imperfect information game</strong>:</p>
+<ul>
+<li><p><strong>Public information:</strong> All played tiles on trains,
+player hand counts, draw pile size, train marker positions, active Red
+Alert doubles</p></li>
+<li><p><strong>Hidden information:</strong> Contents of opponent hands,
+order of tiles in draw pile</p></li>
+</ul>
+<p>This differs fundamentally from perfect-information games like chess
+or Go, where optimal play can theoretically be computed through
+exhaustive search. In Mexican Train:</p>
+<ol>
+<li><p><strong>Belief states:</strong> Agents must reason about
+probability distributions over possible opponent hands and pile
+orderings, not a single deterministic state.</p></li>
+<li><p><strong>Determinization:</strong> One common approach samples
+possible hidden states consistent with observations, then searches
+forward in each determinized world. However, this can lead to strategy
+fusion <span class="citation"
+data-cites="frank1996determinization"></span> where different opponent
+hand distributions should lead to different plays.</p></li>
+<li><p><strong>Information set search:</strong> Methods like Information
+Set Monte Carlo Tree Search (ISMCTS) <span class="citation"
+data-cites="cowling2012ismcts"></span> explicitly handle information
+sets, avoiding some determinization pitfalls.</p></li>
+</ol>
+<p>The combination of hidden information, multi-player dynamics, and
+stochastic draws makes Mexican Train significantly more complex than its
+simple rules suggest, and prevents the existence of a "solved" optimal
+strategy comparable to checkers or Connect Four.</p>
+<h2 data-number="3.5" id="two-objectives-as-two-different-games"><span
+class="header-section-number">3.5</span> Two Objectives as Two Different
+Games</h2>
+<p>The choice of victory condition fundamentally changes optimal
+strategy:</p>
+<table id="tab:objectives">
+<caption>Strategic differences between points and go-out
+objectives</caption>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Dimension</strong></th>
+<th style="text-align: left;"><strong>Points</strong></th>
+<th style="text-align: left;"><strong>Go-out</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Win condition</td>
+<td style="text-align: left;">Lowest pips at round end</td>
+<td style="text-align: left;">First empty hand</td>
+</tr>
+<tr>
+<td style="text-align: left;">Horizon</td>
+<td style="text-align: left;">Multi-round campaign (1–13)</td>
+<td style="text-align: left;">Often single-round race</td>
+</tr>
+<tr>
+<td style="text-align: left;">Core skill</td>
+<td style="text-align: left;">Pip shedding, blocking, flexibility</td>
+<td style="text-align: left;">Tempo, connectivity, mayhem</td>
+</tr>
+<tr>
+<td style="text-align: left;">Variance</td>
+<td style="text-align: left;">Lower</td>
+<td style="text-align: left;">Higher</td>
+</tr>
+<tr>
+<td style="text-align: left;">Search benefit</td>
+<td style="text-align: left;">Modest at 2p; expectimax depth 4
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>64%</td>
+<td style="text-align: left;">Helpful at 2p; ISMCTS
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>31%
+/4p</td>
+</tr>
+<tr>
+<td style="text-align: left;">Reference TEI spacing</td>
+<td style="text-align: left;">200 pts / tier</td>
+<td style="text-align: left;">250 pts / tier</td>
+</tr>
+</tbody>
+</table>
+<p>In the <strong>points</strong> objective, players accumulate penalty
+points over 13 rounds, rewarding consistent pip minimization and
+defensive blocking. The multi-round horizon allows recovery from bad
+draws and rewards strategic flexibility.</p>
+<p>In the <strong>go-out</strong> objective, the first player to empty
+their hand wins immediately. This creates race dynamics where tempo and
+hand connectivity matter more than pip values. A player holding three
+12-12 doubles might still win if they can chain them quickly.</p>
+<p>Figure <a href="#fig:points-vs-goout" data-reference-type="ref"
+data-reference="fig:points-vs-goout">1</a> shows empirically that these
+objectives lead to measurably different strategic landscapes, with
+go-out exhibiting compressed skill gaps and higher outcome variance.</p>
+<figure id="fig:points-vs-goout" data-latex-placement="htbp">
+<img src="/figures/figure10-points-vs-goout.png"
+style="width:90.0%" />
+<figcaption>Points vs go-out strategic divergence. Left: Implied ΔTEI
+from observed win rates shows go-out compression. Right: Win rate
+distributions demonstrate that go-out behaves like a stochastic race
+(ordering survives, magnitudes compress).</figcaption>
+</figure>
+<h1 data-number="4" id="agent-architecture"><span
+class="header-section-number">4</span> Agent Architecture</h1>
+<figure id="fig:architectures" data-latex-placement="htbp">
+<img src="/figures/figure9-architectures.png"
+style="width:95.0%" />
+<figcaption>Agent architecture overview. Top: Heuristic policy stack
+(candidate generation through action selection). Middle-left: Class I*
+residual MLP adds learned correction to heuristics. Middle-right: Class
+Ω standalone policy/value heads (no heuristics). Bottom: Fleet Admiral
+multi-engine routing by player count.</figcaption>
+</figure>
+<h2 data-number="4.1" id="policy-stack"><span
+class="header-section-number">4.1</span> Policy Stack</h2>
+<p>Candidate generation from legal moves + special actions. Weighted
+heuristic scoring + temperature + blunder rate. Optional determinized
+lookahead: sample hidden hands consistent with counts
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math>
+forward simulate in engine.</p>
+<h2 data-number="4.2" id="skill-presets-class-ivii"><span
+class="header-section-number">4.2</span> Skill Presets (Class
+IV–II)</h2>
+<p><strong>Points presets:</strong> pip dump, trail pressure, Red Alert
+safety, Q timing. <strong>Go-out presets:</strong> sprint heuristics
+(<code>goOutWin</code>, <code>goOutFeasibility</code>, block leader,
+avoid mayhem). Separate <code>goOutTuning</code> thresholds per
+tier.</p>
+<h2 data-number="4.3" id="lookahead-policy-product-decision"><span
+class="header-section-number">4.3</span> Lookahead Policy (Product
+Decision)</h2>
+<p>Lookahead <strong>baked into tier</strong>, not user-toggle — keeps
+TEI comparable across clients. Class II go-out: depth 2 at <strong>2
+players only</strong>; greedy at 3+. Class II points: greedy at all
+sizes — <strong>Commander is a local maximum in 2p points</strong>
+(ISMCTS
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>51%
+at 1,000 games; see §4.6). Monte Carlo Tree Search <span
+class="citation" data-cites="browne2012mcts"></span> with
+determinization <span class="citation"
+data-cites="cowling2012ismcts"></span> provides the search foundation
+for our lookahead implementations.</p>
+<h2 data-number="4.4" id="tactical-advisor"><span
+class="header-section-number">4.4</span> Tactical Advisor</h2>
+<p>Class II profile, blunder rate 0, lookahead on. Explainability:
+<code>explainWarpAiAction</code>, turn-resolution hints.
+<strong>Unassisted-only TEI</strong> — advisor use tracked separately.
+<strong>Never uses the neural net</strong> — heuristics only, by
+design.</p>
+<h1 data-number="5" id="tei-tactical-effectiveness-index"><span
+class="header-section-number">5</span> TEI (Tactical Effectiveness
+Index)</h1>
+<figure id="fig:tei-ladder" data-latex-placement="htbp">
+<img src="/figures/figure6-tei-ladder.png"
+style="width:90.0%" />
+<figcaption>TEI reference bands and Elo win probability. Left: Class
+IV–II reference anchors by objective (v1 heuristic vs v2 Ω). Right:
+Standard Elo expected win rate curve with reference spacing markers (200
+pts for points, 250 pts for go-out).</figcaption>
+</figure>
+<h2 data-number="5.1" id="reference-bands"><span
+class="header-section-number">5.1</span> Reference Bands</h2>
+<p>Fixed opponent TEI for unassisted matches. <strong>v1</strong> =
+heuristic Class II; <strong>v2</strong> = neural Class II
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>).
+New rated play defaults to v2; legacy crews may pin v1. Human stored TEI
+integers are <strong>not</strong> re-banded when anchors change.</p>
+<table>
+<caption>TEI reference bands by class and objective</caption>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Track</strong></th>
+<th style="text-align: center;"><strong>Class IV</strong></th>
+<th style="text-align: center;"><strong>Class III</strong></th>
+<th style="text-align: center;"><strong>Class II (v1)</strong></th>
+<th style="text-align: center;"><strong>Class II (v2
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Points</td>
+<td
+style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1000</td>
+<td
+style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1200</td>
+<td
+style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1400</td>
+<td
+style="text-align: center;"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1520</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">Go-out</td>
+<td
+style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1000</td>
+<td
+style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1250</td>
+<td
+style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1500</td>
+<td
+style="text-align: center;"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1550</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Calibration rule of thumb:</strong> set Class II REF near
+where a captain of that TEI wins
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>50%
+<strong>in the table sizes you actually rate</strong> (Warp 12 solo
+local play is mostly 2–4). Fleet-mean fair-share against legacy
+Commander is a promotion metric, not a direct Elo
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Δ</mi><annotation encoding="application/x-tex">\Delta</annotation></semantics></math>.</p>
+<h2 data-number="5.2" id="update-rule"><span
+class="header-section-number">5.2</span> Update Rule</h2>
+<p>Standard Elo expected score <span class="citation"
+data-cites="elo1978rating"></span> + K-factor schedule (40
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math>
+32
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math>
+24 by experience). Separate buckets: objective
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+AI class
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+(human profile).</p>
+<h2 data-number="5.3" id="percentile-boards"><span
+class="header-section-number">5.3</span> Percentile Boards</h2>
+<p>Go-out raw TEI gaps compress; percentile (“Top X%”) preserves rank
+meaning.</p>
+<h2 data-number="5.4" id="federation-academy"><span
+class="header-section-number">5.4</span> Federation Academy</h2>
+<p>One-time starting TEI pick per track within class band.</p>
+<h1 data-number="6" id="calibration-methodology"><span
+class="header-section-number">6</span> Calibration Methodology</h1>
+<h2 data-number="6.1" id="self-play-loop"><span
+class="header-section-number">6.1</span> Self-Play Loop</h2>
+<p><code>playSelfPlayGame</code> drives full games through
+<code>applyAction</code>. Blocked-round stall guard for pile-empty
+lockups.</p>
+<h2 data-number="6.2" id="evaluation-suites"><span
+class="header-section-number">6.2</span> Evaluation Suites</h2>
+<ol>
+<li><p><strong>Head-to-head matrix</strong> — all Class IV–II pairs,
+both objectives.</p></li>
+<li><p><strong>Symmetric seating</strong> — same-skill first-seat win
+rate
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>≈</mo><annotation encoding="application/x-tex">\approx</annotation></semantics></math>
+50%.</p></li>
+<li><p><strong>Focus matchups</strong> — one strong captain vs
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">N-1</annotation></semantics></math>
+weaker; rotate seat; table sizes 3–8 (go-out).</p></li>
+<li><p><strong>House-rule sanity</strong> — e.g. Drop to Impulse penalty
+pass (<code>calibrate:ai-tei-dti</code>).</p></li>
+</ol>
+<h2 data-number="6.3" id="metrics"><span
+class="header-section-number">6.3</span> Metrics</h2>
+<p>Completion rate
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>≥</mo><annotation encoding="application/x-tex">\geq</annotation></semantics></math>
+85% games decisive). Higher-skill win rate vs ordering thresholds.
+Implied
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Δ</mi><annotation encoding="application/x-tex">\Delta</annotation></semantics></math>TEI
+from win rate:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>400</mn><mo>×</mo><msub><mrow><mi mathvariant="normal">log</mi><mo>&#8289;</mo></mrow><mn>10</mn></msub><mo stretchy="false" form="prefix">(</mo><mi>p</mi><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">400 \times \log_{10}(p / (1-p))</annotation></semantics></math>.
+Expected win rate from reference band spacing.</p>
+<h1 data-number="7" id="results-ai-calibration"><span
+class="header-section-number">7</span> Results: AI Calibration</h1>
+<p>See <code>calibration-log.md</code> for dated self-play and optimizer
+runs.</p>
+<figure id="fig:calibration-matrix" data-latex-placement="htbp">
+<img src="/figures/figure7-calibration-matrix.png"
+style="width:90.0%" />
+<figcaption>Calibration matrix heatmaps showing win rates between all
+Class IV/III/II pairs (200 games per matchup). Left: Points objective
+exhibits clean skill ordering. Right: Go-out objective shows
+compression, especially Class III vs II (near coin flip at
+51%).</figcaption>
+</figure>
+<h2 data-number="7.1" id="points-default-rules-200-gamesmatchup"><span
+class="header-section-number">7.1</span> Points (Default Rules, 200
+games/matchup)</h2>
+<ul>
+<li><p>Symmetric
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>50/50
+seating.</p></li>
+<li><p>Class IV vs III
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>88%
+(expected
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>76%)
+— ordering clear, gap may exceed target.</p></li>
+<li><p>Class IV vs II
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>91.5%
+(expected
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>91%)
+— on target.</p></li>
+<li><p>Class III vs II
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>63%
+(expected
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>76%)
+— compressed but ordered.</p></li>
+</ul>
+<h2 data-number="7.2" id="go-out"><span
+class="header-section-number">7.2</span> Go-out</h2>
+<ul>
+<li><p>Symmetric
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>46–56%.</p></li>
+<li><p>Class III vs II heads-up
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>51%
+— near coin flip at 200 games.</p></li>
+<li><p>4p focus: Class II
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>38.5%
+vs 25% random; Class III
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>27%
+vs 25%.</p></li>
+</ul>
+<h2 data-number="7.3"
+id="class-i-fleet-admiral-and-class-omega-benches"><span
+class="header-section-number">7.3</span> Class I*, Fleet Admiral, and
+Class
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>
+Benches</h2>
+<figure id="fig:ai-bench-results" data-latex-placement="htbp">
+<img src="/figures/figure8-ai-bench-results.png"
+style="width:95.0%" />
+<figcaption>AI bench results across experimental tiers. Top-left: Class
+I* neural residual iterations (imitation ceiling at 48–51%). Top-right:
+Fleet Admiral search backends (expectimax wins 2p, ISMCTS wins 4p).
+Bottom-left: Class Ω fair-share rises with fleet size (points
+objective). Bottom-right: Fair-share hazard — naive Elo translation
+overestimates TEI anchors vs tempered decision (1520).</figcaption>
+</figure>
+<p><strong>Neural residual (MLP - Class I*):</strong></p>
+<ul>
+<li><p><strong>v1 (go-out):</strong> 48.6% win (500g, 2p).</p></li>
+<li><p><strong>v2 (points):</strong> 97.6% top-1, 1.4% flip, 51% win —
+Commander clone.</p></li>
+<li><p><strong>v3 (RL regret):</strong> 49.2% win — parity
+persists.</p></li>
+</ul>
+<p><strong>Fleet Admiral (Search):</strong></p>
+<ul>
+<li><p><strong>Expectimax:</strong> 64.4% points 2p, 55.8% go-out 2p vs
+Commander (500g each).</p></li>
+<li><p><strong>ISMCTS (1,500 games):</strong> 51.1% combined in 2p
+points (dead heat); 31.2% sector wins in 4p go-out vs
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>22–23%
+per greedy Commander seat.</p></li>
+</ul>
+<p><strong>Class
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>
+(Self-Play
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math>
+Class II):</strong></p>
+<ul>
+<li><p><strong>2-Player:</strong> Points
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>parity
+with legacy Commander; go-out seat-symmetric noise (one soft seat is not
+a shipping blocker).</p></li>
+<li><p><strong>Fleet (3–8p):</strong> Points fair-share rises with table
+size (peak
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1.7<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+at 7–8p); go-out milder
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1.0–1.5<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+by slice). Overall means
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math><strong>1.38<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math></strong>
+points /
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math><strong>1.14<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math></strong>
+go-out at 200g/slice.</p></li>
+<li><p><strong>Ship decision:</strong> replace Class II with greedy
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>;
+temper REF_TEI to <strong>1520 / 1550</strong>; keep
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>+
+and Class I* off the rated ladder.</p></li>
+<li><p><strong>Lesson:</strong> <code>fairShare</code>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
+win rates at large
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math>
+inflate mean strength vs what heads-up TEI players feel.</p></li>
+</ul>
+<h1 data-number="8"
+id="luck-vs-skill-across-warp-factors-a-19000-game-empirical-study"><span
+class="header-section-number">8</span> Luck vs Skill Across Warp
+Factors: A 19,000-Game Empirical Study</h1>
+<h2 data-number="8.1" id="motivation-and-configuration-matrix"><span
+class="header-section-number">8.1</span> Motivation and Configuration
+Matrix</h2>
+<p>While Sections 6–7 calibrate AI tiers at a fixed Warp factor
+(double-12), Warp 12 ships with <strong>four</strong> playable Warp
+factors (9 / 12 / 15 / 18), each supporting different fleet sizes:</p>
+<table>
+<caption>Warp factor configurations in Warp 12</caption>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Warp Factor</strong></th>
+<th style="text-align: center;"><strong>Max Pip</strong></th>
+<th style="text-align: center;"><strong>Fleet Limit</strong></th>
+<th style="text-align: center;"><strong>Tiles</strong></th>
+<th style="text-align: center;"><strong>Rated?</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">W9</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">2–4 players</td>
+<td style="text-align: center;">55</td>
+<td style="text-align: center;">Exhibition</td>
+</tr>
+<tr>
+<td style="text-align: left;">W12</td>
+<td style="text-align: center;">12</td>
+<td style="text-align: center;">2–8 players</td>
+<td style="text-align: center;">91</td>
+<td style="text-align: center;"><strong>Rated (TEI)</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">W15</td>
+<td style="text-align: center;">15</td>
+<td style="text-align: center;">2–12 players</td>
+<td style="text-align: center;">136</td>
+<td style="text-align: center;">Exhibition</td>
+</tr>
+<tr>
+<td style="text-align: left;">W18</td>
+<td style="text-align: center;">18</td>
+<td style="text-align: center;">2–18 players</td>
+<td style="text-align: center;">190</td>
+<td style="text-align: center;">Exhibition</td>
+</tr>
+</tbody>
+</table>
+<p>Players and designers routinely ask:</p>
+<ol>
+<li><p><strong>Does Warp factor affect skill expression?</strong> Higher
+pip sets increase hand entropy — does this create meaningful strategic
+depth or just pip-dumping chaos?</p></li>
+<li><p><strong>Does fleet size (player count) affect skill?</strong>
+Conventional wisdom suggests more players = more noise, but is that
+true?</p></li>
+<li><p><strong>Should TEI be calibrated differently for W9 vs
+W18?</strong> If skill expression differs, should we adjust reference
+bands or restrict rating to W12?</p></li>
+<li><p><strong>Why is W12 the rated factor?</strong> Is it merely
+tradition (Mexican Train’s historical default), or does the data justify
+it?</p></li>
+</ol>
+<p>To answer these questions empirically, we conducted a comprehensive
+self-play study across <strong>38 configurations</strong> (Warp factor
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+fleet size), collecting <strong>500 games per configuration</strong> for
+a total of <strong>19,000 games</strong>:</p>
+<table>
+<caption>Configuration matrix for luck vs skill analysis</caption>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Warp Factor</strong></th>
+<th style="text-align: center;"><strong>Fleet Sizes</strong></th>
+<th style="text-align: center;"><strong>Configs</strong></th>
+<th style="text-align: center;"><strong>Total Games</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">W9</td>
+<td style="text-align: center;">2–4 players</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">1,500</td>
+</tr>
+<tr>
+<td style="text-align: left;">W12</td>
+<td style="text-align: center;">2–8 players</td>
+<td style="text-align: center;">7</td>
+<td style="text-align: center;">3,500</td>
+</tr>
+<tr>
+<td style="text-align: left;">W15</td>
+<td style="text-align: center;">2–12 players</td>
+<td style="text-align: center;">11</td>
+<td style="text-align: center;">5,500</td>
+</tr>
+<tr>
+<td style="text-align: left;">W18</td>
+<td style="text-align: center;">2–18 players</td>
+<td style="text-align: center;">17</td>
+<td style="text-align: center;">8,500</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Total</strong></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"><strong>38</strong></td>
+<td style="text-align: center;"><strong>19,000</strong></td>
+</tr>
+</tbody>
+</table>
+<p>All games used the <strong>points objective</strong> (lowest
+cumulative pip total) with Class II (heuristic Commander) self-play.
+Collection completed July 11, 2026 using parallel execution across 15
+workers (M4 Max,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>40
+minutes runtime). In subsequent references, we use compact notation:
+e.g., W12/4p denotes Warp 12 with 4 players.</p>
+<h2 data-number="8.2" id="metrics-and-composite-indices"><span
+class="header-section-number">8.2</span> Metrics and Composite
+Indices</h2>
+<p>For each game, we tracked per-turn metrics across all decision
+points:</p>
+<p><strong>Raw metrics:</strong></p>
+<ul>
+<li><p><code>avgLegalMoves</code>: Mean number of legal candidate
+actions per turn</p></li>
+<li><p><code>avgHandEntropy</code>: Shannon entropy of pip distribution
+in hand (bits)</p></li>
+<li><p><code>avgNearOptimalFraction</code>: Fraction of turns where the
+AI chose a move within 5% of the top-scored candidate</p></li>
+<li><p><code>avgConstrainedTileFraction</code>: Fraction of coordinates
+that can only play on one trail</p></li>
+<li><p><code>avgValueSpread</code>: Spread between highest and lowest
+valued tiles in hand</p></li>
+</ul>
+<p><strong>Composite indices</strong> (derived for interpretability):
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mtable><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><mtext mathvariant="normal">skillIndex</mtext></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><mtext mathvariant="normal">avgLegalMoves</mtext><mo>×</mo><mtext mathvariant="normal">avgNearOptimalFraction</mtext><mo>×</mo><mtext mathvariant="normal">avgUniqueTrains</mtext></mtd></mtr><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><mtext mathvariant="normal">luckIndex</mtext></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><mtext mathvariant="normal">avgConstrainedTileFraction</mtext><mo>×</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mtext mathvariant="normal">avgHandEntropy</mtext><mi>/</mi><msub><mrow><mi mathvariant="normal">log</mi><mo>&#8289;</mo></mrow><mn>2</mn></msub><mo stretchy="false" form="prefix">(</mo><mn>19</mn><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mtd></mtr><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><mtext mathvariant="normal">decisionQuality</mtext></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><mtext mathvariant="normal">avgNearOptimalFraction</mtext><mo>×</mo><mtext mathvariant="normal">avgLegalMoves</mtext><mo>×</mo><mtext mathvariant="normal">avgUniqueTrains</mtext></mtd></mtr></mtable><annotation encoding="application/x-tex">\begin{align}
+\text{skillIndex} &amp;= \text{avgLegalMoves} \times \text{avgNearOptimalFraction} \times \text{avgUniqueTrains} \\
+\text{luckIndex} &amp;= \text{avgConstrainedTileFraction} \times (1 - \text{avgHandEntropy}/\log_2(19)) \\
+\text{decisionQuality} &amp;= \text{avgNearOptimalFraction} \times \text{avgLegalMoves} \times \text{avgUniqueTrains}
+\end{align}</annotation></semantics></math></p>
+<p><strong>Interpretation:</strong></p>
+<ul>
+<li><p><strong>skillIndex</strong>: Captures decision complexity (legal
+moves), train diversity (strategic options), and execution quality
+(near-optimal play). Higher values indicate more opportunity for skilled
+play.</p></li>
+<li><p><strong>luckIndex</strong>: Captures constraint (forced plays)
+and hand predictability (low entropy). Higher values indicate more
+luck-driven outcomes.</p></li>
+<li><p><strong>decisionQuality</strong>: Similar to skillIndex but
+emphasizes decision-making over luck factors.</p></li>
+</ul>
+<h2 data-number="8.3" id="hypotheses"><span
+class="header-section-number">8.3</span> Hypotheses</h2>
+<p>We formulated five hypotheses about the relationship between Warp
+factor, fleet size, and skill expression:</p>
+<dl>
+<dt>H1 (Warp Factor Effect):</dt>
+<dd>
+<p>Higher Warp factors exhibit higher skill indices due to increased
+tile diversity and hand complexity.</p>
+</dd>
+<dt>H2 (Fleet Size Effect):</dt>
+<dd>
+<p>Larger fleets correlate with higher skill expression within each Warp
+factor.</p>
+</dd>
+<dt>H3 (Interaction):</dt>
+<dd>
+<p>The relationship between fleet size and skill differs across Warp
+factors (non-additive effects).</p>
+</dd>
+<dt>H4 (Complexity-Coherence):</dt>
+<dd>
+<p>Decision complexity (<code>avgLegalMoves</code>) and hand coherence
+(<code>avgHandEntropy</code>) exhibit meaningful correlation.</p>
+</dd>
+<dt>H5 (Monotonic Trends):</dt>
+<dd>
+<p>Skill index increases monotonically with fleet size within each Warp
+factor.</p>
+</dd>
+</dl>
+<h2 data-number="8.4" id="statistical-results"><span
+class="header-section-number">8.4</span> Statistical Results</h2>
+<figure id="fig:cross-factor" data-latex-placement="htbp">
+<img src="/figures/figure1-cross-factor-comparison.png"
+style="width:80.0%" />
+<figcaption>Cross-factor skill index comparison for 2–4 player
+configurations. W12 exhibits the highest skill expression in the
+balanced comparison range.</figcaption>
+</figure>
+<h3 data-number="8.4.1" id="h1-warp-factor-effect-anova"><span
+class="header-section-number">8.4.1</span> H1: Warp Factor Effect
+(ANOVA)</h3>
+<p>We restricted analysis to the <strong>2–4 player range</strong>
+(balanced design across all factors) to isolate the Warp factor effect.
+One-way ANOVA on skillIndex by Warp factor:</p>
+<table>
+<caption>Mean skill index by Warp factor (2–4 players)</caption>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Warp Factor</strong></th>
+<th style="text-align: center;"><strong>Mean skillIndex</strong></th>
+<th style="text-align: center;"><strong>SD</strong></th>
+<th
+style="text-align: center;"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math></strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">W9</td>
+<td style="text-align: center;">1.533</td>
+<td style="text-align: center;">0.087</td>
+<td style="text-align: center;">1,500</td>
+</tr>
+<tr>
+<td style="text-align: left;">W12</td>
+<td style="text-align: center;">1.950</td>
+<td style="text-align: center;">0.330</td>
+<td style="text-align: center;">1,500</td>
+</tr>
+<tr>
+<td style="text-align: left;">W15</td>
+<td style="text-align: center;">1.829</td>
+<td style="text-align: center;">0.272</td>
+<td style="text-align: center;">1,500</td>
+</tr>
+<tr>
+<td style="text-align: left;">W18</td>
+<td style="text-align: center;">1.802</td>
+<td style="text-align: center;">0.192</td>
+<td style="text-align: center;">1,500</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Result:</strong>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>F</mi><mo stretchy="false" form="prefix">(</mo><mn>3</mn><mo>,</mo><mn>5996</mn><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mn>817.14</mn></mrow><annotation encoding="application/x-tex">F(3, 5996) = 817.14</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>&lt;</mo><mn>0.001</mn></mrow><annotation encoding="application/x-tex">p &lt; 0.001</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>η</mi><mn>2</mn></msup><mo>=</mo><mn>0.290</mn></mrow><annotation encoding="application/x-tex">\eta^2 = 0.290</annotation></semantics></math>
+(large effect size). <strong>H1 is strongly supported.</strong></p>
+<p>Post-hoc pairwise comparisons (Tukey HSD) show <strong>W12 exhibits
+the highest skill expression</strong>, with W15 and W18 slightly lower
+but still significantly above W9. The ordering W12
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>&gt;</mo><annotation encoding="application/x-tex">&gt;</annotation></semantics></math>
+W15
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>&gt;</mo><annotation encoding="application/x-tex">&gt;</annotation></semantics></math>
+W18
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>&gt;</mo><annotation encoding="application/x-tex">&gt;</annotation></semantics></math>
+W9 suggests a sweet spot around W12 for skill-testing play.</p>
+<h3 data-number="8.4.2" id="h2-fleet-size-effect-correlation"><span
+class="header-section-number">8.4.2</span> H2: Fleet Size Effect
+(Correlation)</h3>
+<figure id="fig:fleet-size-effects" data-latex-placement="htbp">
+<img src="/figures/figure2-fleet-size-effects.png"
+style="width:80.0%" />
+<figcaption>Fleet size effect on skill expression by Warp factor. W12
+shows the steepest gradient
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.875</mn></mrow><annotation encoding="application/x-tex">r = 0.875</annotation></semantics></math>),
+indicating highest sensitivity to player count.</figcaption>
+</figure>
+<p>Within each Warp factor, we computed Pearson correlation between
+<code>playerCount</code> and <code>skillIndex</code>:</p>
+<table>
+<caption>Fleet size effect on skill expression by Warp factor</caption>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Warp</strong></th>
+<th
+style="text-align: center;"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math></strong></th>
+<th style="text-align: center;"><strong>Fleet Sizes</strong></th>
+<th style="text-align: center;"><strong>Pearson
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math></strong></th>
+<th
+style="text-align: center;"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>-value</strong></th>
+<th
+style="text-align: center;"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>R</mi><mn>2</mn></msup><annotation encoding="application/x-tex">R^2</annotation></semantics></math></strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">W9</td>
+<td style="text-align: center;">1,500</td>
+<td style="text-align: center;">2–4</td>
+<td style="text-align: center;">0.051</td>
+<td style="text-align: center;">0.049</td>
+<td style="text-align: center;">0.003</td>
+</tr>
+<tr>
+<td style="text-align: left;">W12</td>
+<td style="text-align: center;">3,500</td>
+<td style="text-align: center;">2–8</td>
+<td style="text-align: center;"><strong>0.875</strong></td>
+<td
+style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&lt;</mo><mn>0.001</mn></mrow><annotation encoding="application/x-tex">&lt;0.001</annotation></semantics></math></td>
+<td style="text-align: center;">0.766</td>
+</tr>
+<tr>
+<td style="text-align: left;">W15</td>
+<td style="text-align: center;">5,500</td>
+<td style="text-align: center;">2–12</td>
+<td style="text-align: center;"><strong>0.893</strong></td>
+<td
+style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&lt;</mo><mn>0.001</mn></mrow><annotation encoding="application/x-tex">&lt;0.001</annotation></semantics></math></td>
+<td style="text-align: center;">0.798</td>
+</tr>
+<tr>
+<td style="text-align: left;">W18</td>
+<td style="text-align: center;">8,500</td>
+<td style="text-align: center;">2–18</td>
+<td style="text-align: center;"><strong>0.840</strong></td>
+<td
+style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&lt;</mo><mn>0.001</mn></mrow><annotation encoding="application/x-tex">&lt;0.001</annotation></semantics></math></td>
+<td style="text-align: center;">0.706</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Result:</strong> <strong>H2 is strongly supported</strong>
+for W12/15/18 (all
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>&gt;</mo><mn>0.84</mn></mrow><annotation encoding="application/x-tex">r &gt; 0.84</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>&lt;</mo><mn>0.001</mn></mrow><annotation encoding="application/x-tex">p &lt; 0.001</annotation></semantics></math>).
+W9 shows a weak but significant positive effect
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.051</mn></mrow><annotation encoding="application/x-tex">r = 0.051</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mn>0.049</mn></mrow><annotation encoding="application/x-tex">p = 0.049</annotation></semantics></math>).
+<strong>W12 exhibits the steepest fleet size effect</strong>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.875</mn></mrow><annotation encoding="application/x-tex">r = 0.875</annotation></semantics></math>),
+making it the most sensitive Warp factor to player count.</p>
+<p><strong>Unexpected finding:</strong> Conventional wisdom predicts
+<em>more players = more noise = less skill</em>. Our data show the
+<strong>opposite</strong>: skill index <em>increases</em> with fleet
+size. This suggests that larger fleets create more strategic depth
+(blocking opportunities, trail diversity, timing decisions) rather than
+diluting skill signal with variance.</p>
+<h3 data-number="8.4.3" id="h3-interaction-effect"><span
+class="header-section-number">8.4.3</span> H3: Interaction Effect</h3>
+<figure id="fig:complexity-heatmap" data-latex-placement="htbp">
+<img src="/figures/figure3-complexity-heatmap.png"
+style="width:70.0%" />
+<figcaption>Decision complexity heatmap (avgLegalMoves) by Warp factor
+and fleet size. Note the relatively constant branching factor
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>2
+moves/turn) despite large variations in configuration.</figcaption>
+</figure>
+<p>To test whether the fleet size effect <em>differs</em> across Warp
+factors, we compared regression slopes for the 2–4 player range
+(balanced design):</p>
+<table>
+<caption>Interaction effect: slope variance across Warp
+factors</caption>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Warp Factor</strong></th>
+<th style="text-align: center;"><strong>Slope (skillIndex
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>
+playerCount)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">W9</td>
+<td style="text-align: center;">0.0054</td>
+</tr>
+<tr>
+<td style="text-align: left;">W12</td>
+<td style="text-align: center;"><strong>0.3889</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">W15</td>
+<td style="text-align: center;">0.3172</td>
+</tr>
+<tr>
+<td style="text-align: left;">W18</td>
+<td style="text-align: center;">0.2085</td>
+</tr>
+</tbody>
+</table>
+<p>Slope variance = 0.0209. <strong>H3 is supported:</strong> fleet size
+matters <em>much more</em> for W12 than for W9. This interaction
+justifies <strong>W12 as the rated factor</strong> — it exhibits both
+high baseline skill and high sensitivity to player count, making it the
+best discriminator of player ability.</p>
+<h3 data-number="8.4.4"
+id="h4-decision-complexity-vs-hand-coherence"><span
+class="header-section-number">8.4.4</span> H4: Decision Complexity vs
+Hand Coherence</h3>
+<figure id="fig:coherence-vs-depth" data-latex-placement="htbp">
+<img src="/figures/figure4-coherence-vs-depth.png"
+style="width:80.0%" />
+<figcaption>Hand entropy (coherence) vs near-optimal play fraction. The
+weak correlation
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.009</mn></mrow><annotation encoding="application/x-tex">r = 0.009</annotation></semantics></math>)
+suggests that tactical richness and strategic coherence are orthogonal
+dimensions.</figcaption>
+</figure>
+<p>Correlation between <code>avgLegalMoves</code> (decision complexity)
+and <code>avgHandEntropy</code> (hand coherence):</p>
+<ul>
+<li><p>Pearson
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.009</mn></mrow><annotation encoding="application/x-tex">r = 0.009</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mn>0.232</mn></mrow><annotation encoding="application/x-tex">p = 0.232</annotation></semantics></math>
+(not significant)</p></li>
+<li><p>Spearman
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ρ</mi><mo>=</mo><mi>−</mi><mn>0.152</mn></mrow><annotation encoding="application/x-tex">\rho = -0.152</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>&lt;</mo><mn>0.001</mn></mrow><annotation encoding="application/x-tex">p &lt; 0.001</annotation></semantics></math>
+(weak negative monotonic trend)</p></li>
+</ul>
+<p><strong>Result:</strong> <strong>H4 is not supported.</strong>
+Decision complexity and hand entropy are largely independent. This
+suggests that <em>tactical richness</em> (number of legal moves) and
+<em>strategic coherence</em> (hand composition) are orthogonal
+dimensions of game state.</p>
+<h3 data-number="8.4.5" id="h5-monotonic-trends"><span
+class="header-section-number">8.4.5</span> H5: Monotonic Trends</h3>
+<p>Kendall’s
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>τ</mi><annotation encoding="application/x-tex">\tau</annotation></semantics></math>
+(rank correlation) between <code>playerCount</code> and
+<code>skillIndex</code>:</p>
+<table>
+<caption>Monotonic trend test (Kendall’s
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>τ</mi><annotation encoding="application/x-tex">\tau</annotation></semantics></math>)</caption>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Warp Factor</strong></th>
+<th style="text-align: center;"><strong>Kendall’s
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>τ</mi><annotation encoding="application/x-tex">\tau</annotation></semantics></math></strong></th>
+<th
+style="text-align: left;"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>-value</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">W9</td>
+<td style="text-align: center;">0.044</td>
+<td style="text-align: left;">0.025</td>
+</tr>
+<tr>
+<td style="text-align: left;">W12</td>
+<td style="text-align: center;"><strong>0.727</strong></td>
+<td
+style="text-align: left;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&lt;</mo><mn>0.001</mn></mrow><annotation encoding="application/x-tex">&lt;0.001</annotation></semantics></math></td>
+</tr>
+<tr>
+<td style="text-align: left;">W15</td>
+<td style="text-align: center;"><strong>0.767</strong></td>
+<td
+style="text-align: left;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&lt;</mo><mn>0.001</mn></mrow><annotation encoding="application/x-tex">&lt;0.001</annotation></semantics></math></td>
+</tr>
+<tr>
+<td style="text-align: left;">W18</td>
+<td style="text-align: center;"><strong>0.672</strong></td>
+<td
+style="text-align: left;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&lt;</mo><mn>0.001</mn></mrow><annotation encoding="application/x-tex">&lt;0.001</annotation></semantics></math></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Result:</strong> <strong>H5 is supported</strong> for
+W12/15/18 (strong positive monotonic trends). However, examining
+individual fleet sizes reveals <strong>non-monotonic patterns</strong>
+at the highest player counts: W18 skill peaks at 16p (skillIndex =
+3.002), then drops at 17p (2.757) and 18p (2.834). This suggests
+<strong>ergodic limits</strong>: at extreme fleet sizes, some
+configurations may hit resource constraints (e.g., near-empty draw pile,
+forced blocking).</p>
+<h2 data-number="8.5" id="key-findings"><span
+class="header-section-number">8.5</span> Key Findings</h2>
+<figure id="fig:skill-luck-balance" data-latex-placement="htbp">
+<img src="/figures/figure5-skill-luck-balance.png"
+style="width:80.0%" />
+<figcaption>Skill vs luck balance across all configurations. Points
+above the diagonal (more skill than luck) include all W12/15/18
+configurations. W18/18p exhibits the highest skill/luck ratio
+(8.10).</figcaption>
+</figure>
+<h3 data-number="8.5.1" id="w1818p-is-not-a-crapshoot"><span
+class="header-section-number">8.5.1</span> W18/18p is Not a
+Crapshoot</h3>
+<p>A common intuition is that 18-player games with 190 tiles (double-18
+set) would degenerate into pure luck. Our data
+<strong>contradicts</strong> this:</p>
+<table>
+<caption>W18: 2-player vs 18-player comparison</caption>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Config</strong></th>
+<th style="text-align: center;"><strong>skillIndex</strong></th>
+<th style="text-align: center;"><strong>luckIndex</strong></th>
+<th style="text-align: center;"><strong>Skill Ratio</strong></th>
+<th style="text-align: center;"><strong>Luck Ratio</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">W18/2p</td>
+<td style="text-align: center;">1.631</td>
+<td style="text-align: center;">0.289</td>
+<td
+style="text-align: center;">1.00<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math></td>
+<td
+style="text-align: center;">1.00<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math></td>
+</tr>
+<tr>
+<td style="text-align: left;">W18/18p</td>
+<td style="text-align: center;">2.834</td>
+<td style="text-align: center;">0.350</td>
+<td
+style="text-align: center;"><strong>1.74<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math></strong></td>
+<td
+style="text-align: center;">1.21<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Interpretation:</strong> At 18 players, skill expression is
+<strong>1.74<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+higher</strong> than heads-up, while luck increases only
+1.21<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>.
+The skill/luck <em>ratio</em> actually <strong>improves</strong> at
+extreme fleet sizes. This suggests that large multi-player games create
+rich tactical opportunities (blocking, trail pressure, timing) that
+outweigh variance from hidden information.</p>
+<h3 data-number="8.5.2"
+id="cross-factor-comparison-at-maximum-fleet-size"><span
+class="header-section-number">8.5.2</span> Cross-Factor Comparison at
+Maximum Fleet Size</h3>
+<table>
+<caption>Skill and luck at maximum fleet size per Warp factor</caption>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Configuration</strong></th>
+<th style="text-align: center;"><strong>skillIndex</strong></th>
+<th style="text-align: center;"><strong>luckIndex</strong></th>
+<th style="text-align: center;"><strong>Skill/Luck Ratio</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">W9/4p</td>
+<td style="text-align: center;">1.528</td>
+<td style="text-align: center;">0.334</td>
+<td style="text-align: center;">4.57</td>
+</tr>
+<tr>
+<td style="text-align: left;">W12/8p</td>
+<td style="text-align: center;">2.629</td>
+<td style="text-align: center;">0.405</td>
+<td style="text-align: center;">6.49</td>
+</tr>
+<tr>
+<td style="text-align: left;">W15/12p</td>
+<td style="text-align: center;">2.803</td>
+<td style="text-align: center;">0.379</td>
+<td style="text-align: center;">7.40</td>
+</tr>
+<tr>
+<td style="text-align: left;">W18/18p</td>
+<td style="text-align: center;">2.834</td>
+<td style="text-align: center;">0.350</td>
+<td style="text-align: center;"><strong>8.10</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>W18/18p has the <em>highest</em> skill/luck ratio of any
+configuration tested.</strong> This challenges the intuition that larger
+games are necessarily more luck-dependent.</p>
+<h3 data-number="8.5.3" id="w12-justification-for-tei-rating"><span
+class="header-section-number">8.5.3</span> W12 Justification for TEI
+Rating</h3>
+<p>Why is W12 the sole rated factor? The data provide three empirical
+justifications:</p>
+<ol>
+<li><p><strong>Highest baseline skill (2–4p):</strong> W12 exhibits mean
+skillIndex = 1.950 in the 2–4p range, higher than W9 (1.533), W15
+(1.829), and W18 (1.802).</p></li>
+<li><p><strong>Steepest fleet size gradient:</strong> W12 shows
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.875</mn></mrow><annotation encoding="application/x-tex">r = 0.875</annotation></semantics></math>
+for fleet size effect — the <em>most sensitive</em> to player count of
+any factor. This means W12 best discriminates between skill levels
+across table sizes.</p></li>
+<li><p><strong>Practical rating context:</strong> Most solo rated play
+occurs at 2–4 players (W12 supports 2–8). W12 provides the widest skill
+range within the most common fleet sizes.</p></li>
+</ol>
+<p><strong>Conclusion:</strong> W12 is not merely historical tradition —
+it is the <strong>empirically optimal choice</strong> for a
+skill-testing rating system.</p>
+<h3 data-number="8.5.4"
+id="hand-entropy-increases-with-warp-factor"><span
+class="header-section-number">8.5.4</span> Hand Entropy Increases with
+Warp Factor</h3>
+<p>Hand coherence (<code>avgHandEntropy</code>) increases monotonically
+with Warp factor:</p>
+<table>
+<caption>Mean hand entropy by Warp factor (all fleet sizes)</caption>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Warp Factor</strong></th>
+<th style="text-align: center;"><strong>Mean Hand Entropy
+(bits)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">W9</td>
+<td style="text-align: center;">2.09</td>
+</tr>
+<tr>
+<td style="text-align: left;">W12</td>
+<td style="text-align: center;">2.34</td>
+</tr>
+<tr>
+<td style="text-align: left;">W15</td>
+<td style="text-align: center;">2.52</td>
+</tr>
+<tr>
+<td style="text-align: left;">W18</td>
+<td style="text-align: center;">2.66</td>
+</tr>
+</tbody>
+</table>
+<p>Higher entropy indicates more <em>diverse</em> hands (less clustering
+around specific pips). This confirms that larger tile sets create more
+strategic flexibility but also more decision complexity.</p>
+<h3 data-number="8.5.5" id="decision-complexity-stays-constant"><span
+class="header-section-number">8.5.5</span> Decision Complexity Stays
+Constant</h3>
+<p>Despite large variations in Warp factor and fleet size,
+<code>avgLegalMoves</code> remains remarkably <strong>constant</strong>
+at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1.8–2.2
+moves per turn across all configurations. This suggests that the
+<em>branching factor</em> of Mexican Train is inherently bounded by game
+mechanics (trail constraints, hand composition), not by tile set size or
+player count.</p>
+<h2 data-number="8.6" id="practical-implications"><span
+class="header-section-number">8.6</span> Practical Implications</h2>
+<h3 data-number="8.6.1" id="tei-calibration-strategy"><span
+class="header-section-number">8.6.1</span> TEI Calibration Strategy</h3>
+<ol>
+<li><p><strong>Anchor TEI on W12 only.</strong> Exhibition factors
+(W9/15/18) should <em>not</em> have separate reference bands — they
+share the same Class IV–II opponents with W12 anchors.</p></li>
+<li><p><strong>Do not adjust K-factor by fleet size.</strong> The data
+show that larger fleets <em>increase</em> skill expression, not
+variance. A flat K-factor schedule (40
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math>
+32
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math>
+24 by experience) is appropriate.</p></li>
+<li><p><strong>Consider percentile boards for all objectives.</strong>
+While W12 skill gradients are smooth, the monotonic-but-noisy pattern at
+W18 (drops at 17p) suggests percentile ranks provide more stable
+feedback than raw TEI.</p></li>
+</ol>
+<h3 data-number="8.6.2" id="future-exhibition-modes"><span
+class="header-section-number">8.6.2</span> Future Exhibition Modes</h3>
+<ul>
+<li><p><strong>W9 (casual / quick):</strong> Lower skill ceiling but
+valid for practice. Best at 2–4 players.</p></li>
+<li><p><strong>W15 (tactical depth):</strong> High skill expression
+(skillIndex
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>2.80
+/12p), suitable for unrated tournaments or challenge modes.</p></li>
+<li><p><strong>W18 (grand strategy):</strong> Highest absolute skill
+expression at max fleet size. Could support unrated “epic” lobbies
+(12–18 players) for advanced players seeking complex multi-player
+dynamics.</p></li>
+</ul>
+<h3 data-number="8.6.3" id="go-out-objective"><span
+class="header-section-number">8.6.3</span> Go-Out Objective</h3>
+<p>This study used <strong>points only</strong>. Go-out exhibits higher
+variance (Section 7.2), suggesting:</p>
+<ul>
+<li><p>Skill/luck ratios may differ under go-out objective (worth a
+follow-up 19K-game study).</p></li>
+<li><p>W12/2–4p may remain optimal, but large-fleet go-out (8+ players)
+could show different patterns due to race dynamics.</p></li>
+</ul>
+<h1 data-number="9" id="discussion"><span
+class="header-section-number">9</span> Discussion</h1>
+<h2 data-number="9.1" id="what-calibration-teaches"><span
+class="header-section-number">9.1</span> What Calibration Teaches</h2>
+<ul>
+<li><p><strong>Points</strong> behaves like a smooth skill ladder — good
+fit for fixed TEI spacing.</p></li>
+<li><p><strong>Go-out</strong> behaves like a stochastic race — ordering
+survives, magnitudes don’t.</p></li>
+<li><p><strong>Table size</strong> erodes heads-up skill signal — focus
+tests essential.</p></li>
+<li><p><strong>House rules</strong> mostly reshape legality — heuristics
+gated at runtime suffice for DTI.</p></li>
+<li><p><strong>Commander heuristics are a ceiling in 2p points</strong>
+— ISMCTS <span class="citation" data-cites="cowling2012ismcts"></span>
+parity is confirmation, not failure; expectimax extracts the residual
+edge via explicit tree search.</p></li>
+<li><p><strong>Search value is mode-dependent</strong> — expectimax for
+2p, ISMCTS for multi-player chaos.</p></li>
+<li><p><strong>Neural Class II can replace heuristics without a second
+lobby tier</strong> — keep
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>=</mo></mrow><annotation encoding="application/x-tex">\sigma=</annotation></semantics></math><code>commander</code>,
+update <code>rulesProfileId</code> + REF_TEI.</p></li>
+<li><p><strong>Fair-share
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>≠</mo><annotation encoding="application/x-tex">\neq</annotation></semantics></math>
+Elo bump</strong> — translating fleet-mean
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>/Commander
+ratio with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>400</mn><msub><mrow><mi mathvariant="normal">log</mi><mo>&#8289;</mo></mrow><mn>10</mn></msub><mo stretchy="false" form="prefix">(</mo><mtext mathvariant="normal">fs</mtext><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">400 \log_{10}(\text{fs})</annotation></semantics></math>
+overstates anchors when most rated matches are 2–4p; temper for the
+rating context you ship.</p></li>
+<li><p><strong>Imitation nets (Class I*) plateau at the
+teacher;</strong>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>
+succeeds by targeting search visit distributions (Path B), not Commander
+picks, following principles similar to AlphaZero’s self-play
+approach <span class="citation"
+data-cites="silver2017alphazero"></span>.</p></li>
+<li><p><strong>Larger fleets increase skill, not noise</strong> — the
+19K-game study shows skill index rises with player count
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>&gt;</mo><mn>0.84</mn></mrow><annotation encoding="application/x-tex">r &gt; 0.84</annotation></semantics></math>
+for W12/15/18), contradicting the “more players = crapshoot”
+intuition.</p></li>
+<li><p><strong>W12 is empirically optimal for TEI</strong> — highest
+baseline skill in 2–4p range, steepest fleet size gradient
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.875</mn></mrow><annotation encoding="application/x-tex">r = 0.875</annotation></semantics></math>),
+best discriminator of player ability.</p></li>
+</ul>
+<h2 data-number="9.2" id="design-recommendations"><span
+class="header-section-number">9.2</span> Design Recommendations</h2>
+<ul>
+<li><p>Never merge points and go-out TEI.</p></li>
+<li><p>Show percentile on go-out boards.</p></li>
+<li><p>Don’t expose lookahead /
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>+
+as a rating-affecting toggle without
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi mathvariant="normal">Δ</mi><mtext mathvariant="normal">search</mtext></msub><annotation encoding="application/x-tex">\Delta_{\text{search}}</annotation></semantics></math>
+or marking unrated.</p></li>
+<li><p>Retune weights selectively (popular hosted configs), not full
+combinatorial grid.</p></li>
+<li><p>Recalibrate REF_TEI when Class II <strong>implementation</strong>
+changes; do not rewrite stored human ratings.</p></li>
+<li><p>Prefer one strong rated tier over “Commander + Omega + Class I*”
+confusion.</p></li>
+<li><p>Anchor TEI exclusively on W12; treat W9/15/18 as exhibition using
+the same Class IV–II opponents.</p></li>
+<li><p>Do not reduce K-factor for large fleets — skill expression
+increases, not variance.</p></li>
+</ul>
+<h2 data-number="9.3" id="limitations"><span
+class="header-section-number">9.3</span> Limitations</h2>
+<ul>
+<li><p>Heuristic agents, not equilibrium solvers.</p></li>
+<li><p>Calibration seed and game count sensitivity.</p></li>
+<li><p>No human champion study yet.</p></li>
+<li><p>Module combinations not exhaustively calibrated.</p></li>
+<li><p>Study used points objective only — go-out may exhibit different
+luck/skill patterns.</p></li>
+<li><p>W18 non-monotonicity at 17p/18p suggests potential edge cases at
+extreme configurations.</p></li>
+</ul>
+<h1 data-number="10" id="conclusion"><span
+class="header-section-number">10</span> Conclusion</h1>
+<p>TEI and self-play calibration provide a <strong>practical, honest
+skill ladder</strong> for a game too messy for classical solving. Points
+and go-out should be treated as <strong>two calibration targets</strong>
+on one engine. <strong>Class I*</strong> and Fleet Admiral benches show
+that <strong>no single algorithm wins every mode</strong>: Commander
+heuristics are near-optimal in 2p points (ISMCTS <span class="citation"
+data-cites="cowling2012ismcts"></span>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>51%),
+expectimax extracts a
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>64%
+edge there via explicit tree search, and ISMCTS outperforms greedy seats
+in 4p go-out
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>31%
+vs
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>23%).
+<strong>Class
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math></strong>
+shows that a pure self-play net can <strong>replace</strong> heuristic
+Class II without a fourth lobby tier — but <strong>promotion benches and
+TEI anchors are different jobs</strong>: fleet fair-share can look large
+while heads-up play stays near parity; REF_TEI must follow the tables
+you rate.</p>
+<p>The <strong>19,000-game luck vs skill study</strong> (38
+configurations, 4 Warp factors, 2–18 players) reveals three key
+insights:</p>
+<ol>
+<li><p><strong>Skill expression increases with both Warp factor and
+fleet size.</strong> Contrary to conventional wisdom (“more players =
+more luck”), our data show skill index rises strongly with player count
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.84</mn></mrow><annotation encoding="application/x-tex">r = 0.84</annotation></semantics></math>–<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.89</mn><annotation encoding="application/x-tex">0.89</annotation></semantics></math>
+for W12/15/18). W18/18p exhibits
+1.74<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+the skill of W18/2p, with only
+1.21<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+the luck — the <em>highest</em> skill/luck ratio of any configuration
+tested.</p></li>
+<li><p><strong>W12 is the empirically optimal rated factor.</strong> W12
+exhibits the highest baseline skill in the 2–4 player range (where most
+rated play occurs) and the steepest fleet size gradient
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.875</mn></mrow><annotation encoding="application/x-tex">r = 0.875</annotation></semantics></math>),
+making it the best discriminator of player ability. This justifies
+restricting TEI rating to W12 while offering W9/15/18 as exhibition
+modes.</p></li>
+<li><p><strong>Hand entropy increases with Warp factor, but decision
+complexity stays constant.</strong> Larger tile sets create more diverse
+hands (W9: 2.09 bits
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math>
+W18: 2.66 bits entropy) but do not increase branching factor (mean legal
+moves
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1.8–2.2
+across all configs). This suggests Mexican Train’s tactical depth scales
+with tile diversity, not combinatorial explosion.</p></li>
+</ol>
+<p>The right product move is <strong>one neural Class II, tempered
+anchors, unrated search as hard mode</strong>, not more named tiers.
+Superhuman Mexican Train remains a <strong>research program</strong>
+(belief-state search + Path A value + human validation), not required
+for an excellent commercial experience. The luck/skill data provide
+empirical grounding for design choices (W12 for rating, exhibition
+factors for variety, no K-factor adjustments for fleet size) and open
+questions for future work (go-out objective, human validation studies,
+ergodic limits at extreme configurations).</p>
+<h1 class="unnumbered" id="acknowledgments">Acknowledgments</h1>
+<p>To Deborah, Hannah, and Don for taking me in to their family and for
+introducing me to Mexican Train Dominoes.</p>
+<p>This research was conducted as part of the open-source Warp 12
+project. All code, data, and reproduction scripts are available at <a
+href="https://github.com/digitaldefiance/warp12"
+class="uri">https://github.com/digitaldefiance/warp12</a>.</p>
+<h1 data-number="11" id="figure-list"><span
+class="header-section-number">11</span> Figure List</h1>
+<p>All figures are generated from empirical data and located in
+<code>tools/nn/figures/</code>.</p>
+<ol>
+<li><p><strong>Cross-factor skill index comparison (Section 8)</strong>
+— W12 exhibits highest skill expression in 2–4p balanced range.</p></li>
+<li><p><strong>Fleet size effects by Warp factor (Section 8)</strong> —
+W12 shows steepest gradient
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.875</mn></mrow><annotation encoding="application/x-tex">r = 0.875</annotation></semantics></math>),
+most sensitive to player count.</p></li>
+<li><p><strong>Decision complexity heatmap (Section 8)</strong> —
+Constant branching factor
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>2
+moves/turn) across all configurations.</p></li>
+<li><p><strong>Hand entropy vs near-optimal play (Section 8)</strong> —
+Weak correlation
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.009</mn></mrow><annotation encoding="application/x-tex">r = 0.009</annotation></semantics></math>)
+suggests orthogonal dimensions.</p></li>
+<li><p><strong>Skill vs luck balance (Section 8)</strong> — W18/18p has
+highest skill/luck ratio (8.10) of any configuration.</p></li>
+<li><p><strong>TEI ladder visualization (Section 5)</strong> — Reference
+bands (v1 vs v2) and Elo expected win probability curves.</p></li>
+<li><p><strong>Calibration matrix heatmap (Section 7)</strong> — Win
+rates between Class IV/III/II pairs show points clarity vs go-out
+compression.</p></li>
+<li><p><strong>AI bench results comparison (Section 7)</strong> — Class
+I* parity, Fleet Admiral wins (expectimax 64%), Ω fair-share by fleet
+size, fair-share hazard.</p></li>
+<li><p><strong>Architecture diagrams (Section 4)</strong> — Policy
+stack, Class I* MLP, Class Ω policy/value heads, Fleet Admiral
+routing.</p></li>
+<li><p><strong>Points vs go-out divergence (Section 3)</strong> —
+Implied ΔTEI compression and win rate distributions demonstrate
+objective differences.</p></li>
+</ol>
+<h1 data-number="12" id="tables"><span
+class="header-section-number">12</span> Tables</h1>
+<table id="tab:summary-stats">
+<caption>Summary Statistics by Configuration (500 games per
+cell)</caption>
+<tbody>
+<tr>
+<td style="text-align: center;"><strong>Warp</strong></td>
+<td style="text-align: center;"><strong>Fleet</strong></td>
+<td style="text-align: right;"><strong>N</strong></td>
+<td style="text-align: right;"><strong>Skill Index</strong></td>
+<td style="text-align: right;"><strong>Luck Index</strong></td>
+<td style="text-align: right;"><strong>Decision Quality</strong></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>Factor</strong></td>
+<td style="text-align: center;"><strong>Size</strong></td>
+<td style="text-align: right;"></td>
+<td
+style="text-align: right;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi><mo>±</mo><mi>σ</mi></mrow><annotation encoding="application/x-tex">\mu \pm \sigma</annotation></semantics></math></td>
+<td
+style="text-align: right;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi><mo>±</mo><mi>σ</mi></mrow><annotation encoding="application/x-tex">\mu \pm \sigma</annotation></semantics></math></td>
+<td
+style="text-align: right;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi><mo>±</mo><mi>σ</mi></mrow><annotation encoding="application/x-tex">\mu \pm \sigma</annotation></semantics></math></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W9</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">1.517<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.082</td>
+<td
+style="text-align: right;">0.332<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.011</td>
+<td
+style="text-align: right;">3.309<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.428</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W9</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">1.553<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.090</td>
+<td
+style="text-align: right;">0.339<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.012</td>
+<td
+style="text-align: right;">3.494<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.483</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W9</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">1.528<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.085</td>
+<td
+style="text-align: right;">0.334<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.011</td>
+<td
+style="text-align: right;">3.364<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.443</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W12</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">1.564<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.068</td>
+<td
+style="text-align: right;">0.314<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.006</td>
+<td
+style="text-align: right;">3.392<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.337</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W12</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">1.944<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.094</td>
+<td
+style="text-align: right;">0.352<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.010</td>
+<td
+style="text-align: right;">5.525<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.580</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W12</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.341<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.099</td>
+<td
+style="text-align: right;">0.389<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.009</td>
+<td
+style="text-align: right;">8.264<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.729</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W12</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.299<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.099</td>
+<td
+style="text-align: right;">0.384<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.009</td>
+<td
+style="text-align: right;">7.914<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.717</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W12</td>
+<td style="text-align: center;">6</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.550<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.094</td>
+<td
+style="text-align: right;">0.406<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.008</td>
+<td
+style="text-align: right;">9.873<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.777</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W12</td>
+<td style="text-align: center;">7</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.455<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.099</td>
+<td
+style="text-align: right;">0.393<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.007</td>
+<td
+style="text-align: right;">9.128<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.782</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W12</td>
+<td style="text-align: center;">8</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.629<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.107</td>
+<td
+style="text-align: right;">0.405<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.007</td>
+<td
+style="text-align: right;">10.562<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.912</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W15</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">1.532<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.055</td>
+<td
+style="text-align: right;">0.293<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.003</td>
+<td
+style="text-align: right;">3.114<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.250</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W15</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">1.788<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.078</td>
+<td
+style="text-align: right;">0.318<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.007</td>
+<td
+style="text-align: right;">4.359<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.405</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W15</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.167<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.098</td>
+<td
+style="text-align: right;">0.350<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.009</td>
+<td
+style="text-align: right;">6.556<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.609</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W15</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.239<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.105</td>
+<td
+style="text-align: right;">0.356<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.009</td>
+<td
+style="text-align: right;">7.008<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.672</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W15</td>
+<td style="text-align: center;">6</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.518<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.107</td>
+<td
+style="text-align: right;">0.375<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.009</td>
+<td
+style="text-align: right;">8.954<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.775</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W15</td>
+<td style="text-align: center;">7</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.460<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.103</td>
+<td
+style="text-align: right;">0.369<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.009</td>
+<td
+style="text-align: right;">8.554<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.718</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W15</td>
+<td style="text-align: center;">8</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.649<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.102</td>
+<td
+style="text-align: right;">0.380<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.008</td>
+<td
+style="text-align: right;">9.996<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.796</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W15</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.639<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.104</td>
+<td
+style="text-align: right;">0.376<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.007</td>
+<td
+style="text-align: right;">9.952<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.796</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W15</td>
+<td style="text-align: center;">10</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.774<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.107</td>
+<td
+style="text-align: right;">0.383<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.007</td>
+<td
+style="text-align: right;">11.056<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.885</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W15</td>
+<td style="text-align: center;">11</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.684<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.115</td>
+<td
+style="text-align: right;">0.373<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.007</td>
+<td
+style="text-align: right;">10.394<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.922</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W15</td>
+<td style="text-align: center;">12</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.803<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.112</td>
+<td
+style="text-align: right;">0.379<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.007</td>
+<td
+style="text-align: right;">11.404<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.965</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W18</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">1.631<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.051</td>
+<td
+style="text-align: right;">0.289<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.002</td>
+<td
+style="text-align: right;">3.458<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.233</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W18</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">1.725<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.061</td>
+<td
+style="text-align: right;">0.299<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.003</td>
+<td
+style="text-align: right;">3.873<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.288</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W18</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.048<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.090</td>
+<td
+style="text-align: right;">0.323<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.007</td>
+<td
+style="text-align: right;">5.533<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.489</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W18</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.165<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.093</td>
+<td
+style="text-align: right;">0.332<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.008</td>
+<td
+style="text-align: right;">6.197<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.530</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W18</td>
+<td style="text-align: center;">6</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.475<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.105</td>
+<td
+style="text-align: right;">0.352<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.008</td>
+<td
+style="text-align: right;">8.136<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.677</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W18</td>
+<td style="text-align: center;">7</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.457<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.111</td>
+<td
+style="text-align: right;">0.350<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.008</td>
+<td
+style="text-align: right;">8.054<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.712</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W18</td>
+<td style="text-align: center;">8</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.670<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.111</td>
+<td
+style="text-align: right;">0.362<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.008</td>
+<td
+style="text-align: right;">9.541<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.780</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W18</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.648<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.116</td>
+<td
+style="text-align: right;">0.358<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.007</td>
+<td
+style="text-align: right;">9.450<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.816</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W18</td>
+<td style="text-align: center;">10</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.809<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.113</td>
+<td
+style="text-align: right;">0.366<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.007</td>
+<td
+style="text-align: right;">10.654<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.848</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W18</td>
+<td style="text-align: center;">11</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.731<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.111</td>
+<td
+style="text-align: right;">0.358<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.007</td>
+<td
+style="text-align: right;">10.143<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.818</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W18</td>
+<td style="text-align: center;">12</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.844<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.109</td>
+<td
+style="text-align: right;">0.364<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.006</td>
+<td
+style="text-align: right;">11.018<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.855</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W18</td>
+<td style="text-align: center;">13</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.975<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.112</td>
+<td
+style="text-align: right;">0.369<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.006</td>
+<td
+style="text-align: right;">12.095<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.909</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W18</td>
+<td style="text-align: center;">14</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.806<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.110</td>
+<td
+style="text-align: right;">0.356<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.006</td>
+<td
+style="text-align: right;">10.846<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.855</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W18</td>
+<td style="text-align: center;">15</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.905<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.112</td>
+<td
+style="text-align: right;">0.360<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.006</td>
+<td
+style="text-align: right;">11.653<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.915</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W18</td>
+<td style="text-align: center;">16</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">3.002<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.121</td>
+<td
+style="text-align: right;">0.364<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.006</td>
+<td
+style="text-align: right;">12.456<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>1.025</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W18</td>
+<td style="text-align: center;">17</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.757<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.117</td>
+<td
+style="text-align: right;">0.347<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.006</td>
+<td
+style="text-align: right;">10.635<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.913</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">W18</td>
+<td style="text-align: center;">18</td>
+<td style="text-align: right;">500</td>
+<td
+style="text-align: right;">2.834<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.118</td>
+<td
+style="text-align: right;">0.350<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.006</td>
+<td
+style="text-align: right;">11.257<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>±</mi><annotation encoding="application/x-tex">\pm</annotation></semantics></math>0.955</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+</tbody>
+</table>
+<table id="tab:hypothesis-tests">
+<caption>Statistical Test Results for Primary Hypotheses</caption>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Hypothesis</strong></th>
+<th style="text-align: left;"><strong>Test</strong></th>
+<th style="text-align: right;"><strong>Statistic</strong></th>
+<th style="text-align: right;"><strong>Value</strong></th>
+<th
+style="text-align: right;"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>-value</strong></th>
+<th style="text-align: left;"><strong>Result</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">H1: Warp factor effect</td>
+<td style="text-align: left;">One-way ANOVA</td>
+<td
+style="text-align: right;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>F</mi><annotation encoding="application/x-tex">F</annotation></semantics></math></td>
+<td style="text-align: right;">0.00</td>
+<td
+style="text-align: right;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&lt;</mo><mn>0.001</mn></mrow><annotation encoding="application/x-tex">&lt;0.001</annotation></semantics></math></td>
+<td style="text-align: left;">Supported</td>
+</tr>
+<tr>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"></td>
+<td
+style="text-align: right;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>η</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\eta^2</annotation></semantics></math></td>
+<td style="text-align: right;">0.290</td>
+<td style="text-align: right;"></td>
+<td style="text-align: left;">(large effect)</td>
+</tr>
+<tr>
+<td style="text-align: left;">H2: Fleet size effect</td>
+<td style="text-align: left;">Pearson
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math>
+(W12)</td>
+<td
+style="text-align: right;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math></td>
+<td style="text-align: right;">0.000</td>
+<td
+style="text-align: right;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&lt;</mo><mn>0.001</mn></mrow><annotation encoding="application/x-tex">&lt;0.001</annotation></semantics></math></td>
+<td style="text-align: left;">Supported</td>
+</tr>
+<tr>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">Pearson
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math>
+(W15)</td>
+<td
+style="text-align: right;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math></td>
+<td style="text-align: right;">0.000</td>
+<td
+style="text-align: right;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&lt;</mo><mn>0.001</mn></mrow><annotation encoding="application/x-tex">&lt;0.001</annotation></semantics></math></td>
+<td style="text-align: left;">(strong positive)</td>
+</tr>
+<tr>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">Pearson
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math>
+(W18)</td>
+<td
+style="text-align: right;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math></td>
+<td style="text-align: right;">0.000</td>
+<td
+style="text-align: right;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&lt;</mo><mn>0.001</mn></mrow><annotation encoding="application/x-tex">&lt;0.001</annotation></semantics></math></td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">H3: Interaction</td>
+<td style="text-align: left;">Slope variance</td>
+<td
+style="text-align: right;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>s</mi><mn>2</mn></msup><annotation encoding="application/x-tex">s^2</annotation></semantics></math></td>
+<td style="text-align: right;">0.0209</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: left;">Present</td>
+</tr>
+<tr>
+<td style="text-align: left;">H4: Complexity-coherence</td>
+<td style="text-align: left;">Pearson
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math></td>
+<td
+style="text-align: right;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math></td>
+<td style="text-align: right;">0.009</td>
+<td
+style="text-align: right;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&gt;</mo><mn>0.05</mn></mrow><annotation encoding="application/x-tex">&gt;0.05</annotation></semantics></math></td>
+<td style="text-align: left;">Weak</td>
+</tr>
+<tr>
+<td style="text-align: left;">H5: Monotonic trends</td>
+<td style="text-align: left;">Kendall’s
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>τ</mi><annotation encoding="application/x-tex">\tau</annotation></semantics></math></td>
+<td
+style="text-align: right;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>τ</mi><annotation encoding="application/x-tex">\tau</annotation></semantics></math></td>
+<td style="text-align: right;">0.8–0.9</td>
+<td
+style="text-align: right;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&lt;</mo><mn>0.001</mn></mrow><annotation encoding="application/x-tex">&lt;0.001</annotation></semantics></math></td>
+<td style="text-align: left;">Supported</td>
+</tr>
+</tbody>
+</table>
+<table id="tab:correlation-matrix">
+<caption>Correlation Matrix for Key Game Metrics
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>=</mo><mn>19</mn><mo>,</mo><mn>000</mn></mrow><annotation encoding="application/x-tex">N=19{,}000</annotation></semantics></math>)</caption>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Skill Index</strong></td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;"><strong>0.70</strong></td>
+<td style="text-align: right;"><strong>0.99</strong></td>
+<td style="text-align: right;">0.38</td>
+<td style="text-align: right;"><strong>0.87</strong></td>
+<td style="text-align: right;"><strong>-0.76</strong></td>
+<td style="text-align: right;"><strong>0.52</strong></td>
+<td style="text-align: right;"><strong>0.84</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Luck Index</strong></td>
+<td style="text-align: right;"><strong>0.70</strong></td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;"><strong>0.73</strong></td>
+<td style="text-align: right;"><span
+style="color: gray">-0.08</span></td>
+<td style="text-align: right;"><strong>0.88</strong></td>
+<td style="text-align: right;"><strong>-0.97</strong></td>
+<td style="text-align: right;">-0.16</td>
+<td style="text-align: right;">0.40</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Decision Quality</strong></td>
+<td style="text-align: right;"><strong>0.99</strong></td>
+<td style="text-align: right;"><strong>0.73</strong></td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">0.32</td>
+<td style="text-align: right;"><strong>0.92</strong></td>
+<td style="text-align: right;"><strong>-0.81</strong></td>
+<td style="text-align: right;">0.43</td>
+<td style="text-align: right;"><strong>0.84</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Hand Entropy</strong></td>
+<td style="text-align: right;">0.38</td>
+<td style="text-align: right;"><span
+style="color: gray">-0.08</span></td>
+<td style="text-align: right;">0.32</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;"><span
+style="color: gray">0.01</span></td>
+<td style="text-align: right;"><span
+style="color: gray">0.06</span></td>
+<td style="text-align: right;"><strong>0.82</strong></td>
+<td style="text-align: right;">0.21</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Legal Moves</strong></td>
+<td style="text-align: right;"><strong>0.87</strong></td>
+<td style="text-align: right;"><strong>0.88</strong></td>
+<td style="text-align: right;"><strong>0.92</strong></td>
+<td style="text-align: right;"><span
+style="color: gray">0.01</span></td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;"><strong>-0.95</strong></td>
+<td style="text-align: right;"><span
+style="color: gray">0.05</span></td>
+<td style="text-align: right;"><strong>0.71</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Near-Optimal %</strong></td>
+<td style="text-align: right;"><strong>-0.76</strong></td>
+<td style="text-align: right;"><strong>-0.97</strong></td>
+<td style="text-align: right;"><strong>-0.81</strong></td>
+<td style="text-align: right;"><span
+style="color: gray">0.06</span></td>
+<td style="text-align: right;"><strong>-0.95</strong></td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">0.12</td>
+<td style="text-align: right;"><strong>-0.51</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Warp Factor</strong></td>
+<td style="text-align: right;"><strong>0.52</strong></td>
+<td style="text-align: right;">-0.16</td>
+<td style="text-align: right;">0.43</td>
+<td style="text-align: right;"><strong>0.82</strong></td>
+<td style="text-align: right;"><span
+style="color: gray">0.05</span></td>
+<td style="text-align: right;">0.12</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;"><strong>0.53</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Player Count</strong></td>
+<td style="text-align: right;"><strong>0.84</strong></td>
+<td style="text-align: right;">0.40</td>
+<td style="text-align: right;"><strong>0.84</strong></td>
+<td style="text-align: right;">0.21</td>
+<td style="text-align: right;"><strong>0.71</strong></td>
+<td style="text-align: right;"><strong>-0.51</strong></td>
+<td style="text-align: right;"><strong>0.53</strong></td>
+<td style="text-align: right;">—</td>
+</tr>
+</tbody>
+</table>
+<p><em>Note:</em> Bold values indicate strong correlation
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi>r</mi><mo stretchy="false" form="prefix">|</mo><mo>&gt;</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">|r| &gt; 0.5</annotation></semantics></math>);
+gray values indicate negligible correlation
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi>r</mi><mo stretchy="false" form="prefix">|</mo><mo>&lt;</mo><mn>0.1</mn></mrow><annotation encoding="application/x-tex">|r| &lt; 0.1</annotation></semantics></math>).</p>
+<h1 data-number="13" id="code-map"><span
+class="header-section-number">13</span> Code Map</h1>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Concern</strong></th>
+<th style="text-align: left;"><strong>Location</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Skill presets</td>
+<td
+style="text-align: left;"><code>libs/engine/src/lib/ai/skill.ts</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Heuristics</td>
+<td
+style="text-align: left;"><code>libs/engine/src/lib/ai/heuristics.ts</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Self-play</td>
+<td
+style="text-align: left;"><code>libs/engine/src/lib/ai/self-play.ts</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Calibration</td>
+<td
+style="text-align: left;"><code>libs/engine/src/lib/ai/ai-elo-calibration.ts</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Optimizer</td>
+<td
+style="text-align: left;"><code>libs/engine/src/lib/ai/ai-weight-optimizer.ts</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Fleet Admiral / ISMCTS</td>
+<td
+style="text-align: left;"><code>libs/engine/src/lib/ai/fleet-admiral.ts</code>,
+<code>ismcts.ts</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Expectimax preset</td>
+<td
+style="text-align: left;"><code>resolveFleetAdmiralExpectimaxLookahead()</code>
+in <code>fleet-admiral.ts</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Parallel bench</td>
+<td
+style="text-align: left;"><code>libs/engine/src/lib/ai/bench-fleet-admiral-parallel.ts</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Class I* policy</td>
+<td
+style="text-align: left;"><code>libs/engine/src/lib/ai/class1-star-policy.ts</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Class I* features</td>
+<td
+style="text-align: left;"><code>libs/engine/src/lib/ai/feature-encoder.ts</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Class I* training</td>
+<td style="text-align: left;"><code>tools/nn/</code>
+(<code>collect</code>, <code>train.py</code>, <code>bench</code>)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Class
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>
+agent / search</td>
+<td
+style="text-align: left;"><code>libs/engine/src/lib/ai/omega-agent.ts</code>,
+<code>omega-search-agent.ts</code></td>
+</tr>
+<tr>
+<td
+style="text-align: left;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>
+collect / bench</td>
+<td
+style="text-align: left;"><code>collect-omega-trajectories.ts</code>,
+<code>bench-omega.ts</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Human TEI update</td>
+<td
+style="text-align: left;"><code>apps/Warp12/src/firebase/stats-elo.ts</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Rules profile / anchors</td>
+<td style="text-align: left;"><code>warp12-official-v1</code> /
+<code>v2</code> in <code>rules-profile.ts</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Luck/skill metrics</td>
+<td
+style="text-align: left;"><code>libs/engine/src/lib/ai/luck-skill-metrics.ts</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Luck/skill collection</td>
+<td
+style="text-align: left;"><code>tools/nn/collect-luck-skill-single-config.ts</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Statistical analysis</td>
+<td
+style="text-align: left;"><code>tools/nn/process-luck-skill-data.py</code>,
+<code>test-hypotheses.py</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Figure generation</td>
+<td
+style="text-align: left;"><code>tools/nn/create-figures.py</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Rules spec</td>
+<td style="text-align: left;"><code>RULES.md</code></td>
+</tr>
+</tbody>
+</table>
+<h1 data-number="14" id="reproducibility"><span
+class="header-section-number">14</span> Reproducibility</h1>
+<h2 data-number="14.1" id="self-play-calibration"><span
+class="header-section-number">14.1</span> Self-Play Calibration</h2>
+<pre><code>yarn calibrate:ai-tei
+AI_CALIBRATION_GAMES=500 yarn calibrate:ai-tei
+yarn calibrate:ai-tei-dti
+yarn optimize:ai-weights</code></pre>
+<h2 data-number="14.2" id="fleet-admiral-benchmarks"><span
+class="header-section-number">14.2</span> Fleet Admiral Benchmarks</h2>
+<pre><code>yarn fleet-admiral:bench:500
+FLEET_BENCH_SEAT=b yarn fleet-admiral:bench:500
+yarn fleet-admiral:bench:go-out-4p:500
+yarn jiti tools/nn/compare-fleet-search.ts</code></pre>
+<h2 data-number="14.3" id="class-i-training"><span
+class="header-section-number">14.3</span> Class I* Training</h2>
+<pre><code>yarn class1-star:pipeline:deep
+yarn class1-star:pipeline:go-out
+yarn class1-star:pipeline:deepblue</code></pre>
+<h2 data-number="14.4" id="luck-vs-skill-data-collection"><span
+class="header-section-number">14.4</span> Luck vs Skill Data
+Collection</h2>
+<pre><code># Fine-grained parallel (38 workers, one per config)
+COMPREHENSIVE_GAMES=500 COMPREHENSIVE_WORKERS=15 \
+  bash tools/nn/run-comprehensive-parallel-fine.sh
+
+# Process and analyze
+python3 tools/nn/process-luck-skill-data.py
+python3 tools/nn/test-hypotheses.py
+python3 tools/nn/create-figures.py
+python3 tools/nn/create-tables.py</code></pre>
+<p>All data and scripts are available in the <code>warp12-engine</code>
+package and <code>tools/nn/</code> directory.</p>
+<h1 data-number="15" id="target-venues"><span
+class="header-section-number">15</span> Target Venues</h1>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Venue</strong></th>
+<th style="text-align: left;"><strong>Fit</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>AIIDE</strong></td>
+<td style="text-align: left;">Best fit — game AI + evaluation</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>IEEE CoG</strong></td>
+<td style="text-align: left;">Strong — agents + competition</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>FDG</strong></td>
+<td style="text-align: left;">Game design + dual objective angle</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>CHI PLAY</strong></td>
+<td style="text-align: left;">Advisor / TEI integrity angle</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>arXiv cs.AI</strong></td>
+<td style="text-align: left;">White paper / preprint</td>
+</tr>
+</tbody>
+</table>
+<div class="thebibliography">
+<p><span>99</span></p>
+<p>Browne, C.B., Powley, E., Whitehouse, D., Lucas, S.M., Cowling, P.I.,
+Rohlfshagen, P., Tavener, S., Perez, D., Samothrakis, S., and Colton, S.
+(2012). <em>A Survey of Monte Carlo Tree Search Methods</em>. IEEE
+Transactions on Computational Intelligence and AI in Games,
+4(1):1–43.</p>
+<p>Silver, D., Schrittwieser, J., Simonyan, K., et al. (2017).
+<em>Mastering the game of Go without human knowledge</em>. Nature,
+550(7676):354–359.</p>
+<p>Elo, A.E. (1978). <em>The Rating of Chessplayers, Past and
+Present</em>. Arco Publishing, New York.</p>
+<p>Cowling, P.I., Powley, E.J., and Whitehouse, D. (2012).
+<em>Information Set Monte Carlo Tree Search</em>. IEEE Transactions on
+Computational Intelligence and AI in Games, 4(2):120–143.</p>
+<p>Frank, I., and Basin, D. (1996). <em>Search in Games with Incomplete
+Information: A Case Study Using Bridge Card Play</em>. Artificial
+Intelligence, 100(1-2):87–123.</p>
+<p>Glickman, M.E. (1999). <em>Parameter Estimation in Large Dynamic
+Paired Comparison Experiments</em>. Applied Statistics,
+48(3):377–394.</p>
+<p>Herbrich, R., Minka, T., and Graepel, T. (2006). <em>TrueSkill™: A
+Bayesian Skill Rating System</em>. Advances in Neural Information
+Processing Systems, 19:569–576.</p>
+<p>Silver, D., Hubert, T., Schrittwieser, J., et al. (2018). <em>A
+General Reinforcement Learning Algorithm that Masters Chess, Shogi, and
+Go through Self-Play</em>. Science, 362(6419):1140–1144.</p>
+<p>Bowling, M., Burch, N., Johanson, M., and Tammelin, O. (2015).
+<em>Heads-up Limit Hold’em Poker is Solved</em>. Science,
+347(6218):145–149.</p>
+<p>Digital Defiance (2024). <em>DoubleEighteen: Open-Source Domino Tile
+Rendering Library</em>. <a
+href="https://github.com/digitaldefiance/double-eighteen"
+class="uri">https://github.com/digitaldefiance/double-eighteen</a></p>
+<p>Tesauro, G. (1995). <em>Temporal Difference Learning and
+TD-Gammon</em>. Communications of the ACM, 38(3):58–68.</p>
+</div>
+</body>
+</html>

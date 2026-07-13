@@ -66,6 +66,12 @@ describe('verify-local-ai-replay', () => {
       humanActions,
     });
 
+    if (!replay.ok) {
+      console.error('Replay failed:', replay.violation, 'at step', replay.steps);
+      console.error('Human actions count:', humanActions.length);
+      console.error('Action types:', humanActions.map(a => a.type).slice(0, 20));
+    }
+
     expect(replay.ok).toBe(true);
     if (!replay.ok) {
       return;

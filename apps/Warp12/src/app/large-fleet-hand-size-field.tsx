@@ -13,9 +13,8 @@ function normalize(value: number): LargeFleetHandSize {
 }
 
 /**
- * Hand size for 7–8 captain fleets — the one setup value where published rule
- * sets disagree (10 = Masters of Games / modern sets; 11 = Galt 1994 /
- * University Games). Fleets of 9+ (Warp 15 / 18) use fixed profile sizes.
+ * Hand size for 7–8 captain fleets only — show only when the fleet is exactly
+ * 7 or 8. Masters of Games / modern = 10; Galt 1994 / University Games = 11.
  */
 export function LargeFleetHandSizeField({
   value,
@@ -35,8 +34,8 @@ export function LargeFleetHandSizeField({
         <option value={11}>11 tiles (Galt / University Games)</option>
       </select>
       <span className={styles.hint}>
-        Applies only when the fleet is 7 or 8. Larger exhibition fleets (9+) use
-        fixed hand sizes for that Warp factor.
+        Only applies at exactly 7 or 8 captains. Larger Warp 15 / 18 fleets use
+        fixed profile sizes (not this control).
       </span>
     </label>
   );

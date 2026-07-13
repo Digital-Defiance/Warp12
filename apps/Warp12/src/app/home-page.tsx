@@ -1,5 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 
+import { defaultCampaignRounds } from 'warp12-engine';
+
 import { useLayoutTier } from './layout-tier-context';
 import styles from './home-page.module.scss';
 import { Warp12Logo } from './Warp12Logo';
@@ -15,7 +17,16 @@ export const HomePage: FC<HomePageProps> = ({ factor }) => {
   const layoutTier = useLayoutTier();
   const phoneLayout = layoutTier === 'phone';
   const warpFactor = getWarpFactor();
-
+  const campaignRounds = warpFactor
+    ? defaultCampaignRounds(warpFactor)
+    : defaultCampaignRounds(12);
+  const campaignCopy = warpFactor
+    ? `a full points campaign across ${campaignRounds} spacedock rounds`
+    : 'a full points campaign across the spacedock ladder';
+  const teiCopy =
+    warpFactor && warpFactor !== 12
+      ? ' TEI ladders stay on Warp 12 — other factors are exhibition.'
+      : '';
   const warpFactorSelection = (
     <section className={styles.warpFactorSelection}>
       <h2 className={styles.warpFactorSelectionHeading}>Choose your Warp Factor</h2>
@@ -36,16 +47,6 @@ export const HomePage: FC<HomePageProps> = ({ factor }) => {
   const missionSection = (
     <section className={styles.mission}>
       <h2 className={styles.playHeading}>Choose your mission</h2>
-      {phoneLayout ? (
-        <p className={styles.playRequirement}>
-          Phone preview — round summaries work best in portrait.
-        </p>
-      ) : (
-        <p className={styles.playRequirement}>
-          Tablet or desktop recommended. Phone layout preview — portrait for
-          round summaries.
-        </p>
-      )}
       <div className={styles.grid}>
         <button
           type="button"
@@ -124,8 +125,7 @@ export const HomePage: FC<HomePageProps> = ({ factor }) => {
         rival&apos;s line when their distress beacon is down. Doubles trigger red
         alert. Optional house rules add Drop to Impulse; optional modules add
         subspace fractures, All Stop! drama, and Q-Continuum chaos. Play a quick
-        first-out sprint or a full points campaign across thirteen spacedock
-        rounds.
+        first-out sprint or {campaignCopy}.{teiCopy}
       </p>
       <p className={styles.heroLinks}>
         <Link to="/about" className={styles.heroLink}>
@@ -178,11 +178,6 @@ export const HomePage: FC<HomePageProps> = ({ factor }) => {
           The digital implementation is young. Expect rough edges, rule
           mismatches, and logic bugs. If something looks wrong, trust your
           living-room adjudication over the app.
-        </li>
-        <li>
-          Warp is built for <strong>tablets and desktops</strong>. A{' '}
-          <strong>phone layout</strong> is in preview — rotate to portrait for
-          round summaries.
         </li>
       </ul>
     </section>

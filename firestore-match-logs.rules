@@ -1,0 +1,29 @@
+// Firestore Security Rules for User Match Logs
+// Binary match history synced across devices
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // User match logs collection
+    match /userMatchLogs/{uid}/matches/{matchId} {
+      // Users can only access their own match logs
+      allow read: if request.auth != null && request.auth.uid == uid;
+      
+      // Users can write their own match logs
+      allow create: if request.auth != null 
+                    && request.auth.uid == uid
+                    && request.resource.data.gameId is string
+                    && request.resource.data.actions is map
+                    && request.resource.data.exportedAt is timestamp;
+      
+      // Users can update their own match logs
+      allow update: if request.auth != null 
+                    && request.auth.uid == uid;
+      
+      // Users can delete their own match logs
+      allow delete: if request.auth != null 
+                    && request.auth.uid == uid;
+    }
+  }
+}

@@ -10,6 +10,19 @@ export interface CharterModulesConfig {
   continuum: boolean;
   subspaceFracture: boolean;
   subspaceFractureScope: CharterSubspaceFractureScope;
+  // Rated modules (Gamma, Delta, Eta, Theta, Iota, Kappa)
+  sensorGrid: boolean;
+  sensorGridSize?: number;
+  warpDriveSpool: boolean;
+  temporalDebt: boolean;
+  temporalDebtCostPerToken?: number;
+  longestTrail: boolean;
+  longestTrailBonus?: number;
+  doubleDown: boolean;
+  doubleDownDrawCount?: number;
+  temporalInversion: boolean;
+  // Warped/Exhibition modules (Lambda)
+  wormholes: boolean;
 }
 
 export type CharterDropToImpulseCatchPenalty = 1 | 2;
@@ -37,6 +50,17 @@ export const OFFICIAL_CHARTER_MODULES: CharterModulesConfig = {
   continuum: true,
   subspaceFracture: false,
   subspaceFractureScope: 'own-trail',
+  sensorGrid: false,
+  sensorGridSize: 5,
+  warpDriveSpool: false,
+  temporalDebt: false,
+  temporalDebtCostPerToken: 2,
+  longestTrail: false,
+  longestTrailBonus: -3,
+  doubleDown: false,
+  doubleDownDrawCount: 2,
+  temporalInversion: false,
+  wormholes: false,
 };
 
 export const OFFICIAL_CHARTER_HOUSE_RULES: CharterHouseRulesConfig = {
@@ -79,6 +103,17 @@ export function resolveCharterModules(
     subspaceFracture:
       input.subspaceFracture ?? OFFICIAL_CHARTER_MODULES.subspaceFracture,
     subspaceFractureScope: resolveScope(input.subspaceFractureScope),
+    sensorGrid: input.sensorGrid ?? OFFICIAL_CHARTER_MODULES.sensorGrid,
+    sensorGridSize: input.sensorGridSize ?? OFFICIAL_CHARTER_MODULES.sensorGridSize,
+    warpDriveSpool: input.warpDriveSpool ?? OFFICIAL_CHARTER_MODULES.warpDriveSpool,
+    temporalDebt: input.temporalDebt ?? OFFICIAL_CHARTER_MODULES.temporalDebt,
+    temporalDebtCostPerToken: input.temporalDebtCostPerToken ?? OFFICIAL_CHARTER_MODULES.temporalDebtCostPerToken,
+    longestTrail: input.longestTrail ?? OFFICIAL_CHARTER_MODULES.longestTrail,
+    longestTrailBonus: input.longestTrailBonus ?? OFFICIAL_CHARTER_MODULES.longestTrailBonus,
+    doubleDown: input.doubleDown ?? OFFICIAL_CHARTER_MODULES.doubleDown,
+    doubleDownDrawCount: input.doubleDownDrawCount ?? OFFICIAL_CHARTER_MODULES.doubleDownDrawCount,
+    temporalInversion: input.temporalInversion ?? OFFICIAL_CHARTER_MODULES.temporalInversion,
+    wormholes: input.wormholes ?? OFFICIAL_CHARTER_MODULES.wormholes,
   };
 }
 
@@ -147,7 +182,18 @@ export function charterModulesMatch(
     expected.salamanderPenalty === actual.salamanderPenalty &&
     expected.continuum === actual.continuum &&
     expected.subspaceFracture === actual.subspaceFracture &&
-    expected.subspaceFractureScope === actual.subspaceFractureScope
+    expected.subspaceFractureScope === actual.subspaceFractureScope &&
+    expected.sensorGrid === actual.sensorGrid &&
+    (expected.sensorGridSize ?? 5) === (actual.sensorGridSize ?? 5) &&
+    expected.warpDriveSpool === actual.warpDriveSpool &&
+    expected.temporalDebt === actual.temporalDebt &&
+    (expected.temporalDebtCostPerToken ?? 2) === (actual.temporalDebtCostPerToken ?? 2) &&
+    expected.longestTrail === actual.longestTrail &&
+    (expected.longestTrailBonus ?? -3) === (actual.longestTrailBonus ?? -3) &&
+    expected.doubleDown === actual.doubleDown &&
+    (expected.doubleDownDrawCount ?? 2) === (actual.doubleDownDrawCount ?? 2) &&
+    expected.temporalInversion === actual.temporalInversion &&
+    expected.wormholes === actual.wormholes
   );
 }
 

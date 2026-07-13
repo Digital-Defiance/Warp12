@@ -8,7 +8,7 @@ import {
 import {
   runFourPlayerFocusMatchup,
   runSkillMatchup,
-} from './ai-elo-calibration.js';
+} from './ai-rating-calibration.js';
 import { setGoOutPresetsOverride } from './skill.js';
 import type { GameObjective } from '../types/objective.js';
 

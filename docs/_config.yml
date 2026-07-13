@@ -56,7 +56,7 @@ defaults:
       title: TEI Specification
       parent: TEI & Rating
       nav_order: 1
-      description: Normative dual-track Elo-style skill rating for points and go-out campaigns.
+      description: Normative dual-track OpenSkill-based skill rating for points and go-out campaigns.
 
   - scope:
       path: calibration-log.md

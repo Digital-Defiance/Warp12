@@ -18,6 +18,7 @@ export interface TrailSpokeStatus {
   readonly label: string;
   readonly state: TrailAccessState;
   readonly connectValue: number;
+  readonly hasHazardMarker?: boolean;
 }
 
 /** Whether other captains may chart on this warp trail. */
@@ -51,6 +52,7 @@ export function buildTrailSpokeStatuses(
           round.table.neutralZone,
           round.spacedockValue
         ),
+        hasHazardMarker: false,
       });
       continue;
     }
@@ -81,6 +83,7 @@ export function buildTrailSpokeStatuses(
       label: names[captainId] ?? captainId,
       state,
       connectValue,
+      hasHazardMarker: round.hazardMarkerHolder === captainId,
     });
   }
 

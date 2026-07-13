@@ -5,6 +5,32 @@ Goal: **honest self-improvement** — measure, tune, document, repeat.
 
 ---
 
+## 2026-07-13 — OpenSkill Migration Complete
+
+**Product:** TEI rating system migrated from Elo to **OpenSkill** (Bayesian skill rating with μ ± σ). Backend fully migrated, UI displays TEI Grades (e.g., "V67", "C42") where letter = confidence tier (E/V/C/I/P based on σ) and number = conservative skill score (μ - 3σ normalized to 0-99).
+
+**Anchors calibrated via 2,000-game self-play (see `openskill-calibration-log.md` for full analysis):**
+
+| Track | Ensign (IV) | Lieutenant (III) | Commander (II) |
+|-------|-------------|------------------|----------------|
+| Points | μ=18.0, σ=4.0 | μ=26.5, σ=3.5 | μ=35.0, σ=3.0 |
+| Go-out | μ=17.5, σ=4.5 | μ=28.0, σ=4.0 | μ=41.5, σ=3.5 |
+
+**Calibration results:**
+- **Points:** Good separation (Ensign 15.7% vs Lieutenant, Lieutenant 36.3% vs Commander, overall ordering strong)
+- **Go-out:** Expected compression due to racing dynamics (win rates 38-44% despite wide μ gaps, skill ordering preserved)
+
+**TEI Grade System:**
+- **E** (Elite): σ < 0.5 — Highly established rating
+- **V** (Veteran): 0.5 ≤ σ < 1.5 — Reliable rating
+- **C** (Consistent): 1.5 ≤ σ < 2.5 — Stable with some uncertainty
+- **I** (Improving): 2.5 ≤ σ < 4.0 — Recent activity or low sample
+- **P** (Provisional): σ ≥ 4.0 — Insufficient data
+
+**Takeaway:** OpenSkill provides proper team rating support (for future Module Zeta), better uncertainty modeling (σ decreases with matches), and conservative display rating (μ - 3σ) prevents new player inflation. Go-out compression is expected and handled via percentile boards. Legacy Elo data not migrated (clean start).
+
+---
+
 ## 2026-07-08 — Class II Ω ship + `warp12-official-v2` TEI recalibration
 
 **Product:** Class II (`commander`) now runs greedy Ω in play. Extended thinking (Ω+, local only) is unrated exhibition. Tactical advisor follows Ω picks with heuristic explanations.
@@ -13,7 +39,7 @@ Goal: **honest self-improvement** — measure, tune, document, repeat.
 - Points: mean **~1.38×** (2p ~parity; strength at 4–8p)
 - Go-out: mean **~1.14×** (2–4p ~parity; soft seat-B 2p; strength mid-fleet)
 
-**Anchors chosen for typical solo tables (2–4p), not fleet-mean Elo translation:**
+**Anchors chosen for typical solo tables (2–4p), not fleet-mean rating translation:**
 - Points Class II REF_TEI **1400 → 1520**
 - Go-out Class II REF_TEI **1500 → 1550**
 (Earlier draft 1680/1650 over-read large-fleet fair-share and would have deflated the ladder.)
@@ -39,7 +65,7 @@ Goal: **honest self-improvement** — measure, tune, document, repeat.
 **Drop to Impulse (points sanity)**  
 - All matchups complete; ordering preserved (83% / 91.5% / 59%)  
 
-**Takeaway:** Points calibrates well. Go-out implied TEI gaps compress — percentile boards and wider reference spacing (250 vs 200) are the right product response, not tighter heuristic targets alone.
+**Takeaway:** Points calibrates well. Go-out implied rating gaps compress — percentile boards and wider reference spacing (250 vs 200) are the right product response, not tighter heuristic targets alone.
 
 ---
 

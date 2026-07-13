@@ -28,13 +28,13 @@ export const RULES_PROFILE_CATALOG: Readonly<Record<string, RulesProfileMeta>> =
       id: WARP12_OFFICIAL_V1_RULES_PROFILE_ID,
       label: 'Official Warp 12 (legacy)',
       summary:
-        'Heuristic Class II officers at REF_TEI 1400/1500. Pinned for existing crews.',
+        'Heuristic Commander officers at REF_TEI 1400/1500. Pinned for existing crews.',
     },
     [WARP12_OFFICIAL_V2_RULES_PROFILE_ID]: {
       id: WARP12_OFFICIAL_V2_RULES_PROFILE_ID,
       label: 'Official Warp 12',
       summary:
-        'Neural Class II (Ω) officers; recalibrated TEI anchors (1520 points / 1550 go-out).',
+        'Neural Commander (Ω) officers; recalibrated TEI anchors (1520 points / 1550 go-out).',
     },
   };
 

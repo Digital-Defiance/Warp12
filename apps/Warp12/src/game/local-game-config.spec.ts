@@ -8,6 +8,7 @@ import {
   isPassAndPlay,
   isRatedLocalGame,
   LOCAL_MIN_PLAYERS,
+  neuralAiSupported,
   soloHumanCaptain,
 } from './local-game-config.js';
 
@@ -38,6 +39,20 @@ describe('local-game-config', () => {
     expect(clampLocalPlayerCount(18, 18)).toBe(18);
     expect(clampLocalPlayerCount(18, 12)).toBe(8);
     expect(buildAiCaptains(17, 18)).toHaveLength(17);
+  });
+
+  it('reports neural weights only where they ship (Warp 12 today)', () => {
+    expect(neuralAiSupported(12)).toBe(true);
+    expect(neuralAiSupported(9)).toBe(false);
+    expect(neuralAiSupported(15)).toBe(false);
+    expect(neuralAiSupported(18)).toBe(false);
+  });
+
+  it('does not default exhibition fleets to Commander (Ω) seats', () => {
+    const exhibition = buildAiCaptains(3, 18);
+    expect(exhibition.every((ai) => ai.skill === 'lieutenant')).toBe(true);
+    const rated = buildAiCaptains(3, 12);
+    expect(rated.some((ai) => ai.skill === 'commander')).toBe(true);
   });
 
   it('treats non-12 factors as exhibition (unrated)', () => {

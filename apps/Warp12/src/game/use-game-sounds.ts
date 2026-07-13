@@ -34,6 +34,8 @@ export interface GameSoundSnapshot {
   dropToImpulseCatchable: string | null;
   /** Engine signal: a draw just grew an at-impulse hand back to warp. */
   returnedToWarp: boolean;
+  /** Engine signal: wormhole opened (trails inverted). */
+  wormholeOpened: boolean;
   unchartedSectorCount: number;
   turnBeepsEnabled: boolean;
 }
@@ -62,12 +64,8 @@ export function detectGameSoundTransitions(
     play.push('consoleWarning');
   }
 
-  if (
-    next.trueRedAlert &&
-    previous.trueRedAlert &&
-    next.redAlertResponsibleId !== previous.redAlertResponsibleId &&
-    next.activeBeaconCount > previous.activeBeaconCount
-  ) {
+  // Red alert starts when it becomes active, continues until cleared.
+  if (next.trueRedAlert && !previous.trueRedAlert) {
     play.push('redAlert');
   }
 
@@ -98,6 +96,10 @@ export function detectGameSoundTransitions(
 
   if (next.returnedToWarp && !previous.returnedToWarp) {
     play.push('returnToWarp');
+  }
+
+  if (next.wormholeOpened && !previous.wormholeOpened) {
+    play.push('wormhole');
   }
 
   return { play, stop };
@@ -137,6 +139,7 @@ export function useGameSoundEffects(options: {
   dropToImpulseCallPending: string | null;
   dropToImpulseCatchable: string | null;
   returnedToWarp: boolean;
+  wormholeOpened: boolean;
   unchartedSectorCount: number;
   turnBeepsEnabled: boolean;
 }): void {
@@ -178,6 +181,7 @@ export function useGameSoundEffects(options: {
       dropToImpulseCallPending: options.dropToImpulseCallPending,
       dropToImpulseCatchable: options.dropToImpulseCatchable,
       returnedToWarp: options.returnedToWarp,
+      wormholeOpened: options.wormholeOpened,
       unchartedSectorCount: options.unchartedSectorCount,
       turnBeepsEnabled: options.turnBeepsEnabled,
     };
@@ -224,6 +228,7 @@ export function useGameSoundEffects(options: {
     options.dropToImpulseCallPending,
     options.dropToImpulseCatchable,
     options.returnedToWarp,
+    options.wormholeOpened,
     options.unchartedSectorCount,
     options.turnBeepsEnabled,
   ]);

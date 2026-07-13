@@ -25,7 +25,7 @@ import { observe, type WarpAiObservation } from './observation.js';
 import type { WarpAiPlayer } from './create-warp-ai.js';
 
 export interface CreateOmegaPlayerOptions {
-  /** Trained (or zero-init) Class Ω weights. */
+  /** Trained (or zero-init) Ω weights. */
   net: OmegaModelWeights;
   /** Seeded RNG for reproducible sampling. Defaults to `Math.random`. */
   rng?: Rng;
@@ -83,7 +83,7 @@ function argmaxIndex(values: readonly number[]): number {
 }
 
 /**
- * Standalone Class Ω opponent — chooses actions purely from the learned policy
+ * Standalone Ω opponent — chooses actions purely from the learned policy
  * network. No heuristics, no Commander, no search. It plays to win and does not
  * explain itself; the coach/advisor path is unaffected and stays heuristic.
  */

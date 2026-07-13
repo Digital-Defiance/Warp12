@@ -1,5 +1,6 @@
 # See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
+.docs-build-stamps.json
 # compiled output
 dist
 apps/Warp12/src-tauri/target

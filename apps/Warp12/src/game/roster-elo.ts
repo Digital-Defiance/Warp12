@@ -4,7 +4,7 @@ import {
 } from 'warp12-engine';
 import type { GameLogRosterEntry } from 'warp12-react';
 
-import { opponentTeiForObjective } from '../firebase/stats-elo.js';
+import { opponentTeiForObjective, opponentTeiGradeForObjective } from '../firebase/stats-openskill.js';
 import type { RatedObjective } from '../firebase/stats-schema.js';
 import type { FirestoreCaptain } from '../firebase/schema.js';
 import { isAiCaptain } from './ai-captain.js';
@@ -13,7 +13,7 @@ import type { LocalGameConfig } from './local-game-config.js';
 /** Solo vs-AI roster lines for the round log (human TEI + reference AI profiles). */
 export function buildLocalRosterTei(
   config: LocalGameConfig,
-  humanTei: number | null,
+  humanTei: string | null,
   objective: RatedObjective
 ): readonly GameLogRosterEntry[] {
   const humanEntry: GameLogRosterEntry = {
@@ -23,7 +23,7 @@ export function buildLocalRosterTei(
 
   const aiEntries = config.aiCaptains.map((ai) => ({
     captainId: ai.id,
-    tei: opponentTeiForObjective(objective, ai.skill),
+    tei: opponentTeiGradeForObjective(objective, ai.skill),
     tacticalClass: formatAiOfficerTacticalClass(ai.skill),
     reference: true as const,
   }));
@@ -33,7 +33,7 @@ export function buildLocalRosterTei(
 
 /**
  * Round-log roster lines for an online sector. AI officers show their fixed
- * reference TEI + tactical class (same format as local); human captains have no
+ * reference TEI + commission track (same format as local); human captains have no
  * online TEI on file, so they render as "TEI unrated".
  */
 export function buildOnlineRosterClasses(
@@ -48,7 +48,7 @@ export function buildOnlineRosterClasses(
       const skill = captain.skill ?? 'lieutenant';
       return {
         captainId: id,
-        tei: opponentTeiForObjective(objective, skill),
+        tei: opponentTeiGradeForObjective(objective, skill),
         reference: true,
         tacticalClass: formatAiOfficerTacticalClass(skill),
       };
@@ -57,7 +57,7 @@ export function buildOnlineRosterClasses(
   });
 }
 
-/** True when at least one roster entry carries a tactical class (an AI officer). */
+/** True when at least one roster entry carries a commission track (an AI officer). */
 export function rosterHasTacticalClasses(
   roster: readonly GameLogRosterEntry[]
 ): boolean {

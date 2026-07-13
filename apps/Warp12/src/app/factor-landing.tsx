@@ -10,14 +10,17 @@ const FACTORS = [
     setName: 'Double-9',
     tiles: '55 tiles',
     players: '2 to 4 Players',
-    description: 'Perfect for small, fast tactical sessions.',
+    description:
+      'Perfect for small, fast tactical sessions. Exhibition — unrated vs TEI.',
+    badge: 'EXHIBITION',
   },
   {
     factor: 12,
     setName: 'Double-12',
     tiles: '91 tiles',
     players: '2 to 8 Players',
-    description: "The sweet spot for standard play; your engine's default.",
+    description:
+      "The sweet spot for standard play and rated TEI ladders; your engine's default.",
     badge: 'RECOMMENDED',
   },
   {
@@ -26,7 +29,8 @@ const FACTORS = [
     tiles: '136 tiles',
     players: '2 to 12 Players',
     description:
-      'Larger party tables — hub grows past eight spokes with a dedicated Neutral Zone arm.',
+      'Larger party tables — hub grows past eight spokes with a dedicated Neutral Zone arm. Exhibition — unrated vs TEI.',
+    badge: 'EXHIBITION',
   },
   {
     factor: 18,
@@ -34,7 +38,8 @@ const FACTORS = [
     tiles: '190 tiles',
     players: '2 to 18 Players',
     description:
-      'The absolute behemoth. Massive fleets; expect a wider table and denser spokes.',
+      'The absolute behemoth. Massive fleets; expect a wider table and denser spokes. Exhibition — unrated vs TEI.',
+    badge: 'EXHIBITION',
   },
 ] as const;
 
@@ -54,8 +59,8 @@ export const FactorLanding: FC = () => {
       <section className={styles.hero}>
         <h1 className={styles.title}>Prepare to Engage</h1>
         <p className={styles.lead}>
-          Choose your factor to engage in a thrilling journey of discovery and
-          adventure.
+          Choose your factor. Warp 12 is the rated TEI ladder; Warp 9 / 15 / 18
+          are exhibition sets for larger (or smaller) tables.
         </p>
         <div className={styles.factorGrid}>
           {FACTORS.map((entry) => (
@@ -71,8 +76,15 @@ export const FactorLanding: FC = () => {
               <div className={styles.meta}>
                 <div className={styles.metaHeader}>
                   <h2 className={styles.setName}>{entry.setName}</h2>
-                  {'badge' in entry && entry.badge ? (
-                    <span className={styles.badge}>{entry.badge}</span>
+                  {entry.badge ? (
+                    <span
+                      className={styles.badge}
+                      data-kind={
+                        entry.badge === 'RECOMMENDED' ? 'recommended' : 'exhibition'
+                      }
+                    >
+                      {entry.badge}
+                    </span>
                   ) : null}
                 </div>
                 <p className={styles.stats}>

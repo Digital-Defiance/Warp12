@@ -65,7 +65,7 @@ export interface OmegaTrajectoryRow {
 
 export interface CollectOmegaTrajectoriesOptions {
   games: number;
-  /** Class Ω weights that generate the self-play games (zero-init = random). */
+  /** Ω weights that generate the self-play games (zero-init = random). */
   net: OmegaModelWeights;
   seed?: number;
   objective?: GameObjective;
@@ -255,7 +255,7 @@ function sampleIndex(probabilities: readonly number[], rng: () => number): numbe
 }
 
 /**
- * Runs Class Ω self-play — the same network drives every seat, sampling moves
+ * Runs Ω self-play — the same network drives every seat, sampling moves
  * from its own policy for exploration — and streams outcome-labeled decision
  * rows to `sink`. This is the pure "be the best you can be" data source: no
  * Commander in the players, the targets, or the labels.

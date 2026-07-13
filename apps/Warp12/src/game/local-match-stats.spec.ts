@@ -17,7 +17,7 @@ describe('classifyLocalAiMatchSkill', () => {
 });
 
 describe('classifyLocalAiMatchOpponent', () => {
-  it('treats Class II as rated (opponentOmega false)', () => {
+  it('treats Commander as rated (opponentOmega false)', () => {
     expect(
       classifyLocalAiMatchOpponent([
         { id: 'a', displayName: 'Lovell', skill: 'commander' },

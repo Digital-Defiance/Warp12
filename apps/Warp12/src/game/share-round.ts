@@ -204,32 +204,109 @@ export function computeStatsOverlayLayout(
   };
 }
 
-interface CaptureStyleSnapshot {
-  canvasTransform: string;
-  surfaceOverflow: string;
-  rootWidth: string;
-  rootHeight: string;
-  rootTransform: string;
-  rootOverflow: string;
-}
-
-function snapshotTableCaptureStyles(root: HTMLElement): CaptureStyleSnapshot {
-  const canvas = root.parentElement;
-  const surface = canvas?.parentElement ?? null;
-  return {
-    canvasTransform: canvas?.style.transform ?? '',
-    surfaceOverflow: surface?.style.overflow ?? '',
-    rootWidth: root.style.width,
-    rootHeight: root.style.height,
-    rootTransform: root.style.transform,
-    rootOverflow: root.style.overflow,
-  };
-}
-
 function waitForPaint(): Promise<void> {
   return new Promise((resolve) => {
     requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
   });
+}
+
+/** Copy --custom-properties from ancestors onto a capture clone (clone loses them). */
+export function copyCustomPropertiesFromAncestors(
+  source: HTMLElement,
+  target: HTMLElement
+): void {
+  const vars = new Map<string, string>();
+  let node: HTMLElement | null = source;
+  while (node) {
+    const { style } = node;
+    for (let i = 0; i < style.length; i += 1) {
+      const name = style.item(i);
+      if (!name.startsWith('--') || vars.has(name)) {
+        continue;
+      }
+      vars.set(name, style.getPropertyValue(name));
+    }
+    node = node.parentElement;
+  }
+  for (const [name, value] of vars) {
+    target.style.setProperty(name, value);
+  }
+}
+
+/**
+ * html-to-image on WebKit turns soft cyan `box-shadow` / `filter` glows into hard
+ * offset duplicates — the “blue doppler” on iPad shares. Strip them for capture.
+ */
+export function stripCaptureDecorations(root: Element): void {
+  const scrub = (el: Element) => {
+    if (!(el instanceof HTMLElement) && !(el instanceof SVGElement)) {
+      return;
+    }
+    const { style } = el;
+    style.setProperty('box-shadow', 'none', 'important');
+    style.setProperty('filter', 'none', 'important');
+    style.setProperty('text-shadow', 'none', 'important');
+    style.setProperty('backdrop-filter', 'none', 'important');
+    style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+    style.setProperty('will-change', 'auto', 'important');
+    // Spoke badges set pointer-events:auto; the on-screen clone sits under the
+    // finger and would otherwise :hover a random hub badge (tooltip pop).
+    style.setProperty('pointer-events', 'none', 'important');
+    style.setProperty('animation', 'none', 'important');
+  };
+  scrub(root);
+  root.querySelectorAll('*').forEach(scrub);
+
+  root.querySelectorAll('[role="tooltip"]').forEach((el) => {
+    if (!(el instanceof HTMLElement) && !(el instanceof SVGElement)) {
+      return;
+    }
+    el.style.setProperty('display', 'none', 'important');
+    el.style.setProperty('visibility', 'hidden', 'important');
+    el.style.setProperty('opacity', '0', 'important');
+  });
+}
+
+/**
+ * Mount a 1:1 table clone in the viewport for capture.
+ * - Offscreen (`left:-10000px`) → iOS paints black
+ * - Live pan/zoom clear → WebKit compositor “shift” ghosts
+ * Must stay on-screen and unoccluded so WKWebView actually rasterizes it.
+ */
+function mountShareCaptureStage(
+  root: HTMLElement,
+  bounds: ContentBounds,
+  backgroundColor: string
+): HTMLElement {
+  const host = document.createElement('div');
+  host.setAttribute('data-warp12-share-capture', '');
+  host.style.cssText = [
+    'position:fixed',
+    'left:0',
+    'top:0',
+    `width:${bounds.width}px`,
+    `height:${bounds.height}px`,
+    'overflow:hidden',
+    `background:${backgroundColor}`,
+    'pointer-events:none',
+    'z-index:2147483646',
+  ].join(';');
+  copyCustomPropertiesFromAncestors(root, host);
+
+  const clone = root.cloneNode(true) as HTMLElement;
+  clone.style.position = 'relative';
+  clone.style.left = '0';
+  clone.style.top = '0';
+  clone.style.width = `${root.offsetWidth}px`;
+  clone.style.height = `${root.offsetHeight}px`;
+  clone.style.transform = `translate(${-bounds.x}px, ${-bounds.y}px)`;
+  clone.style.transformOrigin = 'top left';
+  clone.style.overflow = 'visible';
+  stripCaptureDecorations(clone);
+  host.appendChild(clone);
+
+  document.body.appendChild(host);
+  return host;
 }
 
 function loadImage(dataUrl: string): Promise<HTMLImageElement> {
@@ -330,45 +407,27 @@ export async function captureTableContentPng(
   const padding = options?.padding ?? 32;
   const pixelRatio = options?.pixelRatio ?? TABLE_CAPTURE_PIXEL_RATIO;
   const backgroundColor = options?.backgroundColor ?? '#050816';
-  const snap = snapshotTableCaptureStyles(root);
-  const canvas = root.parentElement;
-  const surface = canvas?.parentElement ?? null;
+
+  // Measure with live pan/zoom still applied — do not clear the on-screen viewport.
+  const bounds = measureTableContentBounds(root, padding);
+  const host = mountShareCaptureStage(root, bounds, backgroundColor);
 
   try {
-    if (canvas) {
-      canvas.style.transform = 'none';
-    }
-    if (surface) {
-      surface.style.overflow = 'visible';
-    }
     await waitForPaint();
-
-    const bounds = measureTableContentBounds(root, padding);
-    root.style.width = `${bounds.width}px`;
-    root.style.height = `${bounds.height}px`;
-    root.style.transform = `translate(${-bounds.x}px, ${-bounds.y}px)`;
-    root.style.overflow = 'visible';
-    await waitForPaint();
-
     await document.fonts.ready;
-    return await toPng(root, {
+    return await toPng(host, {
       width: bounds.width,
       height: bounds.height,
       pixelRatio,
-      cacheBust: true,
+      cacheBust: false,
       backgroundColor,
+      // Library re-clones the stage; scrub again so stylesheet shadows cannot return.
+      onclone: (_document, cloned) => {
+        stripCaptureDecorations(cloned);
+      },
     });
   } finally {
-    if (canvas) {
-      canvas.style.transform = snap.canvasTransform;
-    }
-    if (surface) {
-      surface.style.overflow = snap.surfaceOverflow;
-    }
-    root.style.width = snap.rootWidth;
-    root.style.height = snap.rootHeight;
-    root.style.transform = snap.rootTransform;
-    root.style.overflow = snap.rootOverflow;
+    host.remove();
   }
 }
 

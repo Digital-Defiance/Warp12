@@ -7,11 +7,11 @@ import { defaultLocalGameConfig } from './local-game-config.js';
 describe('tableOpponentLabelForAdvisor', () => {
   const base = defaultLocalGameConfig('Armstrong', 3);
 
-  it('labels Class II when the top seat is commander', () => {
-    expect(tableOpponentLabelForAdvisor(base)).toMatch(/Class II|Cls II/);
+  it('labels Commander when the top seat is commander', () => {
+    expect(tableOpponentLabelForAdvisor(base)).toMatch(/Commander|Cmdr\./);
   });
 
-  it('labels Class III for lieutenant-only fleets', () => {
+  it('labels Lieutenant for lieutenant-only fleets', () => {
     const config: LocalGameConfig = {
       ...base,
       aiCaptains: base.aiCaptains.map((ai) => ({
@@ -19,6 +19,6 @@ describe('tableOpponentLabelForAdvisor', () => {
         skill: 'lieutenant' as const,
       })),
     };
-    expect(tableOpponentLabelForAdvisor(config)).toMatch(/Class III|Cls III/);
+    expect(tableOpponentLabelForAdvisor(config)).toMatch(/Lieutenant|Lt\./);
   });
 });

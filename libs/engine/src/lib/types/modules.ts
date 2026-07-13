@@ -38,6 +38,57 @@ export interface SalamanderPenaltyModule {
   readonly enabled: boolean;
 }
 
+/** Module Gamma: Long-Range Sensor Sweep — visible market of tiles for strategic draws. */
+export interface SensorGridModule {
+  readonly enabled: boolean;
+  readonly gridSize: number; // 4-5 tiles in the market
+}
+
+/** Module Delta: Warp Drive Spooling — draw from uncharted continuously until mismatch. */
+export interface WarpDriveSpoolModule {
+  readonly enabled: boolean;
+}
+
+/** Module Epsilon: Tactical Requisition — draft-based deal instead of random. */
+export interface DraftingModule {
+  readonly enabled: boolean;
+  readonly packSize: number; // Tiles per pack (e.g., 15 for 2p W12)
+}
+
+/** Module Zeta: Fleet Squadrons — team play with shared trails. */
+export interface SquadronsModule {
+  readonly enabled: boolean;
+  readonly squadronSize: number; // 2-3 captains per squadron
+}
+
+/** Module Theta: Longest Trail Bonus — captain with longest trail gets bonus, includes spool mechanic for strategic resource draw. */
+export interface LongestTrailModule {
+  readonly enabled: boolean;
+  readonly bonus: number; // Negative value (e.g., -3)
+}
+
+/** Module Iota: Double Down — playing a double forces next player to draw extra tiles. */
+export interface DoubleDownModule {
+  readonly enabled: boolean;
+  readonly drawCount: number; // Number of tiles to draw (e.g., 2)
+}
+
+/** Module Kappa: Temporal Inversion — alternating rounds have inverted scoring (highest wins). */
+export interface TemporalInversionModule {
+  readonly enabled: boolean;
+}
+
+/** Module Eta: Temporal Debt — drawing from uncharted accumulates debt tokens, pay penalty at round end. */
+export interface TemporalDebtModule {
+  readonly enabled: boolean;
+  readonly costPerToken: number; // Points per debt token (e.g., 2)
+}
+
+/** Module Lambda: Wormholes — playing double on Neutral Zone swaps captain's trail with NZ. */
+export interface WormholesModule {
+  readonly enabled: boolean;
+}
+
 /** Subspace Fracture (chicken foot) — scope controls which doubles open a fracture. */
 export interface SubspaceFractureModule {
   readonly enabled: boolean;
@@ -47,18 +98,51 @@ export interface SubspaceFractureModule {
 export interface GameModules {
   readonly continuum: QContinuumModule;
   readonly salamanderPenalty: SalamanderPenaltyModule;
+  readonly sensorGrid: SensorGridModule;
+  readonly warpDriveSpool: WarpDriveSpoolModule;
+  readonly drafting: DraftingModule;
+  readonly squadrons: SquadronsModule;
+  readonly longestTrail: LongestTrailModule;
+  readonly doubleDown: DoubleDownModule;
+  readonly temporalDebt: TemporalDebtModule;
+  readonly temporalInversion: TemporalInversionModule;
+  readonly wormholes: WormholesModule;
   readonly subspaceFracture: SubspaceFractureModule;
 }
 
 export const DEFAULT_MODULES: GameModules = {
   continuum: { enabled: false, activeFlash: null },
   salamanderPenalty: { enabled: false },
+  sensorGrid: { enabled: false, gridSize: 5 },
+  warpDriveSpool: { enabled: false },
+  drafting: { enabled: false, packSize: 15 },
+  squadrons: { enabled: false, squadronSize: 2 },
+  longestTrail: { enabled: false, bonus: -3 },
+  doubleDown: { enabled: false, drawCount: 2 },
+  temporalDebt: { enabled: false, costPerToken: 2 },
+  temporalInversion: { enabled: false },
+  wormholes: { enabled: false },
   subspaceFracture: { enabled: false, scope: DEFAULT_SUBSPACE_FRACTURE_SCOPE },
 };
 
 export interface GameModuleConfig {
   continuum?: boolean;
   salamanderPenalty?: boolean;
+  sensorGrid?: boolean;
+  sensorGridSize?: number;
+  warpDriveSpool?: boolean;
+  drafting?: boolean;
+  draftingPackSize?: number;
+  squadrons?: boolean;
+  squadronSize?: number;
+  longestTrail?: boolean;
+  longestTrailBonus?: number;
+  doubleDown?: boolean;
+  doubleDownDrawCount?: number;
+  temporalDebt?: boolean;
+  temporalDebtCost?: number;
+  temporalInversion?: boolean;
+  wormholes?: boolean;
   subspaceFracture?: boolean;
   subspaceFractureScope?: SubspaceFractureScope;
 }
@@ -71,6 +155,39 @@ export function resolveModules(config: GameModuleConfig = {}): GameModules {
     },
     salamanderPenalty: {
       enabled: config.salamanderPenalty ?? false,
+    },
+    sensorGrid: {
+      enabled: config.sensorGrid ?? false,
+      gridSize: config.sensorGridSize ?? 5,
+    },
+    warpDriveSpool: {
+      enabled: config.warpDriveSpool ?? false,
+    },
+    drafting: {
+      enabled: config.drafting ?? false,
+      packSize: config.draftingPackSize ?? 15,
+    },
+    squadrons: {
+      enabled: config.squadrons ?? false,
+      squadronSize: config.squadronSize ?? 2,
+    },
+    longestTrail: {
+      enabled: config.longestTrail ?? false,
+      bonus: config.longestTrailBonus ?? -3,
+    },
+    doubleDown: {
+      enabled: config.doubleDown ?? false,
+      drawCount: config.doubleDownDrawCount ?? 2,
+    },
+    temporalDebt: {
+      enabled: config.temporalDebt ?? false,
+      costPerToken: config.temporalDebtCost ?? 2,
+    },
+    temporalInversion: {
+      enabled: config.temporalInversion ?? false,
+    },
+    wormholes: {
+      enabled: config.wormholes ?? false,
     },
     subspaceFracture: {
       enabled: config.subspaceFracture ?? false,

@@ -115,6 +115,20 @@ export function warpCandidateGenerator(
 ): WarpAiAction[] {
   const { round, playerId, houseRules } = obs;
 
+  // Module Epsilon: Drafting phase
+  if (round.phase === 'drafting' && round.draftState) {
+    const pack = round.draftState.currentPacks[playerId];
+    if (pack && pack.length > 0) {
+      // Return all tiles in the pack as pick candidates
+      return pack.map((coordinate) => ({
+        kind: 'pick-from-pack' as const,
+        coordinate,
+      }));
+    }
+    // No pack or empty pack means drafting is complete for this player
+    return [];
+  }
+
   if (round.continuumPendingInvoker === playerId) {
     return [
       {
@@ -146,6 +160,17 @@ export function warpCandidateGenerator(
       kind: 'chart' as const,
       move,
     }));
+    
+    // Module Delta (Simplified): Spool mechanic removed
+    // Only hot potato remains (hazard marker transfers on NZ play, +5 penalty per pass)
+    // const spoolOptions = getSpoolOptions(obs as GameState, round, playerId, houseRules);
+    // for (const option of spoolOptions) {
+    //   candidates.push({
+    //     kind: 'spool' as const,
+    //     option,
+    //   });
+    // }
+    
     const declare = dropToImpulseDeclareCandidate(round, playerId, houseRules);
     if (declare) {
       candidates.push(declare);

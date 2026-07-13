@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ALL_STOP_DURATION_SEC,
+  createColoredNoiseBuffer,
   createNoiseBuffer,
   CONTINUUM_FLASH_DURATION_SEC,
   scheduleAllStop,
@@ -40,6 +41,28 @@ describe('musical warp synth', () => {
     const buffer = createNoiseBuffer(ctx, 1.5);
     expect(buffer.numberOfChannels).toBe(1);
     expect(buffer.length).toBe(72000);
+  });
+
+  it('builds pink and brown ambience noise buffers', () => {
+    const data = new Float32Array(4800);
+    const ctx = {
+      sampleRate: 48000,
+      createBuffer: (
+        channels: number,
+        length: number,
+        sampleRate: number
+      ) => ({
+        numberOfChannels: channels,
+        length,
+        sampleRate,
+        getChannelData: () => data,
+      }),
+    } as unknown as AudioContext;
+
+    const pink = createColoredNoiseBuffer(ctx, 'pink', 0.1);
+    expect(pink.length).toBe(4800);
+    const brown = createColoredNoiseBuffer(ctx, 'brown', 0.1);
+    expect(brown.length).toBe(4800);
   });
 
   it('schedules engage and drop without throwing', () => {
@@ -88,7 +111,16 @@ describe('musical warp synth', () => {
       },
       createBiquadFilter: () => ({
         type: 'lowpass' as BiquadFilterType,
-        frequency: { setValueAtTime: () => undefined, exponentialRampToValueAtTime: () => undefined },
+        frequency: {
+          setValueAtTime: () => undefined,
+          exponentialRampToValueAtTime: () => undefined,
+        },
+        Q: {
+          value: 1,
+          setValueAtTime: () => undefined,
+          exponentialRampToValueAtTime: () => undefined,
+          linearRampToValueAtTime: () => undefined,
+        },
         connect: () => undefined,
       }),
     } as unknown as AudioContext;
@@ -99,10 +131,10 @@ describe('musical warp synth', () => {
     const flash = scheduleContinuumFlash(ctx, dest, 0);
     const allStop = scheduleAllStop(ctx, dest, 0);
 
-    expect(engage.nodes.length).toBe(2);
-    expect(drop.nodes.length).toBe(3);
+    expect(engage.nodes.length).toBe(4);
+    expect(drop.nodes.length).toBe(5);
     expect(flash.nodes.length).toBe(2);
-    expect(allStop.nodes.length).toBe(3);
+    expect(allStop.nodes.length).toBe(5);
     engage.stop();
     drop.stop();
     flash.stop();

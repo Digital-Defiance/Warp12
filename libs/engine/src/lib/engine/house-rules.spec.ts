@@ -208,16 +208,17 @@ describe('house rules', () => {
   });
 
   describe('round starter plays two', () => {
-    it('restricts the opener to their own trail before both tiles are played', () => {
+    it('allows the opener to play on any legal route for both tiles (default)', () => {
       const round = starterRound({
-        hands: { a: [T(12, 5)], b: [] },
+        hands: { a: [T(12, 5), T(12, 6)], b: [] },
       });
 
+      // Should allow both own trail and neutral zone
       expect(
         getLegalMoves(round, 'a', deluxeTwo).some(
           (m) => m.route.kind === 'neutral-zone'
         )
-      ).toBe(false);
+      ).toBe(true);
       expect(
         getLegalMoves(round, 'a', deluxeTwo).some(
           (m) =>
@@ -228,7 +229,35 @@ describe('house rules', () => {
       ).toBe(true);
     });
 
-    it('holds the turn for a second own-trail chart then advances', () => {
+    it('restricts the opener to own trail when roundStarterOwnTrailOnly is enabled', () => {
+      const deluxeTwoOwnTrail = resolveHouseRules({ 
+        roundStarterPlaysTwo: true,
+        roundStarterOwnTrailOnly: true
+      });
+      
+      const round = starterRound({
+        hands: { a: [T(12, 5)], b: [] },
+      });
+
+      // Should NOT allow neutral zone when restricted
+      expect(
+        getLegalMoves(round, 'a', deluxeTwoOwnTrail).some(
+          (m) => m.route.kind === 'neutral-zone'
+        )
+      ).toBe(false);
+      
+      // Should allow own trail
+      expect(
+        getLegalMoves(round, 'a', deluxeTwoOwnTrail).some(
+          (m) =>
+            m.route.kind === 'warp-trail' &&
+            m.route.playerId === 'a' &&
+            m.coordinate.low === 5
+        )
+      ).toBe(true);
+    });
+
+    it('holds the turn for a second chart on any legal route then advances', () => {
       let state = makeGame(
         starterRound({
           hands: { a: [T(12, 5), T(5, 6), T(1, 2)], b: [] },
@@ -236,6 +265,7 @@ describe('house rules', () => {
         { houseRules: deluxeTwo }
       );
 
+      // First tile on own trail
       const first = applyAction(state, {
         type: 'CHART_COORDINATE',
         playerId: 'a',
@@ -247,6 +277,7 @@ describe('house rules', () => {
       expect(first.state.round?.roundStarterOpening).toEqual({ playerId: 'a' });
       expect(first.state.round?.table.warpTrails.a.tiles).toHaveLength(1);
 
+      // Second tile also on own trail
       const second = applyAction(first.state, {
         type: 'CHART_COORDINATE',
         playerId: 'a',
@@ -257,6 +288,39 @@ describe('house rules', () => {
       expect(second.state.round?.activePlayerId).toBe('b');
       expect(second.state.round?.roundStarterOpening).toBeNull();
       expect(second.state.round?.table.warpTrails.a.tiles).toHaveLength(2);
+    });
+
+    it('allows both tiles to be played on neutral zone', () => {
+      let state = makeGame(
+        starterRound({
+          hands: { a: [T(12, 5), T(5, 8), T(1, 2)], b: [] },
+        }),
+        { houseRules: deluxeTwo }
+      );
+
+      // First tile on neutral zone
+      const first = applyAction(state, {
+        type: 'CHART_COORDINATE',
+        playerId: 'a',
+        coordinate: T(12, 5),
+        route: { kind: 'neutral-zone' },
+      });
+      expect(first.ok).toBe(true);
+      expect(first.state.round?.activePlayerId).toBe('a');
+      expect(first.state.round?.roundStarterOpening).toEqual({ playerId: 'a' });
+      expect(first.state.round?.table.neutralZone.tiles).toHaveLength(1);
+
+      // Second tile also on neutral zone
+      const second = applyAction(first.state, {
+        type: 'CHART_COORDINATE',
+        playerId: 'a',
+        coordinate: T(5, 8),
+        route: { kind: 'neutral-zone' },
+      });
+      expect(second.ok).toBe(true);
+      expect(second.state.round?.activePlayerId).toBe('b');
+      expect(second.state.round?.roundStarterOpening).toBeNull();
+      expect(second.state.round?.table.neutralZone.tiles).toHaveLength(2);
     });
 
     it('deploys a beacon when the second own-trail chart is impossible', () => {

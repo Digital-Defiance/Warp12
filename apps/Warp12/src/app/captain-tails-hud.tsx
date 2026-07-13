@@ -1,4 +1,4 @@
-import type { PlacedCoordinate, RoundState } from 'warp12-engine';
+import type { PlacedCoordinate, RoundState, TeiGrade } from 'warp12-engine';
 import { DominoTile } from 'double-eighteen';
 import type { RefObject } from 'react';
 import { useEffect, useMemo, useRef } from 'react';
@@ -7,6 +7,7 @@ import type { TrailAccessState, TrailSpokeStatus } from 'warp12-react';
 import { WARP_PIP_COLORS, WARP_TILE_SURFACE, type WarpTileBg } from 'warp12-theme';
 import { FloatingPanelShell } from './floating-panel-shell';
 import type { CaptainTailsDisplay } from './table-view-prefs';
+import { TeiGradeBadge } from './components/tei-grade-badge';
 import styles from './captain-tails-hud.module.scss';
 
 const STORAGE_KEY = 'warp12-captain-tails-hud-pos';
@@ -16,10 +17,13 @@ export interface TailRow {
   readonly label: string;
   readonly tacticalClassAbbrev?: string;
   readonly tacticalClassLabel?: string;
+  readonly teiGrade?: TeiGrade;
   readonly connectValue: number;
   readonly lastTile: PlacedCoordinate | null;
   readonly state: TrailAccessState;
   readonly isActive: boolean;
+  readonly hasHazardMarker?: boolean;
+  readonly trailLength?: number;
 }
 
 export interface CaptainTailsHudProps {
@@ -31,8 +35,11 @@ export interface CaptainTailsHudProps {
   tileBg: WarpTileBg;
   tacticalClassAbbrevByCaptain?: Readonly<Record<string, string>>;
   tacticalClassLabelByCaptain?: Readonly<Record<string, string>>;
+  teiGradeByCaptain?: Readonly<Record<string, TeiGrade>>;
   /** Double-N max pip for tile rendering. */
   maxPip?: number;
+  /** Module Delta enabled (for hazard marker display). */
+  moduleDeltaEnabled?: boolean;
 }
 
 export function buildTailRows(
@@ -40,7 +47,9 @@ export function buildTailRows(
   trailSpokes: readonly TrailSpokeStatus[],
   activePlayerId: string,
   tacticalClassAbbrevByCaptain: Readonly<Record<string, string>> = {},
-  tacticalClassLabelByCaptain: Readonly<Record<string, string>> = {}
+  tacticalClassLabelByCaptain: Readonly<Record<string, string>> = {},
+  teiGradeByCaptain: Readonly<Record<string, TeiGrade>> = {},
+  moduleDeltaEnabled = false
 ): TailRow[] {
   const spokeByCaptain = new Map(
     trailSpokes
@@ -67,10 +76,15 @@ export function buildTailRows(
             tacticalClassLabel: tacticalClassLabelByCaptain[captainId],
           }
         : {}),
+      ...(teiGradeByCaptain[captainId]
+        ? { teiGrade: teiGradeByCaptain[captainId] }
+        : {}),
       connectValue: spoke?.connectValue ?? round.spacedockValue,
       lastTile,
       state: spoke?.state ?? 'shields',
       isActive: captainId === activePlayerId,
+      hasHazardMarker: moduleDeltaEnabled && round.hazardMarkerHolder === captainId,
+      trailLength: trail?.tiles.length ?? 0,
     };
   });
 
@@ -90,6 +104,8 @@ export function buildTailRows(
       lastTile: neutralLastTile,
       state: 'neutral' as const,
       isActive: false,
+      hasHazardMarker: false,
+      trailLength: neutralTiles.length,
     },
   ];
 }
@@ -99,14 +115,16 @@ export function buildCaptainTailRows(
   trailSpokes: readonly TrailSpokeStatus[],
   activePlayerId: string,
   tacticalClassAbbrevByCaptain?: Readonly<Record<string, string>>,
-  tacticalClassLabelByCaptain?: Readonly<Record<string, string>>
+  tacticalClassLabelByCaptain?: Readonly<Record<string, string>>,
+  teiGradeByCaptain?: Readonly<Record<string, TeiGrade>>
 ): TailRow[] {
   return buildTailRows(
     round,
     trailSpokes,
     activePlayerId,
     tacticalClassAbbrevByCaptain,
-    tacticalClassLabelByCaptain
+    tacticalClassLabelByCaptain,
+    teiGradeByCaptain
   ).filter((row) => row.rowId !== 'neutral-zone');
 }
 
@@ -202,7 +220,9 @@ export function CaptainTailsHud({
   tileBg,
   tacticalClassAbbrevByCaptain = {},
   tacticalClassLabelByCaptain = {},
+  teiGradeByCaptain = {},
   maxPip = 12,
+  moduleDeltaEnabled = false,
 }: CaptainTailsHudProps) {
   const rows = useMemo(
     () =>
@@ -211,12 +231,16 @@ export function CaptainTailsHud({
         trailSpokes,
         activePlayerId,
         tacticalClassAbbrevByCaptain,
-        tacticalClassLabelByCaptain
+        tacticalClassLabelByCaptain,
+        teiGradeByCaptain,
+        moduleDeltaEnabled
       ),
     [
       activePlayerId,
       tacticalClassAbbrevByCaptain,
       tacticalClassLabelByCaptain,
+      teiGradeByCaptain,
+      moduleDeltaEnabled,
       round,
       trailSpokes,
     ]
@@ -262,13 +286,55 @@ export function CaptainTailsHud({
               data-display={display}
               data-active={row.isActive ? 'true' : undefined}
               data-state={row.state}
+              data-hazard={row.hasHazardMarker ? 'true' : undefined}
             >
               <span className={styles.nameCell} title={nameTitle}>
-                <span className={styles.name}>{row.label}</span>
-                {row.tacticalClassAbbrev && (
-                  <span className={styles.tacticalClass}>
-                    {row.tacticalClassAbbrev}
+                <span className={styles.name}>
+                  {row.label}
+                  {row.teiGrade && (
+                    <TeiGradeBadge grade={row.teiGrade} size="small" />
+                  )}
+                  <span className={styles.stateIndicators}>
+                    {row.state === 'open' && (
+                      <span className={styles.shieldIcon} title="Shields down (trail open)">◉</span>
+                    )}
+                    {row.state === 'neutral' && (
+                      <span className={styles.neutralIcon} title="Neutral zone">◎</span>
+                    )}
+                    {row.hasHazardMarker && (
+                      <span className={styles.hazardMarker} title="Hazard Marker (+5 per pass)">
+                        ⚠️
+                      </span>
+                    )}
                   </span>
+                </span>
+                {display === 'domino' && (
+                  <span className={styles.nameMetadata}>
+                    {row.tacticalClassAbbrev && (
+                      <span className={styles.tacticalClass}>
+                        {row.tacticalClassAbbrev}
+                      </span>
+                    )}
+                    {row.trailLength !== undefined && row.trailLength > 0 && (
+                      <span className={styles.trailLength} title={`Trail length: ${row.trailLength} tiles`}>
+                        {row.trailLength}
+                      </span>
+                    )}
+                  </span>
+                )}
+                {display !== 'domino' && (
+                  <>
+                    {row.tacticalClassAbbrev && (
+                      <span className={styles.tacticalClass}>
+                        {row.tacticalClassAbbrev}
+                      </span>
+                    )}
+                    {row.trailLength !== undefined && row.trailLength > 0 && (
+                      <span className={styles.trailLength} title={`Trail length: ${row.trailLength} tiles`}>
+                        {row.trailLength}
+                      </span>
+                    )}
+                  </>
                 )}
               </span>
               {display === 'domino' && (

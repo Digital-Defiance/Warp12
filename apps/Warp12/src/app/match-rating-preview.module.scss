@@ -1,0 +1,118 @@
+// Match Rating Preview styles
+// Shows potential rating outcomes before match starts
+
+.preview {
+  padding: 1rem;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+}
+
+.previewTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  color: var(--color-text-primary);
+}
+
+.previewCurrent {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.previewCurrentLabel {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.previewCurrentValue {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.previewScenarios {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.previewScenarioCard {
+  padding: 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+}
+
+.previewScenarioLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.previewScenarioValue {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.previewScenarioNote {
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--color-success);
+  font-weight: 500;
+}
+
+.previewDisclaimer {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  margin: 0;
+  font-style: italic;
+}
+
+// Compact variant for inline display
+.previewCompact {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.previewLabel {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.previewScenario {
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.previewDivider {
+  color: var(--color-text-tertiary);
+}
+
+// Responsive: stack scenarios on small screens
+@media (max-width: 640px) {
+  .previewScenarios {
+    grid-template-columns: 1fr;
+  }
+  
+  .previewCompact {
+    flex-wrap: wrap;
+  }
+}

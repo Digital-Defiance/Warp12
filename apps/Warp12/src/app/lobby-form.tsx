@@ -15,6 +15,10 @@ import { CampaignRoundsField, ObjectivePicker } from './objective-picker';
 import { HouseRulesOptions } from './house-rules-options';
 import { DoubleZeroScoreField } from './double-zero-score-field';
 import { LargeFleetHandSizeField } from './large-fleet-hand-size-field';
+import {
+  DealHandSizeHint,
+  isLargeFleetHandSizeChoiceVisible,
+} from './deal-hand-size-hint';
 import { SubspaceFractureOptions } from './subspace-fracture-options';
 import { Warp12RulesPreset } from './warp12-rules-preset';
 import styles from './lobby.module.scss';
@@ -179,6 +183,7 @@ export function LobbyForm({
       <fieldset className={styles.fieldset}>
         <legend>Rules preset</legend>
         <Warp12RulesPreset
+          maxPip={maxPip}
           onApply={applyOfficialWarp12Rules}
           disabled={baseDisabled || charterLocked}
         />
@@ -227,6 +232,15 @@ export function LobbyForm({
         <label className={styles.checkboxRow}>
           <input
             type="checkbox"
+            checked={createOptions.modules?.continuum ?? false}
+            disabled={baseDisabled || charterLocked}
+            onChange={(e) => setModules({ continuum: e.target.checked })}
+          />
+          <span>Module Alpha — Continuum</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
             checked={createOptions.modules?.salamanderPenalty ?? false}
             disabled={baseDisabled || charterLocked}
             onChange={(e) =>
@@ -238,11 +252,74 @@ export function LobbyForm({
         <label className={styles.checkboxRow}>
           <input
             type="checkbox"
-            checked={createOptions.modules?.continuum ?? false}
+            checked={createOptions.modules?.sensorGrid ?? false}
             disabled={baseDisabled || charterLocked}
-            onChange={(e) => setModules({ continuum: e.target.checked })}
+            onChange={(e) => setModules({ sensorGrid: e.target.checked })}
           />
-          <span>Module Alpha — Continuum</span>
+          <span>Module Gamma — Long-Range Sensor Sweep</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={createOptions.modules?.warpDriveSpool ?? false}
+            disabled={baseDisabled || charterLocked}
+            onChange={(e) => setModules({ warpDriveSpool: e.target.checked })}
+          />
+          <span>Module Delta — Hot Potato (Warp Drive Spool)</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={createOptions.modules?.longestTrail ?? false}
+            disabled={baseDisabled || charterLocked}
+            onChange={(e) => setModules({ longestTrail: e.target.checked })}
+          />
+          <span>Module Theta — Longest Trail Bonus</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={createOptions.modules?.doubleDown ?? false}
+            disabled={baseDisabled || charterLocked}
+            onChange={(e) => setModules({ doubleDown: e.target.checked })}
+          />
+          <span>Module Iota — Double Down</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={createOptions.modules?.temporalDebt ?? false}
+            disabled={baseDisabled || charterLocked}
+            onChange={(e) => setModules({ temporalDebt: e.target.checked })}
+          />
+          <span>Module Eta — Temporal Debt</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={createOptions.modules?.drafting ?? false}
+            disabled={baseDisabled || charterLocked}
+            onChange={(e) => setModules({ drafting: e.target.checked })}
+          />
+          <span>Module Epsilon — Tactical Requisition (Drafting)</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={createOptions.modules?.temporalInversion ?? false}
+            disabled={baseDisabled || charterLocked}
+            onChange={(e) => setModules({ temporalInversion: e.target.checked })}
+          />
+          <span>Module Kappa — Temporal Inversion (Warped/Exhibition)</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={createOptions.modules?.wormholes ?? false}
+            disabled={baseDisabled || charterLocked}
+            onChange={(e) => setModules({ wormholes: e.target.checked })}
+          />
+          <span>Module Lambda — Wormholes (Warped/Exhibition)</span>
         </label>
       </fieldset>
 
@@ -258,7 +335,14 @@ export function LobbyForm({
             })
           }
         />
-        {(createOptions.maxPlayers ?? fleetCeiling) >= 7 && (
+        <DealHandSizeHint
+          playerCount={createOptions.maxPlayers ?? fleetCeiling}
+          maxPip={maxPip}
+          largeFleetHandSize={createOptions.houseRules?.largeFleetHandSize}
+        />
+        {isLargeFleetHandSizeChoiceVisible(
+          createOptions.maxPlayers ?? fleetCeiling
+        ) && (
           <LargeFleetHandSizeField
             value={createOptions.houseRules?.largeFleetHandSize}
             disabled={baseDisabled || charterLocked}

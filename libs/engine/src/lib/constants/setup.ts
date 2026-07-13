@@ -24,8 +24,14 @@ export const DEFAULT_LARGE_FLEET_HAND_SIZE: LargeFleetHandSize = 10;
 /** Fleet sizes affected by the large-fleet hand-size choice. */
 export const LARGE_FLEET_PLAYER_COUNTS: readonly number[] = [7, 8];
 
+export const DOUBLE_NINE_SET_SIZE = 55;
+
 /** Total coordinates in a double-twelve set. */
 export const DOUBLE_TWELVE_SET_SIZE = 91;
+
+export const DOUBLE_FIFTEEN_SET_SIZE = 136;
+
+export const DOUBLE_EIGHTEEN_SET_SIZE = 190;
 
 /** Highest pip value in a double-twelve set. */
 export const DOUBLE_TWELVE_MAX_PIPS = 12;
@@ -44,6 +50,22 @@ export const MAX_CAMPAIGN_ROUNDS = 13;
 
 /** Base pip value of the 12-12 tile (both ends). */
 export const TWELVE_TWELVE_PIP_VALUE = 24;
+
+/**
+ * Maximum tiles that can be drawn in a single Warp Drive Spool operation.
+ * Prevents infinite loops and bounds the operation.
+ */
+export const MAX_SPOOL_TILES = 30;
+
+/**
+ * Module Delta: Hot Potato (Hazard Marker)
+ * 
+ * Simple hot potato mechanic:
+ * - Round starter gets hazard marker
+ * - Transfers when you play to Neutral Zone
+ * - If you PASS while holding it: +5 points penalty
+ */
+export const HAZARD_MARKER_PASS_PENALTY = 5;
 
 /**
  * Salamander Penalty: a held 12-12 scores DOUBLE its pips (round 2+). Base pips

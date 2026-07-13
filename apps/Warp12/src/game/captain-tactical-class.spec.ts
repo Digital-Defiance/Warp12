@@ -6,7 +6,7 @@ import {
 } from './captain-tactical-class.js';
 
 describe('captain-tactical-class', () => {
-  it('shows Class II for commander officers (neural Ω)', () => {
+  it('shows Cmdr. for commander officers (neural Ω)', () => {
     const localConfig = {
       humanId: 'you',
       humanName: 'Armstrong',
@@ -26,13 +26,13 @@ describe('captain-tactical-class', () => {
 
     expect(
       buildCaptainTacticalClassAbbrevById({ localConfig }).lovell
-    ).toBe('Cls II');
+    ).toBe('Cmdr.');
     expect(
       buildCaptainTacticalClassLabelById({ localConfig }).lovell
-    ).toMatch(/Class II/);
+    ).toMatch(/Commander/);
   });
 
-  it('shows the human captain tactical class from solo TEI', () => {
+  it('shows human federation commission from full TEI grade', () => {
     const localConfig = {
       humanId: 'armstrong',
       humanName: 'Armstrong',
@@ -54,15 +54,22 @@ describe('captain-tactical-class', () => {
       buildCaptainTacticalClassAbbrevById({
         localConfig,
         humanId: 'armstrong',
-        humanTei: 1420,
+        humanTei: 'V62',
       }).armstrong
-    ).toBe('Cls II');
+    ).toBe('Cmdr.');
     expect(
       buildCaptainTacticalClassLabelById({
         localConfig,
         humanId: 'armstrong',
+        humanTei: 'I28',
+      }).armstrong
+    ).toBe('Lieutenant Junior Grade');
+    expect(
+      buildCaptainTacticalClassAbbrevById({
+        localConfig,
+        humanId: 'armstrong',
         humanTei: null,
       }).armstrong
-    ).toContain('Class IV');
+    ).toBe('Cdt.');
   });
 });

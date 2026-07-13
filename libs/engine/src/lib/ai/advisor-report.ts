@@ -65,7 +65,7 @@ export interface BuildAdvisorReportOptions {
    * RNG per turn so rebuilding a report from the same log is stable.
    */
   replayBaseSeed?: number;
-  /** Class II neural Ω for advisor picks when reviewing weak lines. */
+  /** Commander neural Ω for advisor picks when reviewing weak lines. */
   omegaNet?: OmegaModelWeights;
   /** Phase B concept advisor — preferred when loaded. */
   advisorWeights?: AdvisorModelWeights;
@@ -80,7 +80,7 @@ export interface ReviewAdvisorMoveOptions {
   readonly names?: Readonly<Record<string, string>>;
   readonly maxReasons?: number;
   readonly replaySeed?: number;
-  /** Class II neural Ω for advisor picks (phase A — explain Ω line). */
+  /** Commander neural Ω for advisor picks (phase A — explain Ω line). */
   readonly omegaNet?: OmegaModelWeights;
   /** Phase B concept advisor — preferred when loaded. */
   readonly advisorWeights?: AdvisorModelWeights;

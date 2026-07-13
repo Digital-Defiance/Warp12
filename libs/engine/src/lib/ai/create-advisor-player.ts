@@ -31,7 +31,7 @@ export interface AdvisorPlayer {
 
 /**
  * Concept-bottleneck advisor (phase B): scores candidates with a net trained to
- * agree with Class Ω / Ω+ teachers; explanations come from active state concepts.
+ * agree with Ω / Ω+ teachers; explanations come from active state concepts.
  */
 export function createAdvisorPlayer(
   options: CreateAdvisorPlayerOptions

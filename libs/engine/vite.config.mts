@@ -42,5 +42,13 @@ export default defineConfig(() => ({
       reportsDirectory: './test-output/vitest/coverage',
       provider: 'v8' as const,
     },
+    // Parallel execution optimized for M4 Max (12-16 cores)
+    pool: 'threads',
+    minThreads: 8,
+    maxThreads: 14,  // Leave 2 cores for system
+    // Allow tests within same file to run in parallel
+    sequence: {
+      concurrent: true,
+    },
   },
 }));

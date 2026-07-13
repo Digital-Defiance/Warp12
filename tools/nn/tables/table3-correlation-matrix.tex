@@ -1,0 +1,24 @@
+\begin{table}[htbp]
+\centering
+\caption{Correlation Matrix for Key Game Metrics ($N=19{,}000$)}
+\label{tab:correlation-matrix}
+\small
+\begin{tabular}{@{}lrrrrrrrr@{}}
+\toprule
+& \rotatebox{90}{\textbf{Skill}} & \rotatebox{90}{\textbf{Luck}} & \rotatebox{90}{\textbf{Decision Q}} & 
+\rotatebox{90}{\textbf{Coherence}} & \rotatebox{90}{\textbf{Complexity}} & \rotatebox{90}{\textbf{Depth}} & 
+\rotatebox{90}{\textbf{Warp}} & \rotatebox{90}{\textbf{Fleet}} \\
+\midrule
+\textbf{Skill Index} & --- & \textbf{0.70} & \textbf{0.99} & 0.38 & \textbf{0.87} & \textbf{-0.76} & \textbf{0.52} & \textbf{0.84} \\
+\textbf{Luck Index} & \textbf{0.70} & --- & \textbf{0.73} & \textcolor{gray}{-0.08} & \textbf{0.88} & \textbf{-0.97} & -0.16 & 0.40 \\
+\textbf{Decision Quality} & \textbf{0.99} & \textbf{0.73} & --- & 0.32 & \textbf{0.92} & \textbf{-0.81} & 0.43 & \textbf{0.84} \\
+\textbf{Hand Entropy} & 0.38 & \textcolor{gray}{-0.08} & 0.32 & --- & \textcolor{gray}{0.01} & \textcolor{gray}{0.06} & \textbf{0.82} & 0.21 \\
+\textbf{Legal Moves} & \textbf{0.87} & \textbf{0.88} & \textbf{0.92} & \textcolor{gray}{0.01} & --- & \textbf{-0.95} & \textcolor{gray}{0.05} & \textbf{0.71} \\
+\textbf{Near-Optimal \%} & \textbf{-0.76} & \textbf{-0.97} & \textbf{-0.81} & \textcolor{gray}{0.06} & \textbf{-0.95} & --- & 0.12 & \textbf{-0.51} \\
+\textbf{Warp Factor} & \textbf{0.52} & -0.16 & 0.43 & \textbf{0.82} & \textcolor{gray}{0.05} & 0.12 & --- & \textbf{0.53} \\
+\textbf{Player Count} & \textbf{0.84} & 0.40 & \textbf{0.84} & 0.21 & \textbf{0.71} & \textbf{-0.51} & \textbf{0.53} & --- \\
+\bottomrule
+\end{tabular}
+\parbox{\linewidth}{\small\textit{Note:} Bold values indicate strong correlation ($|r| > 0.5$); 
+gray values indicate negligible correlation ($|r| < 0.1$).}
+\end{table}

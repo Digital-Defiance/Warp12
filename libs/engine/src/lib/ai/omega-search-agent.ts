@@ -22,7 +22,7 @@ import { observe, type WarpAiObservation } from './observation.js';
 import type { WarpAiPlayer } from './create-warp-ai.js';
 
 export interface CreateOmegaSearchPlayerOptions {
-  /** Trained Class Ω weights (same net as greedy `createOmegaPlayer`). */
+  /** Trained Ω weights (same net as greedy `createOmegaPlayer`). */
   net: OmegaModelWeights;
   /** Seeded RNG for reproducible search/sampling. Defaults to `Math.random`. */
   rng?: Rng;
@@ -98,7 +98,7 @@ function argmaxVisit(visits: readonly OmegaSearchVisit[]): WarpAiAction {
 }
 
 /**
- * Class Ω+ ("extended thinking") — same Ω weights as {@link createOmegaPlayer},
+ * Ω+ ("extended thinking") — same Ω weights as {@link createOmegaPlayer},
  * but on-turn decisions run **Commander-free** net-guided ISMCTS (PUCT with
  * Omega policy prior + value leaves) and play the most-visited move. Unrated
  * exhibition / hard mode. Off-turn and single-candidate turns use the fast

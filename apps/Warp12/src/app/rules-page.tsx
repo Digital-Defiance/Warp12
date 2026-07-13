@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 
-import { WARP12_RULES_MARKDOWN } from '../content/rules-source';
-import { RulesMarkdown } from './rules-markdown';
+import { WARP12_RULES_HTML } from '../content/rules-source';
+import { RulesHtml } from './rules-html';
 import styles from './rules-view.module.scss';
 
 export function RulesPage() {
@@ -14,7 +14,7 @@ export function RulesPage() {
         </Link>
       </header>
       <div className={styles.rulesPageBody}>
-        <RulesMarkdown source={WARP12_RULES_MARKDOWN} />
+        <RulesHtml source={WARP12_RULES_HTML} />
       </div>
     </div>
   );

@@ -168,13 +168,8 @@ async function pickAiAction(
   state: GameState,
   playerId: string
 ): Promise<GameAction | null> {
+  // Off-turn actions are now handled in the main loop, so this only handles active turns
   const scratch = structuredClone(state);
-  const offTurn = ai.decideOffTurnGameAction
-    ? ai.decideOffTurnGameAction(scratch, playerId)
-    : null;
-  if (offTurn) {
-    return offTurn;
-  }
   if (scratch.round?.phase !== 'playing' || scratch.round.activePlayerId !== playerId) {
     return null;
   }
@@ -231,6 +226,35 @@ export async function replayLocalAiHumanActions(
       };
     }
 
+    // Check for off-turn AI actions first (matching simulation logic)
+    let offTurnHandled = false;
+    for (const [aiId, ai] of roster) {
+      if (aiId === payload.config.humanId) continue; // Skip human
+      const offTurnAction = ai.decideOffTurnGameAction
+        ? ai.decideOffTurnGameAction(structuredClone(state), aiId)
+        : null;
+      if (offTurnAction) {
+        const result = applyMatchAction(state, offTurnAction, roundReshuffle);
+        steps += 1;
+        if (!result.ok) {
+          return { ok: false, violation: result.violation, steps, partialState: state };
+        }
+        state = result.state;
+        const offTurnInvariant = invariantViolationAfterStep(state);
+        if (offTurnInvariant) {
+          return { ok: false, violation: offTurnInvariant, steps, partialState: state };
+        }
+        offTurnHandled = true;
+        break; // Process one off-turn action at a time
+      }
+    }
+
+    if (offTurnHandled) {
+      if (state.phase === 'complete') break;
+      continue; // Check for more off-turn actions or active turn
+    }
+
+    // Now handle the active player's turn
     const activeId = round.activePlayerId;
 
     if (activeId === payload.config.humanId) {

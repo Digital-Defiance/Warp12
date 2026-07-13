@@ -1,11 +1,12 @@
 import type { GameState } from 'warp12-engine';
-import { TEI_OBJECTIVE_LABEL } from 'warp12-engine';
+import { TEI_OBJECTIVE_LABEL, getTeiDisplay } from 'warp12-engine';
 import {
   coachingMessageForTeiDelta,
   type AdvisorPerformanceSummary,
 } from 'warp12-react';
 
 import type { LocalAiMatchReport, OnlineHumanSelfReport } from '../firebase/stats-service.js';
+import type { StoredRating } from '../firebase/rating-types.js';
 import {
   sectorCompleteHeadline,
   sectorStandings,
@@ -16,8 +17,59 @@ import {
   DEFAULT_CAPTAIN_GENDER,
 } from '../game/captain-profile.js';
 import { AdvisorReportDownloadButtons } from './advisor-report-download-buttons';
+import { TeiChange } from './components/tei-change.js';
+import { useConfettiOnPromotion } from './use-confetti.js';
 import dialogStyles from './rules-view.module.scss';
 import styles from './bridge-table.module.scss';
+
+function formatRatingChange(
+  before: StoredRating | null,
+  after: StoredRating | null,
+  muDelta: number | null
+): string {
+  if (!before || !after || muDelta === null) {
+    return '—';
+  }
+  const gradeBefore = before.displayGrade ?? 'P00';
+  const gradeAfter = after.displayGrade ?? 'P00';
+  
+  if (muDelta === 0 || gradeBefore === gradeAfter) {
+    return `${gradeBefore} → ${gradeAfter}`;
+  }
+  const sign = muDelta > 0 ? '+' : '';
+  const muChange = muDelta.toFixed(1);
+  return `${gradeBefore} → ${gradeAfter} (${sign}${muChange}μ)`;
+}
+
+function getRatingGradeChange(
+  before: StoredRating | null,
+  after: StoredRating | null
+): { promoted: boolean; demoted: boolean; message?: string } {
+  if (!before || !after) {
+    return { promoted: false, demoted: false };
+  }
+  
+  const gradeBefore = before.displayGrade ?? 'P00';
+  const gradeAfter = after.displayGrade ?? 'P00';
+  
+  // Extract grade letter
+  const letterBefore = gradeBefore.charAt(0);
+  const letterAfter = gradeAfter.charAt(0);
+  
+  const gradeOrder = ['E', 'V', 'C', 'I', 'P'];
+  const indexBefore = gradeOrder.indexOf(letterBefore);
+  const indexAfter = gradeOrder.indexOf(letterAfter);
+  
+  if (indexAfter < indexBefore) {
+    // Promoted (E is 0, P is 4, so lower index = better)
+    return { promoted: true, demoted: false, message: `📈 Grade promoted: ${letterBefore}→${letterAfter}!` };
+  } else if (indexAfter > indexBefore) {
+    return { promoted: false, demoted: true };
+  } else if (after.mu > before.mu) {
+    return { promoted: true, demoted: false, message: '📈 Rating improved!' };
+  }
+  return { promoted: false, demoted: false };
+}
 
 export interface CampaignCompleteOverlayProps {
   open: boolean;
@@ -56,6 +108,20 @@ export function CampaignCompleteOverlay({
   onLeaveSetup,
   onClose,
 }: CampaignCompleteOverlayProps) {
+  // Check if any grade was promoted
+  const gradeChange = matchReport?.ratingBefore && matchReport?.ratingAfter
+    ? getRatingGradeChange(matchReport.ratingBefore, matchReport.ratingAfter)
+    : { promoted: false, demoted: false };
+  
+  const charterGradeChange = matchReport?.charterRatingBefore && matchReport?.charterRatingAfter
+    ? getRatingGradeChange(matchReport.charterRatingBefore, matchReport.charterRatingAfter)
+    : { promoted: false, demoted: false };
+  
+  const anyPromotion = gradeChange.promoted || charterGradeChange.promoted;
+
+  // Trigger confetti on grade promotion
+  useConfettiOnPromotion(anyPromotion && open);
+
   if (!open) {
     return null;
   }
@@ -99,57 +165,52 @@ export function CampaignCompleteOverlay({
           ))}
         </ul>
 
-        {matchReport?.rated && matchReport.teiBefore !== null && matchReport.teiAfter !== null && (
+        {matchReport?.rated && matchReport.ratingBefore && matchReport.ratingAfter && (
           <>
             {matchReport.charterId &&
-            matchReport.charterTeiBefore !== null &&
-            matchReport.charterTeiAfter !== null &&
-            matchReport.charterTeiBefore !== matchReport.teiBefore ? (
+            matchReport.charterRatingBefore &&
+            matchReport.charterRatingAfter &&
+            matchReport.charterRatingBefore.displayRating !== matchReport.ratingBefore.displayRating ? (
               <>
-                <p className={styles.roundEndBody}>
-                  Global TEI ({TEI_OBJECTIVE_LABEL[matchReport.objective]}):{' '}
-                  <strong>
-                    {matchReport.teiBefore} → {matchReport.teiAfter}
-                  </strong>
-                  {matchReport.teiDelta !== null && matchReport.teiDelta !== 0 && (
-                    <span>
-                      {' '}
-                      ({matchReport.teiDelta > 0 ? '+' : ''}
-                      {matchReport.teiDelta})
-                    </span>
-                  )}
-                </p>
-                <p className={styles.roundEndBody}>
-                  Crew TEI:{' '}
-                  <strong>
-                    {matchReport.charterTeiBefore} → {matchReport.charterTeiAfter}
-                  </strong>
-                  {matchReport.charterTeiDelta !== null &&
-                    matchReport.charterTeiDelta !== undefined &&
-                    matchReport.charterTeiDelta !== 0 && (
-                      <span>
-                        {' '}
-                        ({matchReport.charterTeiDelta > 0 ? '+' : ''}
-                        {matchReport.charterTeiDelta})
-                      </span>
-                    )}
-                </p>
+                <div className={styles.roundEndBody}>
+                  <strong>Global TEI</strong> ({TEI_OBJECTIVE_LABEL[matchReport.objective]}):
+                  <br />
+                  <TeiChange
+                    beforeRating={{ mu: matchReport.ratingBefore.mu, sigma: matchReport.ratingBefore.sigma, matches: matchReport.ratingBefore.matches }}
+                    beforeGrade={matchReport.ratingBefore.displayGrade?.charAt(0) as any}
+                    afterRating={{ mu: matchReport.ratingAfter.mu, sigma: matchReport.ratingAfter.sigma, matches: matchReport.ratingAfter.matches }}
+                    afterGrade={matchReport.ratingAfter.displayGrade?.charAt(0) as any}
+                    showDelta={true}
+                    animate={true}
+                  />
+                </div>
+                <div className={styles.roundEndBody}>
+                  <strong>Crew TEI:</strong>
+                  <br />
+                  <TeiChange
+                    beforeRating={{ mu: matchReport.charterRatingBefore.mu, sigma: matchReport.charterRatingBefore.sigma, matches: matchReport.charterRatingBefore.matches }}
+                    beforeGrade={matchReport.charterRatingBefore.displayGrade?.charAt(0) as any}
+                    afterRating={{ mu: matchReport.charterRatingAfter.mu, sigma: matchReport.charterRatingAfter.sigma, matches: matchReport.charterRatingAfter.matches }}
+                    afterGrade={matchReport.charterRatingAfter.displayGrade?.charAt(0) as any}
+                    showDelta={true}
+                    animate={true}
+                  />
+                </div>
               </>
             ) : (
-              <p className={styles.roundEndBody}>
-                {matchReport.charterId ? 'Crew TEI' : 'TEI'} (
-                {TEI_OBJECTIVE_LABEL[matchReport.objective]}):{' '}
-                <strong>
-                  {matchReport.teiBefore} → {matchReport.teiAfter}
-                </strong>
-                {matchReport.teiDelta !== null && matchReport.teiDelta !== 0 && (
-                  <span>
-                    {' '}
-                    ({matchReport.teiDelta > 0 ? '+' : ''}
-                    {matchReport.teiDelta})
-                  </span>
-                )}
-              </p>
+              <div className={styles.roundEndBody}>
+                <strong>{matchReport.charterId ? 'Crew TEI' : 'TEI'}</strong> (
+                {TEI_OBJECTIVE_LABEL[matchReport.objective]}):
+                <br />
+                <TeiChange
+                  beforeRating={{ mu: matchReport.ratingBefore.mu, sigma: matchReport.ratingBefore.sigma, matches: matchReport.ratingBefore.matches }}
+                  beforeGrade={matchReport.ratingBefore.displayGrade?.charAt(0) as any}
+                  afterRating={{ mu: matchReport.ratingAfter.mu, sigma: matchReport.ratingAfter.sigma, matches: matchReport.ratingAfter.matches }}
+                  afterGrade={matchReport.ratingAfter.displayGrade?.charAt(0) as any}
+                  showDelta={true}
+                  animate={true}
+                />
+              </div>
             )}
           </>
         )}

@@ -1,4 +1,4 @@
-import type { GameAction, LegalMove } from '../types/actions.js';
+import type { GameAction, LegalMove, SpoolOption } from '../types/actions.js';
 import type { PlayerId } from '../types/player.js';
 import type { FlashEffectKind } from '../types/continuum.js';
 
@@ -10,6 +10,7 @@ import type { FlashEffectKind } from '../types/continuum.js';
  */
 export type WarpAiAction =
   | { readonly kind: 'chart'; readonly move: LegalMove }
+  | { readonly kind: 'spool'; readonly option: SpoolOption }
   | { readonly kind: 'draw' }
   | { readonly kind: 'deploy-beacon' }
   | { readonly kind: 'pass-red-alert' }
@@ -19,7 +20,8 @@ export type WarpAiAction =
   | { readonly kind: 'drop-to-impulse' }
   | { readonly kind: 'catch-drop-to-impulse'; readonly targetPlayerId: PlayerId }
   | { readonly kind: 'invoke-continuum-flash'; readonly effect: FlashEffectKind }
-  | { readonly kind: 'resolve-continuum-wager'; readonly keepIndex: 0 | 1 };
+  | { readonly kind: 'resolve-continuum-wager'; readonly keepIndex: 0 | 1 }
+  | { readonly kind: 'pick-from-pack'; readonly coordinate: import('../types/coordinate.js').Coordinate };
 
 /** Lowers an AI action into the engine {@link GameAction} for `applyAction`. */
 export function toGameAction(
@@ -33,6 +35,12 @@ export function toGameAction(
         playerId,
         coordinate: action.move.coordinate,
         route: action.move.route,
+      };
+    case 'spool':
+      return {
+        type: 'SPOOL_WARP_DRIVE',
+        playerId,
+        route: action.option.route,
       };
     case 'draw':
       return { type: 'DRAW_FROM_UNCHARTED', playerId };
@@ -61,6 +69,12 @@ export function toGameAction(
         type: 'RESOLVE_CONTINUUM_WAGER',
         playerId,
         keepIndex: action.keepIndex,
+      };
+    case 'pick-from-pack':
+      return {
+        type: 'PICK_FROM_PACK',
+        playerId,
+        coordinate: action.coordinate,
       };
   }
 }

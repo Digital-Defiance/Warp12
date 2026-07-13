@@ -13,6 +13,7 @@ import type { PlayerId } from '../types/player.js';
 import type { RoundState } from '../types/game-state.js';
 import type { WarpAiPlayer } from './create-warp-ai.js';
 import { handPips, handTileCount } from './search-model.js';
+import { LuckSkillMetricsSampler, type GameLuckSkillMetrics } from './luck-skill-metrics.js';
 
 export interface SelfPlaySeat {
   id: PlayerId;
@@ -28,6 +29,10 @@ export interface PlaySelfPlayGameOptions {
   objective?: GameObjective;
   /** Safety cap so a blocked round can't loop forever (default 20000). */
   maxSteps?: number;
+  /** Collect luck/skill metrics during play (default false). */
+  collectMetrics?: boolean;
+  /** Warp factor (double-N set size, default 12). */
+  maxPip?: number;
 }
 
 export interface SelfPlayGameResult {
@@ -38,6 +43,8 @@ export interface SelfPlayGameResult {
   steps: number;
   points: Record<PlayerId, number>;
   finalState: GameState;
+  /** Luck/skill metrics (present only if collectMetrics was true). */
+  metrics?: GameLuckSkillMetrics;
 }
 
 function mulberry32(seed: number): () => number {
@@ -112,13 +119,14 @@ export function playSelfPlayGame(
 ): SelfPlayGameResult {
   const seats = options.seats;
   const seed = options.seed ?? 1;
+  const maxPip = options.maxPip ?? 12;
   const captains = seats.map((seat) => ({
     id: seat.id,
     displayName: seat.displayName ?? seat.id,
   }));
 
   const shuffled = shuffleCoordinates(
-    generateCoordinateSet(12),
+    generateCoordinateSet(maxPip),
     mulberry32(seed)
   );
 
@@ -129,6 +137,7 @@ export function playSelfPlayGame(
       modules: options.modules,
       houseRules: options.houseRules,
       objective: options.objective,
+      maxPip,
     },
     { shuffledCoordinates: shuffled }
   );
@@ -138,6 +147,11 @@ export function playSelfPlayGame(
   // Dedicated stream for round-recycling shuffles so whole games are reproducible.
   const reshuffle = mulberry32((seed ^ 0x9e3779b9) >>> 0);
   let steps = 0;
+  
+  // Optional metrics collection
+  const metricsSampler = options.collectMetrics
+    ? new LuckSkillMetricsSampler(captains)
+    : undefined;
 
   // Blocked-round detection: the engine never auto-ends a round where the pile
   // is empty and nobody can play (everyone just keeps deploying beacons). If the
@@ -185,8 +199,21 @@ export function playSelfPlayGame(
     }
 
     const playerId = round.activePlayerId;
-    const action = byId.get(playerId)?.decideGameAction(state, playerId);
+    const player = byId.get(playerId);
+    if (!player) break;
+    
+    // Sample metrics before deciding (captures the decision space)
+    if (metricsSampler) {
+      try {
+        metricsSampler.sampleTurnFromState(state, round);
+      } catch (err) {
+        // Ignore sampling errors to not break games
+      }
+    }
+    
+    const action = player.decideGameAction(state, playerId);
     if (!action) break;
+    
     const result = applyAction(state, action);
     if (!result.ok) break;
     state = result.state;
@@ -222,6 +249,7 @@ export function playSelfPlayGame(
     steps,
     points: points,
     finalState: state,
+    metrics: metricsSampler?.finalize(),
   };
 }
 
@@ -232,6 +260,8 @@ export interface SelfPlayMatchResult {
   wins: Record<PlayerId, number>;
   /** Cumulative points each seat id accrued across all games (lower = better). */
   points: Record<PlayerId, number>;
+  /** Luck/skill metrics per game (present only if collectMetrics was true). */
+  gameMetrics?: GameLuckSkillMetrics[];
 }
 
 /**
@@ -247,21 +277,31 @@ export function runSelfPlayMatch(
     modules?: GameModuleConfig;
     houseRules?: HouseRulesConfig;
     objective?: GameObjective;
+    /** Warp factor (double-N set size, default 12). */
+    maxPip?: number;
+    /** Collect luck/skill metrics per game (default false). */
+    collectMetrics?: boolean;
   }
 ): SelfPlayMatchResult {
   const wins: Record<PlayerId, number> = {};
   const playerPoints: Record<PlayerId, number> = {};
   let completed = 0;
   const baseSeed = options.seed ?? 1000;
+  const maxPip = options.maxPip ?? 12;
+  const collectMetrics = options.collectMetrics ?? false;
+  const gameMetrics: GameLuckSkillMetrics[] = [];
 
   for (let game = 0; game < options.games; game++) {
     const seats = makeSeats(game);
+    
     const result = playSelfPlayGame({
       seats,
       seed: baseSeed + game * 7919,
       modules: options.modules,
       houseRules: options.houseRules,
       objective: options.objective,
+      maxPip,
+      collectMetrics,
     });
 
     if (result.completed) {
@@ -273,7 +313,18 @@ export function runSelfPlayMatch(
     for (const [id, points] of Object.entries(result.points)) {
       playerPoints[id] = (playerPoints[id] ?? 0) + points;
     }
+    
+    // Collect metrics if requested
+    if (collectMetrics && result.metrics) {
+      gameMetrics.push(result.metrics);
+    }
   }
 
-  return { games: options.games, completed, wins, points: playerPoints };
+  return {
+    games: options.games,
+    completed,
+    wins,
+    points: playerPoints,
+    ...(collectMetrics && { gameMetrics }),
+  };
 }

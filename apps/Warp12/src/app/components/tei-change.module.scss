@@ -1,0 +1,161 @@
+/**
+ * TEI Change Component Styles
+ */
+
+.tei-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+
+  &__before,
+  &__after {
+    display: inline-flex;
+  }
+
+  &__arrow {
+    font-size: 1.5rem;
+    color: var(--text-secondary, #666);
+    font-weight: 300;
+  }
+
+  &__delta {
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: var(--font-mono, monospace);
+
+    &--positive {
+      color: var(--success-color, #32cd32);
+    }
+
+    &--negative {
+      color: var(--error-color, #ff4444);
+    }
+
+    &--neutral {
+      color: var(--text-secondary, #999);
+    }
+  }
+
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+
+    &--promotion {
+      background: var(--promotion-bg, rgba(50, 205, 50, 0.15));
+      color: var(--promotion-color, #32cd32);
+      border: 1px solid var(--promotion-border, rgba(50, 205, 50, 0.3));
+    }
+
+    &--demotion {
+      background: var(--demotion-bg, rgba(255, 165, 0, 0.15));
+      color: var(--demotion-color, #ffa500);
+      border: 1px solid var(--demotion-border, rgba(255, 165, 0, 0.3));
+    }
+  }
+
+  // Animation variants
+  &--animate {
+    .tei-change__before {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    .tei-change__arrow {
+      animation: slideIn 0.3s ease-in-out 0.5s both;
+    }
+
+    .tei-change__after {
+      animation: fadeIn 0.5s ease-in-out 0.8s both;
+    }
+
+    .tei-change__after--promoted {
+      animation: promoteGlow 0.5s ease-in-out 0.8s both;
+    }
+
+    .tei-change__delta {
+      animation: fadeIn 0.3s ease-in-out 1.1s both;
+    }
+
+    .tei-change__badge {
+      animation: badgePop 0.4s ease-out 1.2s both;
+    }
+  }
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes promoteGlow {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  50% {
+    transform: scale(1.05);
+    filter: brightness(1.3) drop-shadow(0 0 12px currentColor);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+@keyframes badgePop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .tei-change {
+    gap: 0.5rem;
+
+    &__arrow {
+      font-size: 1.25rem;
+    }
+
+    &__delta {
+      font-size: 0.875rem;
+    }
+
+    &__badge {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.5rem;
+    }
+  }
+}

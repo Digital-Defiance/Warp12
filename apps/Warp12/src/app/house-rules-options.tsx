@@ -59,6 +59,19 @@ export function HouseRulesOptions({
         />
         <span>Round starter plays two tiles (Deluxe-style)</span>
       </label>
+      {value.roundStarterPlaysTwo ? (
+        <label className={styles.checkboxRow} style={{ marginLeft: '2rem' }}>
+          <input
+            type="checkbox"
+            checked={value.roundStarterOwnTrailOnly ?? false}
+            disabled={disabled}
+            onChange={(e) =>
+              onChange({ roundStarterOwnTrailOnly: e.target.checked })
+            }
+          />
+          <span>Restrict both tiles to own trail only</span>
+        </label>
+      ) : null}
       <label className={styles.checkboxRow}>
         <input
           type="checkbox"

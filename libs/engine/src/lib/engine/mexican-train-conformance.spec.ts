@@ -33,12 +33,16 @@ import {
   isRedAlertDoubleDead,
 } from '../table/pip-inventory.js';
 import {
+  DOUBLE_EIGHTEEN_SET_SIZE,
+  DOUBLE_FIFTEEN_SET_SIZE,
+  DOUBLE_NINE_SET_SIZE,
   DOUBLE_TWELVE_SET_SIZE,
   handSizeForPlayerCount,
   spacedockValueForRound,
 } from '../constants/setup.js';
 import {
   assertCoordinateSetSize,
+  expectedCoordinateSetSize,
   generateCoordinateSet,
   shuffleCoordinates,
 } from '../domino/coordinates.js';
@@ -56,15 +60,50 @@ const rules = resolveHouseRules({});
 // II. Mission setup
 // ---------------------------------------------------------------------------
 
-describe('Setup — the set is a 91-tile double-twelve [W][MoG][UBG]', () => {
-  it('has 91 unique coordinates', () => {
-    const set = generateCoordinateSet(12);
-    expect(set).toHaveLength(DOUBLE_TWELVE_SET_SIZE);
-    expect(DOUBLE_TWELVE_SET_SIZE).toBe(91);
+describe('Setup — the set is a 55-tile double-nine [W][MoG][UBG]', () => {
+  it('has 55 unique coordinates in a double 9', () => {
+    const set = generateCoordinateSet(9);
+    expect(set).toHaveLength(DOUBLE_NINE_SET_SIZE);
+    expect(expectedCoordinateSetSize(9)).toBe(DOUBLE_NINE_SET_SIZE);
+    expect(DOUBLE_NINE_SET_SIZE).toBe(55);
     // Throws on wrong count or duplicates.
-    assertCoordinateSetSize(set);
+    assertCoordinateSetSize(set, DOUBLE_NINE_SET_SIZE);
   });
 });
+
+describe('Setup — the set is a 91-tile double-twelve [W][MoG][UBG]', () => {
+  it('has 91 unique coordinates in a double 12', () => {
+    const set = generateCoordinateSet(12);
+    expect(set).toHaveLength(DOUBLE_TWELVE_SET_SIZE);
+    expect(expectedCoordinateSetSize(12)).toBe(DOUBLE_TWELVE_SET_SIZE);
+    expect(DOUBLE_TWELVE_SET_SIZE).toBe(91);
+    // Throws on wrong count or duplicates.
+    assertCoordinateSetSize(set, DOUBLE_TWELVE_SET_SIZE);
+  });
+});
+
+describe('Setup — the set is a 136-tile double-fifteen [W][MoG][UBG]', () => {
+    it('has 136 unique coordinates in a double 15', () => {
+    const set = generateCoordinateSet(15);
+    expect(set).toHaveLength(DOUBLE_FIFTEEN_SET_SIZE);
+    expect(expectedCoordinateSetSize(15)).toBe(DOUBLE_FIFTEEN_SET_SIZE);
+    expect(DOUBLE_FIFTEEN_SET_SIZE).toBe(136);
+    // Throws on wrong count or duplicates.
+    assertCoordinateSetSize(set, DOUBLE_FIFTEEN_SET_SIZE);
+  });
+});
+
+describe('Setup — the set is a 190-tile double-eighteen [W][MoG][UBG]', () => {
+    it('has 190 unique coordinates in a double 18', () => {
+    const set = generateCoordinateSet(18);
+    expect(set).toHaveLength(DOUBLE_EIGHTEEN_SET_SIZE);
+    expect(expectedCoordinateSetSize(18)).toBe(DOUBLE_EIGHTEEN_SET_SIZE);
+    expect(DOUBLE_EIGHTEEN_SET_SIZE).toBe(190);
+    // Throws on wrong count or duplicates.
+    assertCoordinateSetSize(set, DOUBLE_EIGHTEEN_SET_SIZE);
+  });
+});
+
 
 describe('Setup — hand sizes by fleet size [MoG][W]', () => {
   // Masters of Games & the "official" YouTube rules: 15 (2–4), 12 (5–6), 10 (7–8).

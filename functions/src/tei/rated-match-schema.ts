@@ -1,4 +1,18 @@
-export type RatedObjective = 'go-out' | 'points';
+import type {
+  ObjectiveRatingStats,
+  RatedObjective,
+  RatingTrackKey,
+  StoredRating,
+} from './rating-types.js';
+import {
+  emptyObjectiveRatingStats,
+  objectiveToTrackKey,
+  toStoredRating,
+  toStoredRatingWithGrade,
+} from './rating-types.js';
+
+export type { RatedObjective, StoredRating, ObjectiveRatingStats };
+export { objectiveToTrackKey, toStoredRating, toStoredRatingWithGrade };
 
 export type WarpRole = 'admin' | 'match_official';
 
@@ -54,15 +68,14 @@ export interface RatedMatchCertificatePlayer {
   displayName: string;
   rank: number;
   score: number;
-  crewTeiBefore?: number;
-  crewTeiAfter?: number;
-  crewTeiDelta?: number;
-  globalTeiBefore?: number;
-  globalTeiAfter?: number;
-  globalTeiDelta?: number;
-  humanTeiBefore?: number;
-  humanTeiAfter?: number;
-  humanTeiDelta?: number;
+  // Crew rating (if charter match) - OpenSkill format
+  crewRatingBefore?: StoredRating;
+  crewRatingAfter?: StoredRating;
+  crewMuDelta?: number;
+  // Human pool rating (if non-charter match) - OpenSkill format
+  humanRatingBefore?: StoredRating;
+  humanRatingAfter?: StoredRating;
+  humanMuDelta?: number;
 }
 
 export interface RatedMatchCertificate {
@@ -102,19 +115,13 @@ export function generateMatchCode(): string {
   return `MT-${suffix}`;
 }
 
-export function objectiveTeiKey(objective: RatedObjective): 'goOut' | 'points' {
-  return objective === 'go-out' ? 'goOut' : 'points';
+export function objectiveTeiKey(objective: RatedObjective): RatingTrackKey {
+  return objectiveToTrackKey(objective);
 }
 
-export interface ObjectiveTeiStats {
-  unassistedMatches: number;
-  unassistedWins: number;
-  unassistedTei?: number;
-}
-
-export interface HumanTeiStats {
-  goOut?: ObjectiveTeiStats;
-  points?: ObjectiveTeiStats;
+export interface HumanRatingStats {
+  goOut?: ObjectiveRatingStats;
+  points?: ObjectiveRatingStats;
   seasonKey?: string;
 }
 
@@ -126,30 +133,32 @@ export interface PlayerStatsDocument {
   roundsPlayed: number;
   roundsWon: number;
   totalPoints: number;
-  startingTei?: Partial<Record<'goOut' | 'points', number>>;
-  humanTei?: HumanTeiStats;
+  /** Optional self-reported starting rating before first rated game per objective. */
+  startingRating?: Partial<
+    Record<RatingTrackKey, { mu: number; sigma: number }>
+  >;
+  /** Human-opponent pool rating (online rated sectors, humans only). */
+  humanRating?: HumanRatingStats;
   humanRatedGameIds?: string[];
-  groupTei?: Record<string, HumanTeiStats>;
+  /** Crew-specific ratings (charter matches). */
+  groupRating?: Record<string, HumanRatingStats>;
   groupRatedIds?: string[];
   updatedAt: string;
 }
 
-export function emptyObjectiveTeiStats(): ObjectiveTeiStats {
-  return { unassistedMatches: 0, unassistedWins: 0 };
-}
-
-export function humanObjectiveTeiStats(
+export function humanObjectiveRatingStats(
   doc: PlayerStatsDocument | null | undefined,
   objective: RatedObjective
-): ObjectiveTeiStats {
-  const key = objectiveTeiKey(objective);
-  return { ...emptyObjectiveTeiStats(), ...doc?.humanTei?.[key] };
+): ObjectiveRatingStats {
+  const key = objectiveToTrackKey(objective);
+  const existing = doc?.humanRating?.[key];
+  return existing ?? emptyObjectiveRatingStats();
 }
 
-export function startingTeiForObjective(
+export function startingRatingForObjective(
   doc: PlayerStatsDocument | null | undefined,
   objective: RatedObjective
-): number | undefined {
-  const key = objectiveTeiKey(objective);
-  return doc?.startingTei?.[key];
+): { mu: number; sigma: number } | undefined {
+  const key = objectiveToTrackKey(objective);
+  return doc?.startingRating?.[key];
 }

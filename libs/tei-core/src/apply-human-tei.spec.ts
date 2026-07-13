@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { applyHumanTeiForPlayer, buildTeiTableFromStandings } from './apply-human-tei.js';
 import type { RatedMatchDocument } from './rated-match-schema.js';
-import type { TeiRankedPlayer } from './stats-elo.js';
+import type { TeiRankedPlayer } from './stats-openskill.js';
 
 const table: TeiRankedPlayer[] = [
   { playerId: 'a', rank: 1, tei: 1200, unassistedMatches: 5 },

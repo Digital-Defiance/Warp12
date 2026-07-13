@@ -5,7 +5,7 @@ import {
   type PlacedCoordinate,
 } from '../types/coordinate.js';
 import type { ChartRoute, LegalMove } from '../types/actions.js';
-import type { RoundState } from '../types/game-state.js';
+import type { GameState, RoundState } from '../types/game-state.js';
 import type { PlayerId } from '../types/player.js';
 import {
   isNavigationHaltedByFracture,
@@ -319,6 +319,109 @@ function routesEqual(a: ChartRoute, b: ChartRoute): boolean {
             a.trailPlayerId === b.trailPlayerId))
       );
   }
+}
+
+/**
+ * Get available warp drive spool options (Module Delta).
+ * Returns routes where the captain can spool their drive instead of charting from hand.
+ */
+export function getSpoolOptions(
+  state: GameState,
+  round: RoundState,
+  playerId: PlayerId,
+  houseRules: HouseRules = DEFAULT_HOUSE_RULES
+): import('../types/actions.js').SpoolOption[] {
+  // Module must be enabled
+  if (!state.modules.warpDriveSpool?.enabled) {
+    return [];
+  }
+
+  // Must be player's turn and not in special states
+  if (round.activePlayerId !== playerId) {
+    return [];
+  }
+
+  // Can't spool during Red Alert, Fracture, or other blocking states
+  const fractureActive = isNavigationHaltedByFracture(
+    round.table.subspaceFracture,
+    round.table.redAlert
+  );
+  const redAlertBlocking = isRedAlertBlocking(round.table.redAlert, playerId);
+  
+  if (fractureActive || redAlertBlocking) {
+    return [];
+  }
+
+  // Can't spool during mandatory plays or special windows
+  if (round.mandatoryPlay?.playerId === playerId) {
+    return [];
+  }
+
+  if (
+    routineChartsBlockedByManualShieldWindow(round, playerId, houseRules, {
+      fractureActive: false,
+      redAlertBlocking: false,
+    })
+  ) {
+    return [];
+  }
+
+  const openingOwnTrailOnly = mustRestrictToOwnTrailForOpening(
+    round,
+    playerId,
+    houseRules
+  );
+
+  const options: import('../types/actions.js').SpoolOption[] = [];
+
+  // Own trail is always spoolable if it has an open endpoint
+  const ownTrail = round.table.warpTrails[playerId];
+  if (ownTrail && !isUncoveredDoubleAtTrailEnd(ownTrail)) {
+    options.push({ route: { kind: 'warp-trail', playerId } });
+  }
+
+  if (openingOwnTrailOnly) {
+    return options;
+  }
+
+  // Neutral Zone is spoolable if accessible
+  if (canChartOnNeutralZone(round, houseRules)) {
+    const nz = round.table.neutralZone;
+    if (nz.tiles.length > 0 && !isUncoveredDoubleAtNeutralZoneEnd(nz)) {
+      options.push({ route: { kind: 'neutral-zone' } });
+    }
+  }
+
+  // Opponent trails are spoolable if open to others
+  for (const captainId of round.turnOrder) {
+    if (captainId === playerId) {
+      continue;
+    }
+
+    const trail = round.table.warpTrails[captainId];
+    if (!trail) {
+      continue;
+    }
+
+    // Check if trail is open to others
+    if (!trailsOpenToOthers(round, captainId)) {
+      continue;
+    }
+
+    // Check house rules
+    if (!canChartOnOpponentTrail(round, playerId, captainId, houseRules)) {
+      continue;
+    }
+
+    // Can't spool on trail with uncovered double
+    if (isUncoveredDoubleAtTrailEnd(trail)) {
+      continue;
+    }
+
+    options.push({ route: { kind: 'warp-trail', playerId: captainId } });
+  }
+
+  return options;
 }
 
 export { placedTile, canStabilizeFracture };

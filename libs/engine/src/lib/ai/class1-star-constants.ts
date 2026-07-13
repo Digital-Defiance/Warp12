@@ -9,8 +9,11 @@ export const CLASS1_STAR_TILE_COUNT = 91;
 /** Scalar + one-hot context before tile masks. */
 export const CLASS1_STAR_CONTEXT_DIM = 13;
 
-/** One-hot width for {@link WarpAiAction} kinds. */
-export const CLASS1_STAR_ACTION_KIND_DIM = 11;
+/** One-hot width for {@link WarpAiAction} kinds (current schema). */
+export const CLASS1_STAR_ACTION_KIND_DIM = 12;
+
+/** Legacy v0 action kind dimension (before spool was added). */
+export const CLASS1_STAR_ACTION_KIND_DIM_V0 = 11;
 
 /** One-hot width for chart route kinds. */
 export const CLASS1_STAR_ROUTE_KIND_DIM = 4;
@@ -24,6 +27,15 @@ export const CLASS1_STAR_FEATURE_DIM =
   CLASS1_STAR_ROUTE_KIND_DIM +
   2;
 
+/** Legacy v0 feature width (before spool action was added). */
+export const CLASS1_STAR_FEATURE_DIM_V0 =
+  CLASS1_STAR_CONTEXT_DIM +
+  CLASS1_STAR_TILE_COUNT * 2 +
+  CLASS1_STAR_ACTION_KIND_DIM_V0 +
+  CLASS1_STAR_TILE_COUNT +
+  CLASS1_STAR_ROUTE_KIND_DIM +
+  2;
+
 export const CLASS1_STAR_DISPLAY_NAME = 'Class I*';
 
 export const CLASS1_STAR_MODEL_VERSION = 1;
@@ -31,16 +43,18 @@ export const CLASS1_STAR_MODEL_VERSION = 1;
 export const ACTION_KIND_INDEX: Readonly<Record<WarpAiAction['kind'], number>> =
   {
     chart: 0,
-    draw: 1,
-    'deploy-beacon': 2,
-    'pass-red-alert': 3,
-    'pass-turn': 4,
-    'all-stop': 5,
-    'raise-shields': 6,
-    'drop-to-impulse': 7,
-    'catch-drop-to-impulse': 8,
-    'invoke-continuum-flash': 9,
-    'resolve-continuum-wager': 10,
+    spool: 1,
+    draw: 2,
+    'deploy-beacon': 3,
+    'pass-red-alert': 4,
+    'pass-turn': 5,
+    'all-stop': 6,
+    'raise-shields': 7,
+    'drop-to-impulse': 8,
+    'catch-drop-to-impulse': 9,
+    'invoke-continuum-flash': 10,
+    'resolve-continuum-wager': 11,
+    'pick-from-pack': 12,
   };
 
 export const RACE_PHASE_INDEX: Readonly<Record<GoOutRacePhase, number>> = {

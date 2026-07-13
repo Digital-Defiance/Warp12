@@ -42,7 +42,7 @@ export interface AdvisorTrajectoryRow {
 
 export interface CollectAdvisorTrajectoriesOptions {
   games: number;
-  /** Class Ω weights used as the search / greedy teacher. */
+  /** Ω weights used as the search / greedy teacher. */
   net: OmegaModelWeights;
   seed?: number;
   objective?: GameObjective;

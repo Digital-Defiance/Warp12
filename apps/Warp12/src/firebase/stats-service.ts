@@ -29,29 +29,29 @@ export {
   localAiMatchRejectNotice,
 } from '../game/local-ai-match-validation.js';
 import {
-  DEFAULT_UNASSISTED_TEI,
-  kFactor,
-  opponentTeiForObjective,
-  resolveEffectivePlayerTei,
-  updateUnassistedTei,
-} from './stats-elo.js';
+  DEFAULT_RATING,
+  getTeiDisplay,
+  getAIAnchor,
+  updateVsAI,
+  type PlayerRating,
+  type TeiGrade,
+} from 'warp12-engine';
 import { WARP12_OFFICIAL_RULES_PROFILE_ID } from './rules-profile.js';
 import {
   appendMatchHistory,
   type MatchHistoryEntry,
 } from './match-history.js';
-import { humanObjectiveTeiStats } from './human-tei.js';
 
 import type { CaptainGender } from '../game/captain-profile.js';
 import {
   emptyLocalAiSkillStats,
-  objectiveTeiKey,
-  objectiveTeiStats,
-  startingTeiForObjective,
+  objectiveRatingStats as objectiveTeiStats,
+  startingRatingForObjective,
   type LocalAiSkillStats,
   type PlayerStatsDocument,
   type RatedObjective,
 } from './stats-schema.js';
+import { objectiveToTrackKey, cacheDisplayRating, type StoredRating } from './rating-types.js';
 
 const PLAYER_STATS = 'playerStats';
 
@@ -102,9 +102,14 @@ export interface LocalAiMatchReport {
   advisorUsed: boolean;
   objective: RatedObjective;
   skill: WarpSkillLevel;
-  teiBefore: number | null;
-  teiAfter: number | null;
-  teiDelta: number | null;
+  ratingBefore: StoredRating | null;
+  ratingAfter: StoredRating | null;
+  muDelta: number | null;
+  sigmaDelta: number | null;
+  // Legacy fields for backward compatibility (deprecated)
+  teiBefore?: number | null;
+  teiAfter?: number | null;
+  teiDelta?: number | null;
 }
 
 export type LocalAiMatchOutcome = Pick<
@@ -124,16 +129,25 @@ export interface OnlineHumanSelfReport {
   objective: RatedObjective;
   humanPool: true;
   rank: number;
-  teiBefore: number | null;
-  teiAfter: number | null;
-  teiDelta: number | null;
+  ratingBefore: StoredRating | null;
+  ratingAfter: StoredRating | null;
+  muDelta: number | null;
+  sigmaDelta: number | null;
   charterId?: string;
   charterName?: string;
+  charterRatingBefore?: StoredRating | null;
+  charterRatingAfter?: StoredRating | null;
+  charterMuDelta?: number | null;
+  charterSigmaDelta?: number | null;
+  /** When unrated, the server's reason code (e.g. `advisor_used`). */
+  reason?: string;
+  // Legacy fields for backward compatibility (deprecated)
+  teiBefore?: number | null;
+  teiAfter?: number | null;
+  teiDelta?: number | null;
   charterTeiBefore?: number | null;
   charterTeiAfter?: number | null;
   charterTeiDelta?: number | null;
-  /** When unrated, the server's reason code (e.g. `advisor_used`). */
-  reason?: string;
 }
 
 /** Raw callable response from the `reportOnlineMatch` Cloud Function. */
@@ -142,22 +156,31 @@ interface OnlineMatchCallableResult {
   reason?: string;
   won?: boolean;
   rank?: number;
+  ratingBefore?: StoredRating | null;
+  ratingAfter?: StoredRating | null;
+  muDelta?: number | null;
+  sigmaDelta?: number | null;
+  charterId?: string;
+  charterRatingBefore?: StoredRating | null;
+  charterRatingAfter?: StoredRating | null;
+  charterMuDelta?: number | null;
+  charterSigmaDelta?: number | null;
+  // Legacy fields (deprecated)
   teiBefore?: number | null;
   teiAfter?: number | null;
   teiDelta?: number | null;
-  charterId?: string;
   charterTeiBefore?: number | null;
   charterTeiAfter?: number | null;
   charterTeiDelta?: number | null;
   alreadyApplied?: boolean;
 }
 
-export { startingTeiForObjective } from './stats-schema.js';
+export { startingRatingForObjective as startingTeiForObjective } from './stats-schema.js';
 
 export function incrementLocalAiSkillStats(
   current: LocalAiSkillStats,
   input: LocalAiMatchOutcome,
-  options?: { startingTei?: number }
+  options?: { startingRating?: { mu: number; sigma: number } }
 ): LocalAiSkillStats {
   const next: LocalAiSkillStats = {
     ...current,
@@ -169,22 +192,27 @@ export function incrementLocalAiSkillStats(
   };
 
   if (!input.advisorUsed) {
-    const key = objectiveTeiKey(input.objective);
     const prior = objectiveTeiStats(current, input.objective);
-    const teiBefore = resolveEffectivePlayerTei(
-      prior.unassistedTei,
-      prior.unassistedMatches,
-      options?.startingTei
-    );
+    const playerBefore: PlayerRating = prior.rating.matches > 0
+      ? { mu: prior.rating.mu, sigma: prior.rating.sigma, matches: prior.rating.matches }
+      : (options?.startingRating ?? DEFAULT_RATING);
+    
+    const track = objectiveToTrackKey(input.objective);
+    const aiAnchor = getAIAnchor(track, input.skill);
+    const updatedPlayer = updateVsAI('local', playerBefore, input.skill, aiAnchor, input.won);
+    
+    const key = objectiveToTrackKey(input.objective);
+    const newDisplayGrade = getTeiDisplay(updatedPlayer, prior.rating.displayGrade).grade;
+    
     next[key] = {
-      unassistedMatches: prior.unassistedMatches + 1,
-      unassistedWins: prior.unassistedWins + (input.won ? 1 : 0),
-      unassistedTei: updateUnassistedTei(
-        teiBefore,
-        opponentTeiForObjective(input.objective, input.skill),
-        input.won ? 1 : 0,
-        kFactor(prior.unassistedMatches)
-      ),
+      rating: {
+        mu: updatedPlayer.mu,
+        sigma: updatedPlayer.sigma,
+        matches: updatedPlayer.matches,
+        displayRating: cacheDisplayRating(updatedPlayer.mu, updatedPlayer.sigma),
+        displayGrade: newDisplayGrade,
+      },
+      wins: prior.wins + (input.won ? 1 : 0),
     };
   }
 
@@ -195,7 +223,7 @@ export function previewLocalAiMatchReport(
   current: LocalAiSkillStats,
   input: ReportLocalAiMatchInput,
   won: boolean,
-  startingTei?: number
+  startingRating?: { mu: number; sigma: number }
 ): LocalAiMatchReport {
   if (input.advisorUsed) {
     return {
@@ -204,28 +232,40 @@ export function previewLocalAiMatchReport(
       advisorUsed: true,
       objective: input.objective,
       skill: input.skill,
-      teiBefore: null,
-      teiAfter: null,
-      teiDelta: null,
+      ratingBefore: null,
+      ratingAfter: null,
+      muDelta: null,
+      sigmaDelta: null,
     };
   }
 
-  const prior = objectiveTeiStats(current, input.objective);
-  const teiBefore = resolveEffectivePlayerTei(
-    prior.unassistedTei,
-    prior.unassistedMatches,
-    startingTei
-  );
-  const teiAfter = updateUnassistedTei(
-    teiBefore,
-    opponentTeiForObjective(
-      input.objective,
-      input.skill,
-      localRulesProfileId(input.config)
-    ),
-    won ? 1 : 0,
-    kFactor(prior.unassistedMatches)
-  );
+  const prior = objectiveRatingStats(current, input.objective);
+  const playerBefore: PlayerRating = prior.rating.matches > 0
+    ? { mu: prior.rating.mu, sigma: prior.rating.sigma, matches: prior.rating.matches }
+    : (startingRating ?? DEFAULT_RATING);
+  
+  const track = objectiveToTrackKey(input.objective);
+  const aiAnchor = getAIAnchor(track, input.skill);
+  const updatedPlayer = updateVsAI('local', playerBefore, input.skill, aiAnchor, won);
+  
+  const teiDisplayBefore = getTeiDisplay(playerBefore, prior.rating.displayGrade);
+  const teiDisplayAfter = getTeiDisplay(updatedPlayer, teiDisplayBefore.formatted);
+  
+  const ratingBefore: StoredRating = {
+    mu: playerBefore.mu,
+    sigma: playerBefore.sigma,
+    matches: playerBefore.matches,
+    displayRating: cacheDisplayRating(playerBefore.mu, playerBefore.sigma),
+    displayGrade: teiDisplayBefore.formatted,
+  };
+  
+  const ratingAfter: StoredRating = {
+    mu: updatedPlayer.mu,
+    sigma: updatedPlayer.sigma,
+    matches: updatedPlayer.matches,
+    displayRating: cacheDisplayRating(updatedPlayer.mu, updatedPlayer.sigma),
+    displayGrade: teiDisplayAfter.formatted,
+  };
 
   return {
     rated: true,
@@ -233,9 +273,10 @@ export function previewLocalAiMatchReport(
     advisorUsed: false,
     objective: input.objective,
     skill: input.skill,
-    teiBefore,
-    teiAfter,
-    teiDelta: teiAfter - teiBefore,
+    ratingBefore,
+    ratingAfter,
+    muDelta: updatedPlayer.mu - playerBefore.mu,
+    sigmaDelta: updatedPlayer.sigma - playerBefore.sigma,
   };
 }
 
@@ -444,7 +485,7 @@ export async function reportLocalAiMatch(
 /**
  * Report a completed online sector for human-pool TEI. The server re-derives the
  * standings from the authoritative game document, re-verifies every human seat,
- * and applies pairwise Elo (humans anchored against Class II–IV AI). Rating all
+ * and applies OpenSkill FFA rating updates (humans anchored against Ensign–Commander AI). Rating all
  * eligible captains is idempotent per `gameId`, so it is safe for any verified
  * captain at the table to call once the sector completes.
  */
@@ -469,9 +510,10 @@ export async function reportOnlineMatch(
       objective,
       humanPool: true,
       rank: 0,
-      teiBefore: null,
-      teiAfter: null,
-      teiDelta: null,
+      ratingBefore: null,
+      ratingAfter: null,
+      muDelta: null,
+      sigmaDelta: null,
       reason: result.reason,
     };
   }
@@ -483,15 +525,17 @@ export async function reportOnlineMatch(
     objective,
     humanPool: true,
     rank: result.rank ?? 0,
-    teiBefore: result.teiBefore ?? null,
-    teiAfter: result.teiAfter ?? null,
-    teiDelta: result.teiDelta ?? null,
+    ratingBefore: result.ratingBefore ?? null,
+    ratingAfter: result.ratingAfter ?? null,
+    muDelta: result.muDelta ?? null,
+    sigmaDelta: result.sigmaDelta ?? null,
     ...(result.charterId
       ? {
           charterId: result.charterId,
-          charterTeiBefore: result.charterTeiBefore ?? null,
-          charterTeiAfter: result.charterTeiAfter ?? null,
-          charterTeiDelta: result.charterTeiDelta ?? null,
+          charterRatingBefore: result.charterRatingBefore ?? null,
+          charterRatingAfter: result.charterRatingAfter ?? null,
+          charterMuDelta: result.charterMuDelta ?? null,
+          charterSigmaDelta: result.charterSigmaDelta ?? null,
         }
       : {}),
   };
@@ -504,26 +548,94 @@ export function displayPlayerObjectiveTei(
 ): number | null {
   const bucket = stats?.localAi?.[skill];
   if (!bucket) {
-    const seed = startingTeiForObjective(stats, objective);
-    return seed ?? null;
+    const seedRating = startingRatingForObjective(stats, objective);
+    if (seedRating) {
+      const tei = getTeiDisplay({ ...seedRating, matches: 0 });
+      return tei.score;
+    }
+    return null;
   }
   const trackStats = objectiveTeiStats(bucket, objective);
-  if (trackStats.unassistedMatches > 0) {
-    return trackStats.unassistedTei ?? DEFAULT_UNASSISTED_TEI;
+  if (trackStats.rating.matches > 0) {
+    const tei = getTeiDisplay(
+      { 
+        mu: trackStats.rating.mu, 
+        sigma: trackStats.rating.sigma, 
+        matches: trackStats.rating.matches 
+      },
+      trackStats.rating.displayGrade
+    );
+    return tei.score;
   }
-  return (
-    trackStats.unassistedTei ??
-    startingTeiForObjective(stats, objective) ??
-    null
-  );
+  const seedRating = startingRatingForObjective(stats, objective);
+  if (seedRating) {
+    const tei = getTeiDisplay({ ...seedRating, matches: 0 });
+    return tei.score;
+  }
+  return null;
+}
+
+/**
+ * Get full TEI display (grade + score) for a player's objective rating.
+ * Returns the complete TEI display with grade letter and score.
+ */
+export function getPlayerTeiDisplay(
+  stats: PlayerStatsDocument | null,
+  skill: WarpSkillLevel,
+  objective: RatedObjective
+): { grade: TeiGrade; score: number; formatted: string } | null {
+  const bucket = stats?.localAi?.[skill];
+  if (!bucket) {
+    const seedRating = startingRatingForObjective(stats, objective);
+    if (seedRating) {
+      return getTeiDisplay({ ...seedRating, matches: 0 });
+    }
+    return null;
+  }
+  const trackStats = objectiveTeiStats(bucket, objective);
+  if (trackStats.rating.matches > 0) {
+    return getTeiDisplay(
+      { 
+        mu: trackStats.rating.mu, 
+        sigma: trackStats.rating.sigma, 
+        matches: trackStats.rating.matches 
+      },
+      trackStats.rating.displayGrade
+    );
+  }
+  const seedRating = startingRatingForObjective(stats, objective);
+  if (seedRating) {
+    return getTeiDisplay({ ...seedRating, matches: 0 });
+  }
+  return null;
+}
+
+/**
+ * Get stored rating for a player's objective.
+ * Returns the full rating object with mu, sigma, matches, displayGrade.
+ */
+export function getPlayerStoredRating(
+  stats: PlayerStatsDocument | null,
+  skill: WarpSkillLevel,
+  objective: RatedObjective
+): StoredRating | null {
+  const bucket = stats?.localAi?.[skill];
+  if (!bucket) {
+    return null;
+  }
+  const trackStats = objectiveTeiStats(bucket, objective);
+  if (trackStats.rating.matches > 0) {
+    return trackStats.rating;
+  }
+  return null;
 }
 
 export function hasStartingTeiPlacedForObjective(
   stats: PlayerStatsDocument | null,
   objective: RatedObjective
 ): boolean {
-  const key = objectiveTeiKey(objective);
-  return stats?.startingTei?.[key] !== undefined;
+  const key = objectiveToTrackKey(objective);
+  return stats?.startingRating?.[key] !== undefined;
 }
 
 export function hasAnyRatedUnassistedMatchForObjective(
@@ -538,7 +650,7 @@ export function hasAnyRatedUnassistedMatchForObjective(
     if (!bucket) {
       continue;
     }
-    if (objectiveTeiStats(bucket, objective).unassistedMatches > 0) {
+    if (objectiveTeiStats(bucket, objective).rating.matches > 0) {
       return true;
     }
   }
@@ -564,8 +676,10 @@ export function needsAcademyPlacementForObjective(
   if (hasAnyRatedUnassistedMatchForObjective(stats, objective)) {
     return false;
   }
-  const humanTrack = humanObjectiveTeiStats(stats, objective);
-  return humanTrack.unassistedMatches === 0;
+  // Check if player has any human rating for this objective
+  const trackKey = objectiveToTrackKey(objective);
+  const humanRating = stats?.humanRating?.[trackKey]?.rating;
+  return !humanRating || humanRating.matches === 0;
 }
 
 export function needsAcademyPlacement(

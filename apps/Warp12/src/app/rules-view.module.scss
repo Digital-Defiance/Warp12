@@ -332,3 +332,42 @@
     }
   }
 }
+
+
+// Pandoc LaTeX table styling
+.markdown :global(.tabular) {
+  display: block;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid var(--warp-panel-border, #334155);
+  border-radius: 4px;
+
+  p {
+    margin: 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    
+    // Make & symbols look like column separators
+    span:first-child {
+      display: block;
+      color: var(--warp-text-muted, #64748b);
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--warp-panel-border, #334155);
+    }
+    
+    // Style inline code in tables (technical column)
+    code {
+      background: rgba(30, 41, 59, 0.5);
+      padding: 0.15rem 0.4rem;
+      border-radius: 2px;
+      color: #7dd3fc;
+      font-size: 0.8rem;
+    }
+  }
+}

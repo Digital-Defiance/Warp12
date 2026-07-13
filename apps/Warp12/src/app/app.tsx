@@ -26,8 +26,11 @@ import { PaperPage } from './paper-page';
 import { ProfilePage } from './profile-page';
 import { PrivacyDialog } from './privacy-dialog';
 import { PrivacyPage } from './privacy-page';
+import { ResearchDialog } from './research-dialog';
+import { ResearchPage } from './research-page';
 import { RulesDialog } from './rules-dialog';
 import { RulesPage } from './rules-page';
+import { TeiPage } from './tei-page';
 import styles from './app.module.scss';
 import { Warp12Logo } from './Warp12Logo';
 import { FactorLanding } from './factor-landing';
@@ -49,6 +52,7 @@ function AppShell() {
   const overlayDocs = preservesGameSession(location.pathname);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [researchOpen, setResearchOpen] = useState(false);
 
   return (
     <div
@@ -114,6 +118,13 @@ function AppShell() {
               <button
                 type="button"
                 className={styles.navLink}
+                onClick={() => setResearchOpen(true)}
+              >
+                Research
+              </button>
+              <button
+                type="button"
+                className={styles.navLink}
                 onClick={() => setPrivacyOpen(true)}
               >
                 Privacy
@@ -128,10 +139,7 @@ function AppShell() {
                 About
               </Link>
               {layoutTier !== 'phone' && (
-                <Link
-                  to="https://docs.warp12.app/tei-paper-outline.html"
-                  className={styles.navLink}
-                >
+                <Link to="/research" className={styles.navLink}>
                   Research
                 </Link>
               )}
@@ -161,8 +169,10 @@ function AppShell() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/paper" element={<PaperPage />} />
             <Route path="/paper/log" element={<PaperPage />} />
+            <Route path="/research" element={<ResearchPage />} />
             <Route path="/rules" element={<RulesPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/tei" element={<TeiPage />} />
             <Route path="/local" element={<LocalGamePage />} />
             <Route path="/local/pass-and-play" element={<PassAndPlayPage />} />
             <Route path="/profile" element={<ProfilePage />} />
@@ -174,6 +184,7 @@ function AppShell() {
       </main>
 
       <RulesDialog open={rulesOpen} onClose={() => setRulesOpen(false)} />
+      <ResearchDialog open={researchOpen} onClose={() => setResearchOpen(false)} />
       <PrivacyDialog open={privacyOpen} onClose={() => setPrivacyOpen(false)} />
     </div>
   );

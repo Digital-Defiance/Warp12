@@ -4,6 +4,8 @@ import {
   WARP12_OFFICIAL_CAMPAIGN_ROUNDS,
   WARP12_OFFICIAL_HOUSE_RULES,
   WARP12_OFFICIAL_MODULES,
+  officialRulesLabel,
+  officialRulesSummary,
   warp12OfficialCreateLobbyOptions,
 } from './warp12-preset.js';
 
@@ -25,5 +27,13 @@ describe('warp12-preset', () => {
     expect(options.modules?.salamanderPenalty).toBe(true);
     expect(options.modules?.continuum).toBe(true);
     expect(options.houseRules?.dropToImpulseCall).toBe(true);
+  });
+
+  it('labels and summarizes official rules per Warp factor', () => {
+    expect(officialRulesLabel(12)).toBe('Official Warp 12 rules');
+    expect(officialRulesLabel(9)).toBe('Official Warp 9 rules');
+    expect(officialRulesSummary(12)).toMatch(/13 rounds/);
+    expect(officialRulesSummary(18)).toMatch(/19 rounds/);
+    expect(officialRulesSummary(15)).toMatch(/Exhibition set/);
   });
 });

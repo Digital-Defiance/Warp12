@@ -1,0 +1,8 @@
+Class Ω GATED training loop: 20 iterations, 500 games/iter, 3,3,3,4,4,6,8p points
+Champion: apps/Warp12/public/models/omega-v1.json   Elo log: tools/nn/data/omega-elo-log.jsonl   promote margin: 0.0
+Train batch: 1024   search iters: 800   workers: 15
+Gate metric: weighted  weights=3:4,4:2,6:1,8:1  floor=3,4,6,8@1.6
+
+================ Omega iteration 1/20 ================
+Loaded Omega weights from /Volumes/Code/Warp12/apps/Warp12/public/models/omega-v1.json
+Collecting Class Ω self-play: 500 games, mixed tables [3,3,3,4,4,6,8], points, temperature=1, ISMCTS 800 iters/decision

@@ -116,6 +116,30 @@ export async function simulateLocalAiMatch(input?: {
       break;
     }
 
+    // Check for off-turn AI actions first (e.g., CATCH_DROP_TO_IMPULSE)
+    let offTurnHandled = false;
+    for (const [aiId, ai] of roster) {
+      const offTurnAction = ai.decideOffTurnGameAction(structuredClone(state), aiId);
+      if (offTurnAction) {
+        const result = applyMatchAction(state, offTurnAction, roundReshuffle);
+        record(offTurnAction, result.ok, 'ai', result.ok ? undefined : result.violation);
+        steps += 1;
+        if (!result.ok) {
+          offTurnHandled = true;
+          break;
+        }
+        state = result.state;
+        offTurnHandled = true;
+        break; // Process one off-turn action at a time
+      }
+    }
+
+    if (offTurnHandled) {
+      if (state.phase === 'complete') break;
+      continue; // Check for more off-turn actions or active turn
+    }
+
+    // Now handle the active player's turn
     const activeId = round.activePlayerId;
     let action: GameAction | null = null;
     let source: ActionLogEntry['source'] = 'human';

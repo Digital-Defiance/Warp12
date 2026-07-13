@@ -1,7 +1,8 @@
 {
   "name": "warp12-theme",
-  "version": "0.4.23",
-  "description": "Warp 12 federation domino theme presets for DoubleEighteen",
+  "version": "0.4.25",
+  "description": "Federation-styled domino theme presets for Warp — Interstellar Dominoes visual styling for DoubleEighteen across all Warp factors",
+  "homepage": "https://warp.iwdf.org",
   "license": "MIT",
   "author": "Digital Defiance",
   "type": "module",
@@ -26,10 +27,15 @@
     "README.md"
   ],
   "keywords": [
+    "warp",
     "warp12",
+    "warp-dominoes",
+    "interstellar-dominoes",
     "double-eighteen",
     "dominoes",
-    "theme"
+    "theme",
+    "federation",
+    "visual-theme"
   ],
   "repository": {
     "type": "git",

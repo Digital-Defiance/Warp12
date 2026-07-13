@@ -16,6 +16,10 @@ export function generateCoordinateSet(maxPips = 12): Coordinate[] {
   return tiles;
 }
 
+export function expectedCoordinateSetSize(factor = 12): number {
+  return ((factor+1)*(factor+2))/2;
+}
+
 export function assertCoordinateSetSize(
   coordinates: readonly Coordinate[],
   expected = DOUBLE_TWELVE_SET_SIZE

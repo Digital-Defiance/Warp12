@@ -1,0 +1,51 @@
+{
+  "weights": "apps/Warp12/public/models/omega-v1.json",
+  "objective": "points",
+  "gamesPerSlice": 80,
+  "results": [
+    {
+      "games": 80,
+      "completed": 80,
+      "objective": "points",
+      "playerCount": 3,
+      "omegaSeatId": "a",
+      "omegaWins": 27,
+      "omegaWinRate": 0.3375,
+      "impliedEloGap": null,
+      "fairShareRatio": 1.0125000000000002
+    },
+    {
+      "games": 80,
+      "completed": 80,
+      "objective": "points",
+      "playerCount": 4,
+      "omegaSeatId": "a",
+      "omegaWins": 30,
+      "omegaWinRate": 0.375,
+      "impliedEloGap": null,
+      "fairShareRatio": 1.5
+    },
+    {
+      "games": 80,
+      "completed": 80,
+      "objective": "points",
+      "playerCount": 6,
+      "omegaSeatId": "a",
+      "omegaWins": 24,
+      "omegaWinRate": 0.3,
+      "impliedEloGap": null,
+      "fairShareRatio": 1.7999999999999998
+    },
+    {
+      "games": 80,
+      "completed": 80,
+      "objective": "points",
+      "playerCount": 8,
+      "omegaSeatId": "a",
+      "omegaWins": 17,
+      "omegaWinRate": 0.2125,
+      "impliedEloGap": null,
+      "fairShareRatio": 1.7
+    }
+  ]
+}

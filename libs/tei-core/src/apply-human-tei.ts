@@ -11,7 +11,7 @@ import {
   resolveEffectivePlayerTei,
   updateTeiMultiplayerPairwise,
   type TeiRankedPlayer,
-} from './stats-elo.js';
+} from './stats-openskill.js';
 
 export function buildTeiTableFromStandings(
   match: RatedMatchDocument,

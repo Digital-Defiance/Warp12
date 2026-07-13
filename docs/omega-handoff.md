@@ -201,6 +201,33 @@ named concepts — not imitate legacy Commander.
 
 ---
 
+## Multi-factor nets (Warp 9 / 15 / 18) — separate from TEI
+
+**TEI stays Warp 12 only.** Exhibition sets never rate, with or without neural
+officers. Multi-factor Ω is a **training / schema** track, not a ladder track.
+
+Today `neuralWeightsAvailable(maxPip)` is true only for **12** — the shipped
+encoder + `omega-v1.json` / Class I* ONNX assume double-twelve tile masks
+(`CLASS1_STAR_TILE_COUNT = 91`). Other factors fall back to heuristics in the
+client (`neuralAiSupported` → false).
+
+| Factor | Tiles | Policy feature dim (same layout) | Fleet max |
+|--------|------:|---------------------------------:|----------:|
+| 9 | 55 | see `neuralFeatureSchema(9)` | 4 |
+| **12** | **91** | **`CLASS1_STAR_FEATURE_DIM` (shipped)** | **8** |
+| 15 | 136 | see `neuralFeatureSchema(15)` | 12 |
+| 18 | 190 | see `neuralFeatureSchema(18)` | 18 |
+
+**To ship a factor:** collect/train with that set’s `maxPip`, write weights whose
+`policyFeatureDim` / tile index map match `neuralFeatureSchema(factor)`, add the
+factor to `SHIPPED_NEURAL_FACTORS`, and host the JSON under
+`apps/Warp12/public/models/`. Do **not** stretch Warp 12 weights onto other
+sets — tile one-hots would misalign.
+
+Engine helper: `libs/engine/src/lib/ai/neural-schema.ts`.
+
+---
+
 ## Key files
 
 | Path | Role |

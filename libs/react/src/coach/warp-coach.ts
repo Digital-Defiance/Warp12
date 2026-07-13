@@ -28,7 +28,7 @@ export interface CoachSuggestion {
 export interface CoachSuggestionOptions {
   /** Phase B concept-bottleneck advisor (preferred when loaded). */
   readonly advisorWeights?: AdvisorModelWeights;
-  /** Phase A fallback — greedy Class II Ω pick + heuristic reasons. */
+  /** Phase A fallback — greedy Commander Ω pick + heuristic reasons. */
   readonly omegaNet?: OmegaModelWeights;
 }
 
@@ -118,6 +118,8 @@ export function formatCoachSuggestion(
     }
     case 'draw':
       return 'Draw from Uncharted Sectors';
+    case 'spool':
+      return `Engage Warp Drive · ${routeLabel(action.option.route, names)}`;
     case 'deploy-beacon':
       return 'Deploy Distress Beacon (shields down)';
     case 'pass-red-alert':
@@ -140,6 +142,8 @@ export function formatCoachSuggestion(
       return `Invoke Continuum Flash · ${action.effect.replaceAll('-', ' ')}`;
     case 'resolve-continuum-wager':
       return `Keep gamble tile ${action.keepIndex + 1}`;
+    default:
+      return 'Unknown action';
   }
 }
 

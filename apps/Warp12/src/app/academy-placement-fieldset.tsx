@@ -2,9 +2,7 @@ import { useState } from 'react';
 
 import {
   aiSkillToTacticalClass,
-  defaultAcademyTei,
   formatAiSkillUnratedLabel,
-  formatTei,
   formatTacticalClass,
   playerTacticalClassTagline,
   TEI_OBJECTIVE_LABEL,
@@ -18,6 +16,13 @@ import styles from './lobby.module.scss';
 const OBJECTIVE_LABELS: Record<RatedObjective, string> = {
   'go-out': TEI_OBJECTIVE_LABEL['go-out'],
   points: TEI_OBJECTIVE_LABEL.points,
+};
+
+// Academy placement grade bands (OpenSkill TEI grade ranges)
+const ACADEMY_GRADE_BANDS: Record<WarpSkillLevel, string> = {
+  ensign: 'P0–I25',
+  lieutenant: 'I25–C45',
+  commander: 'C45–V70',
 };
 
 export function AcademyPlacementFieldset({
@@ -34,7 +39,7 @@ export function AcademyPlacementFieldset({
 
   const trackLabel = OBJECTIVE_LABELS[objective];
   const tacticalClass = aiSkillToTacticalClass(skill);
-  const benchmarkTei = defaultAcademyTei(skill, objective);
+  const gradeBand = ACADEMY_GRADE_BANDS[skill];
 
   const commit = () => {
     setError(null);
@@ -49,12 +54,12 @@ export function AcademyPlacementFieldset({
       {error && <p className={styles.error}>{error}</p>}
       <p className={styles.hint}>
         Everyone at the table is a <strong>Captain</strong>. Choose the{' '}
-        <strong>tactical classification</strong> that should benchmark your{' '}
-        {trackLabel} TEI — proficiency on file, not chain-of-command rank.
+        <strong>commission track</strong> that should benchmark your{' '}
+        {trackLabel} TEI — Ensign, Lieutenant, or Commander reference officers.
       </p>
       <div
         role="radiogroup"
-        aria-label={`Academy tactical class for ${trackLabel}`}
+        aria-label={`Academy commission track for ${trackLabel}`}
       >
         {WARP_SKILL_LEVELS.map((level) => (
           <label
@@ -73,7 +78,7 @@ export function AcademyPlacementFieldset({
             <span>
               {formatAiSkillUnratedLabel(level)}
               {' · '}
-              {formatTei(defaultAcademyTei(level, objective), true)} benchmark
+              {ACADEMY_GRADE_BANDS[level]} benchmark
             </span>
           </label>
         ))}
@@ -81,7 +86,7 @@ export function AcademyPlacementFieldset({
       <div className={styles.inlineRow}>
         <p className={styles.hint}>
           {formatTacticalClass(tacticalClass)} benchmark:{' '}
-          <strong>{formatTei(benchmarkTei, true)}</strong>
+          <strong>{gradeBand}</strong>
         </p>
         <button
           type="button"
@@ -95,7 +100,7 @@ export function AcademyPlacementFieldset({
       <p className={styles.hint}>
         {playerTacticalClassTagline(tacticalClass)}. Saved once per track. After
         your first unassisted {trackLabel} match, TEI comes from play only.
-        Class I is earned — not selected at onboarding.
+        Flag Officer is earned — not selected at onboarding.
       </p>
     </fieldset>
   );

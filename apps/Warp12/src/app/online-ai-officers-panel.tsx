@@ -8,6 +8,7 @@ import {
   type FirestoreGameDocument,
 } from '../firebase';
 import { isAiCaptain, pickNextAiOfficer } from '../game/ai-captain.js';
+import { neuralAiSupported } from '../game/local-game-config.js';
 import styles from './lobby.module.scss';
 
 interface OnlineAiOfficersPanelProps {
@@ -32,6 +33,8 @@ export function OnlineAiOfficersPanel({
   const seatsOpen = maxPlayers - lobby.captains.length;
   const nextOfficer = pickNextAiOfficer(lobby.captains);
   const canAdd = seatsOpen > 0 && nextOfficer != null;
+  const maxPip = lobby.maxPip ?? 12;
+  const exhibitionSet = !neuralAiSupported(maxPip);
 
   const addOfficer = async () => {
     if (!uid || uid !== hostId || !canAdd) {
@@ -79,6 +82,12 @@ export function OnlineAiOfficersPanel({
           ? ` ${seatsOpen} seat${seatsOpen === 1 ? '' : 's'} open.`
           : ' Fleet is at capacity.'}
       </p>
+      {exhibitionSet ? (
+        <p className={styles.notice} role="status">
+          Exhibition set — Commander seats use heuristics only until neural
+          weights ship for this factor (Warp 12 has Ω today).
+        </p>
+      ) : null}
       <div className={styles.actions}>
         <button
           type="button"
@@ -107,7 +116,7 @@ export function OnlineAiOfficersPanel({
             }}
           />
           <select
-            aria-label={`${captain.displayName} tactical class`}
+            aria-label={`${captain.displayName} commission track`}
             value={captain.skill ?? 'lieutenant'}
             disabled={busy}
             onChange={(event) =>
@@ -123,7 +132,9 @@ export function OnlineAiOfficersPanel({
               {formatAiSkillUnratedLabel('lieutenant')}
             </option>
             <option value="commander">
-              {formatAiSkillUnratedLabel('commander')}
+              {exhibitionSet
+                ? `${formatAiSkillUnratedLabel('commander')} · heuristics`
+                : formatAiSkillUnratedLabel('commander')}
             </option>
           </select>
         </div>

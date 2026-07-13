@@ -1,28 +1,35 @@
-import type { GroupTeiByCharter, GroupTeiStats } from './charter-schema';
+/**
+ * Apply OpenSkill rating updates for charter/crew matches.
+ */
+
+import { updateFFARatings, type PlayerRating } from 'warp12-engine';
+import type { GroupTeiByCharter, GroupTeiStats } from './charter-schema.js';
 import {
   charterHouseRulesMatch,
   charterModulesMatch,
   type CharterHouseRulesInput,
   type CharterModulesInput,
-} from './charter-lobby-config';
+} from './charter-lobby-config.js';
 import {
-  objectiveTeiKey,
-  startingTeiForObjective,
+  objectiveToTrackKey,
+  startingRatingForObjective,
   type PlayerStatsDocument,
   type RatedObjective,
-} from './rated-match-schema';
+  type StoredRating,
+  type ObjectiveRatingStats,
+} from './rated-match-schema.js';
 import {
-  resolveEffectivePlayerTei,
-  updateTeiMultiplayerPairwise,
-  type TeiRankedPlayer,
-} from './stats-elo';
+  resolveEffectivePlayerRating,
+  type RatedPlayer,
+} from './stats-openskill.js';
+import { emptyObjectiveRatingStats, toStoredRatingWithGrade } from './rating-types.js';
 
 function activeGroupBucket(
   doc: PlayerStatsDocument | null | undefined,
   charterId: string,
   charterSeasonKey?: string
 ): GroupTeiStats | undefined {
-  const bucket = doc?.groupTei?.[charterId];
+  const bucket = doc?.groupRating?.[charterId];
   if (!bucket) {
     return undefined;
   }
@@ -36,32 +43,29 @@ function activeGroupBucket(
   return bucket;
 }
 
-export function groupObjectiveTeiStats(
+export function groupObjectiveRatingStats(
   doc: PlayerStatsDocument | null | undefined,
   charterId: string,
   objective: RatedObjective,
   charterSeasonKey?: string
-) {
-  const key = objectiveTeiKey(objective);
+): ObjectiveRatingStats {
+  const key = objectiveToTrackKey(objective);
   const bucket = activeGroupBucket(doc, charterId, charterSeasonKey);
-  return {
-    unassistedMatches: 0,
-    unassistedWins: 0,
-    ...bucket?.[key],
-  };
+  const existing = bucket?.[key];
+  return existing ?? emptyObjectiveRatingStats();
 }
 
-export function applyGroupTeiForPlayer(
+export function applyGroupRatingForPlayer(
   doc: PlayerStatsDocument | null,
   charterId: string,
   objective: RatedObjective,
-  table: readonly TeiRankedPlayer[],
+  table: readonly RatedPlayer[],
   uid: string,
   charterSeasonKey?: string
 ): {
-  groupTei: GroupTeiByCharter;
-  teiBefore: number;
-  teiAfter: number;
+  groupRating: GroupTeiByCharter;
+  ratingBefore: StoredRating;
+  ratingAfter: StoredRating;
   won: boolean;
   rank: number;
 } | null {
@@ -70,42 +74,65 @@ export function applyGroupTeiForPlayer(
     return null;
   }
 
-  const key = objectiveTeiKey(objective);
-  const prior = groupObjectiveTeiStats(
+  const key = objectiveToTrackKey(objective);
+  const prior = groupObjectiveRatingStats(
     doc,
     charterId,
     objective,
     charterSeasonKey
   );
-  const teiBefore = resolveEffectivePlayerTei(
-    prior.unassistedTei,
-    prior.unassistedMatches,
-    startingTeiForObjective(doc, objective)
+  const ratingBefore = resolveEffectivePlayerRating(
+    prior.rating,
+    prior.rating.matches,
+    startingRatingForObjective(doc, objective)
   );
-  const playerRow: TeiRankedPlayer = { ...player, tei: teiBefore };
-  const tableWithCurrent = table.map((entry) =>
-    entry.playerId === uid ? playerRow : entry
-  );
-  const teiAfter = updateTeiMultiplayerPairwise(playerRow, tableWithCurrent);
 
-  const sameSeasonBucket = activeGroupBucket(doc, charterId, charterSeasonKey) ?? {};
+  // Build player list for OpenSkill FFA update
+  const players: Array<{ playerId: string; rating: PlayerRating; rank: number }> =
+    table.map((p) => ({
+      playerId: p.playerId,
+      rating: {
+        mu: p.playerId === uid ? ratingBefore.mu : p.rating.mu,
+        sigma: p.playerId === uid ? ratingBefore.sigma : p.rating.sigma,
+        matches: p.playerId === uid ? ratingBefore.matches : p.rating.matches,
+      },
+      rank: p.rank,
+    }));
+
+  // Update ratings using OpenSkill FFA
+  const updatedRatings = updateFFARatings(players);
+  const newRating = updatedRatings.get(uid);
+
+  if (!newRating) {
+    return null;
+  }
+
+  const ratingAfter = toStoredRatingWithGrade(
+    {
+      ...newRating,
+      matches: ratingBefore.matches + 1,
+    },
+    ratingBefore // Pass previous rating for hysteresis
+  );
+
+  const sameSeasonBucket =
+    activeGroupBucket(doc, charterId, charterSeasonKey) ?? {};
   const charterBucket: GroupTeiStats = {
     ...sameSeasonBucket,
     seasonKey: charterSeasonKey ?? sameSeasonBucket.seasonKey,
     [key]: {
-      unassistedMatches: prior.unassistedMatches + 1,
-      unassistedWins: prior.unassistedWins + (player.rank === 1 ? 1 : 0),
-      unassistedTei: teiAfter,
+      rating: ratingAfter,
+      wins: prior.wins + (player.rank === 1 ? 1 : 0),
     },
   };
 
   return {
-    groupTei: {
-      ...(doc?.groupTei ?? {}),
+    groupRating: {
+      ...(doc?.groupRating ?? {}),
       [charterId]: charterBucket,
     },
-    teiBefore,
-    teiAfter,
+    ratingBefore,
+    ratingAfter,
     won: player.rank === 1,
     rank: player.rank,
   };
@@ -138,3 +165,4 @@ export function charterMatchesRatedEvent(
     charterHouseRulesMatch(charter, event.houseRules ?? {})
   );
 }
+

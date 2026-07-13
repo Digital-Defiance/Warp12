@@ -252,24 +252,24 @@ Warp 12 ships with offline AI captains and a human-facing **tactical coach**, bo
 
 | Tier | Engine | Rated? |
 |------|--------|--------|
-| **Class IV / III** | Heuristic `createWarpAiPlayer` | Yes |
-| **Class II** | Neural **Ω** (`createOmegaPlayer`, greedy policy) | Yes — `warp12-official-v2` anchors |
+| **Ensign / Lieutenant** | Heuristic `createWarpAiPlayer` | Yes |
+| **Commander** | Neural **Ω** (`createOmegaPlayer`, greedy policy) | Yes — `warp12-official-v2` anchors |
 | **Extended thinking (Ω+)** | Same Ω weights + net-guided search (`createOmegaSearchPlayer`) | **No** — local exhibition only |
 | **Class I\*** | Heuristic + search/residual research | No |
 
-Class IV–III officers use double-eighteen heuristics on the real engine (Distress Beacons, Red Alert, modules, house rules). **Class II is Ω** — a self-play neural policy, not a separate lobby tier. Optional **extended thinking** on Class II in local simulation runs Ω+ search; those matches do not update TEI.
+Ensign–Lieutenant officers use double-eighteen heuristics on the real engine (Distress Beacons, Red Alert, modules, house rules). **Commander is Ω** — a self-play neural policy, not a separate lobby tier. Optional **extended thinking** on Commander in local simulation runs Ω+ search; those matches do not update TEI.
 
 Self-play suites verify skill ordering and fairness. Heuristic tier calibration:
 
 ```bash
-yarn calibrate:ai-tei          # Class IV–III vs legacy heuristic Class II bands
+yarn calibrate:ai-tei          # Ensign–Lieutenant vs legacy heuristic Commander bands
 ```
 
 Ω promotion gates: `yarn omega:bench` (champion vs legacy Commander).
 
 ### Tactical coach (`warp12-react`)
 
-The **tactical advisor** follows Class II **Ω** (greedy policy) when weights are loaded, then explains the line with plain-language heuristic reasons (`explainWarpAiAction`, turn-resolution hints). Assisted matches never move TEI.
+The **tactical advisor** follows Commander **Ω** (greedy policy) when weights are loaded, then explains the line with plain-language heuristic reasons (`explainWarpAiAction`, turn-resolution hints). Assisted matches never move TEI.
 
 ### Leaderboard TEI (unassisted matches)
 
@@ -280,30 +280,30 @@ Solo games vs AI feed **[iwdf.org](https://iwdf.org)** when the sector is **Warp
 | **Go-out TEI** | First player to empty their hand wins |
 | **Points TEI** | Lowest pip count when the round ends |
 
-Each track also splits by AI tactical class (`localAi` Class IV / III / II profiles).
+Each track also splits by AI commission track (`localAi` Ensign / Lieutenant / Commander profiles).
 
-**Federation Academy:** before the first rated match in each track, captains pick Class IV / III / II and a starting TEI within that class’s band (saved once per track — go-out and points are independent).
+**Federation Academy:** before the first rated match in each track, captains pick Ensign / Lieutenant / Commander and a starting TEI within that class’s band (saved once per track — go-out and points are independent).
 
 **Fixed reference TEI** (`warp12-official-v2`, unassisted matches only):
 
-| Track | Class IV | Class III | Class II (Ω) |
-|-------|----------|-----------|--------------|
-| Points | ~TEI 1000 | ~TEI 1200 | ~TEI 1520 |
-| Go-out | ~TEI 1000 | ~TEI 1250 | ~TEI 1550 |
+| Track | Ensign | Lieutenant | Commander |
+|-------|-------------------|------------------------|----------------------|
+| Points | μ=18.0, σ=4.0 | μ=26.5, σ=3.5 | μ=35.0, σ=3.0 |
+| Go-out | μ=17.5, σ=4.5 | μ=28.0, σ=4.0 | μ=41.5, σ=3.5 |
 
-Legacy crews pinned to `warp12-official-v1` keep Class II at 1400 / 1500. Stored human TEI integers are **not** re-banded — only the opponent rating in the update formula changes for new play.
+Legacy crews pinned to `warp12-official-v1` keep old reference bands. Stored human ratings are **not** re-banded — only the opponent rating in the update formula changes for new play.
 
 Go-out uses wider spacing because race outcomes are noisier; the leaderboard also shows **percentile** (Top X%) within each board so rank is meaningful even when raw TEI gaps compress.
 
-Your TEI updates with a standard Elo formula; K-factor starts at **40** for the first 10 rated games, then **32** until 30 games, then **24**.
+Your TEI updates using **OpenSkill** (Bayesian rating with μ ± σ). The system displays a conservative rating (μ - 3σ) as your **TEI Grade** (e.g., "V67", "C42") where the letter represents confidence (E/V/C/I/P based on σ) and the number is your normalized skill score. New players start with high uncertainty (σ) which decreases with more matches, making your grade more stable.
 
 **Advisor disqualification:** if you used the tactical advisor during the match, the win still counts in general stats, but **TEI does not move** — only unassisted **Warp 12** matches are rated. Assisted wins are tracked separately (`advisorMatches` / `advisorWins`). Exhibition sets (9 / 15 / 18) are never rated, with or without the advisor.
 
-Calibration: heuristic tiers via `yarn calibrate:ai-tei`; Class II Ω via champion fair-share benches (`tools/nn/data/omega-champion-score.txt`). Go-out compresses skill gaps — percentile boards help.
+Calibration: heuristic tiers via `yarn calibrate:ai-tei`; Commander Ω via champion fair-share benches (`tools/nn/data/omega-champion-score.txt`). Go-out compresses skill gaps — percentile boards help.
 
 ### Class I* — experimental research tier
 
-**Class I\*** (local only) is a separate research track: heuristics + expectimax/ISMCTS and optional learned residuals — **not** the shipped Class II Ω officer. The tactical advisor does **not** use Class I\*; it follows Ω.
+**Class I\*** (local only) is a separate research track: heuristics + expectimax/ISMCTS and optional learned residuals — **not** the shipped Commander Ω officer. The tactical advisor does **not** use Class I\*; it follows Ω.
 
 | Piece | Location |
 |-------|----------|
@@ -318,7 +318,7 @@ CLASS1_STAR_GAMES=1000 yarn class1-star:pipeline:go-out # go-out alternate
 CLASS1_STAR_GAMES=1000 yarn class1-star:pipeline:deepblue  # RL regret pass (256×256, α=3)
 ```
 
-**What we are learning:** imitation of Commander picks (~74% train top-1) changes ~17% of decisions but **does not beat Class II in 2p go-out** (~48–50% win rate over hundreds of games). Points imitation converges to a near-perfect Commander clone (98% top-1, 1.4% flip) with **no win-rate edge**. The **Deep Q** pass (`pipeline:deepblue`) collects Class I* vs Commander games, trains with **regret targets** (reinforce winning deviations, learn Commander on losses), a **256×256** MLP, and **α=3.0** so the residual can override heuristics. Class I* is **not** a TEI reference tier until it wins with statistical significance. Details: [tools/nn/README.md](./tools/nn/README.md), [docs/calibration-log.md](./docs/calibration-log.md), paper §4.5.
+**What we are learning:** imitation of Commander picks (~74% train top-1) changes ~17% of decisions but **does not beat Commander in 2p go-out** (~48–50% win rate over hundreds of games). Points imitation converges to a near-perfect Commander clone (98% top-1, 1.4% flip) with **no win-rate edge**. The **Deep Q** pass (`pipeline:deepblue`) collects Class I* vs Commander games, trains with **regret targets** (reinforce winning deviations, learn Commander on losses), a **256×256** MLP, and **α=3.0** so the residual can override heuristics. Class I* is **not** a TEI reference tier until it wins with statistical significance. Details: [tools/nn/README.md](./tools/nn/README.md), [docs/calibration-log.md](./docs/calibration-log.md), paper §4.5.
 
 Paper outline (TEI, calibration, Class I*, go-out vs points): [docs/tei-paper-outline.md](./docs/tei-paper-outline.md) · in-app: `/paper`. Self-improvement log: [docs/calibration-log.md](./docs/calibration-log.md) · `/paper/log`. Engine survey: [docs/mexican-train-engine-comparison.md](./docs/mexican-train-engine-comparison.md). Marketing: `/about`.
 

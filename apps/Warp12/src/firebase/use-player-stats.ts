@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import type { RatedObjective, PlayerStatsDocument } from './stats-schema.js';
+import type { TeiGrade, TeiDisplay } from 'warp12-engine';
+import type { RatedObjective, PlayerStatsDocument, StoredRating } from './stats-schema.js';
 import type { WarpSkillLevel } from 'warp12-engine';
 
 import {
   canSetStartingTei as canSetStartingTeiForBucket,
   displayPlayerObjectiveTei,
+  getPlayerTeiDisplay,
+  getPlayerStoredRating,
   fetchPlayerStats,
   needsAcademyPlacement,
   needsAcademyPlacementForObjective,
@@ -26,6 +29,14 @@ export interface PlayerStatsState {
     skill: WarpSkillLevel,
     objective: RatedObjective
   ) => number | null;
+  getTeiDisplay: (
+    skill: WarpSkillLevel,
+    objective: RatedObjective
+  ) => TeiDisplay | null;
+  getStoredRating: (
+    skill: WarpSkillLevel,
+    objective: RatedObjective
+  ) => StoredRating | null;
   needsAcademyPlacement: boolean;
   needsAcademyPlacementForObjective: (objective: RatedObjective) => boolean;
   canSetStartingTei: (
@@ -98,6 +109,10 @@ export function usePlayerStats(): PlayerStatsState {
     saveAcademyPlacement,
     displayTei: (skill, objective) =>
       displayPlayerObjectiveTei(stats, skill, objective),
+    getTeiDisplay: (skill, objective) =>
+      getPlayerTeiDisplay(stats, skill, objective),
+    getStoredRating: (skill, objective) =>
+      getPlayerStoredRating(stats, skill, objective),
     needsAcademyPlacement: needsAcademyPlacement(stats),
     needsAcademyPlacementForObjective: (objective) =>
       needsAcademyPlacementForObjective(stats, objective),
