@@ -34,7 +34,7 @@ Mexican Train dominoes is commonly played under two incompatible victory conditi
 
 Empirical results from thousands of self-play games show that \textbf{skill ordering is stable under the points objective} (consistent rating gaps between tiers), while \textbf{go-out exhibits higher variance} and compressed skill gaps. We demonstrate that search algorithms provide different advantages depending on context: expectimax wins in 2-player points (64\% vs heuristics), while ISMCTS excels in 4+ player go-out (31\% vs 23\% baseline). 
 
-A \textbf{285{,}000-game} points self-play campaign across \textbf{570 configuration cells} (4 Warp factors $\times$ every legal fleet size $\times$ 15 module configs) is our sole skill/luck instrument for board choice and module taxonomy. From the \textbf{baseline} cells alone we find that \textbf{skill expression increases with both tile set size and player count}, contradicting the intuition that larger games devolve into luck, and that Warp factor 12 is the empirically optimal choice for competitive rating. Across the full matrix, most optional modules preserve the baseline skill ceiling; \textbf{Module Iota (Double Down) slightly raises it}. \textbf{Module Epsilon (Drafting)} collapses it (1.08/4 indicators) --- counter-intuitively, choosing your hand makes outcomes \emph{more} luck-dominated mid-game --- and is therefore designated \textbf{Warped / party}. \textbf{Module Zeta (Squadrons)} also preserves skill (2.94/4); it never writes FFA TEI --- rated Warp~12 crew sectors update a dedicated \textbf{Squad TEI} track (\texttt{squadRating}) after team-track calibration (\texttt{SQUADRONS\_RATING\_CALIBRATED}), not because Zeta is luck-dominant.
+A \textbf{285{,}000-game} points self-play campaign across \textbf{570 configuration cells} (4 Warp factors $\times$ every legal fleet size $\times$ 15 module configs) is our sole skill/luck instrument for board choice and module taxonomy. From the \textbf{baseline} cells alone we find that \textbf{skill expression increases with both tile set size and player count}, contradicting the intuition that larger games devolve into luck, and that Warp factor 12 is the empirically optimal choice for competitive rating. Across the full matrix, most optional modules preserve the baseline skill ceiling; \textbf{Module Iota (Double Down) slightly raises it}. \textbf{Module Epsilon (Drafting)} collapses it (1.08/4 indicators) --- counter-intuitively, choosing your hand makes outcomes \emph{more} luck-dominated mid-game --- and is therefore designated \textbf{Warped / party}. \textbf{Module Zeta (Squadrons)} also preserves skill (2.94/4); it never writes free-for-all (FFA) TEI --- rated Warp~12 crew sectors update a dedicated \textbf{Squad TEI} track (\texttt{squadRating}) after team-track calibration (\texttt{SQUADRONS\_RATING\_CALIBRATED}), not because Zeta is luck-dominant.
 
 Finally, we report on \textbf{Class $\Omega$}, a neural self-play agent that achieves parity with heuristic baselines in small games and outperforms in large fleets. All code, data, and reproduction scripts are available as open source.
 \end{abstract}
@@ -117,7 +117,7 @@ This paper makes the following contributions:
 
 \item \textbf{Search algorithm analysis} --- We show that different search methods (expectimax, ISMCTS) provide advantages in different contexts: expectimax excels in 2-player points (64\% win rate), while ISMCTS works better in 4+ player go-out (31\% vs 23\% baseline).
 
-\item \textbf{Luck vs skill and module integrity} --- A single \textbf{285{,}000-game} matrix (570 cells) measures skill expression across Warp factors, fleet sizes, and 15 module configs. Baseline cells justify rating W12; Iota slightly raises the ceiling; Epsilon collapses it (Warped/party); Zeta preserves skill and rates on a dedicated Squad TEI track (never FFA).
+\item \textbf{Luck vs skill and module integrity} --- A single \textbf{285{,}000-game} matrix (570 cells) measures skill expression across Warp factors, fleet sizes, and 15 module configs. Baseline cells justify rating W12; Iota slightly raises the ceiling; Epsilon collapses it (Warped/party); Zeta preserves skill and rates on a dedicated Squad TEI track (never free-for-all / FFA).
 
 \item \textbf{Neural self-play agent (Class $\Omega$)} --- We demonstrate that a pure self-play neural policy can achieve competitive performance (parity in small games, advantages in large fleets) without hand-crafted heuristics, and discuss the challenges of mapping training performance to appropriate rating anchors.
 
@@ -221,7 +221,7 @@ Beyond core rules, Mexican Train has many common variants. Warp 12 implements th
 \item \texttt{dropToImpulse}: ``Uno''-style announce requirement when down to one tile
 \end{itemize}
 
-\textbf{Modules} (optional mechanics; \textbf{Warped} = exhibition only, never FFA-rated):
+\textbf{Modules} (optional mechanics; \textbf{Warped} = exhibition only, never free-for-all rated):
 \begin{itemize}
 \item \textbf{Alpha (Continuum):} Special rules for 0-0 tile (Q-gamble mechanic)
 \item \textbf{Beta (Salamander Penalty):} Pip penalty for holding double-zero at round end
@@ -329,6 +329,8 @@ Class II profile, blunder rate 0, lookahead on. Explainability: \texttt{explainW
 \subsection{Bayesian skill model}
 TEI is a \textbf{presentation layer} over OpenSkill~\cite{wenglin2011}: each captain stores a Gaussian skill estimate $(\mu,\sigma)$ per track (points / go-out), updated after ranked match outcomes. Defaults for new humans: $\mu=25$, $\sigma=8.\!33$ (OpenSkill's $\mu/3$ prior). Matchmaking uses an ordinal $\mu-\sigma$; the UI never exposes raw Elo integers.
 
+\textbf{FFA} means \textbf{free-for-all}: every captain is an individual competitor in the OpenSkill update (solo vs AI or online human-pool tables). Those outcomes write the per-captain FFA ladder stored as \texttt{humanRating}. \textbf{Squad TEI} is the opposite track --- Module~Zeta crews rate as teams via \texttt{updateTeamRatings} into \texttt{squadRating} and never update FFA \texttt{humanRating}.
+
 \subsection{Reference anchors}
 Rated local and online play pits humans against fixed AI opponents. Each AI class holds a \textbf{frozen} $(\mu,\sigma)$ that never updates with match outcomes:
 
@@ -353,7 +355,7 @@ Go-out & 17.5 & 4.5 & 28.0 & 4.0 & 41.5 & 3.5 \\
 \textbf{Calibration rule of thumb:} place Commander $\mu$ near where a human of comparable TEI score wins $\sim$50\% in the table sizes you actually rate (Warp~12 solo play is mostly 2--4). Fleet-mean fair-share against legacy Commander is a promotion metric, not a direct $\Delta\mu$.
 
 \subsection{Update rule}
-After a sector, ranks feed \texttt{updateFFARatings} / \texttt{updateTeamRatings} / \texttt{updateVsAI} (openskill.js Bayesian update). Humans move; AI anchors stay fixed. Separate tracks: objective $\times$ (human profile). No Elo $K$-factor schedule.
+After a sector, ranks feed \texttt{updateFFARatings} (free-for-all individual tables), \texttt{updateTeamRatings} (Zeta squads), or \texttt{updateVsAI} (openskill.js Bayesian update). Humans move; AI anchors stay fixed. Separate tracks: objective $\times$ (human profile / FFA vs squad). No Elo $K$-factor schedule.
 
 \subsection{TEI Grade display}
 Players see a gamified string such as \texttt{V67}:
@@ -916,7 +918,7 @@ Iota (Double Down) is the dual product win: Figure~\ref{fig:iota-lift} shows its
 \end{figure}
 
 \subsection{Zeta: skillful team play, Squadron TEI (never FFA)}
-Zeta is the dual of Epsilon on the skill instrument: \textbf{2.94/4} indicators on eligible fleets (16/17 skill-dominant). Shared trails and bridge seating preserve decision pressure. It is \emph{not} Warped. The product separation is infrastructural, not skill-based: FFA TEI stays on individual tables; eligible rated Warp~12 Zeta sectors write OpenSkill updates to a dedicated team track (\texttt{squadRating}), gated by \texttt{SQUADRONS\_RATING\_CALIBRATED} (now \texttt{true} after 2v2 ordering calibration). Crew nights never pollute the FFA human ladder.
+Zeta is the dual of Epsilon on the skill instrument: \textbf{2.94/4} indicators on eligible fleets (16/17 skill-dominant). Shared trails and bridge seating preserve decision pressure. It is \emph{not} Warped. The product separation is infrastructural, not skill-based: free-for-all (FFA) TEI stays on individual tables; eligible rated Warp~12 Zeta sectors write OpenSkill updates to a dedicated team track (\texttt{squadRating}), gated by \texttt{SQUADRONS\_RATING\_CALIBRATED} (now \texttt{true} after 2v2 ordering calibration). Crew nights never pollute the FFA human ladder.
 
 \subsection{Product recommendations}
 \begin{itemize}
