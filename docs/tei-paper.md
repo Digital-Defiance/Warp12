@@ -323,8 +323,9 @@ free-for-all rated):
 
 - **Alpha (Continuum):** Special rules for 0-0 tile (Q-gamble mechanic)
 
-- **Beta (Salamander Penalty):** Pip penalty for holding double-zero at
-  round end
+- **Beta (Salamander Penalty):** Pip penalty for holding the highest
+  double (`maxPip`-`maxPip`) at round end — double its both-ends value
+  (Warp 12: 12-12 $`\rightarrow`$ 48; Warp 18: 18-18 $`\rightarrow`$ 72)
 
 - **Gamma (Sensor Grid):** Visible tile pool for potential recycling
 
@@ -473,8 +474,13 @@ search foundation for our lookahead implementations.
 
 Class II profile, blunder rate 0, lookahead on. Explainability:
 `explainWarpAiAction`, turn-resolution hints. **Unassisted-only TEI** —
-advisor use tracked separately. **Never uses the neural net** —
-heuristics only, by design.
+advisor use tracked separately. Move *ratings and reasons* are generated
+by the explainable heuristic Commander scorer; the *suggested
+alternative* (“advisor would play”) uses the Commander neural policy
+($`\Omega`$) when available, but **falls back to the module-aware
+heuristic coach** on rounds where an active module distorts scoring
+(e.g. Module Kappa’s inverted rounds, where the module-blind net would
+wrongly recommend going out).
 
 # TEI (Tactical Effectiveness Index)
 
@@ -809,13 +815,16 @@ produced `luck-skill-processed.csv`.
 - `avgLegalMoves`: mean number of legal candidate actions per turn
   (decision branching).
 
-- `avgValueSpread`: mean difference between the highest- and
-  lowest-valued legal candidates under the same heuristic scorer used by
-  the seating AI (discrimination among options).
+- `avgValueSpread`: mean gap between the highest- and lowest-valued
+  legal candidates under a lightweight *pip-total* proxy — each chart
+  move is valued by the pip count of the placed coordinate, and
+  beacon/pass score 0 (a coarse proxy for how differentiated the options
+  are).
 
-- `avgNearOptimalFraction`: fraction of turns where the seated AI’s
-  chosen action scored within 5% of the top-scored legal candidate (how
-  often “good” play is distinguishable from noise).
+- `avgNearOptimalFraction`: mean fraction of legal candidates whose
+  proxy value falls within 10% of the best candidate’s on each turn,
+  averaged over turns (how many options are roughly interchangeable
+  under that proxy).[^1]
 
 - `avgConstrainedTileFraction`: fraction of hand coordinates that can
   legally attach to only one open trail (forced/near-forced placement
@@ -1888,3 +1897,11 @@ Tesauro, G. (1995). *Temporal Difference Learning and TD-Gammon*.
 Communications of the ACM, 38(3):58–68.
 
 </div>
+
+[^1]: This is a deliberately coarse instrument: it uses pip totals
+    rather than the full Commander scorer, and counts *candidates* near
+    the best pip value rather than judging the seated policy’s chosen
+    move. It is used only as a fixed, interpretable ingredient in the §8
+    composites and is not tuned against TEI. A higher value therefore
+    reflects a construct (“good lines remain distinguishable”) that the
+    proxy only approximates.

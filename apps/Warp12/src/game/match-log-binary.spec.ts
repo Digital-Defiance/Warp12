@@ -40,7 +40,7 @@ describe('BinaryMatchLog', () => {
 
     const exported = log.export();
     expect(exported.gameId).toBe('test-match');
-    expect(exported.actions.format).toBe('binary-v1');
+    expect(exported.actions.format).toBe('binary-v2');
     expect(exported.actions.encoding).toBe('base64');
     expect(exported.actions.actionCount).toBe(2);
     expect(exported.actions.byteSize).toBeGreaterThan(0);

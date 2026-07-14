@@ -388,8 +388,10 @@ function applyChartToRoute(
             tiles: [...table.neutralZone.tiles, tile],
           },
         };
-        // Module Delta: Transfer hazard marker when touching neutral zone
-        nextRound = { ...nextRound, hazardMarkerHolder: playerId };
+        // Module Delta: Transfer hazard marker when touching Neutral Zone
+        if (options.modules?.warpDriveSpool?.enabled) {
+          nextRound = { ...nextRound, hazardMarkerHolder: playerId };
+        }
         break;
       }
 
@@ -452,8 +454,10 @@ function applyChartToRoute(
       // Apply the table update to nextRound
       nextRound = updateTable(nextRound, table);
       
-      // Module Delta: Transfer hazard marker when touching neutral zone
-      nextRound = { ...nextRound, hazardMarkerHolder: playerId };
+      // Module Delta: Transfer hazard marker when touching Neutral Zone
+      if (options.modules?.warpDriveSpool?.enabled) {
+        nextRound = { ...nextRound, hazardMarkerHolder: playerId };
+      }
       
       // Store wormhole flag for Red Alert handling
       (nextRound as any)._wormholeSwapped = wormholeSwapped;
@@ -993,14 +997,22 @@ function handleWarpDriveSpool(
         },
       };
       
-      // Module Delta: NZ contact tracking (no penalty in this version)
-      // Just clears hazard if present (backwards compatibility)
-      if (nextRound.hazardMarkerHolder === playerId) {
-        nextRound = { ...nextRound, hazardMarkerHolder: null };
-      }
-      
       currentConnectingValue = placed.openValue;
     }
+  }
+
+  // Module Delta: Neutral Zone contact transfers the Hazard Marker (same as chart).
+  // Never clear it — RULES §VI Delta: holder keeps it until someone else takes NZ.
+  if (
+    state.modules.warpDriveSpool?.enabled &&
+    route.kind === 'neutral-zone' &&
+    spoolResult.tilesPlayed.length > 0
+  ) {
+    nextRound = {
+      ...nextRound,
+      hazardMarkerHolder: playerId,
+      hazardMarkerPassCount: 0,
+    };
   }
 
   // Add mismatched tiles to player's hand
@@ -1507,6 +1519,10 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
   if (state.round?.returnedToWarp) {
     state = { ...state, round: { ...state.round, returnedToWarp: false } };
   }
+  // Same pulse pattern for Module Lambda sound / log cue.
+  if (state.round?.wormholeOpened) {
+    state = { ...state, round: { ...state.round, wormholeOpened: false } };
+  }
 
   if (action.type === 'END_ROUND') {
     if (state.phase !== 'active' || !state.round) {
@@ -1736,8 +1752,8 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
       if (qResolutionBlocksAction(round, action.playerId)) {
         return fail('CONTINUUM_FLASH_NOT_PENDING');
       }
-      // Spool is available with either Module Delta (warpDriveSpool) or Module Theta (longestTrail)
-      if (!state.modules.warpDriveSpool?.enabled && !state.modules.longestTrail?.enabled) {
+      // Module Delta only — Theta is longest-trail scoring, not spool.
+      if (!state.modules.warpDriveSpool?.enabled) {
         return fail('MODULE_NOT_ENABLED');
       }
       // Can't spool with empty uncharted sectors
@@ -1847,6 +1863,12 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
       }
       return handleQGamble(state, round, action.playerId, action.keepIndex);
     }
+
+    case 'SALAMANDER_PENALTY':
+    case 'LONGEST_TRAIL_BONUS':
+    case 'TEMPORAL_DEBT_PENALTY':
+      // Scoring annotations for logs only — never legal play actions.
+      return fail('PASS_NOT_ALLOWED');
 
     default:
       return fail('INVALID_ROUTE');

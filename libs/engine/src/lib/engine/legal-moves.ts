@@ -335,8 +335,8 @@ function routesEqual(a: ChartRoute, b: ChartRoute): boolean {
 }
 
 /**
- * Get available warp drive spool options (Module Delta or Module Theta).
- * Returns routes where the captain can spool their drive instead of charting from hand.
+ * Get available warp drive spool options (Module Delta — Hot Potato / Spool).
+ * Module Theta is longest-trail scoring only; it does not unlock Engage Warp Drive.
  */
 export function getSpoolOptions(
   state: GameState,
@@ -344,11 +344,7 @@ export function getSpoolOptions(
   playerId: PlayerId,
   houseRules: HouseRules = DEFAULT_HOUSE_RULES
 ): import('../types/actions.js').SpoolOption[] {
-  // Spool requires Module Delta (Hot Potato) or Module Theta (Longest Trail)
-  if (
-    !state.modules.warpDriveSpool?.enabled &&
-    !state.modules.longestTrail?.enabled
-  ) {
+  if (!state.modules.warpDriveSpool?.enabled) {
     return [];
   }
 

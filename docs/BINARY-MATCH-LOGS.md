@@ -4,6 +4,8 @@ Comprehensive match logging system using compact binary format for efficient sto
 
 ## Overview
 
+**binary-v2** encodes coordinates as little-endian `u16` (`low * (maxPip + 1) + high`), covering Warp 9 / 12 / 15 / 18.
+
 The binary match log system achieves **50-500x compression** over JSON, enabling:
 - Local storage of thousands of matches in IndexedDB
 - Cross-device sync via Firestore
@@ -33,7 +35,7 @@ The binary match log system achieves **50-500x compression** over JSON, enabling
 
 ### 1. Binary Action Encoding (`libs/engine/src/lib/serialization/`)
 
-**Encodes GameActions to 2-5 bytes each:**
+**Encodes GameActions to 2–6 bytes each:**
 
 ```typescript
 import { encodeActions, decodeActions } from 'warp12-engine';
@@ -176,7 +178,7 @@ console.log(`Uploaded: ${stats.uploaded}, Errors: ${stats.errors}`);
 {
   "gameId": "match-123",
   "actions": {
-    "format": "binary-v1",
+    "format": "binary-v2",
     "encoding": "base64",
     "data": "AQIDBAUG...",
     "actionCount": 200,

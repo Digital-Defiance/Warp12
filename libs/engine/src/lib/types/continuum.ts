@@ -93,7 +93,7 @@ export const FLASH_CATALOG: readonly FlashCatalogEntry[] = [
     kind: 'salamander-swap',
     label: 'Salamander swap',
     description:
-      'If anyone holds 12-12 at round end, the full 48-point penalty lands on the highest-points captain instead — the holder pays nothing for it.',
+      'If anyone holds the highest double (maxPip-maxPip) at round end, the full Salamander penalty (double its pips) lands on the highest-points captain instead — the holder pays nothing for it.',
     requiresSalamander: true,
   },
   {

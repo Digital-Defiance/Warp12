@@ -1,6 +1,6 @@
 {
   "name": "@warp12/Warp12",
-  "version": "0.6.42",
+  "version": "0.6.45",
   "private": true,
   "dependencies": {
     "@tauri-apps/api": "^2",
@@ -33,5 +33,11 @@
         ]
       }
     }
+  },
+  "devDependencies": {
+    "@choochmeque/tauri-windows-bundle": "^0.1.28"
+  },
+  "scripts": {
+    "tauri:windows:build": "tauri-windows-bundle build --arch x64,arm64 --runner yarn"
   }
 }

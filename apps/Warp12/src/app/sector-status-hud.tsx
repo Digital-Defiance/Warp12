@@ -300,7 +300,7 @@ export function SectorStatusHud({
             <dd>{redAlertSummary}</dd>
           </div>
         )}
-        {game.modules.warpDriveSpool?.enabled && longestTrailLength > 0 && (
+        {game.modules.longestTrail?.enabled && longestTrailLength > 0 && (
           <div className={`${styles.row} ${styles.moduleDelta}`}>
             <dt>Longest trail</dt>
             <dd>

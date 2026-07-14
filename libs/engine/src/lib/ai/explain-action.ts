@@ -27,6 +27,19 @@ import { routeIsOwnTrail } from '../engine/squadrons.js';
 
 const H = WARP_HEURISTIC_IDS;
 
+/** Heuristics whose reason text is written to handle a negative (penalty) score. */
+const WARNING_CAPABLE_HEURISTICS = new Set<string>([
+  H.dumpPips,
+  H.goOutWin,
+  H.temporalInversion,
+  H.salamanderDump,
+]);
+
+function isInvertedRound(ctx: WarpEvalContext): boolean {
+  const enabled = ctx.obs.modules?.temporalInversion?.enabled ?? false;
+  return enabled && ctx.obs.round.roundNumber % 2 === 0;
+}
+
 function followUpCount(
   action: Extract<WarpAiAction, { kind: 'chart' }>,
   ctx: WarpEvalContext
@@ -74,12 +87,25 @@ function describeHeuristicContribution(
     return null;
   }
 
+  // Never phrase a penalty as a benefit. Heuristics with two-sided wording
+  // (module-aware ones) opt in via WARNING_CAPABLE_HEURISTICS.
+  if (rawScore < 0 && !WARNING_CAPABLE_HEURISTICS.has(id)) {
+    return null;
+  }
+
   switch (id) {
     case H.dumpPips: {
       if (action.kind !== 'chart' || ctx.obs.objective === 'go-out') {
         return null;
       }
       const pips = coordinatePipValue(action.move.coordinate);
+      if (isInvertedRound(ctx)) {
+        // Inverted round: shedding pips is a demerit, so frame it as a caution.
+        if (pips >= 10) {
+          return `Sheds ${pips} pip points — but this inverted round rewards holding heavy tiles.`;
+        }
+        return null;
+      }
       if (pips >= 10) {
         return `Sheds ${pips} pip points — a heavy tile off your hand.`;
       }
@@ -90,7 +116,48 @@ function describeHeuristicContribution(
     }
     case H.goOutWin:
       if (action.kind === 'chart' && ctx.hand.length === 1) {
+        if (isInvertedRound(ctx)) {
+          return 'Empties your hand — but the inverted round scores that as the maximum penalty.';
+        }
         return 'Empties your hand — you win the round.';
+      }
+      return null;
+    case H.temporalInversion: {
+      if (!isInvertedRound(ctx)) {
+        return null;
+      }
+      if (action.kind === 'draw') {
+        return 'Inverted round — drawing grows your hand toward the highest-hand win.';
+      }
+      if (action.kind !== 'chart') {
+        return null;
+      }
+      const tilesAfter = ctx.hand.length - 1;
+      if (tilesAfter === 0) {
+        return 'Going out empties your hand — the worst result on an inverted round (maximum penalty).';
+      }
+      const pips = coordinatePipValue(action.move.coordinate);
+      if (pips >= 10) {
+        return 'Inverted round — hold heavy tiles; the highest hand wins.';
+      }
+      if (pips <= 6) {
+        return 'Sheds only a light tile while keeping your heavy hand — right for an inverted round.';
+      }
+      return null;
+    }
+    case H.longestTrailBonus: {
+      if (action.kind !== 'chart') {
+        return null;
+      }
+      if (!routeIsOwnTrail(ctx.obs.round, ctx.obs.playerId, action.move.route)) {
+        return null;
+      }
+      const bonus = ctx.obs.modules?.longestTrail?.bonus ?? -3;
+      return `Builds your warp trail toward the longest-trail bonus (${bonus} at round end).`;
+    }
+    case H.doubleDownTiming:
+      if (action.kind === 'chart' && isDouble(action.move.coordinate)) {
+        return 'Times a double to force the next captain to draw (Double Down).';
       }
       return null;
     case H.goOutTrailPriority: {
@@ -225,6 +292,9 @@ function describeHeuristicContribution(
         action.move.coordinate.low === maxPip &&
         action.move.coordinate.high === maxPip
       ) {
+        if (isInvertedRound(ctx)) {
+          return `Dumps ${maxPip}-${maxPip} — but on an inverted round the doubled Salamander tile is your best keeper.`;
+        }
         return `Offloads ${maxPip}-${maxPip} before the Salamander penalty can apply.`;
       }
       return null;
@@ -323,7 +393,8 @@ export function explainWarpAiAction(
 
   const skill = getAdvisorSkillProfile(
     state.objective,
-    obs.captains.length
+    obs.captains.length,
+    state.modules
   );
   const byId = new Map(
     DEFAULT_WARP_HEURISTICS.map((heuristic) => [heuristic.id, heuristic] as const)

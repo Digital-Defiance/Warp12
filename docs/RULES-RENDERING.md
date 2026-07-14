@@ -9,7 +9,8 @@
 The build pipeline automatically converts RULES.tex to both HTML (for the web app) and Markdown (for GitHub/docs):
 
 1. **Source**: `RULES.tex` (canonical LaTeX document)
-2. **Build**: `yarn build:rules` runs pandoc twice (via `tools/build-stamped.mjs`):
+2. **Build**: `yarn build:rules` (via `tools/build-stamped.mjs`):
+   - LaTeX → PDF via two `pdflatex` passes (`RULES.pdf`; two passes settle `longtable` column widths)
    - LaTeX → HTML with MathJax support (`RULES.html`)
    - LaTeX → GitHub-flavored Markdown (`RULES.md`)
    - Skips when `RULES.tex` is unchanged (stamp: `.docs-build-stamps.json`). Force with `yarn build:rules:force`.
@@ -45,6 +46,7 @@ yarn serve:bridge
 ## Files
 
 - `RULES.tex` — Canonical source (update this!)
+- `RULES.pdf` — Generated PDF (don't edit, regenerate with `yarn build:rules`)
 - `RULES.html` — Generated HTML for web app (don't edit, regenerate with `yarn build:rules`)
 - `RULES.md` — Generated Markdown for GitHub/docs (don't edit, regenerate with `yarn build:rules`)
 - `apps/Warp12/src/app/rules-html.tsx` — React component that renders HTML
@@ -53,5 +55,6 @@ yarn serve:bridge
 ## Dependencies
 
 - **pandoc** (system requirement): `brew install pandoc`
+- **pdflatex** (system requirement, for `RULES.pdf`): via MacTeX / TeX Live (`brew install --cask mactex-no-gui`)
 - **MathJax CDN**: Loaded in index.html for math rendering (HTML only)
 - Markdown tables render natively on GitHub

@@ -287,7 +287,7 @@ describe('house rules feedback integration', () => {
       isMyTurn: true,
       doublesOnTable: 0,
       chartedTileCount: round.table.warpTrails.a.tiles.length,
-      trueRedAlert: false,
+      illuminatedRedAlert: false,
       redAlertResponsibleId: null,
       activeBeaconCount: 0,
       flashActive: false,
@@ -297,6 +297,7 @@ describe('house rules feedback integration', () => {
       dropToImpulseCallPending: round.dropToImpulseCallPending,
       dropToImpulseCatchable: round.dropToImpulseCatchable,
       returnedToWarp: round.returnedToWarp === true,
+      wormholeOpened: round.wormholeOpened === true,
       unchartedSectorCount: round.unchartedSectors.length,
       turnBeepsEnabled: true,
     };

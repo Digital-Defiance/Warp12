@@ -1,0 +1,22 @@
+{
+  "publisher": "CN=544C5651-96F7-4626-96DB-A29175541FBB",
+  "publisherDisplayName": "Digital Defiance",
+  "capabilities": {
+    "general": [
+      "internetClient"
+    ]
+  },
+  "extensions": {
+    "shareTarget": false,
+    "fileAssociations": [],
+    "protocolHandlers": []
+  },
+  "signing": {
+    "pfx": null,
+    "pfxPassword": null
+  },
+  "resourceIndex": {
+    "enabled": false,
+    "keepConfig": false
+  }
+}

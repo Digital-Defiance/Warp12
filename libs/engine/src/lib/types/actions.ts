@@ -40,7 +40,46 @@ export type GameAction =
   | { type: 'RESOLVE_CONTINUUM_WAGER'; playerId: PlayerId; keepIndex: 0 | 1 }
   /** Module Epsilon: Pick a tile from your draft pack. */
   | { type: 'PICK_FROM_PACK'; playerId: PlayerId; coordinate: Coordinate }
-  | { type: 'END_ROUND'; winnerId: PlayerId | null };
+  | { type: 'END_ROUND'; winnerId: PlayerId | null }
+  /**
+   * Scoring annotation (not a playable action): Module Beta charged the held
+   * highest double at round end. Emitted into action / binary logs so public
+   * standings are auditable. Never submit via applyAction.
+   */
+  | {
+      type: 'SALAMANDER_PENALTY';
+      /** Captain who held maxPip-maxPip when the round ended. */
+      holderId: PlayerId;
+      /** Captain who receives the doubled penalty (holder, or Continuum swap target). */
+      scoredOnId: PlayerId;
+      /** Points applied for that tile (e.g. 48 on Warp 12, 72 on Warp 18). */
+      points: number;
+    }
+  /**
+   * Scoring annotation (not a playable action): Module Theta longest-trail
+   * bonus at round end. One entry per tied winner. Never submit via applyAction.
+   */
+  | {
+      type: 'LONGEST_TRAIL_BONUS';
+      playerId: PlayerId;
+      /** Tiles on that captain's personal Warp Trail at scoring. */
+      trailLength: number;
+      /** Campaign delta (negative bonus, typically −3). */
+      points: number;
+    }
+  /**
+   * Scoring annotation (not a playable action): Module Eta Temporal Debt at
+   * round end. One entry per captain with tokens > 0. Never submit via
+   * applyAction.
+   */
+  | {
+      type: 'TEMPORAL_DEBT_PENALTY';
+      playerId: PlayerId;
+      /** Draws from Uncharted that accrued tokens this round. */
+      tokens: number;
+      /** Campaign delta (tokens × costPerToken). */
+      points: number;
+    };
 
 export type ActionResult =
   | { ok: true; state: import('./game-state.js').GameState }

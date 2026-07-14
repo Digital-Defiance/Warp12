@@ -31,7 +31,11 @@
 
 import type { GameAction } from 'warp12-engine';
 import type { RoundState } from 'warp12-engine';
-import { encodeActions, encodeRoundState } from 'warp12-engine';
+import {
+  BINARY_ACTION_LOG_FORMAT,
+  encodeActions,
+  encodeRoundState,
+} from 'warp12-engine';
 
 export interface BinaryMatchLogConfig {
   /** Unique match identifier */
@@ -46,7 +50,7 @@ export interface BinaryMatchLogConfig {
 
 export interface BinaryActionLog {
   /** Binary format version */
-  format: 'binary-v1';
+  format: typeof BINARY_ACTION_LOG_FORMAT;
   /** Base64 encoding */
   encoding: 'base64';
   /** Base64-encoded binary data */
@@ -163,7 +167,7 @@ export class BinaryMatchLog {
     const base64 = btoa(String.fromCharCode(...binary));
 
     const actionLog: BinaryActionLog = {
-      format: 'binary-v1',
+      format: BINARY_ACTION_LOG_FORMAT,
       encoding: 'base64',
       data: base64,
       actionCount: this.actions.length,

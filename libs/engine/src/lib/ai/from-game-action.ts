@@ -78,6 +78,15 @@ export function gameActionToWarpAi(
       return { kind: 'spool', option: { route: action.route } };
     case 'END_ROUND':
       return null;
+    case 'SALAMANDER_PENALTY':
+      return null;
+    case 'LONGEST_TRAIL_BONUS':
+      return null;
+    case 'TEMPORAL_DEBT_PENALTY':
+      return null;
+    case 'SENSOR_SWEEP':
+    case 'PICK_FROM_PACK':
+      return null;
   }
   // TypeScript exhaustiveness check - should never reach here
   return null;

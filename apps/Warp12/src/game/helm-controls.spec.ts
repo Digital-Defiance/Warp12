@@ -1,11 +1,39 @@
 import { describe, expect, it } from 'vitest';
-import { resolveHouseRules } from 'warp12-engine';
+import { resolveHouseRules, resolveModules } from 'warp12-engine';
 
-import { makeRound, T } from '../../../../libs/engine/src/lib/engine/test-helpers.js';
+import {
+  makeGame,
+  makeRound,
+  T,
+} from '../../../../libs/engine/src/lib/engine/test-helpers.js';
 import { createInitialTable } from '../../../../libs/engine/src/lib/table/table-state.js';
 import { resolveHelmControls } from './helm-controls.js';
 
 const manual = resolveHouseRules({ manualShieldControl: true });
+
+function trailReadyRound() {
+  return makeRound(['a', 'b'], {
+    activePlayerId: 'a',
+    spacedockValue: 12,
+    hands: { a: [T(3, 4)], b: [] },
+    unchartedSectors: [T(12, 5), T(0, 1)],
+    table: {
+      ...createInitialTable(['a', 'b'], 12, 'a'),
+      warpTrails: {
+        a: {
+          playerId: 'a',
+          tiles: [{ coordinate: T(12, 8), index: 0, openValue: 8 }],
+          distressBeacon: { active: false },
+        },
+        b: {
+          playerId: 'b',
+          tiles: [],
+          distressBeacon: { active: false },
+        },
+      },
+    },
+  });
+}
 
 describe('resolveHelmControls', () => {
   it('shows no controls when it is not your turn', () => {
@@ -167,6 +195,55 @@ describe('resolveHelmControls', () => {
         legalMovesCount: 1,
       }).showPass
     ).toBe(true);
+  });
+
+  it('hides Engage Warp Drive when only Module Theta (longest trail) is on', () => {
+    // Product: spool ships with Delta; Theta is −3 trail bonus only.
+    const round = trailReadyRound();
+    const game = makeGame(round, {
+      modules: resolveModules({ longestTrail: true, warpDriveSpool: false }),
+      houseRules: manual,
+    });
+
+    const helm = resolveHelmControls({
+      round,
+      handOwnerId: 'a',
+      isMyTurn: true,
+      houseRules: manual,
+      dropToImpulsePending: false,
+      legalMovesCount: 0,
+      gameState: game,
+    });
+
+    expect(game.modules.longestTrail.enabled).toBe(true);
+    expect(game.modules.warpDriveSpool.enabled).toBe(false);
+    expect(helm.spoolOptions).toHaveLength(0);
+  });
+
+  it('offers Engage Warp Drive when Module Delta is on (Theta optional)', () => {
+    const round = trailReadyRound();
+    const game = makeGame(round, {
+      modules: resolveModules({
+        longestTrail: true,
+        warpDriveSpool: true,
+      }),
+      houseRules: manual,
+    });
+
+    const helm = resolveHelmControls({
+      round,
+      handOwnerId: 'a',
+      isMyTurn: true,
+      houseRules: manual,
+      dropToImpulsePending: false,
+      legalMovesCount: 0,
+      gameState: game,
+    });
+
+    expect(helm.spoolOptions.length).toBeGreaterThan(0);
+    expect(helm.spoolOptions.some((o) => o.route.kind === 'warp-trail')).toBe(
+      true
+    );
   });
 
   it('shows pass red alert when the house rule allows passing without drawing', () => {

@@ -12,7 +12,6 @@ import {
   handPoints,
   countActiveDistressBeacons,
   countDoublesOnTable,
-  isTrueRedAlert,
   trailOpenValue,
   trailKeyFor,
   pickBalancedTile,
@@ -30,8 +29,15 @@ import {
   type AdvisorModelWeights,
   type OmegaModelWeights,
   toModuleConfig,
+  salamanderPenaltyAction,
+  longestTrailBonusActions,
+  temporalDebtPenaltyActions,
+  computeRoundPointDeltas,
+  summarizeRoundOutcome,
+  EMPTY_Q_ROUND_EFFECTS,
 } from 'warp12-engine';
 import { resolveHelmControls } from '../game/helm-controls.js';
+import { roundEndHeadline, roundEndTitle } from './round-end-summary.js';
 import {
   doubleDownNoticeFromEntry,
   formatDoubleDownFeedback,
@@ -50,8 +56,13 @@ import {
   buildGameLogEntry,
   buildRoundLogExport,
   buildRoundOutcomeEntry,
+  buildSalamanderPenaltyLogEntry,
+  buildLongestTrailBonusLogEntry,
+  buildTemporalDebtPenaltyLogEntry,
+  buildModuleLoadoutEntry,
   buildRoundRatingsEntry,
   buildRoundStartedEntry,
+  buildDevConsoleUnlockEntry,
   type GameLogEntry,
   type GameLogRosterEntry,
   formatGameLogLine,
@@ -94,6 +105,20 @@ import {
 } from '../game/share-round.js';
 import type { LocalGameConfig } from '../game/local-game-config';
 import { isPassAndPlay, isRatedLocalGame, neuralAiSupported } from '../game/local-game-config';
+import { redealLocalRoundWithSeed } from '../game/create-local-game.js';
+import {
+  suggestConsoleHumanAction,
+  type ConsolePlayMode,
+} from '../game/local-game-console-play.js';
+import {
+  consoleUnlockVoidsTei,
+  DEV_CONSOLE_UNLOCK_COMMAND,
+  publishAdminToolsLoaded,
+} from '../game/local-game-dev-console.js';
+import { userHasAdminRole } from '../firebase/warp-auth-roles.js';
+
+/** Bumps each Bridge console effect run; deferred cleanup skips superseded gens. */
+let bridgeDevConsoleEffectGen = 0;
 import type { FirestoreCaptain, FirestoreRoundMove } from '../firebase/schema.js';
 import { useGameSoundEffects } from '../game/use-game-sounds.js';
 import { useBridgeAmbience } from '../game/use-bridge-ambience.js';
@@ -208,6 +233,7 @@ function formatPointsScoreLine(
     handOwnerId: string;
     salamanderEnabled: boolean;
     doubleZeroScore: import('warp12-engine').DoubleZeroScore;
+    maxPip: number;
   }
 ): string {
   const campaign = `${campaignScore} campaign`;
@@ -223,20 +249,10 @@ function formatPointsScoreLine(
     hand,
     options.salamanderEnabled,
     round.roundNumber,
-    options.doubleZeroScore
+    options.doubleZeroScore,
+    options.maxPip
   );
   return `${campaign} · ${inHand} in hand`;
-}
-
-function roundEndHeadline(
-  round: RoundState,
-  names: Record<string, string>
-): string {
-  if (round.roundBlocked) {
-    return `Round ${round.roundNumber} blocked — no legal charts remain.`;
-  }
-  const winner = names[round.roundWinnerId ?? ''] ?? 'Captain';
-  return `${winner} charts the final coordinate — round ${round.roundNumber} complete.`;
 }
 
 function roundEndContinueLabel(
@@ -249,45 +265,20 @@ function roundEndContinueLabel(
   return 'Score round';
 }
 
-function roundEndTitle(
-  round: RoundState,
-  names: Record<string, string>
-): string {
-  if (round.roundBlocked) {
-    return 'Sector blocked';
-  }
-  return `${names[round.roundWinnerId ?? ''] ?? 'Captain'} wins the round`;
-}
-
 function roundPenaltyAdds(
   game: GameState,
   round: RoundState
 ): { id: string; name: string; points: number }[] {
-  const salamander = game.modules.salamanderPenalty.enabled;
-  return game.captains
-    .map((captain) => {
-      if (!round.roundBlocked && captain.id === round.roundWinnerId) {
-        return null;
-      }
-      const hand = round.hands[captain.id] ?? [];
-      const points = handPoints(
-        hand,
-        salamander,
-        round.roundNumber,
-        game.houseRules.doubleZeroScore
-      );
-      if (points === 0) {
-        return null;
-      }
-      return {
-        id: captain.id,
-        name: captain.displayName,
-        points,
-      };
-    })
-    .filter((entry): entry is { id: string; name: string; points: number } =>
-      Boolean(entry)
-    );
+  const namesById = new Map(
+    game.captains.map((captain) => [captain.id, captain.displayName] as const)
+  );
+  return computeRoundPointDeltas(game, round)
+    .filter((entry) => entry.points !== 0)
+    .map((entry) => ({
+      id: entry.playerId,
+      name: namesById.get(entry.playerId) ?? entry.playerId,
+      points: entry.points,
+    }));
 }
 
 export interface BridgeTableProps {
@@ -326,6 +317,10 @@ export interface BridgeTableProps {
   commsControl?: { open: boolean; onToggle: () => void };
   /** Dev-only: pause AI turn execution. */
   aiPaused?: boolean;
+  /** Dev-only: toggle AI pause from console tools. */
+  onAiPausedChange?: (paused: boolean) => void;
+  /** Dev-only: full match rematch with a new seed (rebuilds AI roster). */
+  onResetMatchWithSeed?: (seed: number) => void;
 }
 
 export function BridgeTable({
@@ -355,6 +350,8 @@ export function BridgeTable({
   onCoachSignal,
   commsControl,
   aiPaused = false,
+  onAiPausedChange,
+  onResetMatchWithSeed,
 }: BridgeTableProps) {
   const layoutTier = useLayoutTier();
   const { orientation } = useLayoutTierState();
@@ -380,6 +377,11 @@ export function BridgeTable({
   const reportedLocalMatchRef = useRef<string | null>(null);
   const reportedOnlineMatchRef = useRef<string | null>(null);
   const advisorUsedThisMatchRef = useRef(false);
+  /** Bridge console unlocked this match (`GABBAGABBAHEY`). Survives effect refreshes. */
+  const devToolsUsedThisMatchRef = useRef(false);
+  const devConsoleSessionUnlockedRef = useRef(false);
+  const [devConsoleUnlocked, setDevConsoleUnlocked] = useState(false);
+  const [devConsoleTeiVoid, setDevConsoleTeiVoid] = useState(false);
   // The viewer has acknowledged that engaging the advisor unrates this sector.
   const advisorConsentRef = useRef(false);
   // Seeded inter-round reshuffle stream so local round 2+ deals are reproducible
@@ -397,6 +399,10 @@ export function BridgeTable({
   const [localGame, setLocalGame] = useState<GameState>(
     () => externalGame ?? createDemoGame()
   );
+  const roundDealSeedRef = useRef<number | null>(matchSeed ?? null);
+  useEffect(() => {
+    roundDealSeedRef.current = matchSeed ?? null;
+  }, [matchSeed]);
   const [localExportBusy, setLocalExportBusy] = useState(false);
   const [roundImageBusy, setRoundImageBusy] = useState<string | null>(null);
   const systemShareAvailable = canUseSystemShare();
@@ -407,6 +413,9 @@ export function BridgeTable({
   const roundStartStateRef = useRef<GameState | null>(null);
   const actionLogRoundStartIndexRef = useRef(0);
   const roundOutcomeLoggedRef = useRef<number | null>(null);
+  const salamanderLoggedRef = useRef<number | null>(null);
+  const longestTrailLoggedRef = useRef<number | null>(null);
+  const temporalDebtLoggedRef = useRef<number | null>(null);
   const [gameLogVersion, setGameLogVersion] = useState(0);
   const loggedRoundRef = useRef<number | null>(null);
   const ratingsLoggedRoundRef = useRef<number | null>(null);
@@ -487,6 +496,14 @@ export function BridgeTable({
 
   useEffect(() => {
     advisorUsedThisMatchRef.current = false;
+    devToolsUsedThisMatchRef.current = false;
+    devConsoleSessionUnlockedRef.current = false;
+    setDevConsoleUnlocked(false);
+    setDevConsoleTeiVoid(false);
+    if (typeof window !== 'undefined') {
+      delete (window as unknown as { localGame?: unknown }).localGame;
+    }
+    publishAdminToolsLoaded(false);
     advisorConsentRef.current = false;
     setAdvisorConfirmOpen(false);
     reportedLocalMatchRef.current = null;
@@ -533,8 +550,9 @@ export function BridgeTable({
       if (!isNetworkAvailable()) {
         setMatchReportPending(false);
         setMatchReportNotice(
-          advisorUsedThisMatchRef.current
-            ? 'Unrated offline match — Advisor was enabled, so TEI was not tracked.'
+          advisorUsedThisMatchRef.current ||
+          devToolsUsedThisMatchRef.current
+            ? 'Unrated offline match — Advisor or bridge console was enabled, so TEI was not tracked.'
             : `Offline match complete (${localWon ? 'Victory' : 'Defeat'}). Sign in when online to sync TEI to the leaderboard.`
         );
         return;
@@ -557,13 +575,17 @@ export function BridgeTable({
       campaignAdvisorReviewsRef.current
     );
 
+    const advisorUsed = advisorUsedThisMatchRef.current;
+    const devToolsUsed = devToolsUsedThisMatchRef.current;
+
     void reportLocalAiMatch(
       {
         uid: auth.user.uid,
         displayName: localConfig.humanName,
         ...classifyLocalAiMatchOpponent(localConfig.aiCaptains),
         objective: localConfig.objective,
-        advisorUsed: advisorUsedThisMatchRef.current,
+        advisorUsed,
+        ...(devToolsUsed ? { devToolsUsed: true } : {}),
         decisionPct: matchPerformance?.scorePct,
         decisionGrade: matchPerformance?.letterGrade,
         seed: matchSeed ?? Date.now(),
@@ -580,7 +602,7 @@ export function BridgeTable({
         const localWon = humanWonLocalMatch(game, localConfig.humanId);
         if (result.status === 'uploaded') {
           setMatchReport(result.report);
-          if (!result.report.rated && !advisorUsedThisMatchRef.current) {
+          if (!result.report.rated && !advisorUsed && !devToolsUsed) {
             setMatchReportNotice(
               'Casual match complete — TEI was not updated (sector was unrated).'
             );
@@ -590,7 +612,7 @@ export function BridgeTable({
         }
         if (result.status === 'queued') {
           setMatchReportNotice(
-            advisorUsedThisMatchRef.current
+            advisorUsed || devToolsUsed
               ? 'Unrated offline match saved locally — TEI will not be tracked.'
               : `Match saved offline (${localWon ? 'Victory' : 'Defeat'}). TEI will sync when you're back online.`
           );
@@ -883,6 +905,9 @@ export function BridgeTable({
     ) {
       gameLogRef.current.clear();
       roundOutcomeLoggedRef.current = null;
+      salamanderLoggedRef.current = null;
+      longestTrailLoggedRef.current = null;
+      temporalDebtLoggedRef.current = null;
       setGameLogVersion((version) => version + 1);
     }
     if (loggedRoundRef.current !== round.roundNumber) {
@@ -892,6 +917,13 @@ export function BridgeTable({
       actionLogRoundStartIndexRef.current =
         actionLogRef.current.snapshot().length;
       gameLogRef.current.append(buildRoundStartedEntry(round, startedAt));
+      gameLogRef.current.append(
+        buildModuleLoadoutEntry(
+          gameRef.current.modules,
+          round.roundNumber,
+          startedAt
+        )
+      );
       setGameLogVersion((version) => version + 1);
     }
     loggedRoundRef.current = round.roundNumber;
@@ -991,58 +1023,6 @@ export function BridgeTable({
     setDoubleDownNotice(null);
   }, [round?.roundNumber]);
 
-  // Online: toast/banner when Double Down or spool entries sync from move log.
-  useEffect(() => {
-    if (!isOnline) {
-      return;
-    }
-    if (gameLogEntries.length < moduleFeedbackProcessedRef.current) {
-      moduleFeedbackProcessedRef.current = 0;
-    }
-    if (gameLogEntries.length <= moduleFeedbackProcessedRef.current) {
-      return;
-    }
-    for (
-      let i = moduleFeedbackProcessedRef.current;
-      i < gameLogEntries.length;
-      i += 1
-    ) {
-      const entry = gameLogEntries[i];
-      if (entry.doubleDown) {
-        const notice = doubleDownNoticeFromEntry(entry);
-        if (notice) {
-          setDoubleDownNotice(notice);
-        }
-        setLastMessage(
-          formatDoubleDownFeedback(entry, names, handOwnerId) ?? null
-        );
-      } else if (entry.kind === 'SPOOL_WARP_DRIVE') {
-        const feedback = formatModuleFeedbackFromLogEntry(
-          entry,
-          names,
-          handOwnerId
-        );
-        if (feedback) {
-          setLastMessage(feedback);
-        }
-      }
-    }
-    moduleFeedbackProcessedRef.current = gameLogEntries.length;
-  }, [gameLogEntries, handOwnerId, isOnline, names]);
-
-  // Clear Double Down HUD once the affected captain's turn ends.
-  useEffect(() => {
-    const activePlayerId = round?.activePlayerId ?? null;
-    if (
-      doubleDownNotice &&
-      prevActivePlayerRef.current === doubleDownNotice.targetCaptainId &&
-      activePlayerId !== doubleDownNotice.targetCaptainId
-    ) {
-      setDoubleDownNotice(null);
-    }
-    prevActivePlayerRef.current = activePlayerId;
-  }, [doubleDownNotice, round?.activePlayerId]);
-
   useEffect(() => {
     if (!round || !autoFollowAction || round.phase !== 'playing') {
       prevRoundRef.current = round ?? null;
@@ -1091,6 +1071,58 @@ export function BridgeTable({
       : isLocalPassAndPlay
         ? activeIsHumanSeat && !handoffPending
         : true;
+
+  // Online: toast/banner when Double Down or spool entries sync from move log.
+  useEffect(() => {
+    if (!isOnline) {
+      return;
+    }
+    if (gameLogEntries.length < moduleFeedbackProcessedRef.current) {
+      moduleFeedbackProcessedRef.current = 0;
+    }
+    if (gameLogEntries.length <= moduleFeedbackProcessedRef.current) {
+      return;
+    }
+    for (
+      let i = moduleFeedbackProcessedRef.current;
+      i < gameLogEntries.length;
+      i += 1
+    ) {
+      const entry = gameLogEntries[i];
+      if (entry.doubleDown) {
+        const notice = doubleDownNoticeFromEntry(entry);
+        if (notice) {
+          setDoubleDownNotice(notice);
+        }
+        setLastMessage(
+          formatDoubleDownFeedback(entry, names, handOwnerId) ?? null
+        );
+      } else if (entry.kind === 'SPOOL_WARP_DRIVE') {
+        const feedback = formatModuleFeedbackFromLogEntry(
+          entry,
+          names,
+          handOwnerId
+        );
+        if (feedback) {
+          setLastMessage(feedback);
+        }
+      }
+    }
+    moduleFeedbackProcessedRef.current = gameLogEntries.length;
+  }, [gameLogEntries, handOwnerId, isOnline, names]);
+
+  // Clear Double Down HUD once the affected captain's turn ends.
+  useEffect(() => {
+    const nextActivePlayerId = round?.activePlayerId ?? null;
+    if (
+      doubleDownNotice &&
+      prevActivePlayerRef.current === doubleDownNotice.targetCaptainId &&
+      nextActivePlayerId !== doubleDownNotice.targetCaptainId
+    ) {
+      setDoubleDownNotice(null);
+    }
+    prevActivePlayerRef.current = nextActivePlayerId;
+  }, [doubleDownNotice, round?.activePlayerId]);
 
   useEffect(() => {
     if (!isLocalPassAndPlay) {
@@ -1169,7 +1201,8 @@ export function BridgeTable({
     activePlayerId: round?.activePlayerId ?? null,
     doublesOnTable: round != null ? countDoublesOnTable(round.table) : 0,
     chartedTileCount: round != null ? countChartedTilesOnTable(round) : 0,
-    trueRedAlert: round != null && isTrueRedAlert(round),
+    illuminatedRedAlert:
+      round != null && shouldIlluminateBridgeRedAlert(round),
     redAlertResponsibleId: round?.table.redAlert?.responsiblePlayerId ?? null,
     activeBeaconCount:
       round != null ? countActiveDistressBeacons(round.table) : 0,
@@ -1445,7 +1478,12 @@ export function BridgeTable({
     const structural: ReadonlySet<GameLogEntry['kind']> = new Set([
       'ROUND_STARTED',
       'ROUND_RATINGS',
+      'MODULE_LOADOUT',
       'END_ROUND',
+      'SALAMANDER_PENALTY',
+      'LONGEST_TRAIL_BONUS',
+      'TEMPORAL_DEBT_PENALTY',
+      'DEV_CONSOLE',
     ]);
     return gameLogEntries
       .filter(
@@ -1723,10 +1761,323 @@ export function BridgeTable({
           }) ?? null
         );
       }
+      gameRef.current = result.state;
       setLocalGame(result.state);
     },
     [game, handOwnerId, names, onAction, recordGameLog, ensureRoundReshuffle]
   );
+
+  // Dev console: gated by GABBAGABBAHEY + Firebase admin claim (local DEV only).
+  // Effect deps refresh after every dispatch; never strip mid-session or autoplay
+  // loses window.localGame. Tear-down uses a generation counter + microtask so
+  // React Strict Mode remounts / dep refreshes keep tools until a true leave.
+  useEffect(() => {
+    if (!import.meta.env.DEV || typeof window === 'undefined') {
+      return;
+    }
+
+    interface LocalGameDevTools {
+      getMatchSeed: () => number | null;
+      resetMatchWithSeed: (seed: number) => void;
+      getRoundSeed: () => number | null;
+      resetRoundWithSeed: (seed: number) => void;
+      /**
+       * Redeal the current round in memory for `seed` without mutating React
+       * state — for fast console seed searches (Salamander / Continuum).
+       */
+      previewRoundSeed: (seed: number) => {
+        seed: number;
+        hand: ReadonlyArray<{ low: number; high: number }>;
+        roundNumber: number | null;
+      } | null;
+      /** Force Continuum Salamander swap for the current round (scoring test). */
+      forceSalamanderSwap: () => void;
+      getHand: () => ReadonlyArray<{ low: number; high: number }> | null;
+      getGame: () => GameState | null;
+      getHumanId: () => string;
+      dispatch: (action: GameAction) => Promise<void>;
+      suggestAction: (mode?: ConsolePlayMode) => GameAction | null;
+      playHumanAction: (mode?: ConsolePlayMode) => Promise<GameAction | null>;
+      pauseAI: () => void;
+      resumeAI: () => void;
+      isAIPaused: () => boolean;
+    }
+
+    type UnlockHost = {
+      localGame?: LocalGameDevTools;
+      [DEV_CONSOLE_UNLOCK_COMMAND]?: () => Promise<boolean>;
+    };
+
+    const host = window as unknown as UnlockHost;
+    const effectGen = ++bridgeDevConsoleEffectGen;
+    let installed = false;
+
+    const stripTools = () => {
+      delete host.localGame;
+      installed = false;
+      devConsoleSessionUnlockedRef.current = false;
+      setDevConsoleUnlocked(false);
+      publishAdminToolsLoaded(false);
+    };
+
+    if (isOnline) {
+      stripTools();
+      delete host[DEV_CONSOLE_UNLOCK_COMMAND];
+      return;
+    }
+
+    const humanSeat = localConfig?.humanId || 'you';
+
+    const assertAdminSession = async (): Promise<boolean> => {
+      // Once tools are installed for this session, trust the unlock — do not
+      // re-hit Firebase Auth on every seed reset / autoplay step (quota).
+      if (installed) {
+        return true;
+      }
+      const ok = await userHasAdminRole(auth.user);
+      if (!ok) {
+        console.warn(
+          'Bridge console denied — sign in with Google and a Firebase admin claim.'
+        );
+        stripTools();
+        return false;
+      }
+      return true;
+    };
+
+    const installTools = () => {
+      const suggestAction = (mode: ConsolePlayMode = 'random') =>
+        suggestConsoleHumanAction(gameRef.current, humanSeat, mode, {
+          names,
+          ...coachSuggestionOptions,
+        });
+
+      const guardAsync = async <T,>(
+        run: () => Promise<T> | T
+      ): Promise<T | null> => {
+        if (!(await assertAdminSession())) {
+          return null;
+        }
+        return run();
+      };
+
+      host.localGame = {
+        getMatchSeed: () => {
+          if (!installed) {
+            return null;
+          }
+          if (matchSeed == null) {
+            console.log('No active match seed');
+            return null;
+          }
+          console.log('Current match seed:', matchSeed);
+          return matchSeed;
+        },
+        resetMatchWithSeed: (seed: number) => {
+          void guardAsync(() => {
+            if (!onResetMatchWithSeed) {
+              console.log('Match rematch is not wired');
+              return;
+            }
+            console.log('Resetting match with seed:', seed);
+            onResetMatchWithSeed(seed);
+          });
+        },
+        getRoundSeed: () => (installed ? roundDealSeedRef.current : null),
+        previewRoundSeed: (seed: number) => {
+          if (!installed) {
+            return null;
+          }
+          try {
+            const next = redealLocalRoundWithSeed(gameRef.current, seed);
+            return {
+              seed,
+              hand: next.round?.hands[humanSeat] ?? [],
+              roundNumber: next.round?.roundNumber ?? null,
+            };
+          } catch (error) {
+            console.error('previewRoundSeed failed:', error);
+            return null;
+          }
+        },
+        forceSalamanderSwap: () => {
+          void guardAsync(() => {
+            const current = gameRef.current;
+            const round = current.round;
+            if (!round) {
+              console.log('No active round');
+              return;
+            }
+            if (!current.modules.salamanderPenalty.enabled) {
+              console.warn('Module Beta (Salamander) is off — enable it first.');
+              return;
+            }
+            if (!current.modules.continuum.enabled) {
+              console.warn(
+                'Module Alpha (Continuum) is off — swap still patches effects, but flash UI will not apply.'
+              );
+            }
+            const next: GameState = {
+              ...current,
+              round: {
+                ...round,
+                continuumEffects: {
+                  ...(round.continuumEffects ?? EMPTY_Q_ROUND_EFFECTS),
+                  salamanderSwap: true,
+                },
+              },
+            };
+            gameRef.current = next;
+            setLocalGame(next);
+            console.log(
+              '✓ Forced continuumEffects.salamanderSwap = true for this round.',
+              'Keep maxPip-maxPip in a non-winner hand to see the swap log at round end.'
+            );
+          });
+        },
+        resetRoundWithSeed: (seed: number) => {
+          void guardAsync(() => {
+            try {
+              const next = redealLocalRoundWithSeed(gameRef.current, seed);
+              roundDealSeedRef.current = seed;
+              actionLogRef.current = createActionLog();
+              gameLogRef.current = createGameLog();
+              loggedRoundRef.current = null;
+              ratingsLoggedRoundRef.current = null;
+              roundOutcomeLoggedRef.current = null;
+              salamanderLoggedRef.current = null;
+              longestTrailLoggedRef.current = null;
+              temporalDebtLoggedRef.current = null;
+              syncedMoveLogCountRef.current = 0;
+              actionLogRoundStartIndexRef.current = 0;
+              roundStartedAtRef.current = Date.now();
+              roundStartStateRef.current = next;
+              gameRef.current = next;
+              setGameLogVersion((version) => version + 1);
+              setLocalGame(next);
+              console.log(
+                'Resetting round',
+                next.round?.roundNumber,
+                'with seed:',
+                seed
+              );
+            } catch (error) {
+              console.error('resetRoundWithSeed failed:', error);
+            }
+          });
+        },
+        getHand: () => {
+          if (!installed) {
+            return null;
+          }
+          const hands = gameRef.current.round?.hands;
+          if (!hands) {
+            console.log('No active round');
+            return null;
+          }
+          return hands[humanSeat] ?? null;
+        },
+        getGame: () => (installed ? gameRef.current : null),
+        getHumanId: () => humanSeat,
+        dispatch: async (action: GameAction) => {
+          await guardAsync(async () => {
+            await dispatch(action, { source: 'human' });
+          });
+        },
+        suggestAction: (mode = 'random') =>
+          installed ? suggestAction(mode) : null,
+        playHumanAction: async (mode: ConsolePlayMode = 'random') => {
+          return guardAsync(async () => {
+            const action = suggestAction(mode);
+            if (!action) {
+              console.log('No playable human action');
+              return null;
+            }
+            console.log('Playing', action.type, action);
+            await dispatch(action, { source: 'human' });
+            return action;
+          });
+        },
+        pauseAI: () => {
+          void guardAsync(() => {
+            onAiPausedChange?.(true);
+            console.log('🛑 AI paused - they will not take turns');
+          });
+        },
+        resumeAI: () => {
+          void guardAsync(() => {
+            onAiPausedChange?.(false);
+            console.log('▶️ AI resumed - they will continue playing');
+          });
+        },
+        isAIPaused: () => {
+          if (!installed) {
+            return false;
+          }
+          console.log('AI paused:', aiPaused);
+          return aiPaused;
+        },
+      };
+      installed = true;
+      setDevConsoleUnlocked(true);
+      publishAdminToolsLoaded(true);
+    };
+
+    host[DEV_CONSOLE_UNLOCK_COMMAND] = async () => {
+      const isAdmin = await userHasAdminRole(auth.user, { forceRefresh: true });
+      if (!isAdmin) {
+        console.warn(
+          `${DEV_CONSOLE_UNLOCK_COMMAND} refused — Firebase admin claim required (Google sign-in).`
+        );
+        stripTools();
+        setDevConsoleTeiVoid(false);
+        return false;
+      }
+
+      devConsoleSessionUnlockedRef.current = true;
+      installTools();
+      devToolsUsedThisMatchRef.current = true;
+      const voidsTei = consoleUnlockVoidsTei({ isAdmin: true });
+      setDevConsoleTeiVoid(voidsTei);
+      gameLogRef.current.append(
+        buildDevConsoleUnlockEntry(humanSeat, new Date().toISOString())
+      );
+      setGameLogVersion((version) => version + 1);
+      console.log(
+        `✓ Bridge console unlocked (${DEV_CONSOLE_UNLOCK_COMMAND}). CHEATER logged. TEI ${
+          voidsTei ? 'void for non-admins' : 'kept for admin claim'
+        }.`
+      );
+      return true;
+    };
+
+    // Refresh tool closures after dep changes; do not wipe an active unlock.
+    if (devConsoleSessionUnlockedRef.current) {
+      installTools();
+    }
+
+    return () => {
+      // Defer strip so dep refreshes / Strict Mode remounts can supersede.
+      queueMicrotask(() => {
+        if (bridgeDevConsoleEffectGen !== effectGen) {
+          return;
+        }
+        stripTools();
+        delete host[DEV_CONSOLE_UNLOCK_COMMAND];
+      });
+    };
+  }, [
+    isOnline,
+    matchSeed,
+    localConfig?.humanId,
+    aiPaused,
+    onAiPausedChange,
+    onResetMatchWithSeed,
+    dispatch,
+    names,
+    coachSuggestionOptions,
+    auth.user,
+  ]);
 
   const exportLocalDebug = async () => {
     setLocalExportBusy(true);
@@ -1940,9 +2291,71 @@ export function BridgeTable({
       return;
     }
     roundOutcomeLoggedRef.current = round.roundNumber;
-    gameLogRef.current.append(buildRoundOutcomeEntry(round));
+    gameLogRef.current.append(buildRoundOutcomeEntry(round, undefined, game));
     setGameLogVersion((version) => version + 1);
   }, [round, roundAwaitingScore]);
+
+  // Public Salamander line once hands are known (local immediately; online after
+  // round-end hand reveal). Retries until attribution resolves or the round scores.
+  useEffect(() => {
+    if (!roundAwaitingScore || !round) {
+      return;
+    }
+    if (salamanderLoggedRef.current === round.roundNumber) {
+      return;
+    }
+    const penalty = salamanderPenaltyAction(game, round);
+    if (!penalty) {
+      return;
+    }
+    salamanderLoggedRef.current = round.roundNumber;
+    gameLogRef.current.append(
+      buildSalamanderPenaltyLogEntry(penalty, undefined, {
+        continuumSwapArmed:
+          game.modules.continuum.enabled &&
+          round.continuumEffects?.salamanderSwap === true,
+      })
+    );
+    setGameLogVersion((version) => version + 1);
+  }, [game, round, roundAwaitingScore]);
+
+  // Public Longest Trail Bonus line once scoring hands are known.
+  useEffect(() => {
+    if (!roundAwaitingScore || !round) {
+      return;
+    }
+    if (longestTrailLoggedRef.current === round.roundNumber) {
+      return;
+    }
+    const bonuses = longestTrailBonusActions(game, round);
+    if (bonuses.length === 0) {
+      return;
+    }
+    longestTrailLoggedRef.current = round.roundNumber;
+    for (const bonus of bonuses) {
+      gameLogRef.current.append(buildLongestTrailBonusLogEntry(bonus));
+    }
+    setGameLogVersion((version) => version + 1);
+  }, [game, round, roundAwaitingScore]);
+
+  // Public Temporal Debt lines once scoring hands are known.
+  useEffect(() => {
+    if (!roundAwaitingScore || !round) {
+      return;
+    }
+    if (temporalDebtLoggedRef.current === round.roundNumber) {
+      return;
+    }
+    const debts = temporalDebtPenaltyActions(game, round);
+    if (debts.length === 0) {
+      return;
+    }
+    temporalDebtLoggedRef.current = round.roundNumber;
+    for (const debt of debts) {
+      gameLogRef.current.append(buildTemporalDebtPenaltyLogEntry(debt));
+    }
+    setGameLogVersion((version) => version + 1);
+  }, [game, round, roundAwaitingScore]);
 
   const canShareRound = Boolean(round && roundAwaitingScore);
 
@@ -2202,8 +2615,8 @@ export function BridgeTable({
 
     return {
       roundNumber: round.roundNumber,
-      headline: roundEndTitle(round, names),
-      subtitle: roundEndHeadline(round, names),
+      headline: roundEndTitle(game, round, names),
+      subtitle: roundEndHeadline(game, round, names),
       statsLines,
       sectorCode: sectorCode ?? (isOnline ? undefined : 'local'),
     };
@@ -2247,12 +2660,42 @@ export function BridgeTable({
     round?.roundWinnerId,
   ]);
 
+  const roundOutcome = useMemo(() => {
+    if (!round || !roundAwaitingScore) {
+      return null;
+    }
+    return summarizeRoundOutcome(game, round);
+  }, [game, round, roundAwaitingScore]);
+
   const roundPenaltySummary = useMemo(() => {
     if (!round || !roundAwaitingScore || game.objective !== 'points') {
       return [];
     }
-    return roundPenaltyAdds(game, round);
-  }, [game, round, roundAwaitingScore]);
+    const adds = roundPenaltyAdds(game, round);
+    if (!roundOutcome) {
+      return adds;
+    }
+    // Always surface the round winner and the captain who went out, even at 0
+    // points, so the trophy / hand indicators appear on normal rounds too.
+    const shown = new Set(adds.map((entry) => entry.id));
+    const namesById = new Map(
+      game.captains.map((captain) => [captain.id, captain.displayName] as const)
+    );
+    const highlightIds = [
+      ...roundOutcome.roundWinnerIds,
+      ...(roundOutcome.wentOutId ? [roundOutcome.wentOutId] : []),
+    ];
+    const extras = computeRoundPointDeltas(game, round)
+      .filter(
+        (entry) => highlightIds.includes(entry.playerId) && !shown.has(entry.playerId)
+      )
+      .map((entry) => ({
+        id: entry.playerId,
+        name: namesById.get(entry.playerId) ?? entry.playerId,
+        points: entry.points,
+      }));
+    return [...adds, ...extras];
+  }, [game, round, roundAwaitingScore, roundOutcome]);
 
   const scoreCurrentRound = useCallback(() => {
     if (!round || !roundAwaitingScore) {
@@ -2263,6 +2706,31 @@ export function BridgeTable({
     }
     lastScoredRoundRef.current = round.roundNumber;
     appendRoundAdvisorReviews();
+    const salamander = salamanderPenaltyAction(game, round);
+    if (salamander) {
+      actionLogRef.current.append({
+        playerId: playerIdForAction(salamander),
+        action: salamander,
+        ok: true,
+        source: 'auto',
+      });
+    }
+    for (const bonus of longestTrailBonusActions(game, round)) {
+      actionLogRef.current.append({
+        playerId: playerIdForAction(bonus),
+        action: bonus,
+        ok: true,
+        source: 'auto',
+      });
+    }
+    for (const debt of temporalDebtPenaltyActions(game, round)) {
+      actionLogRef.current.append({
+        playerId: playerIdForAction(debt),
+        action: debt,
+        ok: true,
+        source: 'auto',
+      });
+    }
     void dispatch(
       {
         type: 'END_ROUND',
@@ -2270,7 +2738,7 @@ export function BridgeTable({
       },
       { source: 'auto' }
     );
-  }, [appendRoundAdvisorReviews, dispatch, round, roundAwaitingScore]);
+  }, [appendRoundAdvisorReviews, dispatch, game, round, roundAwaitingScore]);
 
   useEffect(() => {
     if (game.phase === 'complete') {
@@ -2516,29 +2984,36 @@ export function BridgeTable({
       ).length
     : 0;
   
-  // Module Delta: Calculate longest trail(s) for display
+  // Module Theta: longest personal trail leader(s) for sector HUD.
   const longestTrailData = useMemo(() => {
-    if (!round || !game.modules.warpDriveSpool?.enabled) {
-      return { captains: [], length: 0, hazardHolder: null };
+    if (!round || !game.modules.longestTrail?.enabled) {
+      return { captains: [] as string[], length: 0 };
     }
-    
+
     const trailLengths = Object.entries(round.table.warpTrails).map(
       ([captainId, trail]) => ({
         captainId,
         length: trail.tiles.length,
       })
     );
-    
+
     const maxLength = Math.max(0, ...trailLengths.map((t) => t.length));
     const leaders = trailLengths
       .filter((t) => t.length > 0 && t.length === maxLength)
       .map((t) => t.captainId);
-    
+
     return {
       captains: leaders,
       length: maxLength,
-      hazardHolder: round.hazardMarkerHolder ?? null,
     };
+  }, [round, game.modules.longestTrail?.enabled]);
+
+  // Module Delta: Hazard Marker holder for sector HUD (independent of Theta).
+  const hazardMarkerHolder = useMemo(() => {
+    if (!round || !game.modules.warpDriveSpool?.enabled) {
+      return null;
+    }
+    return round.hazardMarkerHolder ?? null;
   }, [round, game.modules.warpDriveSpool?.enabled]);
   
   const portraitSummaryNudge =
@@ -2920,7 +3395,7 @@ export function BridgeTable({
           redAlertTone={sectorRedAlertRow?.tone ?? 'alert'}
           longestTrailCaptains={longestTrailData.captains}
           longestTrailLength={longestTrailData.length}
-          hazardMarkerHolder={longestTrailData.hazardHolder}
+          hazardMarkerHolder={hazardMarkerHolder}
           doubleDownNotice={doubleDownNotice}
         />
         )}
@@ -3038,18 +3513,33 @@ export function BridgeTable({
             <div className={styles.roundEndCard}>
               <p className={styles.roundEndEyebrow}>Round {round.roundNumber}</p>
               <h3 id="warp12-round-end-title" className={styles.roundEndTitle}>
-                {roundEndTitle(round, names)}
+                {roundEndTitle(game, round, names)}
               </h3>
               <p className={styles.roundEndBody}>
-                {roundEndHeadline(round, names)}
+                {roundEndHeadline(game, round, names)}
               </p>
               {game.objective === 'points' && (
                 <ul className={styles.roundEndPoints}>
-                  {roundPenaltySummary.map((entry) => (
-                    <li key={entry.id}>
-                      {entry.name}: {formatRoundPointsDelta(entry.points)}
-                    </li>
-                  ))}
+                  {roundPenaltySummary.map((entry) => {
+                    const wonRound =
+                      roundOutcome?.roundWinnerIds.includes(entry.id) ?? false;
+                    const wentOut = roundOutcome?.wentOutId === entry.id;
+                    return (
+                      <li key={entry.id}>
+                        {wonRound && (
+                          <span aria-label="Round winner" title="Round winner">
+                            🏆{' '}
+                          </span>
+                        )}
+                        {wentOut && (
+                          <span aria-label="Emptied hand" title="Emptied hand">
+                            ✋{' '}
+                          </span>
+                        )}
+                        {entry.name}: {formatRoundPointsDelta(entry.points)}
+                      </li>
+                    );
+                  })}
                   {roundPenaltySummary.length === 0 && (
                     <li>No points held this round.</li>
                   )}
@@ -3096,7 +3586,7 @@ export function BridgeTable({
         {roundAwaitingScore && round && !roundEndSummaryOpen && (
           <div className={styles.roundEndDock} role="status">
             <div className={styles.roundEndDockText}>
-              <strong>{roundEndTitle(round, names)}</strong>
+              <strong>{roundEndTitle(game, round, names)}</strong>
               <span>Pan and zoom to review the final layout.</span>
             </div>
             <RoundImageActions
@@ -3268,6 +3758,15 @@ export function BridgeTable({
           <p className={styles.feedback} role="status">
             ⚠ Sector unrated — the tactical advisor was engaged. TEI will not
             change for any captain.
+          </p>
+        )}
+
+        {devConsoleUnlocked && (
+          <p className={styles.feedback} role="status">
+            ⚠ CHEATER — bridge console unlocked
+            {devConsoleTeiVoid
+              ? '. TEI void for this sector.'
+              : ' (admin). TEI may still update if the server confirms your claim.'}
           </p>
         )}
 
@@ -3533,6 +4032,7 @@ export function BridgeTable({
                         salamanderEnabled:
                           game.modules.salamanderPenalty.enabled,
                         doubleZeroScore: game.houseRules.doubleZeroScore,
+                        maxPip: game.maxPip ?? round?.maxPip ?? 12,
                       }
                     )}
                   </span>

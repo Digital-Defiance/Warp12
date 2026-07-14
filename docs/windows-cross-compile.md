@@ -40,16 +40,43 @@ apps/Warp12/src-tauri/target/x86_64-pc-windows-msvc/release/
 
 ## Creating Installers
 
-For installers, you have two options:
+Installers (MSI, NSIS, MSIX) require Windows-only tooling and **cannot** be
+produced by the macOS cross-compile. Build them on Windows instead — the
+recommended path is CI.
 
-### Option 1: Package manually on Windows
-Copy the `.exe` to Windows and use:
-- **Inno Setup** - Free installer creator
-- **NSIS** - Open source installer
-- **Advanced Installer** - GUI-based (free edition available)
+### Recommended: GitHub Actions (`.github/workflows/build-windows.yml`)
+Triggered on `v*` tags or via manual dispatch. The `windows-latest` runner
+produces:
+- **MSI** (WiX) and **NSIS** `-setup.exe` via `yarn tauri:build`
+- **MSIX** — a multiarch (`x64` + `arm64`) `Warp 12.msixbundle` via
+  `yarn build:windows:store`
 
-### Option 2: Use CI/CD
-Set up GitHub Actions to build full installers on Windows runners (see `.github/workflows/build-windows.yml`)
+Trigger it from macOS without touching Windows:
+
+```bash
+git tag v0.6.45 && git push origin v0.6.45   # or: gh workflow run build-windows.yml
+```
+
+### MSIX details
+MSIX packaging is handled by [`@choochmeque/tauri-windows-bundle`](https://github.com/Choochmeque/tauri-windows-bundle)
+(Tauri v2 has no native MSIX bundler). Config lives in
+`apps/Warp12/src-tauri/gen/windows/bundle.config.json` and the manifest template
+alongside it. `yarn build:windows:store` runs
+`tauri-windows-bundle build --arch x64,arm64 --runner yarn`.
+
+Before a **Microsoft Store** submission, set the reserved identity from Partner
+Center:
+- `Identity Name` ← override `identifier` in `src-tauri/tauri.windows.conf.json`
+- `publisher` (`CN=...`) and `publisherDisplayName` ← `bundle.config.json`
+
+The Store re-signs the uploaded bundle, so it can be unsigned. For **sideload
+testing**, sign it: set `signing.pfx` in `bundle.config.json` and provide
+`MSIX_PFX_PASSWORD`, then install with `Add-AppxPackage Warp12.msixbundle`.
+`org.digitaldefiance.app.warp12` / `CN=Digital Defiance` are the defaults for
+self-signed testing.
+
+### Manual alternative
+Copy the `.exe` to Windows and use Inno Setup, NSIS, or Advanced Installer.
 
 ## Testing the .exe
 
@@ -108,12 +135,12 @@ ps aux | grep -E "(vite|cargo)" | grep -v grep
 
 ## Limitations
 
-❌ Can't create MSI/MSIX installers  
+❌ Can't create MSI/MSIX/NSIS installers (Windows-only — use the CI workflow)  
 ❌ Can't code-sign for Windows  
 ❌ First build downloads large SDK  
 
 ## Recommendation
 
 - **For testing:** Use cross-compile (this approach)
-- **For distribution:** Build on Windows or use GitHub Actions
-- **For Microsoft Store:** Must build MSIX on Windows
+- **For distribution:** Use the `build-windows.yml` GitHub Actions workflow (MSI + NSIS + MSIX)
+- **For Microsoft Store:** Upload the `x64 + arm64` `.msixbundle` from CI (`yarn build:windows:store`)

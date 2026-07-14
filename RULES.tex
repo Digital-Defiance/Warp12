@@ -4,9 +4,15 @@
 \usepackage{textgreek}
 \usepackage{longtable}
 \usepackage{booktabs}
+\usepackage{array}
 \usepackage{amsmath}
 \usepackage{hyperref}
+\usepackage{xurl}
 \usepackage[margin=1in]{geometry}
+
+% Let TeX resolve the occasional unbreakable code/URL token at a line end
+% instead of overflowing into the margin.
+\setlength{\emergencystretch}{3em}
 
 % Pandoc compatibility
 \providecommand{\tightlist}{%
@@ -140,7 +146,7 @@ matters, because to a captain worth the uniform, it always does.
 
 Fleet command chooses one objective before the sector opens:
 
-\begin{longtable}[]{@{}ll@{}}
+\begin{longtable}[]{@{}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.64\linewidth}@{}}
 \toprule\noalign{}
 Mode & Goal \\
 \midrule\noalign{}
@@ -159,7 +165,7 @@ wins the sector immediately (no thirteen-round tally). \\
 
 \subsection{I. Operations lexicon}\label{i-operations-lexicon}
 
-\begin{longtable}[]{@{}ll@{}}
+\begin{longtable}[]{@{}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.64\linewidth}@{}}
 \toprule\noalign{}
 Multi-trail & Warp \\
 \midrule\noalign{}
@@ -214,7 +220,7 @@ play
 \item
   \textbf{Deal hands} from the remainder:
 
-  \begin{longtable}[]{@{}ll@{}}
+  \begin{longtable}[]{@{}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.64\linewidth}@{}}
   \toprule\noalign{}
   Captains & Hand size \\
   \midrule\noalign{}
@@ -525,7 +531,7 @@ opt-in)}}{Subspace Fracture interaction (Section VI --- opt-in)}}\label{subspace
 
 When Subspace Fracture is \textbf{enabled}, scope is chosen at launch:
 
-\begin{longtable}[]{@{}ll@{}}
+\begin{longtable}[]{@{}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.64\linewidth}@{}}
 \toprule\noalign{}
 Scope & Doubles that open Subspace Fracture \\
 \midrule\noalign{}
@@ -596,10 +602,10 @@ the house rule is on.
 
 \textbf{Drop to Impulse} \emph{(house rule --- off by default)}: when a
 captain charts down to \textbf{one} coordinate remaining, they are
-\textbf{at impulse} --- their turn \textbf{continues}, but they
-\textbf{cannot chart again} on that turn. This matches standard
-multi-trail \textbf{knock}: reaching one tile does not let you silently
-play that last coordinate.
+\textbf{at impulse} --- they must call this befor their turn completes,
+and they \textbf{cannot chart again} on that turn. This matches standard
+multi-trail \textbf{knock}. (No, reaching one tile does not let you
+silently play that last coordinate.)
 
 They must \textbf{Drop to Impulse!} (announce and \textbf{pass helm}
 with one tile still in hand) or \textbf{pass} without announcing and
@@ -643,7 +649,8 @@ standard, the default for hand-built rule sets), \textbf{25}, or
 \textbf{0} (pips). The \textbf{Official Warp rules} preset uses
 \textbf{0} so the 0-0 stays safe to hold as the Continuum trigger
 (Module Alpha). This is independent of the Salamander Penalty, which
-only affects \textbf{12-12}.
+only affects the \textbf{highest double for the Warp Factor} (eg
+\textbf{12-12} under Warp 12, \textbf{18-18} under Warp 18).
 
 \textbf{Next round:} Spacedock steps down one double (12-12 → 11-11 →
 \ldots{} → 0-0). After round 13, lowest cumulative points total wins.
@@ -692,13 +699,18 @@ for tabletop play with physical tiles).
     hand-built rule sets), \textbf{25}, or \textbf{0} (its 0 pips). The
     \textbf{Official Warp rules} preset uses \textbf{0}.
   \item
-    \textbf{Salamander Penalty (Module Beta):} a held \textbf{12-12}
-    scores \textbf{double --- 48} (from round 2 onward). See
-    \textbf{Section VI → Module Beta}. It affects only the 12-12 tile.
+    \textbf{Salamander Penalty (Module Beta):} a held \textbf{highest
+    double} (\texttt{maxPip-maxPip}) scores \textbf{double its both-ends
+    value} from round 2 onward --- eg Warp 12 \textbf{12-12 → 48}, Warp
+    18 \textbf{18-18 → 72}. See \textbf{Section VI → Module Beta}.
   \end{itemize}
 \item
   \textbf{Add to the campaign total.} Add each captain\textquotesingle s
-  round score to their running cumulative total. Lower is better.
+  round score to their running cumulative total. Lower is better. If
+  \textbf{Module Kappa (Temporal Inversion)} is on and this is an
+  \textbf{even} round, do \textbf{not} use this normal write-up --- use
+  the inverted tally in Section~VI (negate hands; going out is a large
+  positive dump). The campaign still ends on lowest cumulative total.
 \item
   \textbf{Advance the round.} Step Spacedock down one double
   (\texttt{12-12\ →\ 11-11\ →\ …\ →\ 0-0}), re-deal, and play the next
@@ -753,7 +765,7 @@ In the app, choose \textbf{Official Warp rules} on the setup screen (or
 accept the defaults). Everything in \textbf{Sections I--V} applies; the
 preset only turns on the extras below.
 
-\begin{longtable}[]{@{}ll@{}}
+\begin{longtable}[]{@{}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.64\linewidth}@{}}
 \toprule\noalign{}
 Setting & Official Warp preset \\
 \midrule\noalign{}
@@ -788,7 +800,7 @@ preset)}}{Subspace Fracture (chicken foot --- off in Official Warp preset)}}\lab
 
 When \textbf{enabled}, choose a \textbf{fracture scope} before launch:
 
-\begin{longtable}[]{@{}ll@{}}
+\begin{longtable}[]{@{}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.64\linewidth}@{}}
 \toprule\noalign{}
 Scope & Doubles that open Subspace Fracture \\
 \midrule\noalign{}
@@ -846,7 +858,7 @@ preset)}}{House rules (Deluxe-style --- off in Official Warp preset)}}\label{hou
 
 Hosts may enable any combination before launch.
 
-\begin{longtable}[]{@{}ll@{}}
+\begin{longtable}[]{@{}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.64\linewidth}@{}}
 \toprule\noalign{}
 Toggle & When enabled \\
 \midrule\noalign{}
@@ -908,7 +920,7 @@ triggers a \textbf{Continuum Flash} before helm passes. That captain
 immediately chooses \textbf{one} directive for the rest of the round
 (cleared when the sector scores):
 
-\begin{longtable}[]{@{}ll@{}}
+\begin{longtable}[]{@{}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.64\linewidth}@{}}
 \toprule\noalign{}
 Continuum Flash & Effect \\
 \midrule\noalign{}
@@ -928,9 +940,13 @@ captain without a Distress Beacon. \\
 \textbf{Fracture immunity} & The next double on an own trail will not
 open Subspace Fracture (Red Alert still applies). \\
 \textbf{Salamander swap} \emph{(requires Module Beta)} & If anyone holds
-12-12 at round end, the full 48-point Salamander penalty lands on the
-highest-points captain instead --- the holder pays nothing for that
-tile. \\
+the highest double (\texttt{maxPip-maxPip}) at round end, the full
+Salamander penalty (double its pips) lands on the
+\textbf{highest-points captain among those who did not win the round}
+instead --- the holder pays nothing for that tile.
+If the holder \textbf{is already} that captain, the swap does
+\textbf{not} transfer: they keep the full doubled penalty (same as
+Salamander without swap). \\
 \textbf{All Stop! echo} & Any captain going out this round must call All
 Stop! before the sector closes. \\
 \textbf{Continuum Wager} & Draw two tiles from Uncharted
@@ -946,15 +962,22 @@ close.
 \emph{(on in Official Warp
 preset)}}{Module Beta --- The Salamander Penalty (on in Official Warp preset)}}\label{module-beta--the-salamander-penalty-on-in-official-warp-preset}
 
-If a round ends and a captain holds \textbf{12-12} in hand, that tile
-scores \textbf{double its pips --- 48} (its normal both-ends value is
-24). Round 1 never applies (12-12 is Spacedock). From round 2 onward,
-12-12 is in circulation.
+If a round ends and a captain holds the \textbf{highest double for the
+Warp Factor} (\texttt{maxPip-maxPip}) in hand, that tile scores
+\textbf{double its both-ends pip value}. Round 1 never applies (that
+double is Spacedock). From round 2 onward it is in circulation.
+
+Examples: Warp 12 \textbf{12-12 → 48} (base 24); Warp 9 \textbf{9-9 →
+36}; Warp 15 \textbf{15-15 → 60}; Warp 18 \textbf{18-18 → 72}.
 
 With \textbf{Salamander swap} (Continuum, Module Alpha), the
-\textbf{entire 48-point penalty} transfers to the highest-points captain
-instead --- the 12-12 holder pays \textbf{nothing} for that tile, and
-the leader eats the full 48.
+\textbf{entire doubled penalty} transfers to the
+\textbf{highest-points captain among non-winners} of the round --- the
+highest-double holder pays \textbf{nothing} for that tile, and that
+leader receives the full amount. The round winner is not eligible as the
+swap target (they score 0 for the round hand). If the holder is already
+that campaign leader, there is no transfer: they keep the full doubled
+penalty, exactly as under Salamander without Continuum swap.
 
 \subsubsection{Module Gamma --- Long-Range Sensor
 Sweep}\label{module-gamma--long-range-sensor-sweep}
@@ -1018,12 +1041,21 @@ score.
 \end{itemize}
 
 \textbf{Round Initialization:} The round starter receives the Hazard
-Marker at the beginning of each round (they got the "privilege" of the
+Marker at the beginning of each round (they got the ``privilege'' of the
 opening tile).
+
+\textbf{Warp Drive Engagement (Spool):} On your turn (when not blocked by
+Red Alert or Subspace Fracture), you may \textbf{engage warp drive} to
+draw coordinates from Uncharted Sectors---draw tiles one at a time until
+you draw a tile that cannot be charted to your chosen route. All
+matching tiles are charted; the mismatch (and any remaining tiles) go to
+your hand. Spooling is part of Module Delta; Module Theta does not unlock
+it.
 
 \textbf{Tactical Impact:} The Neutral Zone becomes a strategic dumping
 ground with real risk. Captains must weigh convenience against the
 danger of getting stuck with the marker and being forced to pass.
+Spooling stretches a trail (or the Neutral Zone) at hand-bloat risk.
 
 \subsubsection{Scoring}\label{scoring}
 
@@ -1070,21 +1102,17 @@ Strategic long-range navigation rewards extended personal trails.
 Captains who invest in building the longest continuous warp trail
 receive a tactical advantage at round end.
 
-\textbf{Warp Drive Engagement:} On your turn (when not blocked by Red Alert
-or Subspace Fracture), you may \textbf{engage warp drive} to draw coordinates from Uncharted
-Sectors---draw tiles one at a time until you draw a tile that cannot be
-charted to your chosen route. All matching tiles are charted; the
-mismatch (and any remaining tiles) go to your hand.
-
 \textbf{Longest Trail Bonus:} At round end, the captain(s) with the
 longest personal Warp Trail receive a \textbf{-3 bonus} (negative =
 fewer points). If multiple captains tie for longest, all tied captains
-receive the bonus.
+receive the bonus. The bonus \textbf{cannot reduce a captain's round
+score below 0} (a go-out or tiny hand stays at 0 after all normal-round
+adjustments). Engaging Warp Drive / Spool is \textbf{not} part of
+Theta---it ships with Module Delta.
 
 \textbf{Tactical Impact:} Creates opposing incentives with Module Delta
-(hot potato pushes toward Neutral Zone, longest trail pulls toward own
-trail). Engaging warp drive introduces resource management risk---you might draw
-the Salamander (12-12) while chasing trail length.
+(hot potato and NZ spool push toward Neutral Zone risk; longest trail
+pulls toward your own trail).
 
 \textbf{Status:} Rated --- preserves skill ordering (78.5\% higher-skill
 win rate in calibration).
@@ -1162,28 +1190,88 @@ management and strategic restraint (calibration pending).
 \emph{(Warped --- exhibition
 only)}}{Module Kappa: Temporal Inversion (Warped --- exhibition only)}}\label{module-kappa-temporal-inversion-warped--exhibition-only}
 
-Reality bends. Scoring objectives invert every other round, forcing
-constant strategic adaptation.
+Reality bends. Who ``wins'' a round flips every other round, but the
+\textbf{campaign still ranks by lowest cumulative total}. Kappa does not
+replace that ledger --- it only changes how each even round is written
+into it.
 
-\textbf{Mechanic:}
+\textbf{Which rounds invert:}
 
 \begin{itemize}
 \tightlist
 \item
-  \textbf{Odd rounds} (1, 3, 5...): Normal scoring---lowest hand wins
+  \textbf{Odd rounds} (1, 3, 5\ldots): use the normal tally in
+  Section~IV (empty hand = 0; others add hand pips; lower is better).
 \item
-  \textbf{Even rounds} (2, 4, 6...): Inverted scoring---highest hand
-  wins, going out = maximum penalty
+  \textbf{Even rounds} (2, 4, 6\ldots): use the inverted tally below.
 \end{itemize}
 
-\textbf{Tactical Impact:} Going out in even rounds is catastrophic (you
-wanted to KEEP tiles). Medium hands become optimal. AI struggles to
-adapt, creating opportunities for human players. Lower-skilled players
-win \textasciitilde65\% of the time (35.6\% higher-skill win rate in
-calibration --- intentionally inverts skill ordering).
+\textbf{Even-round tally (tabletop):} Count hands the same way as
+Section~IV (pip totals, double-blank setting, Salamander if on). Then
+write the \textbf{campaign adjustment} as follows --- do \textbf{not}
+award ``0 for going out'' on these rounds.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Who emptied their hand} (went out) takes a large positive
+  dump --- you wanted to \emph{keep} tiles, not empty. For Warp~$N$,
+  use \(2N\times 13\) (Warp~12 \(\rightarrow\) \textbf{312}; Warp~18
+  \(\rightarrow\) \textbf{468}). Add that amount to their campaign
+  total.
+\item
+  \textbf{Everyone else} takes the \textbf{negation} of their hand total:
+  subtract the hand from the campaign (a hand of 40 becomes
+  \textbf{$-40$}). Holding more pips improves your standing; a thin hand
+  hurts.
+\item
+  Apply any other enabled Module add-ons from this section (Hazard pass
+  penalties, Longest Trail $-3$, Temporal Debt, and so on) \textbf{after}
+  that hand term, same as the app. Longest Trail still cannot push a
+  \emph{normal} (odd-round) total below 0; on inverted rounds the ledger
+  is already allowed to go negative by design.
+\item
+  The sector winner at the end is still whoever has the
+  \textbf{lowest cumulative} score --- Kappa never switches the campaign
+  to ``highest wins.''
+\end{enumerate}
+
+\textbf{Why the signs look backwards:} On an even round, a fat hand must
+\emph{help} you under a lowest-total campaign. Negating the hand does
+that on paper: \texttt{$-40$} beats \texttt{$-10$}, and both beat a
+go-out's \texttt{$+312$}. Offline, just keep a running total column and
+add / subtract the even-round adjustment as written; you do not need a
+second ranking system.
+
+\textbf{Worked example (Warp 12, even round, three captains).} Before
+the round: Armstrong 20, Lovell 25, Earhart 30. Earhart goes out;
+Armstrong holds 40 pips; Lovell holds 12.
+
+\begin{itemize}
+\tightlist
+\item
+  Earhart (went out): \textbf{$+312$} $\rightarrow$ campaign
+  \(30+312=\textbf{342}\).
+\item
+  Armstrong (40 in hand): \textbf{$-40$} $\rightarrow$ campaign
+  \(20-40=\textbf{$-20$}\).
+\item
+  Lovell (12 in hand): \textbf{$-12$} $\rightarrow$ campaign
+  \(25-12=\textbf{13}\).
+\end{itemize}
+
+Armstrong now leads the campaign despite going deep into negatives;
+Earhart is crushed for emptying out when tiles were the prize.
+
+\textbf{Tactical Impact:} Going out in even rounds is catastrophic.
+Medium hands become optimal. AI struggles to adapt. Lower-skilled
+players win \textasciitilde65\% of the time (35.6\% higher-skill win
+rate in calibration --- intentionally inverts skill ordering).
 
 \textbf{Status:} Exhibition/Warped mode only---\textbf{intentionally
-breaks skill ordering} for casual chaos play. Never rated.
+breaks skill ordering} for casual chaos play. Never rated (TEI does not
+use these scores).
 
 \subsubsection{\texorpdfstring{Module Lambda: Wormholes
 \emph{(Warped --- exhibition
@@ -1359,7 +1447,7 @@ Everyone at the table is a \textbf{Captain} (seat role).
 opponent / placement tracks --- commission flavor for AI difficulty, not
 a separate ladder from TEI:
 
-\begin{longtable}[]{@{}ll@{}}
+\begin{longtable}[]{@{}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.64\linewidth}@{}}
 \toprule\noalign{}
 Track & Profile \\
 \midrule\noalign{}
@@ -1561,7 +1649,7 @@ crew-ladder outcomes without saving anything. Full design:
 
 \subsubsection{Lexicon}\label{lexicon}
 
-\begin{longtable}[]{@{}ll@{}}
+\begin{longtable}[]{@{}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.64\linewidth}@{}}
 \toprule\noalign{}
 Term & Meaning \\
 \midrule\noalign{}
@@ -1629,7 +1717,7 @@ Your solo TEI is \textbf{not} one number --- the app keeps separate
 ratings for each \textbf{objective} and each \textbf{AI commission track}
 you face:
 
-\begin{longtable}[]{@{}ll@{}}
+\begin{longtable}[]{@{}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.64\linewidth}@{}}
 \toprule\noalign{}
 Track & When it applies \\
 \midrule\noalign{}
@@ -1895,7 +1983,7 @@ integrity of rated sectors while keeping casual games social.
 
 \subsubsection{Comms modes}\label{comms-modes}
 
-\begin{longtable}[]{@{}lll@{}}
+\begin{longtable}[]{@{}>{\raggedright\arraybackslash}p{0.34\linewidth}>{\raggedright\arraybackslash}p{0.13\linewidth}>{\raggedright\arraybackslash}p{0.47\linewidth}@{}}
 \toprule\noalign{}
 Context & Mode & What\textquotesingle s available \\
 \midrule\noalign{}
@@ -1996,7 +2084,7 @@ extras}\label{quick-reference--standard-vs-warp-extras}
 (1-tile catch), and All Stop! ceremony on standard \textbf{Sections
 I--V} gameplay.
 
-\begin{longtable}[]{@{}lll@{}}
+\begin{longtable}[]{@{}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.34\linewidth}@{}}
 \toprule\noalign{}
 Rule & Standard multi-trail & Warp \\
 \midrule\noalign{}
@@ -2020,7 +2108,8 @@ opt-in \\
 Round starter plays two & Optional Deluxe variant & House rule ---
 opt-in \\
 0-0 anomaly & --- & Continuum --- Official Warp preset \\
-12-12 Salamander Penalty & --- & Salamander --- Official Warp preset \\
+Highest-double Salamander Penalty & --- & Salamander --- Official Warp
+preset \\
 NZ win announcement & --- & All Stop! ceremony --- Official Warp
 preset \\
 One tile left announce & --- & Drop to Impulse --- Official Warp preset

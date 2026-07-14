@@ -2,7 +2,8 @@ import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 
-import { requireSignedIn, requireVerifiedUser } from './auth';
+import { requireSignedIn, requireVerifiedUser, hasRole } from './auth';
+import { practiceMatchTeiEligible } from './practice-match-tei-eligibility.js';
 import {
   getAIAnchorRating,
   resolveEffectivePlayerRating,
@@ -77,6 +78,8 @@ export const reportPracticeAiMatch = onCall(
       skill?: AiSkillLevel;
       objective?: RatedObjective;
       advisorUsed?: boolean;
+      /** Bridge console unlock (`GABBAGABBAHEY`) used during this match. */
+      devToolsUsed?: boolean;
       opponentClass1Star?: boolean;
       decisionPct?: number;
       decisionGrade?: string;
@@ -102,6 +105,7 @@ export const reportPracticeAiMatch = onCall(
       });
       throw new HttpsError('invalid-argument', 'advisorUsed required.');
     }
+    const devToolsUsed = data.devToolsUsed === true;
     if (data.opponentClass1Star) {
       logger.warn('reportPracticeAiMatch rejected', {
         uid,
@@ -165,8 +169,20 @@ export const reportPracticeAiMatch = onCall(
       requireVerifiedUser(request);
     }
 
-    const teiEligible =
-      !data.advisorUsed && isTeiEligiblePracticeConfig(data.config);
+    const teiEligible = practiceMatchTeiEligible({
+      configEligible: isTeiEligiblePracticeConfig(data.config),
+      advisorUsed: data.advisorUsed,
+      devToolsUsed,
+      isAdmin: hasRole(request, 'admin'),
+    });
+
+    if (devToolsUsed) {
+      logger.info('reportPracticeAiMatch console tools', {
+        uid,
+        teiEligible,
+        isAdmin: hasRole(request, 'admin'),
+      });
+    }
 
     const ref = db.collection('playerStats').doc(uid);
     const snap = await ref.get();

@@ -37,6 +37,14 @@ function advisorReportHeader(
     lines.push(`Table opponents: ${options.opponentLabel}.`);
   }
 
+  const moduleContext = report.moduleContext;
+  if (moduleContext && moduleContext.moduleLabels.length > 0) {
+    lines.push(`Modules · ${moduleContext.moduleLabels.join(', ')}`);
+    for (const note of moduleContext.notes) {
+      lines.push(`  ⚠ ${note}`);
+    }
+  }
+
   return lines;
 }
 

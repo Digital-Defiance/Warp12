@@ -34,9 +34,10 @@ const STAMP_PATH = join(ROOT, '.docs-build-stamps.json');
 const BUILDS = {
   rules: {
     inputs: ['RULES.tex'],
-    outputs: ['RULES.html', 'RULES.md'],
+    outputs: ['RULES.pdf', 'RULES.html', 'RULES.md'],
+    // Two pdflatex passes so longtable column widths settle before pandoc runs.
     command:
-      'pandoc RULES.tex -f latex -t html --mathjax -s -o RULES.html && pandoc RULES.tex -f latex -t gfm -o RULES.md',
+      'pdflatex -interaction=nonstopmode RULES.tex && pdflatex -interaction=nonstopmode RULES.tex && pandoc RULES.tex -f latex -t html --mathjax -s -o RULES.html && pandoc RULES.tex -f latex -t gfm -o RULES.md && rm -f RULES.aux RULES.log RULES.out',
   },
   paper: {
     inputs: [

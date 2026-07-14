@@ -8,7 +8,7 @@ Complete implementation of compact binary match logging system with comprehensiv
 Fixed game log to display TEI grades in "V67" format instead of legacy integer format.
 
 ### ✅ Task 2: Binary Format Export
-Updated "Export debug log" button to export matches with binary-encoded action logs (2-5 bytes per action vs ~100-300 bytes JSON).
+Updated "Export debug log" button to export matches with binary-encoded action logs (2–6 bytes per action vs ~100-300 bytes JSON).
 
 **Files:**
 - `apps/Warp12/src/game/debug-export.ts` - Binary encoding integration
@@ -196,7 +196,7 @@ Binary encoder now supports **ALL game modules:**
 ```
 libs/engine/src/lib/serialization/
   ├── action-codes.ts          # Opcodes and encoding constants
-  ├── encode-action.ts         # Action encoder (2-5 bytes)
+  ├── encode-action.ts         # Action encoder (2–6 bytes)
   ├── decode-action.ts         # Action decoder
   ├── encode-coordinate.ts     # Coordinate encoding (1 byte)
   ├── encode-state.ts          # State snapshot encoder (~300 bytes)

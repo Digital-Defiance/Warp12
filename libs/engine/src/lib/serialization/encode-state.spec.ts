@@ -40,7 +40,7 @@ describe('encode-state', () => {
     expect(encoded.length).toBeGreaterThan(50);
     
     // Should have version byte
-    expect(encoded[0]).toBe(0x01);
+    expect(encoded[0]).toBe(0x02);
     
     // Should encode player count
     expect(encoded[1]).toBe(4);

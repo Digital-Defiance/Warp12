@@ -47,7 +47,8 @@ export function createAdvisorPlayer(
       }
       const skill = getAdvisorSkillProfile(
         observation.objective,
-        observation.captains.length
+        observation.captains.length,
+        observation.modules
       );
       const ctx = buildWarpContext(observation, rng);
       const concepts = computeAdvisorStateConcepts(ctx);

@@ -68,8 +68,10 @@ export const MAX_SPOOL_TILES = 30;
 export const HAZARD_MARKER_PASS_PENALTY = 5;
 
 /**
- * Salamander Penalty: a held 12-12 scores DOUBLE its pips (round 2+). Base pips
- * are already 24 (both ends), so the penalty value is 48.
+ * Salamander Penalty for Warp 12 only: a held highest double scores DOUBLE its
+ * pips (round 2+). Base pips for 12-12 are 24, so the penalty value is 48.
+ * Other Warp Factors use {@link salamanderPenaltyTileValue}(maxPip) —
+ * e.g. Warp 18 → 18-18 → 72.
  * @deprecated Prefer {@link salamanderPenaltyTileValue}(maxPip).
  */
 export const SALAMANDER_PENALTY_TILE_VALUE = TWELVE_TWELVE_PIP_VALUE * 2;

@@ -5,6 +5,10 @@ import {
   buildGameLogEntry,
   buildRoundLogExport,
   buildRoundOutcomeEntry,
+  buildSalamanderPenaltyLogEntry,
+  buildLongestTrailBonusLogEntry,
+  buildTemporalDebtPenaltyLogEntry,
+  buildModuleLoadoutEntry,
   buildRoundRatingsEntry,
   buildRoundStartedEntry,
   createGameLog,
@@ -272,6 +276,84 @@ describe('game-log', () => {
     );
     expect(win).toBe('12:00 - Armstrong wins the round');
 
+    // Inverted (Kappa even) round: going out is catastrophic, the trophy goes
+    // to whoever held the most — the log must not imply the go-out captain won.
+    const inverted = formatGameLogLine(
+      {
+        at: '2026-06-28T21:12:00.000Z',
+        kind: 'END_ROUND',
+        captainId: 'armstrong',
+        winnerId: 'armstrong',
+        roundInverted: true,
+        roundWinnerIds: ['lovell'],
+        effects: ['round-won'],
+      },
+      names,
+      formatOptions
+    );
+    expect(inverted).toBe(
+      '12:00 - Armstrong goes out — inverted round, max penalty · Lovell takes the round (held the most)'
+    );
+
+    // Module loadout — none enabled reads as core rules only.
+    const noModules = formatGameLogLine(
+      buildModuleLoadoutEntry(
+        resolveModules({}),
+        1,
+        '2026-06-28T21:00:00.000Z'
+      ),
+      names,
+      formatOptions
+    );
+    expect(noModules).toBe('00:00 - Modules · None (core rules only)');
+
+    // Module Kappa on an odd round: normal scoring, stated explicitly.
+    const kappaOdd = formatGameLogLine(
+      buildModuleLoadoutEntry(
+        resolveModules({ temporalInversion: true }),
+        1,
+        '2026-06-28T21:00:00.000Z'
+      ),
+      names,
+      formatOptions
+    );
+    expect(kappaOdd).toBe(
+      '00:00 - Modules · Module Kappa · Temporal Inversion (Round 1 normal — lowest hand wins)'
+    );
+
+    // Module Kappa on an even round: inverted scoring, stated explicitly.
+    const kappaEven = formatGameLogLine(
+      buildModuleLoadoutEntry(
+        resolveModules({ temporalInversion: true }),
+        2,
+        '2026-06-28T21:00:00.000Z'
+      ),
+      names,
+      formatOptions
+    );
+    expect(kappaEven).toBe(
+      '00:00 - Modules · Module Kappa · Temporal Inversion (Round 2 INVERTED — highest hand wins)'
+    );
+
+    // Multiple modules join in canonical Greek order; Subspace Fracture appends scope.
+    const multi = formatGameLogLine(
+      buildModuleLoadoutEntry(
+        resolveModules({
+          warpDriveSpool: true,
+          longestTrail: true,
+          subspaceFracture: true,
+          subspaceFractureScope: 'all-captains',
+        }),
+        1,
+        '2026-06-28T21:00:00.000Z'
+      ),
+      names,
+      formatOptions
+    );
+    expect(multi).toBe(
+      '00:00 - Modules · Module Delta · Hot Potato, Module Theta · Longest Trail, Subspace Fracture (all-captains)'
+    );
+
     const blocked = formatGameLogLine(
       buildRoundOutcomeEntry(
         {
@@ -285,6 +367,258 @@ describe('game-log', () => {
       formatOptions
     );
     expect(blocked).toBe('12:00 - Round blocked — no legal charts remain');
+
+    const salamander = formatGameLogLine(
+      buildSalamanderPenaltyLogEntry(
+        {
+          type: 'SALAMANDER_PENALTY',
+          holderId: 'armstrong',
+          scoredOnId: 'armstrong',
+          points: 72,
+        },
+        '2026-06-28T21:12:00.000Z'
+      ),
+      names,
+      formatOptions
+    );
+    expect(salamander).toBe(
+      '12:00 - Salamander Penalty · Armstrong holds highest double · +72'
+    );
+
+    const longestTrail = formatGameLogLine(
+      buildLongestTrailBonusLogEntry(
+        {
+          type: 'LONGEST_TRAIL_BONUS',
+          playerId: 'armstrong',
+          trailLength: 19,
+          points: -3,
+        },
+        '2026-06-28T21:12:00.000Z'
+      ),
+      names,
+      formatOptions
+    );
+    expect(longestTrail).toBe(
+      '12:00 - Longest Trail Bonus · Armstrong (19 tiles) · −3'
+    );
+
+    const temporalDebt = formatGameLogLine(
+      buildTemporalDebtPenaltyLogEntry(
+        {
+          type: 'TEMPORAL_DEBT_PENALTY',
+          playerId: 'armstrong',
+          tokens: 8,
+          points: 16,
+        },
+        '2026-06-28T21:12:00.000Z'
+      ),
+      names,
+      formatOptions
+    );
+    expect(temporalDebt).toBe(
+      '12:00 - Temporal Debt · Armstrong (8 tokens) · +16'
+    );
+
+    const swapArmedNoop = formatGameLogLine(
+      buildSalamanderPenaltyLogEntry(
+        {
+          type: 'SALAMANDER_PENALTY',
+          holderId: 'armstrong',
+          scoredOnId: 'armstrong',
+          points: 72,
+        },
+        '2026-06-28T21:12:00.000Z',
+        { continuumSwapArmed: true }
+      ),
+      names,
+      formatOptions
+    );
+    expect(swapArmedNoop).toBe(
+      '12:00 - Salamander Penalty · Armstrong holds highest double (already campaign leader; swap no-ops) · +72'
+    );
+
+    const swap = formatGameLogLine(
+      buildSalamanderPenaltyLogEntry(
+        {
+          type: 'SALAMANDER_PENALTY',
+          holderId: 'armstrong',
+          scoredOnId: 'yeager',
+          points: 48,
+        },
+        '2026-06-28T21:12:00.000Z'
+      ),
+      { ...names, yeager: 'Yeager' },
+      formatOptions
+    );
+    expect(swap).toBe(
+      "12:00 - Salamander Penalty · Armstrong's highest double swaps to Yeager · +48"
+    );
+
+    const swapEntry = buildSalamanderPenaltyLogEntry(
+      {
+        type: 'SALAMANDER_PENALTY',
+        holderId: 'armstrong',
+        scoredOnId: 'yeager',
+        points: 72,
+      },
+      '2026-06-28T21:12:00.000Z',
+      { continuumSwapArmed: true }
+    );
+    expect(swapEntry.effects).toEqual([]);
+    expect(
+      formatGameLogLine(
+        swapEntry,
+        { ...names, yeager: 'Yeager' },
+        formatOptions
+      )
+    ).toBe(
+      "12:00 - Salamander Penalty · Armstrong's highest double swaps to Yeager · +72"
+    );
+
+    const noopEntry = buildSalamanderPenaltyLogEntry(
+      {
+        type: 'SALAMANDER_PENALTY',
+        holderId: 'armstrong',
+        scoredOnId: 'armstrong',
+        points: 72,
+      },
+      undefined,
+      { continuumSwapArmed: true }
+    );
+    expect(noopEntry.effects).toEqual(['salamander-swap-noop']);
+
+    const flash = formatGameLogLine(
+      {
+        at: '2026-06-28T21:12:00.000Z',
+        kind: 'INVOKE_CONTINUUM_FLASH',
+        captainId: 'armstrong',
+        flashEffect: 'salamander-swap',
+        effects: [],
+      },
+      names,
+      formatOptions
+    );
+    expect(flash).toBe(
+      '12:00 - Armstrong invoked Continuum Flash · salamander swap'
+    );
+  });
+
+  it('tags the round-outcome entry as inverted and picks the trophy captain', () => {
+    const twoCaptains = [
+      { id: 'armstrong', displayName: 'Armstrong', pointsScore: 0 },
+      { id: 'lovell', displayName: 'Lovell', pointsScore: 0 },
+    ];
+    const endedRound = makeRound(['armstrong', 'lovell'], {
+      roundNumber: 2,
+      phase: 'ended',
+      roundWinnerId: 'armstrong',
+      hands: { armstrong: [], lovell: [T(5, 5)] },
+    });
+
+    // No game supplied → legacy behaviour: plain "wins the round".
+    const legacy = buildRoundOutcomeEntry(endedRound, '2026-06-28T21:12:00.000Z');
+    expect(legacy.roundInverted).toBe(false);
+    expect(formatGameLogLine(legacy, names, formatOptions)).toBe(
+      '12:00 - Armstrong wins the round'
+    );
+
+    // Game supplied with Kappa on an even round → inverted, trophy to Lovell.
+    const invertedGame = makeGame(endedRound, {
+      captains: twoCaptains,
+      modules: resolveModules({ temporalInversion: true }),
+    });
+    const inverted = buildRoundOutcomeEntry(
+      endedRound,
+      '2026-06-28T21:12:00.000Z',
+      invertedGame
+    );
+    expect(inverted.roundInverted).toBe(true);
+    expect(inverted.winnerId).toBe('armstrong');
+    expect(inverted.roundWinnerIds).toEqual(['lovell']);
+    expect(formatGameLogLine(inverted, names, formatOptions)).toBe(
+      '12:00 - Armstrong goes out — inverted round, max penalty · Lovell takes the round (held the most)'
+    );
+
+    // Same round on an odd number → normal scoring, plain win line.
+    const oddRound = makeRound(['armstrong', 'lovell'], {
+      roundNumber: 3,
+      phase: 'ended',
+      roundWinnerId: 'armstrong',
+      hands: { armstrong: [], lovell: [T(5, 5)] },
+    });
+    const normalGame = makeGame(oddRound, {
+      captains: twoCaptains,
+      modules: resolveModules({ temporalInversion: true }),
+    });
+    const normal = buildRoundOutcomeEntry(
+      oddRound,
+      '2026-06-28T21:12:00.000Z',
+      normalGame
+    );
+    expect(normal.roundInverted).toBe(false);
+    expect(formatGameLogLine(normal, names, formatOptions)).toBe(
+      '12:00 - Armstrong wins the round'
+    );
+  });
+
+  it('carries inverted round outcome through the online action log path', () => {
+    const twoCaptains = [
+      { id: 'armstrong', displayName: 'Armstrong', pointsScore: 0 },
+      { id: 'lovell', displayName: 'Lovell', pointsScore: 0 },
+    ];
+    const modules = resolveModules({ temporalInversion: true });
+    const before = makeGame(
+      makeRound(['armstrong', 'lovell'], {
+        roundNumber: 2,
+        phase: 'playing',
+        hands: { armstrong: [T(3, 4)], lovell: [T(5, 5)] },
+      }),
+      { captains: twoCaptains, modules }
+    );
+    const after = makeGame(
+      makeRound(['armstrong', 'lovell'], {
+        roundNumber: 2,
+        phase: 'ended',
+        roundWinnerId: 'armstrong',
+        hands: { armstrong: [], lovell: [T(5, 5)] },
+      }),
+      { captains: twoCaptains, modules }
+    );
+
+    const entry = buildGameLogEntry(before, after, {
+      type: 'END_ROUND',
+      winnerId: 'armstrong',
+    });
+    expect(entry).not.toBeNull();
+    expect(entry?.kind).toBe('END_ROUND');
+    expect(entry?.roundInverted).toBe(true);
+    expect(entry?.roundWinnerIds).toEqual(['lovell']);
+    // buildGameLogEntry stamps `at` with the current time, so assert the body
+    // rather than the elapsed-time prefix.
+    expect(formatGameLogLine(entry!, names, formatOptions)).toContain(
+      ' - Armstrong goes out — inverted round, max penalty · Lovell takes the round (held the most)'
+    );
+  });
+
+  it('omits the trophy suffix on an inverted round with no distinct winner', () => {
+    // roundWinnerIds contains only the captain who went out → no "takes the
+    // round" clause, but still reads as an inverted max-penalty go-out.
+    const line = formatGameLogLine(
+      {
+        at: '2026-06-28T21:12:00.000Z',
+        kind: 'END_ROUND',
+        captainId: 'armstrong',
+        winnerId: 'armstrong',
+        roundInverted: true,
+        roundWinnerIds: ['armstrong'],
+        effects: ['round-won'],
+      },
+      names,
+      formatOptions
+    );
+    expect(line).toBe(
+      '12:00 - Armstrong goes out — inverted round, max penalty'
+    );
   });
 
   it('notes dead doubles that require no cover', () => {
@@ -686,6 +1020,95 @@ describe('game-log', () => {
       ).toBe(
         '00:26 - Glenn played a 2:9 on a Subspace Fracture stabilizer, clearing the Subspace Fracture, clearing the Red Alert'
       );
+    });
+
+    it('does not log a wormhole for a Neutral Zone double unless the engine signaled one', () => {
+      const before = makeGame(
+        makeRound(['a', 'b'], {
+          activePlayerId: 'a',
+          hands: { a: [T(11, 11)], b: [] },
+          table: {
+            ...createInitialTable(['a', 'b'], 12, 'a'),
+            warpTrails: {
+              a: {
+                playerId: 'a',
+                tiles: [placed(T(12, 7), 0, 7)],
+                distressBeacon: { active: false },
+              },
+              b: {
+                playerId: 'b',
+                tiles: [],
+                distressBeacon: { active: false },
+              },
+            },
+            neutralZone: {
+              tiles: [placed(T(12, 11), 0, 11)],
+            },
+          },
+        })
+      );
+
+      // Same lengths as a true swap (heuristic used to false-positive here), but
+      // wormholes module off → no wormholeOpened pulse.
+      const after = makeGame(
+        makeRound(['a', 'b'], {
+          activePlayerId: 'b',
+          hands: { a: [], b: [] },
+          table: {
+            ...createInitialTable(['a', 'b'], 12, 'a'),
+            warpTrails: {
+              a: {
+                playerId: 'a',
+                tiles: [placed(T(12, 7), 0, 7)],
+                distressBeacon: { active: false },
+              },
+              b: {
+                playerId: 'b',
+                tiles: [],
+                distressBeacon: { active: false },
+              },
+            },
+            neutralZone: {
+              tiles: [
+                placed(T(12, 11), 0, 11),
+                placed(T(11, 11), 1, 11),
+              ],
+            },
+          },
+          wormholeOpened: false,
+        })
+      );
+
+      const entry = buildGameLogEntry(before, after, {
+        type: 'CHART_COORDINATE',
+        playerId: 'a',
+        coordinate: T(11, 11),
+        route: { kind: 'neutral-zone' },
+      });
+      expect(entry?.effects).not.toContain('wormhole-opened');
+    });
+
+    it('logs a wormhole only when the engine sets wormholeOpened', () => {
+      const before = makeGame(
+        makeRound(['a', 'b'], {
+          activePlayerId: 'a',
+          hands: { a: [T(11, 11)], b: [] },
+        })
+      );
+      const after = makeGame(
+        makeRound(['a', 'b'], {
+          activePlayerId: 'b',
+          hands: { a: [], b: [] },
+          wormholeOpened: true,
+        })
+      );
+      const entry = buildGameLogEntry(before, after, {
+        type: 'CHART_COORDINATE',
+        playerId: 'a',
+        coordinate: T(11, 11),
+        route: { kind: 'neutral-zone' },
+      });
+      expect(entry?.effects).toContain('wormhole-opened');
     });
 
     it('logs red alert and subspace fracture when an own-trail double opens a fracture', () => {

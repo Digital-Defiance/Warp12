@@ -221,6 +221,7 @@ describe('Module Lambda: Wormholes', () => {
     expect(trailAfter[0]?.coordinate).toEqual(normalizeCoordinate(12, 5));
     expect(nzAfter.length).toBe(1);
     expect(nzAfter[0]?.coordinate).toEqual(normalizeCoordinate(12, 12));
+    expect(state.round?.wormholeOpened).toBeFalsy();
   });
 
   it('only triggers wormhole on doubles, not regular tiles', () => {

@@ -19,5 +19,9 @@ export function formatCampaignPoints(total: number): string {
 }
 
 export function formatRoundPointsDelta(points: number): string {
+  if (points < 0) {
+    const n = Math.abs(points);
+    return `−${n} point${n === 1 ? '' : 's'}`;
+  }
   return `+${points} point${points === 1 ? '' : 's'}`;
 }

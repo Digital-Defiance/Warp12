@@ -40,7 +40,7 @@ Framework is ready to run comprehensive luck vs skill analysis across all module
 2. **alpha** — Module Alpha (Continuum / Q-Continuum)
    - 0-0 triggers reality-bending effects
 3. **beta** — Module Beta (Salamander Penalty)
-   - Holding 12-12 at round end scores double (48 pips)
+   - Holding the highest double (maxPip-maxPip) at round end scores double its pips (Warp 12 → 48; Warp 18 → 72)
 4. **gamma** — Module Gamma (Sensor Grid / Long-Range Sensor Sweep)
    - Visible market of tiles for strategic draws
 5. **delta** — Module Delta (Warp Drive Spool / Hot Potato)
@@ -149,7 +149,7 @@ The analysis tests these actual module implementations:
 
 ### Core Modules (Tested Individually)
 - **Continuum (Alpha)**: Q-Continuum flash effects on 0-0
-- **Salamander Penalty (Beta)**: 12-12 scores 48 at round end (round 2+)
+- **Salamander Penalty (Beta)**: highest double (maxPip-maxPip) scores double its pips at round end (round 2+); Warp 12 → 48, Warp 18 → 72
 - **Sensor Grid (Gamma)**: 5-tile visible market
 - **Warp Drive Spool (Delta)**: Continuous draw until mismatch
 - **Drafting (Epsilon)**: Pack-and-pass deal (15 tiles/pack default)

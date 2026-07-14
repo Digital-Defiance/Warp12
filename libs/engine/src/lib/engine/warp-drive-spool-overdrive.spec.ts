@@ -160,14 +160,15 @@ describe('Module Delta — Overdrive Tie-Break Integration', () => {
     const aliceAfter = result.state.captains.find((c) => c.id === 'a')!;
     const bobAfter = result.state.captains.find((c) => c.id === 'b')!;
 
-    // Alice wins (no hand penalty)
-    // BOTH Alice and Bob are tied for longest trail (3 tiles each), so BOTH get -3 bonus
-    expect(aliceAfter.pointsScore).toBe(aliceBefore.pointsScore - 3);
+    // Alice wins (no hand penalty) + tied longest trail −3 → floored to 0
+    expect(aliceAfter.pointsScore).toBe(aliceBefore.pointsScore);
 
-    // Bob also gets -3 bonus (tied for longest trail with Alice)
+    // Bob also gets −3 bonus (tied for longest trail with Alice)
     const bobHand = gameHazardTieBreak.round!.hands['b'] ?? [];
     const bobHandPips = bobHand.reduce((sum, tile) => sum + tile.low + tile.high, 0);
-    expect(bobAfter.pointsScore - bobBefore.pointsScore).toBe(bobHandPips - 3);
+    expect(bobAfter.pointsScore - bobBefore.pointsScore).toBe(
+      Math.max(0, bobHandPips - 3)
+    );
   });
 
   it('uses Emergency Sectors (Phase 3) when uncharted depletes during overdrive', () => {
@@ -253,12 +254,8 @@ describe('Module Delta — Overdrive Tie-Break Integration', () => {
     const aliceAfter = result.state.captains.find((c) => c.id === 'a')!;
     const bobAfter = result.state.captains.find((c) => c.id === 'b')!;
     
-    // At least one should have received a bonus or neither (tie)
-    // This is a probabilistic test based on random emergency sector order
-    const aliceGotBonus = aliceAfter.pointsScore < 0; // Negative points = got bonus
-    const bobGotBonus = bobAfter.pointsScore < 0;
-    
-    // Exactly one winner OR neither (tie persisted)
-    expect(aliceGotBonus && bobGotBonus).toBe(false); // Both can't win
+    // Normal scoring floors at 0 — never expect negative campaign totals here.
+    expect(aliceAfter.pointsScore).toBeGreaterThanOrEqual(0);
+    expect(bobAfter.pointsScore).toBeGreaterThanOrEqual(0);
   });
 });

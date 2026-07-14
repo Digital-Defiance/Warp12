@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { getLegalMoves } from '../engine/legal-moves.js';
 import { makeGame, makeRound } from '../engine/test-helpers.js';
+import { resolveModules } from '../types/modules.js';
+import { WARP_HEURISTIC_IDS } from './heuristics.js';
 import { buildAdvisorReport, reviewAdvisorMove } from './advisor-report.js';
 import { getAdvisorSkillProfile } from './skill.js';
 import { gameActionToWarpAi, warpAiActionKey } from './from-game-action.js';
@@ -12,6 +14,59 @@ describe('advisor report', () => {
     expect(getAdvisorSkillProfile('go-out', 4).blunderRate).toBe(0);
     expect(getAdvisorSkillProfile('go-out', 4).temperature).toBe(0);
     expect(getAdvisorSkillProfile('points', 2).blunderRate).toBe(0);
+  });
+
+  it('enables module strategy heuristics only when the module is active', () => {
+    const base = getAdvisorSkillProfile('points', 4);
+    expect(base.enabled.has(WARP_HEURISTIC_IDS.temporalInversion)).toBe(false);
+    expect(base.enabled.has(WARP_HEURISTIC_IDS.longestTrailBonus)).toBe(false);
+
+    const withModules = getAdvisorSkillProfile(
+      'points',
+      4,
+      resolveModules({ temporalInversion: true, longestTrail: true })
+    );
+    expect(withModules.enabled.has(WARP_HEURISTIC_IDS.temporalInversion)).toBe(
+      true
+    );
+    expect(withModules.enabled.has(WARP_HEURISTIC_IDS.longestTrailBonus)).toBe(
+      true
+    );
+  });
+
+  it('attaches an inverted-round module context to the report', () => {
+    const round = makeRound(['a', 'b'], {
+      roundNumber: 2,
+      activePlayerId: 'a',
+      spacedockValue: 12,
+      hands: {
+        a: [
+          { low: 12, high: 11 },
+          { low: 11, high: 9 },
+        ],
+        b: [{ low: 6, high: 6 }, { low: 8, high: 7 }],
+      },
+    });
+    const start = makeGame(round, {
+      objective: 'points',
+      modules: resolveModules({ temporalInversion: true }),
+    });
+
+    const report = buildAdvisorReport({
+      roundStartState: start,
+      entries: [],
+    });
+
+    expect(report.moduleContext).toBeDefined();
+    expect(report.moduleContext?.inverted).toBe(true);
+    expect(
+      report.moduleContext?.moduleLabels.some((label) =>
+        label.includes('Temporal Inversion')
+      )
+    ).toBe(true);
+    expect(
+      report.moduleContext?.notes.some((note) => note.includes('INVERTED'))
+    ).toBe(true);
   });
 
   it('converts chart actions into warp AI actions', () => {

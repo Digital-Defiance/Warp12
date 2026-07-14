@@ -9,26 +9,39 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-      
+        with:
+          # arm64 is cross-linked from the x64 runner using the ARM64 MSVC
+          # tools (Microsoft.VisualStudio.Component.VC.Tools.ARM64) that ship
+          # in the windows-latest Visual Studio install.
+          targets: x86_64-pc-windows-msvc,aarch64-pc-windows-msvc
+
       - name: Install dependencies
         run: |
           corepack enable
           yarn install --immutable
-      
-      - name: Build app
+
+      - name: Build MSI + NSIS installers (x64)
         run: yarn tauri:build
-        
+
+      - name: Build MSIX bundle (x64 + arm64)
+        # Produces src-tauri/target/msix/*.msix and *.msixbundle. The bundle is
+        # unsigned; Microsoft Partner Center re-signs it on submission. To sign
+        # for sideload testing, set signing.pfx in
+        # apps/Warp12/src-tauri/gen/windows/bundle.config.json and provide
+        # MSIX_PFX_PASSWORD as a secret.
+        run: yarn workspace @warp12/Warp12 tauri:windows:build
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -36,3 +49,5 @@ jobs:
           path: |
             apps/Warp12/src-tauri/target/release/bundle/msi/*.msi
             apps/Warp12/src-tauri/target/release/bundle/nsis/*.exe
+            apps/Warp12/src-tauri/target/msix/*.msix
+            apps/Warp12/src-tauri/target/msix/*.msixbundle

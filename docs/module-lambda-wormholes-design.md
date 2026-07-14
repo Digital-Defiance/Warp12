@@ -205,7 +205,7 @@ interface OpenWormholeAction extends GameAction {
 - [ ] Add visual indicator when Wormhole is about to trigger
 - [ ] Confirmation dialog: "Open Wormhole? Your trail will become public."
 - [ ] Animation for trail swap (visual feedback of the topology change)
-- [ ] Update game log: "Armstrong opened a Wormhole — trails inverted"
+- [ ] Update game log: "Armstrong opened a Wormhole — trail swapped with the Neutral Zone"
 
 ### 6.4 Testing
 - [ ] Unit tests: Trail swap mechanics

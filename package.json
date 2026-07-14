@@ -163,7 +163,7 @@
     "build:android": "/usr/bin/env bash scripts/build-android.sh",
     "build:android:apk": "/usr/bin/env bash scripts/build-android.sh --apk",
     "build:windows": "cd apps/Warp12 && tauri build --target x86_64-pc-windows-msvc",
-    "build:windows:store": "cd apps/Warp12 && tauri build --bundles msix",
+    "build:windows:store": "yarn workspace @warp12/Warp12 tauri:windows:build",
     "build:windows:cross": "bash scripts/build-windows-crosscompile.sh",
     "decode-log": "jiti tools/decode-binary-log.ts",
     "deploy:firestore": "firebase deploy --only firestore --project warp-12",

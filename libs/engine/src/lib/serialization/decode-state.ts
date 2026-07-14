@@ -1,19 +1,45 @@
 /**
- * State Snapshot Decoding
- * 
- * Decodes binary-encoded GameState/RoundState back to full objects.
- * Companion to encode-state.ts for match replay with checkpoints.
+ * State Snapshot Decoding (binary-v2)
+ *
+ * Companion to encode-state.ts. Round header version must be 0x02.
  */
 
 import type { GameState, RoundState, TableState } from '../types/game-state.js';
-import type { Coordinate } from '../types/coordinate.js';
+import type { Coordinate, PlacedCoordinate } from '../types/coordinate.js';
+import { openValueAfterConnection } from '../types/coordinate.js';
+import type { WarpTrail } from '../types/trails.js';
+import type { SubspaceFracture } from '../types/anomalies.js';
 import type { Captain } from '../types/player.js';
-import { decodeCoordinate } from './encode-coordinate.js';
+import { COORDINATE_ENCODED_BYTES, readCoordinate } from './encode-coordinate.js';
+import { ROUND_STATE_BINARY_VERSION } from './encode-state.js';
 import type { GameObjective } from '../types/objective.js';
 
 export interface StateDecodeContext {
   maxPip: number;
   playerIds: readonly string[];
+}
+
+/**
+ * Rebuild placed coordinates from the raw coordinate list stored in a snapshot.
+ * The wire format keeps only each tile's coordinate, so `openValue` must be
+ * reconstructed: trails and the Neutral Zone all branch from the central
+ * Spacedock double, so the first tile connects to `startConnectingValue` (the
+ * spacedock value) and each subsequent tile connects to the previous open end.
+ */
+function rebuildPlacedTiles(
+  coordinates: readonly Coordinate[],
+  startConnectingValue: number
+): PlacedCoordinate[] {
+  const placed: PlacedCoordinate[] = [];
+  let connectingValue = startConnectingValue;
+  for (let index = 0; index < coordinates.length; index++) {
+    const coordinate = coordinates[index];
+    const openValue =
+      openValueAfterConnection(coordinate, connectingValue) ?? coordinate.high;
+    placed.push({ coordinate, index, openValue });
+    connectingValue = openValue;
+  }
+  return placed;
 }
 
 /**
@@ -25,9 +51,8 @@ export function decodeRoundState(
 ): RoundState {
   let offset = 0;
 
-  // Header (8 bytes)
   const version = binary[offset++];
-  if (version !== 0x01) {
+  if (version !== ROUND_STATE_BINARY_VERSION) {
     throw new Error(`Unsupported round state version: ${version}`);
   }
 
@@ -35,94 +60,87 @@ export function decodeRoundState(
   const roundNumber = binary[offset++];
   const spacedockValue = binary[offset++];
   const activePlayerIdx = binary[offset++];
-  offset++; // Skip unchartedCount (not currently used in decode)
+  offset++; // Skip unchartedCount
   const flags = binary[offset++];
-  offset++; // Reserved byte
+  offset++; // Reserved
 
   const turnOrder = ctx.playerIds.slice(0, playerCount);
   const activePlayerId = turnOrder[activePlayerIdx];
 
-  // Decode flags
   const redAlertActive = (flags & 0x01) !== 0;
-  // subspaceFractureActive flag at (flags & 0x02) is reserved for future use
   const continuumPending = (flags & 0x04) !== 0;
   const roundBlocked = (flags & 0x08) !== 0;
   const allStopRequired = (flags & 0x10) !== 0;
   const allStopDeclared = (flags & 0x20) !== 0;
 
-  // Player hands
   const hands: Record<string, Coordinate[]> = {};
   for (let i = 0; i < playerCount; i++) {
     const handSize = binary[offset++];
     const hand: Coordinate[] = [];
     for (let j = 0; j < handSize; j++) {
-      hand.push(decodeCoordinate(binary[offset++], ctx.maxPip));
+      const { coordinate, bytesRead } = readCoordinate(binary, offset, ctx.maxPip);
+      hand.push(coordinate);
+      offset += bytesRead;
     }
     hands[turnOrder[i]] = hand;
   }
 
-  // Trails
-  const warpTrails: Record<string, any> = {};
+  const warpTrails: Record<string, WarpTrail> = {};
   for (let i = 0; i < playerCount; i++) {
     const trailLength = binary[offset++];
-    const tiles: any[] = [];
+    const coordinates: Coordinate[] = [];
     for (let j = 0; j < trailLength; j++) {
-      const coord = decodeCoordinate(binary[offset++], ctx.maxPip);
-      tiles.push({
-        coordinate: coord,
-        index: j,
-        playedByOpponent: false,
-      });
+      const { coordinate, bytesRead } = readCoordinate(binary, offset, ctx.maxPip);
+      coordinates.push(coordinate);
+      offset += bytesRead;
     }
     const beaconActive = binary[offset++] === 1;
     warpTrails[turnOrder[i]] = {
-      tiles,
-      distressBeacon: {
-        active: beaconActive,
-        ownedBy: turnOrder[i],
-      },
+      playerId: turnOrder[i],
+      tiles: rebuildPlacedTiles(coordinates, spacedockValue),
+      distressBeacon: { active: beaconActive },
     };
   }
 
-  // Neutral zone
   const nzLength = binary[offset++];
-  const nzTiles: any[] = [];
+  const nzCoordinates: Coordinate[] = [];
   for (let i = 0; i < nzLength; i++) {
-    const coord = decodeCoordinate(binary[offset++], ctx.maxPip);
-    nzTiles.push({
-      coordinate: coord,
-      index: i,
-      playedByOpponent: false,
-    });
+    const { coordinate, bytesRead } = readCoordinate(binary, offset, ctx.maxPip);
+    nzCoordinates.push(coordinate);
+    offset += bytesRead;
   }
+  const nzTiles = rebuildPlacedTiles(nzCoordinates, spacedockValue);
 
-  // Spacedock (skip coordinate as it's not used in decode)
-  offset++; // Skip spacedock coordinate byte
+  // Spacedock coordinate (unused for value — spacedockValue is in header)
+  offset += COORDINATE_ENCODED_BYTES;
   const spacedockPlacedByIdx = binary[offset++];
   const spacedockPlacedBy = turnOrder[spacedockPlacedByIdx];
 
-  // Subspace fracture
   const fractureLength = binary[offset++];
-  let subspaceFracture: any = null;
+  let subspaceFracture: SubspaceFracture | null = null;
   if (fractureLength > 0) {
-    const stabilizers: any[] = [];
+    const stabilizerCoords: Coordinate[] = [];
     for (let i = 0; i < fractureLength; i++) {
-      const coord = decodeCoordinate(binary[offset++], ctx.maxPip);
-      stabilizers.push({
-        coordinate: coord,
-        index: i,
-        playedByOpponent: false,
-      });
+      const { coordinate, bytesRead } = readCoordinate(binary, offset, ctx.maxPip);
+      stabilizerCoords.push(coordinate);
+      offset += bytesRead;
     }
+    // The snapshot stores only stabilizer coordinates, not the fracture anchor
+    // or its required value, so reconstruct a best-effort anchor: the fracture
+    // double sits at the spacedock value.
+    const requiredValue = spacedockValue;
     subspaceFracture = {
       active: true,
-      stabilizers,
-      scope: 'own-trail' as const,
-      requiredPipValue: spacedockValue,
+      anchor: {
+        coordinate: { low: requiredValue, high: requiredValue },
+        index: 0,
+        openValue: requiredValue,
+      },
+      stabilizers: rebuildPlacedTiles(stabilizerCoords, requiredValue),
+      requiredValue,
     };
   }
 
-  // Build table
   const table: TableState = {
     spacedock: {
       value: spacedockValue,
@@ -133,16 +151,21 @@ export function decodeRoundState(
       tiles: nzTiles,
     },
     subspaceFracture,
-    redAlert: redAlertActive ? {
-      active: true,
-      anchor: { coordinate: { high: spacedockValue, low: spacedockValue }, index: 0, openValue: spacedockValue },
-      responsiblePlayerId: activePlayerId,
-      trailPlayerId: activePlayerId,
-      passed: false,
-    } : null,
+    redAlert: redAlertActive
+      ? {
+          active: true,
+          anchor: {
+            coordinate: { high: spacedockValue, low: spacedockValue },
+            index: 0,
+            openValue: spacedockValue,
+          },
+          responsiblePlayerId: activePlayerId,
+          trailPlayerId: activePlayerId,
+          passed: false,
+        }
+      : null,
   };
 
-  // Build round state (minimal for replay)
   const round: RoundState = {
     roundNumber,
     spacedockValue,
@@ -150,7 +173,7 @@ export function decodeRoundState(
     activePlayerId,
     turnOrder,
     table,
-    unchartedSectors: [], // Not encoded in detail
+    unchartedSectors: [],
     sensorGrid: [],
     hands,
     draftState: null,
@@ -184,7 +207,6 @@ export function decodeGameState(
 ): GameState {
   let offset = 0;
 
-  // Campaign metadata (16 bytes)
   const version = binary[offset++];
   if (version !== 0x02) {
     throw new Error(`Unsupported game state version: ${version}`);
@@ -194,18 +216,22 @@ export function decodeGameState(
   const objective: GameObjective = objectiveByte === 1 ? 'go-out' : 'points';
 
   const warpFactorByte = binary[offset++];
-  const maxPip = warpFactorByte === 0 ? 9 : warpFactorByte === 1 ? 12 : warpFactorByte === 2 ? 15 : 18;
+  const maxPip =
+    warpFactorByte === 0
+      ? 9
+      : warpFactorByte === 1
+        ? 12
+        : warpFactorByte === 2
+          ? 15
+          : 18;
 
-  // Scores (4 bytes)
   const updatedCaptains = captains.map((c, i) => ({
     ...c,
     pointsScore: binary[offset++] || 0,
   }));
 
-  // Skip reserved bytes (4-15)
   offset = 16;
 
-  // Decode round state
   const roundBinary = binary.slice(offset);
   const round = decodeRoundState(roundBinary, { ...ctx, maxPip });
 

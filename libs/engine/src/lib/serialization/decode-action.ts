@@ -1,5 +1,5 @@
 /**
- * Binary action decoder.
+ * Binary action decoder (binary-v2).
  * Decodes compact binary format back to GameAction objects.
  */
 
@@ -9,7 +9,10 @@ import {
   decodeFlashEffect,
   decodeRoute,
 } from './action-codes.js';
-import { decodeCoordinate } from './encode-coordinate.js';
+import {
+  COORDINATE_ENCODED_BYTES,
+  readCoordinate,
+} from './encode-coordinate.js';
 
 export interface DecodeContext {
   /** Player IDs in order (for index mapping). */
@@ -45,15 +48,19 @@ export function decodeAction(
 
   switch (opcode) {
     case ActionCode.CHART_COORDINATE: {
-      if (offset + 4 > buffer.length) {
+      const size = 3 + COORDINATE_ENCODED_BYTES;
+      if (offset + size > buffer.length) {
         throw new Error('Buffer too short for CHART_COORDINATE');
       }
       const playerId = decodePlayerId(buffer[offset + 1], ctx);
-      const coordinate = decodeCoordinate(buffer[offset + 2], ctx.maxPip);
-      const route = decodeRoute(buffer[offset + 3], ctx.playerIds);
+      const { coordinate } = readCoordinate(buffer, offset + 2, ctx.maxPip);
+      const route = decodeRoute(
+        buffer[offset + 2 + COORDINATE_ENCODED_BYTES],
+        ctx.playerIds
+      );
       return {
         action: { type: 'CHART_COORDINATE', playerId, coordinate, route },
-        bytesRead: 4,
+        bytesRead: size,
       };
     }
 
@@ -69,14 +76,15 @@ export function decodeAction(
     }
 
     case ActionCode.SENSOR_SWEEP: {
-      if (offset + 3 > buffer.length) {
+      const size = 2 + COORDINATE_ENCODED_BYTES;
+      if (offset + size > buffer.length) {
         throw new Error('Buffer too short for SENSOR_SWEEP');
       }
       const playerId = decodePlayerId(buffer[offset + 1], ctx);
-      const coordinate = decodeCoordinate(buffer[offset + 2], ctx.maxPip);
+      const { coordinate } = readCoordinate(buffer, offset + 2, ctx.maxPip);
       return {
         action: { type: 'SENSOR_SWEEP', playerId, coordinate },
-        bytesRead: 3,
+        bytesRead: size,
       };
     }
 
@@ -180,6 +188,7 @@ export function decodeAction(
       const playerId = decodePlayerId(buffer[offset + 1], ctx);
       const effect = decodeFlashEffect(buffer[offset + 2]);
       return {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- compact opcode maps to FlashEffectKind
         action: { type: 'INVOKE_CONTINUUM_FLASH', playerId, effect: effect as any },
         bytesRead: 3,
       };
@@ -201,14 +210,15 @@ export function decodeAction(
     }
 
     case ActionCode.PICK_FROM_PACK: {
-      if (offset + 3 > buffer.length) {
+      const size = 2 + COORDINATE_ENCODED_BYTES;
+      if (offset + size > buffer.length) {
         throw new Error('Buffer too short for PICK_FROM_PACK');
       }
       const playerId = decodePlayerId(buffer[offset + 1], ctx);
-      const coordinate = decodeCoordinate(buffer[offset + 2], ctx.maxPip);
+      const { coordinate } = readCoordinate(buffer, offset + 2, ctx.maxPip);
       return {
         action: { type: 'PICK_FROM_PACK', playerId, coordinate },
-        bytesRead: 3,
+        bytesRead: size,
       };
     }
 
@@ -217,10 +227,65 @@ export function decodeAction(
         throw new Error('Buffer too short for END_ROUND');
       }
       const winnerByte = buffer[offset + 1];
-      const winnerId = winnerByte === 0xff ? null : decodePlayerId(winnerByte, ctx);
+      const winnerId =
+        winnerByte === 0xff ? null : decodePlayerId(winnerByte, ctx);
       return {
         action: { type: 'END_ROUND', winnerId },
         bytesRead: 2,
+      };
+    }
+
+    case ActionCode.SALAMANDER_PENALTY: {
+      if (offset + 5 > buffer.length) {
+        throw new Error('Buffer too short for SALAMANDER_PENALTY');
+      }
+      const holderId = decodePlayerId(buffer[offset + 1], ctx);
+      const scoredOnId = decodePlayerId(buffer[offset + 2], ctx);
+      const view = new DataView(
+        buffer.buffer,
+        buffer.byteOffset + offset + 3,
+        2
+      );
+      const points = view.getUint16(0, true);
+      return {
+        action: { type: 'SALAMANDER_PENALTY', holderId, scoredOnId, points },
+        bytesRead: 5,
+      };
+    }
+
+    case ActionCode.LONGEST_TRAIL_BONUS: {
+      if (offset + 5 > buffer.length) {
+        throw new Error('Buffer too short for LONGEST_TRAIL_BONUS');
+      }
+      const playerId = decodePlayerId(buffer[offset + 1], ctx);
+      const trailLength = buffer[offset + 2];
+      const view = new DataView(
+        buffer.buffer,
+        buffer.byteOffset + offset + 3,
+        2
+      );
+      const points = view.getInt16(0, true);
+      return {
+        action: { type: 'LONGEST_TRAIL_BONUS', playerId, trailLength, points },
+        bytesRead: 5,
+      };
+    }
+
+    case ActionCode.TEMPORAL_DEBT_PENALTY: {
+      if (offset + 5 > buffer.length) {
+        throw new Error('Buffer too short for TEMPORAL_DEBT_PENALTY');
+      }
+      const playerId = decodePlayerId(buffer[offset + 1], ctx);
+      const tokens = buffer[offset + 2];
+      const view = new DataView(
+        buffer.buffer,
+        buffer.byteOffset + offset + 3,
+        2
+      );
+      const points = view.getUint16(0, true);
+      return {
+        action: { type: 'TEMPORAL_DEBT_PENALTY', playerId, tokens, points },
+        bytesRead: 5,
       };
     }
 
@@ -233,7 +298,10 @@ export function decodeAction(
  * Decode multiple actions from a buffer.
  * Format: [count: 4 bytes LE] [action1] [action2] ...
  */
-export function decodeActions(buffer: Uint8Array, ctx: DecodeContext): GameAction[] {
+export function decodeActions(
+  buffer: Uint8Array,
+  ctx: DecodeContext
+): GameAction[] {
   if (buffer.length < 4) {
     throw new Error('Buffer too short for action count');
   }

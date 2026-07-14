@@ -1,4 +1,5 @@
 import { SKILL_PRESETS, type SkillProfile } from 'double-eighteen';
+import type { GameModules } from '../types/modules.js';
 import type { GameObjective } from '../types/objective.js';
 import type { LookaheadOptions } from './lookahead-options.js';
 import { resolveDeepThinkAdvisorLookahead } from './fleet-admiral.js';
@@ -417,13 +418,56 @@ export function getWarpSkillProfile(
 }
 
 /**
+ * Enable the opt-in module strategy heuristics that are dormant in the base
+ * commander preset, so advisor ratings and reasons reflect the modules actually
+ * in play. Advisor-only — this never touches the AI-play presets used for
+ * calibration / TEI. Each module heuristic is itself gated (it returns 0 when
+ * its module is off or the round parity does not apply), so enabling them here
+ * is inert for sectors that do not run the module.
+ */
+function augmentAdvisorProfileForModules(
+  profile: WarpSkillProfile,
+  modules: GameModules
+): WarpSkillProfile {
+  const enabled = new Set(profile.enabled);
+  const weights = { ...profile.weights };
+  const enable = (id: string, weight: number): void => {
+    enabled.add(id);
+    if (weights[id] === undefined) {
+      weights[id] = weight;
+    }
+  };
+
+  if (modules.temporalInversion.enabled) {
+    enable(H.temporalInversion, 2);
+  }
+  if (modules.longestTrail.enabled) {
+    enable(H.longestTrailBonus, 1.2);
+  }
+  if (modules.warpDriveSpool.enabled) {
+    enable(H.spoolStrategy, 1);
+  }
+  if (modules.doubleDown.enabled) {
+    enable(H.doubleDownTiming, 1);
+  }
+  if (modules.salamanderPenalty.enabled) {
+    enable(H.salamanderDump, 2);
+  }
+
+  return { ...profile, enabled, weights };
+}
+
+/**
  * Advanced profile for the live coach and post-game advisor report.
  * Never injects random mistakes (`blunderRate: 0`) and picks the top line
- * after search (`temperature: 0`).
+ * after search (`temperature: 0`). Pass `modules` to make ratings and reasons
+ * module-aware (Temporal Inversion, Longest Trail, Hot Potato, Double Down,
+ * Salamander).
  */
 export function getAdvisorSkillProfile(
   objective: GameObjective = 'points',
-  playerCount?: number
+  playerCount?: number,
+  modules?: GameModules
 ): WarpSkillProfile {
   const base = getWarpSkillProfile(
     'commander',
@@ -431,11 +475,12 @@ export function getAdvisorSkillProfile(
     playerCount,
     'focus'
   );
-  return {
+  const advisor: WarpSkillProfile = {
     ...base,
     blunderRate: 0,
     temperature: 0,
   };
+  return modules ? augmentAdvisorProfileForModules(advisor, modules) : advisor;
 }
 
 /** Forward search settings for coach / advisor — always ISMCTS in product builds. */

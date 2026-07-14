@@ -4,6 +4,8 @@ A command-line tool to convert binary-encoded debug exports back to human-readab
 
 ## Overview
 
+**binary-v2** encodes coordinates as little-endian `u16` (`low * (maxPip + 1) + high`), covering Warp 9 / 12 / 15 / 18.
+
 When you click "Export debug log" in the Options menu, Warp 12 now exports matches with binary-encoded action logs (~600 bytes for 200 actions instead of ~30KB+ JSON). This tool decodes those binary logs back to verbose formats that can be fed into AI assistants or used for debugging.
 
 ## Installation
@@ -143,14 +145,14 @@ The binary log uses compact encoding:
 - **Coordinates:** 1 byte (low * 13 + high, supports Warp 9-15)
 - **Player IDs:** 1 byte index (0-63 players)
 - **Routes:** 1 byte packed encoding
-- **Full action:** 2-5 bytes each
+- **Full action:** 2–6 bytes each
 
 Compression: **50-500x** vs JSON.
 
 ### Metadata Included
 
 The binary log export includes:
-- `format`: 'binary-v1'
+- `format`: 'binary-v2'
 - `encoding`: 'base64'
 - `data`: base64-encoded binary data
 - `actionCount`: Number of actions

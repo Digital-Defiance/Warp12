@@ -33,7 +33,7 @@ export interface QFlash {
   readonly effect: FlashEffect;
 }
 
-/** Module Beta: The Salamander Penalty — holding 12-12 at round end scores double (48) (round 2+). */
+/** Module Beta: Salamander — held highest double (maxPip-maxPip) scores double its pips (round 2+). */
 export interface SalamanderPenaltyModule {
   readonly enabled: boolean;
 }

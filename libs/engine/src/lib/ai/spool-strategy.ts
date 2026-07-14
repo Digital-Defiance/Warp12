@@ -75,14 +75,16 @@ export function estimateSpoolValue(
   
   // === NEUTRAL ZONE STRATEGY ===
   if (isNeutralZone) {
-    // If we hold hazard marker, NZ spool is GREAT (clears the hazard!)
-    if (round.hazardMarkerHolder === playerId) {
-      value += 60; // Strong incentive - clears +2 penalty
-    }
-    
-    // If we don't hold hazard, NZ is moderate
-    if (!round.hazardMarkerHolder || round.hazardMarkerHolder !== playerId) {
-      value += 10; // Decent option
+    // Hot Potato: NZ contact *takes* the marker — do not spool NZ while holding it.
+    if (obs.modules.warpDriveSpool?.enabled) {
+      if (round.hazardMarkerHolder === playerId) {
+        value -= 60;
+      } else {
+        // Taking the potato is inconvenient; modest NZ baseline only.
+        value += 10;
+      }
+    } else {
+      value += 10;
     }
     
     // Game phase adjustments
@@ -115,9 +117,12 @@ export function estimateSpoolValue(
       value -= 40; // Already winning, preserve lead
     }
     
-    // If we hold hazard marker, own trail is okay but NZ is better for clearing
-    if (round.hazardMarkerHolder === playerId) {
-      value -= 10; // Slight penalty - NZ clears hazard, own trail doesn't
+    // Holding the potato: prefer own-trail spool over NZ (NZ re-takes the marker).
+    if (
+      obs.modules.warpDriveSpool?.enabled &&
+      round.hazardMarkerHolder === playerId
+    ) {
+      value += 20;
     }
     
     // Late game with close trail race: Spool is critical for bonus

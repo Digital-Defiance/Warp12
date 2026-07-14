@@ -22,8 +22,12 @@ export interface GameSoundSnapshot {
   doublesOnTable: number;
   /** Tiles on the table (trails, neutral zone, open fracture stabilizers). */
   chartedTileCount: number;
-  /** Cover-required Red Alert (excludes dead doubles). */
-  trueRedAlert: boolean;
+  /**
+   * Full Red alert bridge lighting (after the first pass).
+   * Yellow alert (fresh double) is intentionally excluded — only consoleWarning
+   * fires then.
+   */
+  illuminatedRedAlert: boolean;
   redAlertResponsibleId: string | null;
   activeBeaconCount: number;
   flashActive: boolean;
@@ -34,7 +38,7 @@ export interface GameSoundSnapshot {
   dropToImpulseCatchable: string | null;
   /** Engine signal: a draw just grew an at-impulse hand back to warp. */
   returnedToWarp: boolean;
-  /** Engine signal: wormhole opened (trails inverted). */
+  /** Engine signal: wormhole opened (captain's trail swapped with the Neutral Zone). */
   wormholeOpened: boolean;
   unchartedSectorCount: number;
   turnBeepsEnabled: boolean;
@@ -64,12 +68,12 @@ export function detectGameSoundTransitions(
     play.push('consoleWarning');
   }
 
-  // Red alert starts when it becomes active, continues until cleared.
-  if (next.trueRedAlert && !previous.trueRedAlert) {
+  // Red alert klaxon follows full Red lighting (post-pass), not Yellow alert.
+  if (next.illuminatedRedAlert && !previous.illuminatedRedAlert) {
     play.push('redAlert');
   }
 
-  if (previous.trueRedAlert && !next.trueRedAlert) {
+  if (previous.illuminatedRedAlert && !next.illuminatedRedAlert) {
     stop.push('redAlert');
   }
 
@@ -130,7 +134,7 @@ export function useGameSoundEffects(options: {
   activePlayerId: string | null;
   doublesOnTable: number;
   chartedTileCount: number;
-  trueRedAlert: boolean;
+  illuminatedRedAlert: boolean;
   redAlertResponsibleId: string | null;
   activeBeaconCount: number;
   flashActive: boolean;
@@ -171,7 +175,7 @@ export function useGameSoundEffects(options: {
       isMyTurn: options.isMyTurn,
       doublesOnTable: options.doublesOnTable,
       chartedTileCount: options.chartedTileCount,
-      trueRedAlert: options.trueRedAlert,
+      illuminatedRedAlert: options.illuminatedRedAlert,
       redAlertResponsibleId: options.redAlertResponsibleId,
       activeBeaconCount: options.activeBeaconCount,
       flashActive: options.flashActive,
@@ -218,7 +222,7 @@ export function useGameSoundEffects(options: {
     options.activePlayerId,
     options.doublesOnTable,
     options.chartedTileCount,
-    options.trueRedAlert,
+    options.illuminatedRedAlert,
     options.redAlertResponsibleId,
     options.activeBeaconCount,
     options.flashActive,

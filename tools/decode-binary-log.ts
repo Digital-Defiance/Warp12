@@ -28,7 +28,7 @@ import * as path from 'path';
 import { decodeAction, type GameAction, type DecodeContext, formatGameLogLine, type GameState } from 'warp12-engine';
 
 interface BinaryLogMetadata {
-  format: 'binary-v1';
+  format: 'binary-v2';
   encoding: 'base64';
   data: string;
   actionCount: number;
@@ -52,6 +52,19 @@ interface DebugExport {
 }
 
 function decodeBinaryLog(binary: BinaryLogMetadata): GameAction[] {
+  if (binary.format !== 'binary-v2') {
+    throw new Error(
+      `Unsupported action log format: ${String(binary.format)} (expected binary-v2)`
+    );
+  }
+  if ('skipped' in binary && (binary as { skipped?: boolean }).skipped) {
+    throw new Error(
+      `Binary encoding was skipped in this export: ${
+        (binary as { reason?: string }).reason ?? 'unknown'
+      }`
+    );
+  }
+
   const ctx: DecodeContext = {
     playerIds: binary.playerIds,
     maxPip: binary.maxPip,
@@ -64,14 +77,20 @@ function decodeBinaryLog(binary: BinaryLogMetadata): GameAction[] {
     bytes[i] = binaryStr.charCodeAt(i);
   }
 
-  // Decode actions
+  // Debug exports concatenate raw action frames (no 4-byte count prefix).
   const actions: GameAction[] = [];
   let offset = 0;
 
   while (offset < bytes.length) {
-    const { action, bytesRead } = decodeAction(bytes.subarray(offset), ctx);
+    const { action, bytesRead } = decodeAction(bytes, offset, ctx);
     actions.push(action);
     offset += bytesRead;
+  }
+
+  if (binary.actionCount > 0 && actions.length !== binary.actionCount) {
+    console.error(
+      `Warning: decoded ${actions.length} actions, metadata said ${binary.actionCount}`
+    );
   }
 
   return actions;
@@ -173,12 +192,67 @@ function formatActionsAsText(
       lines.push('─'.repeat(60));
       lines.push('');
       continue;
+    } else if (action.type === 'SALAMANDER_PENALTY') {
+      const holder = names[action.holderId] || action.holderId;
+      const scoredOn = names[action.scoredOnId] || action.scoredOnId;
+      if (action.holderId === action.scoredOnId) {
+        desc += ` - ${holder} +${action.points}`;
+      } else {
+        desc += ` - ${holder} swaps to ${scoredOn} +${action.points}`;
+      }
+    } else if (action.type === 'LONGEST_TRAIL_BONUS') {
+      const who = names[action.playerId] || action.playerId;
+      const delta =
+        action.points > 0
+          ? `+${action.points}`
+          : action.points < 0
+            ? `−${Math.abs(action.points)}`
+            : '0';
+      desc += ` - ${who} (${action.trailLength} tiles) ${delta}`;
+    } else if (action.type === 'TEMPORAL_DEBT_PENALTY') {
+      const who = names[action.playerId] || action.playerId;
+      desc += ` - ${who} (${action.tokens} tokens) +${action.points}`;
     }
 
     lines.push(desc);
   }
 
   return lines.join('\n');
+}
+
+function unwrapJsonActionLog(rawLog: readonly unknown[]): GameAction[] {
+  return rawLog.map((entry) => {
+    if (entry && typeof entry === 'object' && 'action' in entry) {
+      return (entry as { action: GameAction }).action;
+    }
+    return entry as GameAction;
+  });
+}
+
+function resolveActionsFromExport(data: DebugExport): GameAction[] {
+  const binaryLog = data.client?.actionLogBinary || data.actionLogBinary;
+  if (binaryLog && !('skipped' in binaryLog && (binaryLog as { skipped?: boolean }).skipped)) {
+    console.error(
+      `Decoding ${binaryLog.actionCount} actions (${binaryLog.byteSize} bytes, ${binaryLog.format}, maxPip=${binaryLog.maxPip})…`
+    );
+    return decodeBinaryLog(binaryLog);
+  }
+
+  const rawLog = data.client?.actionLog ?? data.actionLog;
+  if (Array.isArray(rawLog) && rawLog.length > 0) {
+    console.error(`Expanding ${rawLog.length} JSON action log entries…`);
+    return unwrapJsonActionLog(rawLog);
+  }
+
+  if (binaryLog && 'skipped' in binaryLog) {
+    throw new Error(
+      `Binary encoding skipped and no JSON actionLog present: ${
+        (binaryLog as { reason?: string }).reason ?? 'unknown'
+      }`
+    );
+  }
+
+  throw new Error('No actionable log found in export (actionLogBinary / actionLog)');
 }
 
 function main() {
@@ -216,7 +290,6 @@ Examples:
   let roundNumber: number | null = null;
   let outputFile: string | null = null;
 
-  // Parse options
   for (let i = 1; i < args.length; i++) {
     if (args[i] === '--format' && i + 1 < args.length) {
       format = args[i + 1] as 'json' | 'text';
@@ -230,7 +303,6 @@ Examples:
     }
   }
 
-  // Read input file
   if (!fs.existsSync(inputFile)) {
     console.error(`Error: Input file not found: ${inputFile}`);
     process.exit(1);
@@ -239,18 +311,16 @@ Examples:
   const content = fs.readFileSync(inputFile, 'utf-8');
   const data: DebugExport = JSON.parse(content);
 
-  // Find binary log
-  const binaryLog = data.client?.actionLogBinary || data.actionLogBinary;
-  if (!binaryLog) {
-    console.error('Error: No binary action log found in export');
+  let actions: GameAction[];
+  try {
+    actions = resolveActionsFromExport(data);
+  } catch (error) {
+    console.error(
+      `Error: ${error instanceof Error ? error.message : String(error)}`
+    );
     process.exit(1);
   }
 
-  // Decode binary log
-  console.error(`Decoding ${binaryLog.actionCount} actions (${binaryLog.byteSize} bytes)...`);
-  const actions = decodeBinaryLog(binaryLog);
-
-  // Filter by round if requested
   let filteredActions = actions;
   if (roundNumber !== null) {
     const roundData = extractRoundActions(actions, roundNumber);
@@ -258,21 +328,21 @@ Examples:
       console.error(`Error: Round ${roundNumber} not found`);
       process.exit(1);
     }
-    console.error(`Extracted round ${roundNumber}: actions ${roundData.startIndex + 1}-${roundData.endIndex}`);
+    console.error(
+      `Extracted round ${roundNumber}: actions ${roundData.startIndex + 1}-${roundData.endIndex}`
+    );
     filteredActions = roundData.actions;
   }
 
-  // Format output
-  let output: string;
-  if (format === 'json') {
-    output = formatActionsAsJson(filteredActions);
-  } else {
-    const gameState = data.client?.gameState;
-    const viewerId = data.viewerId;
-    output = formatActionsAsText(filteredActions, gameState, viewerId);
-  }
+  const output =
+    format === 'json'
+      ? formatActionsAsJson(filteredActions)
+      : formatActionsAsText(
+          filteredActions,
+          data.client?.gameState,
+          data.viewerId
+        );
 
-  // Write output
   if (outputFile) {
     fs.writeFileSync(outputFile, output, 'utf-8');
     console.error(`Output written to ${outputFile}`);
