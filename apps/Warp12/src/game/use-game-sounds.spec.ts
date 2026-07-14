@@ -14,7 +14,7 @@ describe('detectGameSoundTransitions', () => {
     isMyTurn: false,
     doublesOnTable: 0,
     chartedTileCount: 0,
-    trueRedAlert: false,
+    illuminatedRedAlert: false,
     redAlertResponsibleId: null,
     activeBeaconCount: 0,
     flashActive: false,
@@ -24,6 +24,7 @@ describe('detectGameSoundTransitions', () => {
     dropToImpulseCallPending: null,
     dropToImpulseCatchable: null,
     returnedToWarp: false,
+    wormholeOpened: false,
     unchartedSectorCount: 10,
     turnBeepsEnabled: false,
   };
@@ -46,31 +47,32 @@ describe('detectGameSoundTransitions', () => {
     ).toEqual({ play: ['consoleWarning'], stop: [] });
   });
 
-  it('plays red alert when a double first opens red alert', () => {
+  it('plays console warning but not red alert when a double opens Yellow alert', () => {
     expect(
       detectGameSoundTransitions(base, {
         ...base,
         doublesOnTable: 1,
-        trueRedAlert: true,
+        // Yellow alert: cover-required but not yet passed — lighting is amber only.
+        illuminatedRedAlert: false,
         redAlertResponsibleId: 'a',
       })
-    ).toEqual({ play: ['consoleWarning', 'redAlert'], stop: [] });
+    ).toEqual({ play: ['consoleWarning'], stop: [] });
   });
 
-  it('plays red alert when red alert becomes active', () => {
+  it('plays red alert when Yellow alert escalates to Red (first pass)', () => {
     expect(
       detectGameSoundTransitions(
         {
           ...base,
           doublesOnTable: 1,
-          trueRedAlert: false,
-          redAlertResponsibleId: null,
+          illuminatedRedAlert: false,
+          redAlertResponsibleId: 'a',
           activeBeaconCount: 0,
         },
         {
           ...base,
           doublesOnTable: 1,
-          trueRedAlert: true,
+          illuminatedRedAlert: true,
           redAlertResponsibleId: 'b',
           activeBeaconCount: 1,
         }
@@ -83,13 +85,13 @@ describe('detectGameSoundTransitions', () => {
       detectGameSoundTransitions(
         {
           ...base,
-          trueRedAlert: true,
+          illuminatedRedAlert: true,
           redAlertResponsibleId: 'a',
           activeBeaconCount: 1,
         },
         {
           ...base,
-          trueRedAlert: true,
+          illuminatedRedAlert: true,
           redAlertResponsibleId: 'b',
           activeBeaconCount: 2,
         }
@@ -103,13 +105,13 @@ describe('detectGameSoundTransitions', () => {
         {
           ...base,
           doublesOnTable: 1,
-          trueRedAlert: true,
+          illuminatedRedAlert: true,
           redAlertResponsibleId: 'a',
         },
         {
           ...base,
           doublesOnTable: 1,
-          trueRedAlert: false,
+          illuminatedRedAlert: false,
           redAlertResponsibleId: null,
         }
       )
@@ -121,13 +123,13 @@ describe('detectGameSoundTransitions', () => {
       detectGameSoundTransitions(
         {
           ...base,
-          trueRedAlert: false,
+          illuminatedRedAlert: false,
           redAlertResponsibleId: null,
           activeBeaconCount: 0,
         },
         {
           ...base,
-          trueRedAlert: false,
+          illuminatedRedAlert: false,
           redAlertResponsibleId: null,
           activeBeaconCount: 1,
         }
@@ -303,7 +305,7 @@ describe('countTurnBeepsToPlay', () => {
     isMyTurn: false,
     doublesOnTable: 0,
     chartedTileCount: 2,
-    trueRedAlert: false,
+    illuminatedRedAlert: false,
     redAlertResponsibleId: null,
     activeBeaconCount: 0,
     flashActive: false,
@@ -313,6 +315,7 @@ describe('countTurnBeepsToPlay', () => {
     dropToImpulseCallPending: null,
     dropToImpulseCatchable: null,
     returnedToWarp: false,
+    wormholeOpened: false,
     unchartedSectorCount: 10,
     turnBeepsEnabled: true,
   };

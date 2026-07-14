@@ -1,7 +1,10 @@
 import {
   createOmegaPlayer,
   createOmegaSearchPlayer,
+  createRoundStateFromDeal,
+  createRoundStateWithDraft,
   createWarpAiPlayer,
+  dealRoundFromShuffled,
   generateCoordinateSet,
   getWarpSkillProfile,
   shuffleCoordinates,
@@ -70,6 +73,87 @@ export function createLocalGame(
       roundStarterId: config.humanCaptains[0]?.id ?? config.humanId,
     }
   );
+}
+
+function applyDevRoundModules(
+  state: GameState,
+  round: NonNullable<GameState['round']>,
+  spacedockPlacedBy: string
+): NonNullable<GameState['round']> {
+  let next = round;
+
+  if (state.modules.warpDriveSpool.enabled) {
+    next = {
+      ...next,
+      hazardMarkerHolder: spacedockPlacedBy,
+      hazardMarkerPassCount: 0,
+    };
+  }
+
+  if (state.modules.temporalDebt.enabled) {
+    const debtTokens: Record<string, number> = {};
+    for (const captain of state.captains) {
+      debtTokens[captain.id] = 0;
+    }
+    next = { ...next, debtTokens };
+  }
+
+  return next;
+}
+
+/**
+ * Dev console: redeal the *current* round with a fresh shuffle seed.
+ * Preserves campaign scores, round number, turn order, and squadrons.
+ */
+export function redealLocalRoundWithSeed(
+  state: GameState,
+  seed: number
+): GameState {
+  if (state.phase !== 'active' || !state.round) {
+    throw new Error('No active round to redeal');
+  }
+
+  const round = state.round;
+  const maxPip = state.maxPip ?? 12;
+  const shuffled = shuffleCoordinates(
+    generateCoordinateSet(maxPip),
+    seededRandom(seed)
+  );
+  const roundStarterId = round.table.spacedock.placedBy;
+
+  if (state.modules.drafting.enabled) {
+    const draftRound = createRoundStateWithDraft({
+      roundNumber: round.roundNumber,
+      captains: state.captains,
+      shuffledCoordinates: shuffled,
+      turnOrder: round.turnOrder,
+      roundStarterId,
+      maxPip,
+      largeFleetHandSize: state.houseRules.largeFleetHandSize,
+      packSize: state.modules.drafting.packSize,
+      squadrons: round.squadrons,
+    });
+    return {
+      ...state,
+      round: applyDevRoundModules(state, draftRound, roundStarterId),
+    };
+  }
+
+  const deal = dealRoundFromShuffled({
+    roundNumber: round.roundNumber,
+    captains: state.captains,
+    shuffledCoordinates: shuffled,
+    turnOrder: round.turnOrder,
+    roundStarterId,
+    largeFleetHandSize: state.houseRules.largeFleetHandSize,
+    maxPip,
+  });
+  const baseRound = createRoundStateFromDeal(deal, round.squadrons);
+
+  return {
+    ...state,
+    round: applyDevRoundModules(state, baseRound, deal.spacedockPlacedBy),
+  };
 }
 
 function usesOmegaNet(ai: AiCaptainConfig): boolean {

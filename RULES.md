@@ -161,11 +161,11 @@ Setup matches standard double-twelve multi-trail practice:
 
 2.  **Deal hands** from the remainder:
 
-    | Captains | Hand size                                   |
-    |:---------|:--------------------------------------------|
-    | –4       | 15                                          |
-    | 5–6      | 12                                          |
-    | 7–8      | 10 *(default; host may set 11 — see below)* |
+    | Captains | Hand size                                |
+    |:---------|:-----------------------------------------|
+    | –4       |                                          |
+    | –6       |                                          |
+    | –8       | *(default; host may set 11 — see below)* |
 
     > **Large fleet hand size (7–8 captains).** This is the one setup
     > value where widely published rule sets genuinely disagree: Masters
@@ -477,9 +477,9 @@ is on.
 
 **Drop to Impulse** *(house rule — off by default)*: when a captain
 charts down to **one** coordinate remaining, they are **at impulse** —
-their turn **continues**, but they **cannot chart again** on that turn.
-This matches standard multi-trail **knock**: reaching one tile does not
-let you silently play that last coordinate.
+they must call this befor their turn completes, and they **cannot chart
+again** on that turn. This matches standard multi-trail **knock**. (No,
+reaching one tile does not let you silently play that last coordinate.)
 
 They must **Drop to Impulse!** (announce and **pass helm** with one tile
 still in hand) or **pass** without announcing and risk a **catch**. On a
@@ -519,7 +519,8 @@ scores **0** for that round.
 default for hand-built rule sets), **25**, or **0** (pips). The
 **Official Warp rules** preset uses **0** so the 0-0 stays safe to hold
 as the Continuum trigger (Module Alpha). This is independent of the
-Salamander Penalty, which only affects **12-12**.
+Salamander Penalty, which only affects the **highest double for the Warp
+Factor** (eg **12-12** under Warp 12, **18-18** under Warp 18).
 
 **Next round:** Spacedock steps down one double (12-12 → 11-11 → … →
 0-0). After round 13, lowest cumulative points total wins.
@@ -552,12 +553,17 @@ for tabletop play with physical tiles).
       rule sets), **25**, or **0** (its 0 pips). The **Official Warp
       rules** preset uses **0**.
 
-    - **Salamander Penalty (Module Beta):** a held **12-12** scores
-      **double — 48** (from round 2 onward). See **Section VI → Module
-      Beta**. It affects only the 12-12 tile.
+    - **Salamander Penalty (Module Beta):** a held **highest double**
+      (`maxPip-maxPip`) scores **double its both-ends value** from round
+      2 onward — eg Warp 12 **12-12 → 48**, Warp 18 **18-18 → 72**. See
+      **Section VI → Module Beta**.
 
 4.  **Add to the campaign total.** Add each captain's round score to
-    their running cumulative total. Lower is better.
+    their running cumulative total. Lower is better. If **Module Kappa
+    (Temporal Inversion)** is on and this is an **even** round, do
+    **not** use this normal write-up — use the inverted tally in
+    Section VI (negate hands; going out is a large positive dump). The
+    campaign still ends on lowest cumulative total.
 
 5.  **Advance the round.** Step Spacedock down one double
     (`12-12 → 11-11 → … → 0-0`), re-deal, and play the next round. There
@@ -586,13 +592,11 @@ their hand in any single round wins the sector immediately.
 
 Warp has designed several Modules (currently 12, Alpha through Zeta)
 that add optional gameplay mechanics. We have taken extensive measures
-to keep rated play unaffected: a skill/luck quantifier across
-**285,000** Commander self-play games (570 configuration cells × 500
-games; Warp 9/12/15/18 × fleet sizes × module configs), checking for
-strange outcomes or behaviors. Some modules are marked **Warped** —
-intentional chaos that throws the game on its head, leans into luck,
-or can give an edge to lesser competitors. Those are exhibition-only
-and never rated.
+to keep rated play unaffected: a skill/luck quantifier and over 171,000
+game combinations across module configurations, checking for strange
+outcomes or behaviors. Some modules are marked **Warped** — intentional
+chaos that throws the game on its head, leans into luck, or can give an
+edge to lesser competitors. Those are exhibition-only and never rated.
 
 *Agree before launch. Unless noted, these are **not** part of standard
 multi-trail tournament practice — though **Sections I–V** (trails,
@@ -700,7 +704,7 @@ scores):
 | **Temporal inversion** | Turn order reverses until the next double is charted on the table. |
 | **Distress amplification** | All warp trails are open to every captain without a Distress Beacon. |
 | **Fracture immunity** | The next double on an own trail will not open Subspace Fracture (Red Alert still applies). |
-| **Salamander swap** *(requires Module Beta)* | If anyone holds 12-12 at round end, the full 48-point Salamander penalty lands on the highest-points captain instead — the holder pays nothing for that tile. |
+| **Salamander swap** *(requires Module Beta)* | If anyone holds the highest double (`maxPip-maxPip`) at round end, the full Salamander penalty (double its pips) lands on the **highest-points captain among those who did not win the round** instead — the holder pays nothing for that tile. If the holder **is already** that captain, the swap does **not** transfer: they keep the full doubled penalty (same as Salamander without swap). |
 | **All Stop! echo** | Any captain going out this round must call All Stop! before the sector closes. |
 | **Continuum Wager** | Draw two tiles from Uncharted Sectors — keep one, return the other face-down. |
 
@@ -710,15 +714,22 @@ Continuum Flash resolution before the sector can close.
 
 ### Module Beta — The Salamander Penalty *(on in Official Warp preset)*
 
-If a round ends and a captain holds **12-12** in hand, that tile scores
-**double its pips — 48** (its normal both-ends value is 24). Round 1
-never applies (12-12 is Spacedock). From round 2 onward, 12-12 is in
-circulation.
+If a round ends and a captain holds the **highest double for the Warp
+Factor** (`maxPip-maxPip`) in hand, that tile scores **double its
+both-ends pip value**. Round 1 never applies (that double is Spacedock).
+From round 2 onward it is in circulation.
 
-With **Salamander swap** (Continuum, Module Alpha), the **entire
-48-point penalty** transfers to the highest-points captain instead — the
-12-12 holder pays **nothing** for that tile, and the leader eats the
-full 48.
+Examples: Warp 12 **12-12 → 48** (base 24); Warp 9 **9-9 → 36**; Warp 15
+**15-15 → 60**; Warp 18 **18-18 → 72**.
+
+With **Salamander swap** (Continuum, Module Alpha), the **entire doubled
+penalty** transfers to the **highest-points captain among non-winners**
+of the round — the highest-double holder pays **nothing** for that tile,
+and that leader receives the full amount. The round winner is not
+eligible as the swap target (they score 0 for the round hand). If the
+holder is already that campaign leader, there is no transfer: they keep
+the full doubled penalty, exactly as under Salamander without Continuum
+swap.
 
 ### Module Gamma — Long-Range Sensor Sweep
 
@@ -768,12 +779,20 @@ you suffer a **+5 point penalty** added to your round score.
 - The marker stays with you until someone else plays to the Neutral Zone
 
 **Round Initialization:** The round starter receives the Hazard Marker
-at the beginning of each round (they got the "privilege" of the opening
+at the beginning of each round (they got the “privilege” of the opening
 tile).
+
+**Warp Drive Engagement (Spool):** On your turn (when not blocked by Red
+Alert or Subspace Fracture), you may **engage warp drive** to draw
+coordinates from Uncharted Sectors—draw tiles one at a time until you
+draw a tile that cannot be charted to your chosen route. All matching
+tiles are charted; the mismatch (and any remaining tiles) go to your
+hand. Spooling is part of Module Delta; Module Theta does not unlock it.
 
 **Tactical Impact:** The Neutral Zone becomes a strategic dumping ground
 with real risk. Captains must weigh convenience against the danger of
-getting stuck with the marker and being forced to pass.
+getting stuck with the marker and being forced to pass. Spooling
+stretches a trail (or the Neutral Zone) at hand-bloat risk.
 
 ### Scoring
 
@@ -816,20 +835,16 @@ Strategic long-range navigation rewards extended personal trails.
 Captains who invest in building the longest continuous warp trail
 receive a tactical advantage at round end.
 
-**Warp Drive Engagement:** On your turn (when not blocked by Red Alert
-or Subspace Fracture), you may **engage warp drive** to draw coordinates
-from Uncharted Sectors—draw tiles one at a time until you draw a tile
-that cannot be charted to your chosen route. All matching tiles are
-charted; the mismatch (and any remaining tiles) go to your hand.
-
 **Longest Trail Bonus:** At round end, the captain(s) with the longest
 personal Warp Trail receive a **-3 bonus** (negative = fewer points). If
 multiple captains tie for longest, all tied captains receive the bonus.
+The bonus **cannot reduce a captain’s round score below 0** (a go-out or
+tiny hand stays at 0 after all normal-round adjustments). Engaging Warp
+Drive / Spool is **not** part of Theta—it ships with Module Delta.
 
 **Tactical Impact:** Creates opposing incentives with Module Delta (hot
-potato pushes toward Neutral Zone, longest trail pulls toward own
-trail). Engaging warp drive introduces resource management risk—you
-might draw the Salamander (12-12) while chasing trail length.
+potato and NZ spool push toward Neutral Zone risk; longest trail pulls
+toward your own trail).
 
 **Status:** Rated — preserves skill ordering (78.5% higher-skill win
 rate in calibration).
@@ -894,24 +909,74 @@ management and strategic restraint (calibration pending).
 
 ### Module Kappa: Temporal Inversion *(Warped — exhibition only)*
 
-Reality bends. Scoring objectives invert every other round, forcing
-constant strategic adaptation.
+Reality bends. Who “wins” a round flips every other round, but the
+**campaign still ranks by lowest cumulative total**. Kappa does not
+replace that ledger — it only changes how each even round is written
+into it.
 
-**Mechanic:**
+**Which rounds invert:**
 
-- **Odd rounds** (1, 3, 5...): Normal scoring—lowest hand wins
+- **Odd rounds** (1, 3, 5…): use the normal tally in Section IV (empty
+  hand = 0; others add hand pips; lower is better).
 
-- **Even rounds** (2, 4, 6...): Inverted scoring—highest hand wins,
-  going out = maximum penalty
+- **Even rounds** (2, 4, 6…): use the inverted tally below.
 
-**Tactical Impact:** Going out in even rounds is catastrophic (you
-wanted to KEEP tiles). Medium hands become optimal. AI struggles to
-adapt, creating opportunities for human players. Lower-skilled players
-win ~65% of the time (35.6% higher-skill win rate in calibration —
+**Even-round tally (tabletop):** Count hands the same way as Section IV
+(pip totals, double-blank setting, Salamander if on). Then write the
+**campaign adjustment** as follows — do **not** award “0 for going out”
+on these rounds.
+
+1.  **Who emptied their hand** (went out) takes a large positive dump —
+    you wanted to *keep* tiles, not empty. For Warp $`N`$, use
+    $`2N\times 13`$ (Warp 12 $`\rightarrow`$ **312**; Warp 18
+    $`\rightarrow`$ **468**). Add that amount to their campaign total.
+
+2.  **Everyone else** takes the **negation** of their hand total:
+    subtract the hand from the campaign (a hand of 40 becomes
+    **$`-40`$**). Holding more pips improves your standing; a thin hand
+    hurts.
+
+3.  Apply any other enabled Module add-ons from this section (Hazard
+    pass penalties, Longest Trail $`-3`$, Temporal Debt, and so on)
+    **after** that hand term, same as the app. Longest Trail still
+    cannot push a *normal* (odd-round) total below 0; on inverted rounds
+    the ledger is already allowed to go negative by design.
+
+4.  The sector winner at the end is still whoever has the **lowest
+    cumulative** score — Kappa never switches the campaign to “highest
+    wins.”
+
+**Why the signs look backwards:** On an even round, a fat hand must
+*help* you under a lowest-total campaign. Negating the hand does that on
+paper: $`-40`$ beats $`-10`$, and both beat a go-out’s $`+312`$.
+Offline, just keep a running total column and add / subtract the
+even-round adjustment as written; you do not need a second ranking
+system.
+
+**Worked example (Warp 12, even round, three captains).** Before the
+round: Armstrong 20, Lovell 25, Earhart 30. Earhart goes out; Armstrong
+holds 40 pips; Lovell holds 12.
+
+- Earhart (went out): **$`+312`$** $`\rightarrow`$ campaign
+  $`30+312=\textbf{342}`$.
+
+- Armstrong (40 in hand): **$`-40`$** $`\rightarrow`$ campaign
+  $`20-40=\textbf{$-20$}`$.
+
+- Lovell (12 in hand): **$`-12`$** $`\rightarrow`$ campaign
+  $`25-12=\textbf{13}`$.
+
+Armstrong now leads the campaign despite going deep into negatives;
+Earhart is crushed for emptying out when tiles were the prize.
+
+**Tactical Impact:** Going out in even rounds is catastrophic. Medium
+hands become optimal. AI struggles to adapt. Lower-skilled players win
+~65% of the time (35.6% higher-skill win rate in calibration —
 intentionally inverts skill ordering).
 
 **Status:** Exhibition/Warped mode only—**intentionally breaks skill
-ordering** for casual chaos play. Never rated.
+ordering** for casual chaos play. Never rated (TEI does not use these
+scores).
 
 ### Module Lambda: Wormholes *(Warped — exhibition only)*
 
@@ -957,37 +1022,31 @@ expected skill preservation).
 **Status:** Exhibition/Warped mode only—**predicted to significantly
 reduce skill ordering** (untested; awaiting calibration). Never rated.
 
-### Module Epsilon — Tactical Requisition (The Captain's Draft) *(Warped — exhibition / party)*
+### Module Epsilon — Tactical Requisition (The Captain's Draft)
 
-In top-tier Warp 18 engagements, some fleets swear victory is decided at
-the drafting table. When **enabled**, the random blind deal is replaced
-by a pack-and-pass drafting phase before sector launch.
+In top-tier Warp 18 engagements, victory is determined at the drafting
+table. Pre-mission optimization is essential; captains must requisition
+their tactical loadout to match the projected skill ceiling of the
+sector.
+
+When **enabled**, the random blind deal is replaced by a drafting phase,
+allowing captains to engage in strategic loadout optimization before the
+sector launch.
 
 1.  **Requisition Packs:** Uncharted Sectors are scrambled. Each captain
-    receives a Requisition Pack sized to the warp-set hand size.
+    receives a Requisition Pack.
 
 2.  **First Selection:** Captains analyze their initial intel, selecting
     one coordinate to lock into their permanent tactical loadout.
 
 3.  **Data Transfer:** Remaining coordinates are passed clockwise,
-    forcing captains to adapt based on the available data pool.
+    forcing captains to adapt their strategy based on the available data
+    pool.
 
-4.  **Launch:** When packs are exhausted, play proceeds with the drafted
-    hands; leftovers return to Uncharted Sectors.
-
-**Tactical Impact (calibrated):** Drafting *feels* like a skill upgrade,
-but the comprehensive module study finds the opposite on the table.
-Drafted hands front-load luck and compress mid-game decisions: fewer
-legal moves (~1.3 vs ~2.1 baseline), fewer constrained tiles (36% vs
-57%), narrower move-value spreads, and thinner pip diversity. Average
-skill indicators drop to **1.08/4** (luck-dominant in 27/38 fleet×Warp
-cells). Coherent personal hands leave less room for skillful rescue
-navigation later — the race is often decided by who drafted the lucky
-connectors.
-
-**Status:** Exhibition/Warped mode only — excellent as a **party /
-social** module (the requisition ritual is the entertainment). Never
-rated. Do not enable on competitive TEI sectors.
+4.  **Strategic Depth:** This phase transforms the start of the sector
+    from a luck-based event into a high-skill predictive challenge,
+    ensuring that every captain enters the sector with a coherent,
+    optimized navigation strategy.
 
 ### Module Zeta — Fleet Squadrons (Warp Crews)
 
@@ -1021,21 +1080,6 @@ high-complexity 18-captain sectors.
 - **Scoring:** Victory is a team achievement; a squadron goes out when
   *one* captain clears their hand, with the team penalty calculated by
   the aggregate remaining pips.
-
-**Requirements:** Even fleet size, at least two squadrons (for
-`squadronSize=2`, that means ≥4 captains divisible by 2). Odd fleets
-and heads-up cannot form Zeta.
-
-**Tactical Impact (calibrated):** On eligible fleets, Zeta *preserves*
-skill expression well (avg **2.94/4** skill indicators; 16/17 skill-
-dominant cells). Shared trails and bridge seating keep decision
-pressure high — this is a skillful large-fleet mode, not a luck module.
-
-**Status:** Skill-promote. Rated Warp 12 Zeta sectors update the
-dedicated **squad TEI track** (`squadRating` / Squad TEI on the profile
-— never FFA `humanRating`). Gate:
-`SQUADRONS_RATING_CALIBRATED = true` after 2v2 OpenSkill ordering
-self-play (points Cmdr×2 vs Lt×2 ≈62%, vs Ensign ≈88%).
 
 <div class="center">
 
@@ -1254,7 +1298,7 @@ crew-ladder outcomes without saving anything. Full design:
 | **Captain** | Seat at the table — every player is a Captain |
 | **TEI** (Tactical Efficiency Index) | Your rating, displayed as a grade (letter + score, like “V67”) |
 | **TEI Grade** | Letter indicating rating confidence: **E** (Elite), **V** (Veteran), **C** (Consistent), **I** (Improving), **P** (Provisional) |
-| **TEI Score** | 0–99 number showing conservative skill on one global scale — not restarted per letter |
+| **TEI Score** | –99 number showing conservative skill on one global scale — not restarted per letter |
 | **Commission track** | Opponent / placement tier on file: **Ensign**, **Lieutenant**, **Commander**. Personal **federation commission** (Cadet–Fleet Admiral) is derived from your TEI. **Flag Officer** prestige covers Rear Admiral and above |
 
 ### Federation commission (ranks)
@@ -1616,11 +1660,11 @@ Stop! ceremony on standard **Sections I–V** gameplay.
 | NZ after all trails | Optional Deluxe variant | House rule — opt-in |
 | Beacon clears on any play | Optional Deluxe variant | House rule — opt-in |
 | Round starter plays two | Optional Deluxe variant | House rule — opt-in |
-| 0-0 anomaly | — | Continuum — Official Warp preset |
-| 12-12 Salamander Penalty | — | Salamander — Official Warp preset |
+| -0 anomaly | — | Continuum — Official Warp preset |
+| Highest-double Salamander Penalty | — | Salamander — Official Warp preset |
 | NZ win announcement | — | All Stop! ceremony — Official Warp preset |
 | One tile left announce | — | Drop to Impulse — Official Warp preset (1-tile catch) |
-| Double-blank (0-0) score | 50 (tournament standard) | Setup option 50 / 25 / 0 — Official Warp preset uses 0 (Continuum trigger) |
+| Double-blank (0-0) score | (tournament standard) | Setup option 50 / 25 / 0 — Official Warp preset uses 0 (Continuum trigger) |
 | Blocked boneyard | Round ends, all score | Blocked sector — same |
 | AI officers / tactical advisor | — | Section VII — digital only |
 | Solo TEI vs AI | — | Section VIII — iwdf.org; unassisted matches only |

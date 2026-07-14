@@ -5,10 +5,12 @@ import {
   isRedAlertBlocking,
   isTrueRedAlert,
   routeIsOwnTrail,
+  summarizeRoundOutcome,
   trailKeyFor,
   type ChartRoute,
   type Coordinate,
   type GameAction,
+  type GameModules,
   type GameState,
   type FlashEffectKind,
   type RoundState,
@@ -23,7 +25,13 @@ function wasRedAlertPassed(round: RoundState): boolean {
   return hasRedAlertPassed(round.table.redAlert);
 }
 
-export type GameLogKind = GameAction['type'] | 'ROUND_STARTED' | 'ROUND_RATINGS';
+export type GameLogKind =
+  | GameAction['type']
+  | 'ROUND_STARTED'
+  | 'ROUND_RATINGS'
+  | 'MODULE_LOADOUT'
+  | 'DEV_CONSOLE';
+
 
 export type GameLogEffect =
   | 'caution-opened'
@@ -38,7 +46,8 @@ export type GameLogEffect =
   | 'round-won'
   | 'round-blocked'
   | 'return-to-warp'
-  | 'wormhole-opened';
+  | 'wormhole-opened'
+  | 'salamander-swap-noop';
 
 export interface GameLogRoute {
   readonly kind: ChartRoute['kind'];
@@ -66,6 +75,10 @@ export interface GameLogEntry {
   readonly route?: GameLogRoute;
   readonly flashEffect?: FlashEffectKind;
   readonly winnerId?: string | null;
+  /** END_ROUND: scored under Module Kappa inversion (going out is catastrophic). */
+  readonly roundInverted?: boolean;
+  /** END_ROUND: captain(s) who won the round in campaign terms (the trophy). */
+  readonly roundWinnerIds?: readonly string[];
   readonly nextCaptainId?: string;
   readonly targetCaptainId?: string;
   readonly roundNumber?: number;
@@ -81,6 +94,14 @@ export interface GameLogEntry {
   readonly spoolDetails?: {
     readonly tilesPlayed: number;
   };
+  /** Module Beta: points charged for the held highest double. */
+  readonly penaltyPoints?: number;
+  /** Module Theta: tiles on the awarded longest trail. */
+  readonly trailLength?: number;
+  /** Module Eta: Temporal Debt token count charged at scoring. */
+  readonly debtTokens?: number;
+  /** MODULE_LOADOUT: enabled module labels for this round (parity-aware). */
+  readonly moduleLabels?: readonly string[];
 }
 
 export interface GameLog {
@@ -236,7 +257,7 @@ function effectsPhrase(effects: readonly GameLogEffect[]): string {
         parts.push('clearing the Subspace Fracture');
         break;
       case 'wormhole-opened':
-        parts.push('opening a Wormhole — trails inverted');
+        parts.push('opening a Wormhole — trail swapped with the Neutral Zone');
         break;
       case 'dead-double':
         parts.push('the Double is dead — no cover required');
@@ -299,9 +320,18 @@ export function formatGameLogLine(
   switch (entry.kind) {
     case 'ROUND_STARTED':
       return `${time} - Round ${entry.roundNumber ?? '?'} begins · Spacedock ${entry.spacedockValue ?? '?'}`;
+    case 'DEV_CONSOLE':
+      return `${time} - CHEATER — bridge console unlocked`;
     case 'ROUND_RATINGS': {
       const ratings = rosterPhrase(entry.roster, names);
       return ratings ? `${time} - Ratings · ${ratings}` : '';
+    }
+    case 'MODULE_LOADOUT': {
+      const labels = entry.moduleLabels ?? [];
+      if (labels.length === 0) {
+        return `${time} - Modules · None (core rules only)`;
+      }
+      return `${time} - Modules · ${labels.join(', ')}`;
     }
     case 'CHART_COORDINATE': {
       const base = `${prefix} played ${tilePhrase(entry.coordinate)} on ${trailPhrase(entry.route, entry.captainId, names)}${effectsPhrase(entry.effects)}`;
@@ -377,8 +407,47 @@ export function formatGameLogLine(
       if (entry.effects.includes('round-blocked')) {
         return `${time} - Round blocked — no legal charts remain`;
       }
-      const winner = captainLabel(entry.winnerId ?? entry.captainId, names);
-      return `${time} - ${winner} wins the round`;
+      const wentOut = captainLabel(entry.winnerId ?? entry.captainId, names);
+      if (entry.roundInverted) {
+        const trophy = (entry.roundWinnerIds ?? [])
+          .filter((id) => id !== (entry.winnerId ?? entry.captainId))
+          .map((id) => captainLabel(id, names));
+        const takes =
+          trophy.length > 0
+            ? ` · ${trophy.join(' & ')} take${trophy.length > 1 ? '' : 's'} the round (held the most)`
+            : '';
+        return `${time} - ${wentOut} goes out — inverted round, max penalty${takes}`;
+      }
+      return `${time} - ${wentOut} wins the round`;
+    }
+    case 'SALAMANDER_PENALTY': {
+      const holder = captainLabel(entry.captainId, names);
+      const points = entry.penaltyPoints ?? 0;
+      const scoredOnId = entry.targetCaptainId ?? entry.captainId;
+      if (scoredOnId !== entry.captainId) {
+        const scoredOn = captainLabel(scoredOnId, names);
+        return `${time} - Salamander Penalty · ${holder}'s highest double swaps to ${scoredOn} · +${points}`;
+      }
+      if (entry.effects.includes('salamander-swap-noop')) {
+        return `${time} - Salamander Penalty · ${holder} holds highest double (already campaign leader; swap no-ops) · +${points}`;
+      }
+      return `${time} - Salamander Penalty · ${holder} holds highest double · +${points}`;
+    }
+    case 'LONGEST_TRAIL_BONUS': {
+      const who = captainLabel(entry.captainId, names);
+      const length = entry.trailLength ?? 0;
+      const points = entry.penaltyPoints ?? 0;
+      const delta =
+        points > 0 ? `+${points}` : points < 0 ? `−${Math.abs(points)}` : '0';
+      return `${time} - Longest Trail Bonus · ${who} (${length} tiles) · ${delta}`;
+    }
+    case 'TEMPORAL_DEBT_PENALTY': {
+      const who = captainLabel(entry.captainId, names);
+      const tokens = entry.debtTokens ?? 0;
+      const points = entry.penaltyPoints ?? 0;
+      const delta =
+        points > 0 ? `+${points}` : points < 0 ? `−${Math.abs(points)}` : '0';
+      return `${time} - Temporal Debt · ${who} (${tokens} token${tokens === 1 ? '' : 's'}) · ${delta}`;
     }
   }
   // TypeScript exhaustiveness check - should never reach here
@@ -459,20 +528,9 @@ function chartEffects(
       action.route.kind === 'neutral-zone') &&
     isPipExhausted(after, action.coordinate.low);
 
-  // Module Lambda: Detect wormhole (trail swap)
-  const beforeNzLength = before.table.neutralZone.tiles.length;
-  const afterNzLength = after.table.neutralZone.tiles.length;
-  const actorTrailKey = trailKeyFor(before, action.playerId);
-  const beforeTrailLength = before.table.warpTrails[actorTrailKey]?.tiles.length ?? 0;
-  const afterTrailLength = after.table.warpTrails[trailKeyFor(after, action.playerId)]?.tiles.length ?? 0;
-  const wormholeOpened = 
-    isDouble(action.coordinate) &&
-    action.route.kind === 'neutral-zone' &&
-    // After wormhole: player's trail contains the double they just played
-    // and NZ contains their old trail (or is empty if they had no trail)
-    Math.abs((afterTrailLength - beforeNzLength - 1)) < 2 && // Allow for rounding/edge cases
-    Math.abs((afterNzLength - beforeTrailLength)) < 2;
-
+  // Module Lambda: engine sets wormholeOpened only when the module is on and a
+  // swap actually ran. Do not infer from NZ double + length heuristics — that
+  // falsely logged wormholes with Lambda disabled.
   if (playedDeadDouble) {
     effects.push('dead-double');
     if (!before.continuumPendingInvoker && after.continuumPendingInvoker) {
@@ -481,7 +539,7 @@ function chartEffects(
     return effects;
   }
 
-  if (wormholeOpened) {
+  if (after.wormholeOpened === true) {
     effects.push('wormhole-opened');
   }
 
@@ -761,14 +819,45 @@ export function buildGameLogEntry(
     case 'PICK_FROM_PACK':
       // Draft picks aren't logged to the game log (they happen before playing phase)
       return null;
-    case 'END_ROUND':
+    case 'SALAMANDER_PENALTY':
+      return {
+        at,
+        kind: action.type,
+        captainId: action.holderId,
+        targetCaptainId: action.scoredOnId,
+        penaltyPoints: action.points,
+        effects: [],
+      };
+    case 'LONGEST_TRAIL_BONUS':
+      return {
+        at,
+        kind: action.type,
+        captainId: action.playerId,
+        trailLength: action.trailLength,
+        penaltyPoints: action.points,
+        effects: [],
+      };
+    case 'TEMPORAL_DEBT_PENALTY':
+      return {
+        at,
+        kind: action.type,
+        captainId: action.playerId,
+        debtTokens: action.tokens,
+        penaltyPoints: action.points,
+        effects: [],
+      };
+    case 'END_ROUND': {
+      const outcome = summarizeRoundOutcome(after, afterRound);
       return {
         at,
         kind: action.type,
         captainId: action.winnerId ?? '',
         winnerId: action.winnerId,
+        roundInverted: outcome.inverted,
+        roundWinnerIds: outcome.roundWinnerIds,
         effects: endRoundEffects(afterRound),
       };
+    }
   }
   // TypeScript exhaustiveness check - should never reach here
   return null;
@@ -803,16 +892,147 @@ export function buildRoundRatingsEntry(
   };
 }
 
-export function buildRoundOutcomeEntry(
-  round: RoundState,
+/** Greek-lettered module labels in canonical display order (Alpha → Lambda). */
+const MODULE_LOG_LABELS: readonly {
+  readonly key: keyof GameModules;
+  readonly label: string;
+}[] = [
+  { key: 'continuum', label: 'Module Alpha · Continuum' },
+  { key: 'salamanderPenalty', label: 'Module Beta · Salamander' },
+  { key: 'sensorGrid', label: 'Module Gamma · Sensor Grid' },
+  { key: 'warpDriveSpool', label: 'Module Delta · Hot Potato' },
+  { key: 'drafting', label: 'Module Epsilon · Drafting' },
+  { key: 'squadrons', label: 'Module Zeta · Squadrons' },
+  { key: 'temporalDebt', label: 'Module Eta · Temporal Debt' },
+  { key: 'longestTrail', label: 'Module Theta · Longest Trail' },
+  { key: 'doubleDown', label: 'Module Iota · Double Down' },
+  { key: 'temporalInversion', label: 'Module Kappa · Temporal Inversion' },
+  { key: 'wormholes', label: 'Module Lambda · Wormholes' },
+];
+
+/**
+ * Enabled module labels for a round. Module Kappa (Temporal Inversion) is
+ * parity-aware: even rounds invert scoring, so the label states whether THIS
+ * round is normal or inverted (otherwise players cannot tell if it fired).
+ */
+export function enabledModuleLabels(
+  modules: GameModules,
+  roundNumber: number
+): string[] {
+  const labels: string[] = [];
+  for (const { key, label } of MODULE_LOG_LABELS) {
+    if (!modules[key]?.enabled) {
+      continue;
+    }
+    if (key === 'temporalInversion') {
+      const inverted = roundNumber % 2 === 0;
+      labels.push(
+        inverted
+          ? `${label} (Round ${roundNumber} INVERTED — highest hand wins)`
+          : `${label} (Round ${roundNumber} normal — lowest hand wins)`
+      );
+    } else {
+      labels.push(label);
+    }
+  }
+  if (modules.subspaceFracture?.enabled) {
+    labels.push(`Subspace Fracture (${modules.subspaceFracture.scope})`);
+  }
+  return labels;
+}
+
+/** Module loadout for a round — parity-aware (see {@link enabledModuleLabels}). */
+export function buildModuleLoadoutEntry(
+  modules: GameModules,
+  roundNumber: number,
   at?: string
 ): GameLogEntry {
+  return {
+    at: at ?? new Date().toISOString(),
+    kind: 'MODULE_LOADOUT',
+    captainId: '',
+    roundNumber,
+    moduleLabels: enabledModuleLabels(modules, roundNumber),
+    effects: [],
+  };
+}
+
+/** Dev console unlock — always logged as CHEATER in the sector ticker. */
+export function buildDevConsoleUnlockEntry(
+  captainId: string,
+  at?: string
+): GameLogEntry {
+  return {
+    at: at ?? new Date().toISOString(),
+    kind: 'DEV_CONSOLE',
+    captainId,
+    effects: [],
+  };
+}
+
+export function buildRoundOutcomeEntry(
+  round: RoundState,
+  at?: string,
+  game?: GameState
+): GameLogEntry {
+  const outcome = game ? summarizeRoundOutcome(game, round) : null;
   return {
     at: at ?? new Date().toISOString(),
     kind: 'END_ROUND',
     captainId: round.roundWinnerId ?? '',
     winnerId: round.roundWinnerId,
+    roundInverted: outcome?.inverted ?? false,
+    roundWinnerIds: outcome?.roundWinnerIds,
     effects: endRoundEffects(round),
+  };
+}
+
+/** Public Module Beta line when a highest-double holder is charged at round end. */
+export function buildSalamanderPenaltyLogEntry(
+  action: Extract<GameAction, { type: 'SALAMANDER_PENALTY' }>,
+  at?: string,
+  options?: { continuumSwapArmed?: boolean }
+): GameLogEntry {
+  const swapNoop =
+    options?.continuumSwapArmed === true &&
+    action.scoredOnId === action.holderId;
+  return {
+    at: at ?? new Date().toISOString(),
+    kind: 'SALAMANDER_PENALTY',
+    captainId: action.holderId,
+    targetCaptainId: action.scoredOnId,
+    penaltyPoints: action.points,
+    effects: swapNoop ? ['salamander-swap-noop'] : [],
+  };
+}
+
+/** Public Module Theta line when a captain earns the longest-trail bonus. */
+export function buildLongestTrailBonusLogEntry(
+  action: Extract<GameAction, { type: 'LONGEST_TRAIL_BONUS' }>,
+  at?: string
+): GameLogEntry {
+  return {
+    at: at ?? new Date().toISOString(),
+    kind: 'LONGEST_TRAIL_BONUS',
+    captainId: action.playerId,
+    trailLength: action.trailLength,
+    penaltyPoints: action.points,
+    effects: [],
+  };
+}
+
+/** Public Module Eta line when Temporal Debt is charged at round end. */
+export function buildTemporalDebtPenaltyLogEntry(
+  action: Extract<GameAction, { type: 'TEMPORAL_DEBT_PENALTY' }>,
+  at?: string
+): GameLogEntry {
+  return {
+    at: at ?? new Date().toISOString(),
+    kind: 'TEMPORAL_DEBT_PENALTY',
+    captainId: action.playerId,
+    debtTokens: action.tokens,
+    penaltyPoints: action.points,
+    effects: [],
   };
 }
 

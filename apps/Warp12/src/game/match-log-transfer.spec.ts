@@ -14,7 +14,7 @@ describe('match-log-transfer', () => {
   const sampleMatch: BinaryMatchExport = {
     gameId: 'test-match-123',
     actions: {
-      format: 'binary-v1',
+      format: 'binary-v2',
       encoding: 'base64',
       data: 'AQIDBAUG', // Small sample
       actionCount: 5,
@@ -73,7 +73,7 @@ describe('match-log-transfer', () => {
   it('throws on unsupported format', () => {
     const unsupported = {
       ...sampleMatch,
-      actions: { ...sampleMatch.actions, format: 'binary-v2' as any },
+      actions: { ...sampleMatch.actions, format: 'binary-v1' as any },
     };
     const base64 = btoa(JSON.stringify(unsupported));
     expect(() => importMatchFromBase64(base64)).toThrow('Unsupported format');

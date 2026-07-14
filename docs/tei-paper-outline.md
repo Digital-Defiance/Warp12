@@ -122,7 +122,7 @@ Mexican Train dominoes is commonly played under two incompatible victory conditi
 - Class II profile, blunder rate 0, lookahead on.
 - Explainability: `explainWarpAiAction`, turn-resolution hints.
 - **Unassisted-only TEI** — advisor use tracked separately.
-- **Never uses the neural net** — heuristics only, by design.
+- **Ratings/reasons are heuristic** (explainable Commander scorer); the **"advisor would play" pick uses the Ω neural policy** when available, but **falls back to the module-aware heuristic coach** when a module distorts scoring (e.g. Module Kappa inverted rounds).
 
 ### 4.5 Class I* — heuristic + search + optional residual (experimental)
 

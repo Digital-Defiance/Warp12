@@ -41,6 +41,19 @@ export function assertActorMaySubmit(
     return null;
   }
 
+  if (action.type === 'SALAMANDER_PENALTY') {
+    // Log annotation only — never submitted as an online move.
+    return 'PASS_NOT_ALLOWED';
+  }
+
+  if (action.type === 'LONGEST_TRAIL_BONUS') {
+    return 'PASS_NOT_ALLOWED';
+  }
+
+  if (action.type === 'TEMPORAL_DEBT_PENALTY') {
+    return 'PASS_NOT_ALLOWED';
+  }
+
   if (action.type === 'ALL_STOP') {
     if (!docData.round || docData.round.phase !== 'playing') {
       return 'ROUND_NOT_PLAYING';

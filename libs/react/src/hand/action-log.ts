@@ -24,6 +24,15 @@ export function playerIdForAction(action: GameAction): string {
   if (action.type === 'CATCH_DROP_TO_IMPULSE') {
     return action.challengerId;
   }
+  if (action.type === 'SALAMANDER_PENALTY') {
+    return action.holderId;
+  }
+  if (action.type === 'LONGEST_TRAIL_BONUS') {
+    return action.playerId;
+  }
+  if (action.type === 'TEMPORAL_DEBT_PENALTY') {
+    return action.playerId;
+  }
   return action.playerId;
 }
 

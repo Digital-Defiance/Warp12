@@ -348,7 +348,11 @@ export function extractHumanActions(
         entry.source === 'human' &&
         entry.playerId === config.humanId &&
         // Server replay scores ended rounds itself; including END_ROUND breaks verification.
-        entry.action.type !== 'END_ROUND'
+        // Salamander annotations are score-side effects, not submitted human moves.
+        entry.action.type !== 'END_ROUND' &&
+        entry.action.type !== 'SALAMANDER_PENALTY' &&
+        entry.action.type !== 'LONGEST_TRAIL_BONUS' &&
+        entry.action.type !== 'TEMPORAL_DEBT_PENALTY'
     )
     .map((entry) => entry.action);
 }

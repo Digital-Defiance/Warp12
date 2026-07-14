@@ -71,7 +71,7 @@ export function importMatchFromBase64(base64: string): BinaryMatchExport {
       throw new Error('Invalid match log structure');
     }
 
-    if (match.actions.format !== 'binary-v1') {
+    if (match.actions.format !== 'binary-v2') {
       throw new Error(`Unsupported format: ${match.actions.format}`);
     }
 

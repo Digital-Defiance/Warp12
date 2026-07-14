@@ -165,11 +165,12 @@ export const MODULE_CATALOG: readonly ModuleStatRow[] = [
     constrainedPct: 57,
     spread: 3.2,
     uniquePips: 7.8,
-    gist: 'Holding 12-12 at round end costs 48 pips.',
+    gist:
+      'Holding the highest double (maxPip-maxPip) at round end costs double its pips — Warp 12: 48, Warp 18: 72.',
     operate: [
-      'From round 2 onward, if you still hold 12-12 when scoring, that tile is worth 48 (double its 24 both-ends value).',
-      'Round 1 never applies — 12-12 is Spacedock.',
-      'With Continuum Salamander swap: the full 48 can transfer to the highest-points captain instead.',
+      'From round 2 onward, if you still hold the Warp Factor’s highest double when scoring, that tile scores double its both-ends value (12-12 → 48, 18-18 → 72).',
+      'Round 1 never applies — that double is Spacedock.',
+      'With Continuum Salamander swap: the full doubled penalty can transfer to the highest-points captain instead.',
     ],
   },
   {
@@ -252,6 +253,7 @@ export const MODULE_CATALOG: readonly ModuleStatRow[] = [
     gist: 'Longest personal Warp Trail(s) receive −3 at scoring.',
     operate: [
       'At round end, captain(s) with the longest personal Warp Trail get −3 (ties share the bonus).',
+      'Bonus cannot push that captain’s round total below 0.',
       'No extra draw mechanic here — Engaging Warp Drive / Spool ships with Module Delta.',
       'Pairs with Delta’s NZ hazard: stretch your own trail while someone else risks the Hot Potato.',
     ],
@@ -314,8 +316,8 @@ export const MODULE_CATALOG: readonly ModuleStatRow[] = [
     uniquePips: 7.8,
     gist: 'Even rounds invert — highest hand wins; going out is catastrophic.',
     operate: [
-      'Odd rounds: normal (low hand / go-out wins).',
-      'Even rounds: inverted — keep pips; going out takes the maximum penalty.',
+      'Odd rounds: normal tally (low hand / go-out → 0; lowest campaign wins).',
+      'Even rounds: same campaign ledger — holders subtract hand pips; going out adds 2×maxPip×13 (Warp 12 → +312).',
       'Warped by design — exhibition only; never TEI.',
     ],
   },

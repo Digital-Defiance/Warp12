@@ -69,11 +69,11 @@ yarn test:engine --run wormhole.spec.ts
 **Game Log Integration:**
 - Added `'wormhole-opened'` to `GameLogEffect` type
 - Detection: Checks trail length changes before/after double play on NZ
-- Message: `"opening a Wormhole — trails inverted"`
+- Message: `"opening a Wormhole — trail swapped with the Neutral Zone"`
 
 **Example Log Output:**
 ```
-Armstrong charts 9-9 onto the Neutral Zone, opening a Wormhole — trails inverted, causing a Red Alert
+Armstrong charts 9-9 onto the Neutral Zone, opening a Wormhole — trail swapped with the Neutral Zone, causing a Red Alert
 ```
 
 ### 4. Rules Documentation ✅

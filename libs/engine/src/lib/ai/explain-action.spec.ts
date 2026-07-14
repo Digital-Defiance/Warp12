@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { makeRound, makeGame } from '../engine/test-helpers.js';
+import { resolveModules } from '../types/modules.js';
 import { explainWarpAiAction } from './explain-action.js';
 import type { WarpAiAction } from './actions.js';
 
@@ -53,6 +54,108 @@ describe('explainWarpAiAction', () => {
 
     const reasons = explainWarpAiAction(state, 'a', action);
     expect(reasons.some((line) => line.includes('22 pip'))).toBe(true);
+  });
+
+  it('reframes shedding pips as a caution on an inverted (Kappa even) round', () => {
+    const round = makeRound(['a', 'b'], {
+      roundNumber: 4,
+      activePlayerId: 'a',
+      spacedockValue: 6,
+      hands: {
+        a: [
+          { low: 10, high: 12 },
+          { low: 2, high: 3 },
+        ],
+        b: [{ low: 1, high: 1 }],
+      },
+      table: {
+        spacedock: { value: 6, placedBy: 'a' },
+        warpTrails: {
+          a: {
+            playerId: 'a',
+            tiles: [
+              { coordinate: { low: 6, high: 8 }, index: 0, openValue: 8 },
+            ],
+            distressBeacon: { active: false },
+          },
+          b: {
+            playerId: 'b',
+            tiles: [],
+            distressBeacon: { active: false },
+          },
+        },
+        neutralZone: { tiles: [] },
+        subspaceFracture: null,
+        redAlert: null,
+      },
+    });
+    const state = makeGame(round, {
+      objective: 'points',
+      modules: resolveModules({ temporalInversion: true }),
+    });
+    const action: WarpAiAction = {
+      kind: 'chart',
+      move: {
+        coordinate: { low: 10, high: 12 },
+        route: { kind: 'warp-trail', playerId: 'a' },
+      },
+    };
+
+    const reasons = explainWarpAiAction(state, 'a', action);
+    // Surfaces the inverted-round strategy...
+    expect(reasons.some((line) => line.toLowerCase().includes('inverted'))).toBe(
+      true
+    );
+    // ...and never praises the pip shed as a virtue.
+    expect(
+      reasons.some((line) => line.includes('a heavy tile off your hand'))
+    ).toBe(false);
+  });
+
+  it('warns that going out is the maximum penalty on an inverted round', () => {
+    const round = makeRound(['a', 'b'], {
+      roundNumber: 2,
+      activePlayerId: 'a',
+      spacedockValue: 5,
+      hands: { a: [{ low: 5, high: 7 }], b: [{ low: 1, high: 1 }] },
+      table: {
+        spacedock: { value: 5, placedBy: 'a' },
+        warpTrails: {
+          a: {
+            playerId: 'a',
+            tiles: [
+              { coordinate: { low: 5, high: 6 }, index: 0, openValue: 6 },
+            ],
+            distressBeacon: { active: false },
+          },
+          b: {
+            playerId: 'b',
+            tiles: [],
+            distressBeacon: { active: false },
+          },
+        },
+        neutralZone: { tiles: [] },
+        subspaceFracture: null,
+        redAlert: null,
+      },
+    });
+    const state = makeGame(round, {
+      objective: 'points',
+      modules: resolveModules({ temporalInversion: true }),
+    });
+    const action: WarpAiAction = {
+      kind: 'chart',
+      move: {
+        coordinate: { low: 5, high: 7 },
+        route: { kind: 'warp-trail', playerId: 'a' },
+      },
+    };
+
+    const reasons = explainWarpAiAction(state, 'a', action);
+    expect(
+      reasons.some((line) => line.toLowerCase().includes('maximum penalty'))
+    ).toBe(true);
+    expect(reasons.some((line) => line.includes('win the round'))).toBe(false);
   });
 
   it('explains drawing when no chart is available', () => {

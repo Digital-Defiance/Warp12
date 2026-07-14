@@ -22,6 +22,7 @@
  */
 
 import { isTauriMobile, tauriPlatform } from './platform.js';
+import { appendOauthDiagnostic } from './oauth-diagnostics.js';
 
 const AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
@@ -40,10 +41,12 @@ export class GoogleNativeAuthError extends Error {
 }
 
 /**
- * Step logger for diagnosing the native OAuth flow (visible in the webview
- * console). Dev-only, and callers must never pass token material.
+ * Step logger for diagnosing the native OAuth flow.
+ * Always persists to localStorage (release-safe); console only in DEV.
+ * Callers must never pass token material.
  */
 function oauthLog(step: string, detail?: unknown): void {
+  appendOauthDiagnostic(step, detail);
   if (!import.meta.env.DEV) {
     return;
   }
@@ -201,7 +204,7 @@ async function awaitRedirectCode(
   const extract = (urls: readonly string[]): string | null => {
     oauthLog('awaitRedirectCode: checking URLs', {
       count: urls.length,
-      schemes: urls.map(u => u.split(':')[0]),
+      schemes: urls.map((u) => u.split(':')[0]),
     });
     for (const raw of urls) {
       oauthLog('awaitRedirectCode: examining URL', {
@@ -227,7 +230,9 @@ async function awaitRedirectCode(
   oauthLog('awaitRedirectCode: checking for cold launch URL');
   const initial = await getCurrent().catch(() => null);
   if (initial) {
-    oauthLog('awaitRedirectCode: cold launch URLs found', { count: initial.length });
+    oauthLog('awaitRedirectCode: cold launch URLs found', {
+      count: initial.length,
+    });
     const code = extract(initial);
     if (code) {
       oauthLog('awaitRedirectCode: resolved from cold launch');
@@ -239,47 +244,88 @@ async function awaitRedirectCode(
 
   oauthLog('awaitRedirectCode: registering deep link listener');
 
-  // Capture resolve/reject outside the Promise constructor so the deep-link
-  // handler can call them after the Promise is constructed.
   let resolveCode!: (code: string) => void;
   let rejectCode!: (err: unknown) => void;
+  let settled = false;
+  let timeoutHandle = 0;
+  let unlisten: () => void = () => undefined;
   const listenerPromise = new Promise<string>((resolve, reject) => {
     resolveCode = resolve;
     rejectCode = reject;
   });
 
+  const onVisibility = () => {
+    if (document.visibilityState !== 'visible' || settled) {
+      return;
+    }
+    oauthLog('awaitRedirectCode: app visible again — re-polling getCurrent');
+    void tryGetCurrent('visibilitychange');
+  };
+
+  const finishOk = (code: string, source: string) => {
+    if (settled) {
+      return;
+    }
+    settled = true;
+    oauthLog(`awaitRedirectCode: resolved via ${source}`);
+    window.clearTimeout(timeoutHandle);
+    document.removeEventListener('visibilitychange', onVisibility);
+    unlisten();
+    resolveCode(code);
+  };
+
+  const finishErr = (err: unknown) => {
+    if (settled) {
+      return;
+    }
+    settled = true;
+    window.clearTimeout(timeoutHandle);
+    document.removeEventListener('visibilitychange', onVisibility);
+    unlisten();
+    rejectCode(err);
+  };
+
+  const tryGetCurrent = async (source: string): Promise<void> => {
+    try {
+      const urls = await getCurrent().catch(() => null);
+      if (!urls || urls.length === 0) {
+        oauthLog(`awaitRedirectCode: ${source} — getCurrent empty`);
+        return;
+      }
+      oauthLog(`awaitRedirectCode: ${source} — getCurrent`, {
+        count: urls.length,
+      });
+      const code = extract(urls);
+      if (code) {
+        finishOk(code, source);
+      }
+    } catch (err) {
+      oauthLog(`awaitRedirectCode: ${source} — getCurrent threw`, err);
+    }
+  };
+
   // CRITICAL: await onOpenUrl() so the native IPC round-trip completes and the
   // listener is active BEFORE runMobileDeepLinkOAuth opens the browser.
-  // The old code used `void onOpenUrl(...).then(fn => { unlisten = fn })` which
-  // returned control to the caller before the Rust handler was registered,
-  // causing a race: fast redirects (cached login / one-tap) fired before the
-  // listener was ready, dropping the deep-link event silently.
-  const unlisten = await onOpenUrl((urls) => {
+  unlisten = await onOpenUrl((urls) => {
     oauthLog('awaitRedirectCode: deep link event received');
     try {
       const code = extract(urls);
       if (code) {
-        oauthLog('awaitRedirectCode: code extracted from event');
-        window.clearTimeout(timeoutHandle);
-        unlisten();
-        resolveCode(code);
+        finishOk(code, 'onOpenUrl');
       }
     } catch (err) {
       oauthLog('awaitRedirectCode: error extracting code', err);
-      window.clearTimeout(timeoutHandle);
-      unlisten();
-      rejectCode(err);
+      finishErr(err);
     }
   });
 
+  document.addEventListener('visibilitychange', onVisibility);
+
   oauthLog('awaitRedirectCode: listener registered — safe to open browser');
 
-  // Arm the timeout after registration so it only counts wait time,
-  // not the IPC setup time.
-  const timeoutHandle = window.setTimeout(() => {
+  timeoutHandle = window.setTimeout(() => {
     oauthLog('awaitRedirectCode: TIMEOUT after 5 minutes');
-    unlisten();
-    rejectCode(new GoogleNativeAuthError('Sign-in timed out.'));
+    finishErr(new GoogleNativeAuthError('Sign-in timed out.'));
   }, 5 * 60 * 1000);
 
   return listenerPromise;

@@ -288,6 +288,7 @@ export {
   type AdvisorMoveReview,
   type AdvisorMoveStrength,
   type AdvisorReport,
+  type AdvisorReportModuleContext,
   type BuildAdvisorReportOptions,
 } from './advisor-report.js';
 export {

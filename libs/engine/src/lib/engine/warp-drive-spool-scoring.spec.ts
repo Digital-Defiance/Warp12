@@ -76,8 +76,8 @@ describe('Module Delta — Scoring Integration', () => {
     const aliceAfter = result.state.captains.find((c) => c.id === 'a')!;
     const bobAfter = result.state.captains.find((c) => c.id === 'b')!;
 
-    // Alice won with 0 hand penalty, but gets fixed -3 bonus for longest trail
-    expect(aliceAfter.pointsScore).toBe(aliceBefore.pointsScore - 3);
+    // Alice won with 0 hand penalty + longest trail −3 → floored to 0 (not −3)
+    expect(aliceAfter.pointsScore).toBe(aliceBefore.pointsScore);
 
     // Bob has hand penalty but no bonus
     expect(bobAfter.pointsScore).toBeGreaterThan(bobBefore.pointsScore);
@@ -205,7 +205,7 @@ describe('Module Delta — Scoring Integration', () => {
     const hand = gameWithBoth.round!.hands['b'] ?? [];
     const handPips = hand.reduce((sum, tile) => sum + tile.low + tile.high, 0);
     
-    const expectedPenalty = handPips - 3;
+    const expectedPenalty = Math.max(0, handPips - 3);
     expect(bobAfter.pointsScore - bobBefore.pointsScore).toBe(expectedPenalty);
   });
 
@@ -332,7 +332,7 @@ describe('Module Delta — Scoring Integration', () => {
 
     const aliceAfter = result.state.captains.find((c) => c.id === 'a')!;
 
-    // Alice won (0 hand penalty) but gets fixed -3 bonus for longest trail
-    expect(aliceAfter.pointsScore).toBe(aliceBefore.pointsScore - 3);
+    // Alice won (0 hand) + longest trail −3 → floored to 0
+    expect(aliceAfter.pointsScore).toBe(aliceBefore.pointsScore);
   });
 });

@@ -297,70 +297,8 @@ export function LocalGamePage() {
     startSession(launchSession.config, drawMatchSeed());
   };
 
-  // Dev-only console tools for match seed debugging (only in dev mode)
+  // Dev-only AI pause (console tools live on BridgeTable).
   const [aiPaused, setAiPaused] = useState(false);
-  
-  useEffect(() => {
-    if (!import.meta.env.DEV || typeof window === 'undefined') {
-      return;
-    }
-    
-    interface LocalGameDevTools {
-      getMatchSeed: () => number | null;
-      resetMatchWithSeed: (seed: number) => void;
-      getHand: () => any[] | null;
-      getGame: () => any | null;
-      pauseAI: () => void;
-      resumeAI: () => void;
-      isAIPaused: () => boolean;
-    }
-    
-    (window as any).localGame = {
-      getMatchSeed: () => {
-        if (!launchSession) {
-          console.log('No active match - start a game first');
-          return null;
-        }
-        console.log('Current match seed:', launchSession.seed);
-        return launchSession.seed;
-      },
-      resetMatchWithSeed: (seed: number) => {
-        if (!launchSession) {
-          console.log('No active match - start a game first');
-          return;
-        }
-        console.log('Resetting match with seed:', seed);
-        void startSession(launchSession.config, seed);
-      },
-      getHand: () => {
-        if (!game?.round?.hands) {
-          console.log('No active round');
-          return null;
-        }
-        const humanId = launchSession?.config.humanId || 'you';
-        return game.round.hands[humanId] || null;
-      },
-      getGame: () => {
-        return game;
-      },
-      pauseAI: () => {
-        setAiPaused(true);
-        console.log('🛑 AI paused - they will not take turns');
-      },
-      resumeAI: () => {
-        setAiPaused(false);
-        console.log('▶️ AI resumed - they will continue playing');
-      },
-      isAIPaused: () => {
-        console.log('AI paused:', aiPaused);
-        return aiPaused;
-      },
-    } as LocalGameDevTools;
-    
-    return () => {
-      delete (window as any).localGame;
-    };
-  }, [launchSession, startSession, game, aiPaused]);
 
   if (phase === 'playing' && game && launchSession) {
     return (
@@ -377,6 +315,10 @@ export function LocalGamePage() {
           setPhase('configure');
         }}
         aiPaused={aiPaused}
+        onAiPausedChange={setAiPaused}
+        onResetMatchWithSeed={(seed) => {
+          void startSession(launchSession.config, seed);
+        }}
       />
     );
   }

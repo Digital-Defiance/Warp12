@@ -32,6 +32,7 @@ import { RulesDialog } from './rules-dialog';
 import { RulesPage } from './rules-page';
 import { TeiPage } from './tei-page';
 import { ModulesPage } from './modules-page';
+import { AdminStatusStrip } from './admin-status-strip';
 import styles from './app.module.scss';
 import { Warp12Logo } from './Warp12Logo';
 import { FactorLanding } from './factor-landing';
@@ -68,6 +69,7 @@ function AppShell() {
         ['--warp-panel-border' as string]: '#334155',
       }}
     >
+      <AdminStatusStrip />
       <header className={`${styles.header} ${layoutFocus ? styles.headerFocus : ''}`}>
         <div className={styles.headerStart}>
           <Link to="/" className={styles.logo}>

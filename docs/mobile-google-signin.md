@@ -164,9 +164,14 @@ plist / manifest scheme edits (they live in generated files).
   using a custom-scheme redirect on a Desktop client, which Google rejects. This is fixed by the
   loopback flow — make sure you're on a build that includes `start_oauth_server` and that the desktop
   path (`isTauriMobile()` false) is taken.
-- **Mobile: browser opens but the app never comes back:** the redirect scheme in the plist/manifest
-  does not match the client id (or the deep-link plugin isn't registered). Verify the reversed id
-  matches exactly.
+- **Android: Chrome closes after account pick, Warp returns, diagnostics show
+  `visibilitychange — getCurrent empty` and no `deep link event`:** the OS may
+  have delivered the OAuth Intent, but `tauri-plugin-deep-link` **ignores every
+  URL when `plugins.deep-link.mobile` is empty** (`isDeepLink` early-return).
+  Register the reversed client-id scheme under `tauri.conf.json > plugins >
+  deep-link > mobile` (and keep the AndroidManifest intent-filter). 
+  `scripts/inject-android-manifest.sh` syncs both from `.env`. Rebuild the APK
+  after fixing.
 - **`auth/invalid-credential` (audience):** add the client id to Firebase → Google provider allowed
   client ids (step 2). Desktop clients are **not** auto-trusted, so this is required for desktop/Android.
 - **Android `invalid_client` / `redirect_uri_mismatch`:** you likely used the SDK-only *Android* client

@@ -1,7 +1,7 @@
 {
   "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Warp 12",
-  "version": "0.6.42",
+  "version": "0.6.45",
   "identifier": "org.digitaldefiance.app.warp12",
   "build": {
     "frontendDist": "../dist",
@@ -29,6 +29,8 @@
     "active": true,
     "targets": "all",
     "category": "public.app-category.games",
+    "publisher": "Digital Defiance",
+    "shortDescription": "Multi-trail Interstellar Dominoes across Warp factors 9/12/15/18.",
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
@@ -53,15 +55,26 @@
     ],
     "android": {
       "minSdkVersion": 21,
-      "versionCode": 42,
+      "versionCode": 45,
       "debugApplicationIdSuffix": ".debug"
     },
     "iOS": {
       "developmentTeam": "J6887N729S",
       "minimumSystemVersion": "14.0",
-      "bundleVersion": "42",
+      "bundleVersion": "45",
       "infoPlist": "./Info.ios.plist"
     }
   },
-  "plugins": {}
+  "plugins": {
+    "deep-link": {
+      "mobile": [
+        {
+          "scheme": [
+            "com.googleusercontent.apps.527330456110-u12uqgjhpuo905sp5iu8rhibr8npiubg"
+          ],
+          "appLink": false
+        }
+      ]
+    }
+  }
 }

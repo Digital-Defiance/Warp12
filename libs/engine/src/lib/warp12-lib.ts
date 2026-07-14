@@ -17,6 +17,7 @@ export * from './engine/legal-moves.js';
 export * from './engine/beacon.js';
 export * from './engine/squadrons.js';
 export * from './engine/scoring.js';
+export * from './engine/longest-trail.js';
 export * from './engine/continuum.js';
 export * from './engine/warp-drive-spool.js';
 export * from './engine/drafting.js';

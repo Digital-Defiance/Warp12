@@ -33,6 +33,36 @@ describe('Module Delta — Legal Spool Options', () => {
     expect(options).toHaveLength(0);
   });
 
+  it('returns no options when only Module Theta (longest trail) is on', () => {
+    const coords = shuffleCoordinates(generateCoordinateSet(12), seededRandom(1001));
+    const game = startGame(
+      {
+        id: 'theta-only-no-spool',
+        captains: [
+          { id: 'a', displayName: 'Alice' },
+          { id: 'b', displayName: 'Bob' },
+        ],
+        modules: { longestTrail: true, warpDriveSpool: false },
+        maxPip: 12,
+      },
+      { shuffledCoordinates: coords }
+    );
+
+    expect(game.modules.longestTrail.enabled).toBe(true);
+    expect(game.modules.warpDriveSpool.enabled).toBe(false);
+    expect(getSpoolOptions(game, game.round!, 'a')).toHaveLength(0);
+
+    const spool = applyAction(game, {
+      type: 'SPOOL_WARP_DRIVE',
+      playerId: 'a',
+      route: { kind: 'warp-trail', playerId: 'a' },
+    });
+    expect(spool.ok).toBe(false);
+    if (!spool.ok) {
+      expect(spool.violation).toBe('MODULE_NOT_ENABLED');
+    }
+  });
+
   it('returns own trail option when module enabled', () => {
     const coords = shuffleCoordinates(generateCoordinateSet(12), seededRandom(2000));
     const game = startGame(

@@ -1,4 +1,9 @@
-import { encodeAction, type GameAction, type EncodeContext } from 'warp12-engine';
+import {
+  BINARY_ACTION_LOG_FORMAT,
+  encodeAction,
+  type GameAction,
+  type EncodeContext,
+} from 'warp12-engine';
 
 export function sanitizeFilenamePart(value: string): string {
   return value.replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 64);
@@ -7,6 +12,41 @@ export function sanitizeFilenamePart(value: string): string {
 export function buildDebugFilename(sectorCode: string, exportedAt: string): string {
   const stamp = exportedAt.slice(0, 19).replace(/[:T]/g, '-');
   return `warp12-${sanitizeFilenamePart(sectorCode)}-${stamp}.json`;
+}
+
+/**
+ * Bridge action logs store {@link ActionLogEntry} wrappers
+ * (`{ at, playerId, action, ok, source }`). Older fixtures / scripts may
+ * export bare {@link GameAction}s. Normalize either shape.
+ */
+export function unwrapLoggedActions(log: readonly unknown[]): GameAction[] {
+  const actions: GameAction[] = [];
+  for (const entry of log) {
+    if (!entry || typeof entry !== 'object') {
+      continue;
+    }
+    const record = entry as { type?: unknown; action?: unknown };
+    const candidate =
+      record.action && typeof record.action === 'object'
+        ? (record.action as { type?: unknown })
+        : record;
+    if (typeof candidate.type === 'string') {
+      actions.push(candidate as GameAction);
+    }
+  }
+  return actions;
+}
+
+function extractMaxPip(gameState: unknown): number {
+  if (
+    typeof gameState === 'object' &&
+    gameState &&
+    'maxPip' in gameState &&
+    typeof (gameState as { maxPip: unknown }).maxPip === 'number'
+  ) {
+    return (gameState as { maxPip: number }).maxPip;
+  }
+  return 12;
 }
 
 /**
@@ -36,8 +76,28 @@ function extractPlayerIds(gameState: unknown, actions: readonly GameAction[]): s
       playerSet.add(action.challengerId);
       playerSet.add(action.targetPlayerId);
     }
+    if (action.type === 'SALAMANDER_PENALTY') {
+      playerSet.add(action.holderId);
+      playerSet.add(action.scoredOnId);
+    }
+    if (action.type === 'LONGEST_TRAIL_BONUS') {
+      playerSet.add(action.playerId);
+    }
+    if (action.type === 'TEMPORAL_DEBT_PENALTY') {
+      playerSet.add(action.playerId);
+    }
   }
   return Array.from(playerSet).sort();
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  // Avoid `String.fromCharCode(...bytes)` — large logs blow the call stack.
+  const chunkSize = 0x8000;
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
 }
 
 /**
@@ -48,7 +108,7 @@ function encodeActionLogBinary(
   actions: readonly GameAction[],
   gameState?: unknown
 ): {
-  format: 'binary-v1';
+  format: typeof BINARY_ACTION_LOG_FORMAT;
   encoding: 'base64';
   data: string;
   actionCount: number;
@@ -56,9 +116,8 @@ function encodeActionLogBinary(
   playerIds: string[];
   maxPip: number;
 } {
-  // Extract encoding context
   const playerIds = extractPlayerIds(gameState, actions);
-  const maxPip = 12; // Default to W12, could extract from gameState if needed
+  const maxPip = extractMaxPip(gameState);
 
   const ctx: EncodeContext = { playerIds, maxPip };
   const buffers: Uint8Array[] = [];
@@ -70,7 +129,6 @@ function encodeActionLogBinary(
     totalBytes += encoded.length;
   }
 
-  // Concatenate all action buffers
   const combined = new Uint8Array(totalBytes);
   let offset = 0;
   for (const buffer of buffers) {
@@ -78,18 +136,46 @@ function encodeActionLogBinary(
     offset += buffer.length;
   }
 
-  // Convert to base64
-  const base64 = btoa(String.fromCharCode(...combined));
-
   return {
-    format: 'binary-v1',
+    format: BINARY_ACTION_LOG_FORMAT,
     encoding: 'base64',
-    data: base64,
+    data: bytesToBase64(combined),
     actionCount: actions.length,
     byteSize: totalBytes,
     playerIds,
     maxPip,
   };
+}
+
+function replaceActionLogWithBinary(
+  holder: Record<string, unknown>,
+  actionLogKey: 'actionLog',
+  gameState: unknown
+): void {
+  const raw = holder[actionLogKey];
+  if (!Array.isArray(raw)) {
+    return;
+  }
+  const actions = unwrapLoggedActions(raw);
+  try {
+    const binaryLog = encodeActionLogBinary(actions, gameState);
+    const skipped = raw.length - actions.length;
+    holder[actionLogKey] =
+      skipped > 0
+        ? `${actions.length} actions (${skipped} skipped; see actionLogBinary)`
+        : `${actions.length} actions (see actionLogBinary for binary format)`;
+    holder.actionLogBinary = binaryLog;
+  } catch (error) {
+    holder.actionLogBinary = {
+      skipped: true,
+      reason:
+        error instanceof Error
+          ? error.message
+          : 'binary encode failed; actionLog kept as JSON',
+      actionCount: actions.length,
+      maxPip: extractMaxPip(gameState),
+    };
+  }
 }
 
 /**
@@ -102,36 +188,27 @@ export function processPayloadForBinaryExport(payload: unknown): unknown {
   }
 
   // Make a shallow copy to avoid mutating original
-  const processed = { ...payload };
+  const processed = { ...payload } as Record<string, unknown>;
 
-  // Check for actionLog in client.actionLog (local mode)
+  // Check for actionLog in client.actionLog (local / online mode)
   if (
     'client' in processed &&
     typeof processed.client === 'object' &&
-    processed.client &&
-    'actionLog' in processed.client &&
-    Array.isArray(processed.client.actionLog)
+    processed.client
   ) {
-    const actionLog = processed.client.actionLog as readonly GameAction[];
-    const gameState = 'gameState' in processed.client ? processed.client.gameState : undefined;
-    const binaryLog = encodeActionLogBinary(actionLog, gameState);
-    
-    (processed as { client: { actionLog: unknown; actionLogBinary?: unknown } }).client = {
-      ...(processed.client as object),
-      actionLog: `${actionLog.length} actions (see actionLogBinary for binary format)`,
-      actionLogBinary: binaryLog,
-    };
+    const client = { ...(processed.client as Record<string, unknown>) };
+    const gameState = client.gameState ?? client.displayGameState;
+    replaceActionLogWithBinary(client, 'actionLog', gameState);
+    processed.client = client;
   }
 
   // Check for actionLog at top level
   if ('actionLog' in processed && Array.isArray(processed.actionLog)) {
-    const actionLog = processed.actionLog as readonly GameAction[];
-    const gameState = 'gameState' in processed ? processed.gameState : undefined;
-    const binaryLog = encodeActionLogBinary(actionLog, gameState);
-    
-    (processed as { actionLog: unknown; actionLogBinary?: unknown }).actionLog = 
-      `${actionLog.length} actions (see actionLogBinary for binary format)`;
-    (processed as { actionLogBinary?: unknown }).actionLogBinary = binaryLog;
+    replaceActionLogWithBinary(
+      processed,
+      'actionLog',
+      processed.gameState
+    );
   }
 
   return processed;
@@ -156,10 +233,10 @@ export function downloadDebugExport(
       ? (payload as { sectorCode: string }).sectorCode
       : 'debug';
   const name = filename ?? buildDebugFilename(sectorCode, exportedAt);
-  
+
   // Process payload to encode action logs in binary format
   const processedPayload = processPayloadForBinaryExport(payload);
-  
+
   const json = JSON.stringify(processedPayload, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);

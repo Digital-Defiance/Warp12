@@ -631,15 +631,26 @@ export interface OnlineGameSnapshot {
   dissolved: boolean;
 }
 
-/** Captain hand subdocs the host mirrors for live state and debug export. */
-function remoteHandCaptainIdsForHost(
+/** Captain hand subdocs mirrored for live AI proxy / round-end public scoring. */
+function remoteHandCaptainIdsForViewer(
   doc: FirestoreGameDocument | null,
   viewerId: string
 ): string[] {
-  if (!doc || doc.hostId !== viewerId) {
+  if (!doc?.round) {
     return [];
   }
-  return doc.captainIds.filter((captainId) => captainId !== viewerId);
+  const awaitingScore =
+    doc.phase === 'active' && doc.round.phase === 'ended';
+  // Host always mirrors every seat (AI proxy + debug export).
+  if (doc.hostId === viewerId) {
+    return doc.captainIds.filter((captainId) => captainId !== viewerId);
+  }
+  // During round-end revelation every member may read all hands (Firestore rules);
+  // subscribe so Salamander / pip tallies are public on every client.
+  if (awaitingScore && doc.captainIds.includes(viewerId)) {
+    return doc.captainIds.filter((captainId) => captainId !== viewerId);
+  }
+  return [];
 }
 
 export function subscribeOnlineGame(
@@ -677,7 +688,7 @@ export function subscribeOnlineGame(
     remoteHandUnsubs = [];
     remoteHandsByCaptain = {};
 
-    const ids = remoteHandCaptainIdsForHost(latestDoc, viewerId);
+    const ids = remoteHandCaptainIdsForViewer(latestDoc, viewerId);
     if (ids.length === 0) {
       publish();
       return;
@@ -777,8 +788,8 @@ export function subscribeOnlineGame(
       serverConfirmedMissing = false;
       const nextDoc = snap.data() as FirestoreGameDocument;
       const remoteIdsChanged =
-        remoteHandCaptainIdsForHost(latestDoc, viewerId).join('|') !==
-        remoteHandCaptainIdsForHost(nextDoc, viewerId).join('|');
+        remoteHandCaptainIdsForViewer(latestDoc, viewerId).join('|') !==
+        remoteHandCaptainIdsForViewer(nextDoc, viewerId).join('|');
       latestDoc = nextDoc;
       if (remoteIdsChanged) {
         resubscribeRemoteHands();
@@ -838,7 +849,12 @@ export async function submitOnlineAction(
         ? action.winnerId ?? ''
         : action.type === 'CATCH_DROP_TO_IMPULSE'
           ? action.challengerId
-          : action.playerId;
+          : action.type === 'SALAMANDER_PENALTY'
+            ? action.holderId
+            : action.type === 'LONGEST_TRAIL_BONUS' ||
+                action.type === 'TEMPORAL_DEBT_PENALTY'
+              ? action.playerId
+              : action.playerId;
 
     const isEndRound = action.type === 'END_ROUND';
     const hands: Record<string, readonly { low: number; high: number }[]> = {};

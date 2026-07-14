@@ -1,0 +1,30 @@
+.strip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 14px;
+  padding-top: env(safe-area-inset-top, 0px);
+  box-sizing: content-box;
+  background: #b91c1c;
+  pointer-events: none;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+
+  &[data-tools='loaded'] {
+    background: #991b1b;
+  }
+}
+
+.label {
+  font-family: var(--font-federation-wide, system-ui);
+  font-size: 0.55rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #fef2f2;
+}

@@ -71,9 +71,21 @@ export interface BuildAdvisorReportOptions {
   advisorWeights?: AdvisorModelWeights;
 }
 
+export interface AdvisorReportModuleContext {
+  readonly roundNumber: number;
+  /** Kappa even round — scoring is inverted (highest hand wins). */
+  readonly inverted: boolean;
+  /** Active opt-in modules for this sector (display labels). */
+  readonly moduleLabels: readonly string[];
+  /** Round-specific strategy notes for the active modules. */
+  readonly notes: readonly string[];
+}
+
 export interface AdvisorReport {
   readonly objective: GameState['objective'];
   readonly reviews: readonly AdvisorMoveReview[];
+  /** Active-module context for a module-aware report header. */
+  readonly moduleContext?: AdvisorReportModuleContext;
 }
 
 export interface ReviewAdvisorMoveOptions {
@@ -90,6 +102,72 @@ function cloneState(state: GameState): GameState {
   return structuredClone(state);
 }
 
+/** Active-module summary + round-specific strategy notes for the report header. */
+function describeAdvisorModuleContext(
+  state: GameState
+): AdvisorReportModuleContext {
+  const m = state.modules;
+  const roundNumber = state.round?.roundNumber ?? 0;
+  const inverted = m.temporalInversion.enabled && roundNumber % 2 === 0;
+  const moduleLabels: string[] = [];
+  const notes: string[] = [];
+
+  if (m.continuum.enabled) {
+    moduleLabels.push('Module Alpha · Q-Continuum');
+  }
+  if (m.salamanderPenalty.enabled) {
+    moduleLabels.push('Module Beta · Salamander Penalty');
+    notes.push(
+      inverted
+        ? 'Salamander — under inversion the doubled highest double is worth keeping, not dumping.'
+        : 'Salamander — shed the highest double early; holding it doubles the penalty (round 2+).'
+    );
+  }
+  if (m.warpDriveSpool.enabled) {
+    moduleLabels.push('Module Delta · Hot Potato');
+  }
+  if (m.drafting.enabled) {
+    moduleLabels.push('Module Epsilon · Draft Packs');
+  }
+  if (m.temporalDebt.enabled) {
+    moduleLabels.push('Module Eta · Temporal Debt');
+    notes.push(
+      `Temporal Debt — each draw from Uncharted Sectors adds a token worth ${m.temporalDebt.costPerToken} penalty point${m.temporalDebt.costPerToken === 1 ? '' : 's'}.`
+    );
+  }
+  if (m.squadrons.enabled) {
+    moduleLabels.push('Module Zeta · Squadrons');
+  }
+  if (m.longestTrail.enabled) {
+    moduleLabels.push('Module Theta · Longest Trail');
+    notes.push(
+      `Longest Trail — the longest warp trail scores ${m.longestTrail.bonus} at round end; keep building yours.`
+    );
+  }
+  if (m.doubleDown.enabled) {
+    moduleLabels.push('Module Iota · Double Down');
+  }
+  if (m.temporalInversion.enabled) {
+    moduleLabels.push('Module Kappa · Temporal Inversion');
+    notes.push(
+      inverted
+        ? `Round ${roundNumber} is INVERTED — highest hand wins. Hold heavy tiles, draw to build your hand, and do not go out.`
+        : `Round ${roundNumber} scores normally — lowest hand wins (even rounds invert).`
+    );
+  }
+  if (m.wormholes.enabled) {
+    moduleLabels.push('Module Lambda · Wormholes');
+  }
+  if (m.subspaceFracture.enabled) {
+    moduleLabels.push(`Subspace Fracture (${m.subspaceFracture.scope})`);
+  }
+  if (m.sensorGrid.enabled) {
+    moduleLabels.push('Sensor Grid');
+  }
+
+  return { roundNumber, inverted, moduleLabels, notes };
+}
+
 function defaultReplayBaseSeed(state: GameState): number {
   return hashStringSeed(state.id);
 }
@@ -104,7 +182,7 @@ function scoreCandidates(
   }
 
   const playerCount = obs.captains.length;
-  const skill = getAdvisorSkillProfile(state.objective, playerCount);
+  const skill = getAdvisorSkillProfile(state.objective, playerCount, state.modules);
   const tuning = resolveProfileGoOutTuning(skill);
   const byId = new Map(
     DEFAULT_WARP_HEURISTICS.map(
@@ -130,7 +208,7 @@ function scoreActionAtState(
     return 0;
   }
   const playerCount = obs.captains.length;
-  const skill = getAdvisorSkillProfile(state.objective, playerCount);
+  const skill = getAdvisorSkillProfile(state.objective, playerCount, state.modules);
   const tuning = resolveProfileGoOutTuning(skill);
   const byId = new Map(
     DEFAULT_WARP_HEURISTICS.map(
@@ -139,6 +217,22 @@ function scoreActionAtState(
   );
   const ctx = buildWarpContext(obs, () => 0.5, tuning);
   return scoreWithHeuristics(action, ctx, byId, skill);
+}
+
+/**
+ * The Ω / concept-advisor nets were trained without the opt-in Warped modules,
+ * so their picks are unreliable when a module inverts or distorts strategy
+ * (e.g. Temporal Inversion even rounds, where going out is the worst play).
+ * On those turns the module-aware heuristic coach gives sounder advice.
+ */
+function roundDistortsNeuralAdvisor(state: GameState): boolean {
+  const round = state.round;
+  if (!round) {
+    return false;
+  }
+  return (
+    state.modules.temporalInversion.enabled && round.roundNumber % 2 === 0
+  );
 }
 
 function classifyMoveStrength(
@@ -180,18 +274,22 @@ function advisorPickAtState(
     return null;
   }
 
-  if (options?.advisorWeights) {
+  // Skip the module-blind neural nets when the round distorts strategy; the
+  // module-aware heuristic coach is more reliable there.
+  const useNeural = !roundDistortsNeuralAdvisor(state);
+
+  if (useNeural && options?.advisorWeights) {
     return createAdvisorPlayer({ weights: options.advisorWeights, rng }).decide(obs)
       ?.action ?? null;
   }
 
-  if (options?.omegaNet) {
+  if (useNeural && options?.omegaNet) {
     return createOmegaPlayer({ net: options.omegaNet, rng }).decide(obs);
   }
 
   const playerCount = obs.captains.length;
   const coach = createWarpAiPlayer({
-    skill: getAdvisorSkillProfile(state.objective, playerCount),
+    skill: getAdvisorSkillProfile(state.objective, playerCount, state.modules),
     objective: state.objective,
     lookahead: resolveAdvisorLookahead(),
     rng,
@@ -348,5 +446,6 @@ export function buildAdvisorReport(
   return {
     objective: options.roundStartState.objective,
     reviews,
+    moduleContext: describeAdvisorModuleContext(options.roundStartState),
   };
 }

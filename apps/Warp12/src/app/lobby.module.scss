@@ -217,6 +217,55 @@
   color: #94a3b8;
 }
 
+.oauthDiag {
+  margin-top: 0.85rem;
+  border-top: 1px solid rgba(51, 65, 85, 0.9);
+  padding-top: 0.65rem;
+
+  summary {
+    cursor: pointer;
+    font-family: var(--font-federation);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+    user-select: none;
+  }
+
+  summary:hover {
+    color: #94a3b8;
+  }
+}
+
+.oauthDiagLegend {
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.oauthDiagLog {
+  margin: 0.5rem 0;
+  padding: 0.55rem 0.65rem;
+  max-height: 14rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  color: #cbd5e1;
+  background: rgba(2, 6, 23, 0.65);
+  border: 1px solid #334155;
+  border-radius: 6px;
+}
+
+.oauthDiagActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .inlineRow {
   display: flex;
   gap: 0.5rem;

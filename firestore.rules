@@ -248,9 +248,46 @@ service cloud.firestore {
         }
 
         // Module Zeta: sender's squadronId on the parent game doc, or null.
+        // Rules have no list.filter/lambda — walk the captains list (fleet ≤18).
         function senderSquadronId() {
-          return parentGameForMsg().captains
-            .filter(c => c.id == request.auth.uid)[0].get('squadronId', null);
+          let captains = parentGameForMsg().captains;
+          return captains.size() > 0 && captains[0].id == request.auth.uid
+              ? captains[0].get('squadronId', null)
+            : captains.size() > 1 && captains[1].id == request.auth.uid
+              ? captains[1].get('squadronId', null)
+            : captains.size() > 2 && captains[2].id == request.auth.uid
+              ? captains[2].get('squadronId', null)
+            : captains.size() > 3 && captains[3].id == request.auth.uid
+              ? captains[3].get('squadronId', null)
+            : captains.size() > 4 && captains[4].id == request.auth.uid
+              ? captains[4].get('squadronId', null)
+            : captains.size() > 5 && captains[5].id == request.auth.uid
+              ? captains[5].get('squadronId', null)
+            : captains.size() > 6 && captains[6].id == request.auth.uid
+              ? captains[6].get('squadronId', null)
+            : captains.size() > 7 && captains[7].id == request.auth.uid
+              ? captains[7].get('squadronId', null)
+            : captains.size() > 8 && captains[8].id == request.auth.uid
+              ? captains[8].get('squadronId', null)
+            : captains.size() > 9 && captains[9].id == request.auth.uid
+              ? captains[9].get('squadronId', null)
+            : captains.size() > 10 && captains[10].id == request.auth.uid
+              ? captains[10].get('squadronId', null)
+            : captains.size() > 11 && captains[11].id == request.auth.uid
+              ? captains[11].get('squadronId', null)
+            : captains.size() > 12 && captains[12].id == request.auth.uid
+              ? captains[12].get('squadronId', null)
+            : captains.size() > 13 && captains[13].id == request.auth.uid
+              ? captains[13].get('squadronId', null)
+            : captains.size() > 14 && captains[14].id == request.auth.uid
+              ? captains[14].get('squadronId', null)
+            : captains.size() > 15 && captains[15].id == request.auth.uid
+              ? captains[15].get('squadronId', null)
+            : captains.size() > 16 && captains[16].id == request.auth.uid
+              ? captains[16].get('squadronId', null)
+            : captains.size() > 17 && captains[17].id == request.auth.uid
+              ? captains[17].get('squadronId', null)
+            : null;
         }
 
         // Any sector member can read all messages (including DMs — per the

@@ -7,10 +7,15 @@ import {
 
 import {
   buildAiRosterFromConfigs,
+  createLocalGame,
   createSeededRng,
+  redealLocalRoundWithSeed,
   rosterNeedsOmegaNet,
 } from './create-local-game.js';
-import type { AiCaptainConfig } from './local-game-config.js';
+import {
+  defaultLocalGameConfig,
+  type AiCaptainConfig,
+} from './local-game-config.js';
 
 const zeroOmega = createZeroOmegaModelWeights();
 
@@ -116,5 +121,34 @@ describe('buildAiRosterFromConfigs', () => {
     expect(rngA()).toBe(rngB());
     expect(rosterA.get('ai:lovell')).toBeDefined();
     expect(rosterB.get('ai:lovell')).toBeDefined();
+  });
+});
+
+describe('redealLocalRoundWithSeed', () => {
+  it('redeals the current round while preserving scores and round number', () => {
+    const config = defaultLocalGameConfig('You', 2);
+    const game = createLocalGame(config, 100);
+    const withScores = {
+      ...game,
+      captains: game.captains.map((c, i) =>
+        i === 0 ? { ...c, pointsScore: 17 } : c
+      ),
+      completedRounds: 2,
+    };
+
+    const next = redealLocalRoundWithSeed(withScores, 999);
+
+    expect(next.round!.roundNumber).toBe(1);
+    expect(next.completedRounds).toBe(2);
+    expect(next.captains[0]!.pointsScore).toBe(17);
+    expect(next.round!.hands['you']).not.toEqual(withScores.round!.hands['you']);
+  });
+
+  it('is deterministic for the same seed', () => {
+    const config = defaultLocalGameConfig('You', 2);
+    const game = createLocalGame(config, 40);
+    const a = redealLocalRoundWithSeed(game, 77);
+    const b = redealLocalRoundWithSeed(game, 77);
+    expect(a.round!.hands['you']).toEqual(b.round!.hands['you']);
   });
 });

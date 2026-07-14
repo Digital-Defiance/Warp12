@@ -316,6 +316,64 @@ describe('action round-trip encoding', () => {
     expect(decoded).toEqual(actions);
   });
 
+  it('LONGEST_TRAIL_BONUS - signed points and trail length', () => {
+    const actions: GameAction[] = [
+      {
+        type: 'LONGEST_TRAIL_BONUS',
+        playerId: 'p1',
+        trailLength: 19,
+        points: -3,
+      },
+    ];
+
+    const decoded = roundTrip(actions);
+    expect(decoded).toEqual(actions);
+  });
+
+  it('TEMPORAL_DEBT_PENALTY - tokens and points', () => {
+    const actions: GameAction[] = [
+      {
+        type: 'TEMPORAL_DEBT_PENALTY',
+        playerId: 'p1',
+        tokens: 8,
+        points: 16,
+      },
+    ];
+
+    const decoded = roundTrip(actions);
+    expect(decoded).toEqual(actions);
+  });
+
+  it('scoring annotations batch (Salamander + Longest Trail + END_ROUND)', () => {
+    const actions: GameAction[] = [
+      {
+        type: 'SALAMANDER_PENALTY',
+        holderId: 'p2',
+        scoredOnId: 'p0',
+        points: 48,
+      },
+      {
+        type: 'LONGEST_TRAIL_BONUS',
+        playerId: 'p1',
+        trailLength: 12,
+        points: -3,
+      },
+      {
+        type: 'LONGEST_TRAIL_BONUS',
+        playerId: 'p3',
+        trailLength: 12,
+        points: -3,
+      },
+      {
+        type: 'END_ROUND',
+        winnerId: 'p0',
+      },
+    ];
+
+    const binary = encodeActions(actions, ctx);
+    expect(decodeActions(binary, ctx)).toEqual(actions);
+  });
+
   it('mixed sequence of multiple action types', () => {
     const actions: GameAction[] = [
       {
@@ -427,6 +485,6 @@ describe('action round-trip encoding', () => {
     const binarySize = binary.length;
     const compressionRatio = jsonSize / binarySize;
     
-    expect(compressionRatio).toBeGreaterThan(25); // Should be 25x+ compression (realistic for CHART actions)
+    expect(compressionRatio).toBeGreaterThan(20); // binary-v2 u16 coords; still >> JSON
   });
 });

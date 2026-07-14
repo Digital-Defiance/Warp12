@@ -672,8 +672,11 @@ const spoolStrategy: WarpHeuristic = {
       if (midGame) value += 15;
       if (lateGame) value -= 25;
       
-      if (round.hazardMarkerHolder === playerId) value += 30;
-      if (round.hazardMarkerHolder && round.hazardMarkerHolder !== playerId) value -= 10;
+      if (ctx.obs.modules.warpDriveSpool.enabled) {
+        // NZ contact takes the Hazard Marker — avoid while holding it.
+        if (round.hazardMarkerHolder === playerId) value -= 40;
+        else if (round.hazardMarkerHolder) value -= 10;
+      }
       if (ourTrailLength < maxOpponentLength - 2) value -= 40;
       
       return value;
@@ -686,7 +689,12 @@ const spoolStrategy: WarpHeuristic = {
         value += gap * 12;
       }
       if (ourTrailLength > maxOpponentLength + 4) value -= 40;
-      if (round.hazardMarkerHolder === playerId) value += 20;
+      if (
+        ctx.obs.modules.warpDriveSpool.enabled &&
+        round.hazardMarkerHolder === playerId
+      ) {
+        value += 20;
+      }
       if (lateGame && Math.abs(ourTrailLength - maxOpponentLength) <= 2) value += 50;
     }
     
@@ -739,6 +747,12 @@ const temporalInversionStrategy: WarpHeuristic = {
       const pipValue = coordinatePipValue(action.move.coordinate);
       const tilesAfter = ctx.hand.length - 1;
       const pipsAfter = currentHandPips - pipValue;
+      
+      // Going out empties your hand — the maximum penalty on an inverted round.
+      // Flag it decisively so the advisor never rates the go-out as a good line.
+      if (tilesAfter === 0) {
+        return -300;
+      }
       
       // Penalize plays that would leave us with very few pips
       if (pipsAfter < 25 && tilesAfter > 0) {

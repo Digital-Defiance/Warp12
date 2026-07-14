@@ -20,10 +20,25 @@ describe('Binary Action Encoding', () => {
       };
 
       const encoded = encodeAction(action, ctx);
-      expect(encoded.length).toBe(4);
+      expect(encoded.length).toBe(5);
 
       const { action: decoded, bytesRead } = decodeAction(encoded, 0, ctx);
-      expect(bytesRead).toBe(4);
+      expect(bytesRead).toBe(5);
+      expect(decoded).toEqual(action);
+    });
+
+
+    it('encodes and decodes CHART_COORDINATE on Warp 18 (18-18)', () => {
+      const w18: EncodeContext = { playerIds: ctx.playerIds, maxPip: 18 };
+      const action: GameAction = {
+        type: 'CHART_COORDINATE',
+        playerId: 'player-0',
+        coordinate: { low: 18, high: 18 },
+        route: { kind: 'neutral-zone' },
+      };
+      const encoded = encodeAction(action, w18);
+      expect(encoded.length).toBe(5);
+      const { action: decoded } = decodeAction(encoded, 0, w18);
       expect(decoded).toEqual(action);
     });
 
@@ -101,7 +116,7 @@ describe('Binary Action Encoding', () => {
       };
 
       const encoded = encodeAction(action, ctx);
-      expect(encoded.length).toBe(3);
+      expect(encoded.length).toBe(4);
 
       const { action: decoded } = decodeAction(encoded, 0, ctx);
       expect(decoded).toEqual(action);
@@ -261,7 +276,7 @@ describe('Binary Action Encoding', () => {
       };
 
       const encoded = encodeAction(action, ctx);
-      expect(encoded.length).toBe(3);
+      expect(encoded.length).toBe(4);
 
       const { action: decoded } = decodeAction(encoded, 0, ctx);
       expect(decoded).toEqual(action);
@@ -290,6 +305,86 @@ describe('Binary Action Encoding', () => {
       expect(encoded.length).toBe(2);
 
       const { action: decoded } = decodeAction(encoded, 0, ctx);
+      expect(decoded).toEqual(action);
+    });
+
+    it('encodes and decodes LONGEST_TRAIL_BONUS (signed −3)', () => {
+      const action: GameAction = {
+        type: 'LONGEST_TRAIL_BONUS',
+        playerId: 'player-1',
+        trailLength: 19,
+        points: -3,
+      };
+
+      const encoded = encodeAction(action, ctx);
+      expect(encoded.length).toBe(5);
+
+      const { action: decoded, bytesRead } = decodeAction(encoded, 0, ctx);
+      expect(bytesRead).toBe(5);
+      expect(decoded).toEqual(action);
+    });
+
+    it('encodes and decodes TEMPORAL_DEBT_PENALTY', () => {
+      const action: GameAction = {
+        type: 'TEMPORAL_DEBT_PENALTY',
+        playerId: 'player-1',
+        tokens: 8,
+        points: 16,
+      };
+
+      const encoded = encodeAction(action, ctx);
+      expect(encoded.length).toBe(5);
+
+      const { action: decoded, bytesRead } = decodeAction(encoded, 0, ctx);
+      expect(bytesRead).toBe(5);
+      expect(decoded).toEqual(action);
+    });
+
+    it('round-trips LONGEST_TRAIL_BONUS through encodeActions/decodeActions', () => {
+      const actions: GameAction[] = [
+        {
+          type: 'LONGEST_TRAIL_BONUS',
+          playerId: 'player-0',
+          trailLength: 7,
+          points: -3,
+        },
+        {
+          type: 'END_ROUND',
+          winnerId: 'player-2',
+        },
+      ];
+      const encoded = encodeActions(actions, ctx);
+      expect(decodeActions(encoded, ctx)).toEqual(actions);
+    });
+
+    it('encodes and decodes SALAMANDER_PENALTY (holder pays)', () => {
+      const action: GameAction = {
+        type: 'SALAMANDER_PENALTY',
+        holderId: 'player-1',
+        scoredOnId: 'player-1',
+        points: 48,
+      };
+
+      const encoded = encodeAction(action, ctx);
+      expect(encoded.length).toBe(5);
+
+      const { action: decoded, bytesRead } = decodeAction(encoded, 0, ctx);
+      expect(bytesRead).toBe(5);
+      expect(decoded).toEqual(action);
+    });
+
+    it('encodes and decodes SALAMANDER_PENALTY (swap + Warp 18 points)', () => {
+      const w18: EncodeContext = { playerIds: ctx.playerIds, maxPip: 18 };
+      const action: GameAction = {
+        type: 'SALAMANDER_PENALTY',
+        holderId: 'player-0',
+        scoredOnId: 'player-3',
+        points: 72,
+      };
+
+      const encoded = encodeAction(action, w18);
+      expect(encoded.length).toBe(5);
+      const { action: decoded } = decodeAction(encoded, 0, w18);
       expect(decoded).toEqual(action);
     });
   });
@@ -329,8 +424,8 @@ describe('Binary Action Encoding', () => {
       ];
 
       const encoded = encodeActions(actions, ctx);
-      // 4 (count) + 4 (chart) + 2 (draw) + 4 (chart) + 2 (end) = 16 bytes
-      expect(encoded.length).toBe(16);
+      // 4 (count) + 5 (chart) + 2 (draw) + 5 (chart) + 2 (end) = 18 bytes
+      expect(encoded.length).toBe(18);
 
       const decoded = decodeActions(encoded, ctx);
       expect(decoded).toEqual(actions);
@@ -365,9 +460,9 @@ describe('Binary Action Encoding', () => {
 
       const encoded = encodeActions(actions, ctx);
       
-      // Expected: 4 (count) + 50*4 (charts) + 30*2 (draws) + 10*2 (ends)
-      // = 4 + 200 + 60 + 20 = 284 bytes
-      expect(encoded.length).toBe(284);
+      // Expected: 4 (count) + 50*5 (charts) + 30*2 (draws) + 10*2 (ends)
+      // = 4 + 250 + 60 + 20 = 334 bytes
+      expect(encoded.length).toBe(334);
       
       // Compare to JSON size
       const jsonSize = JSON.stringify(actions).length;

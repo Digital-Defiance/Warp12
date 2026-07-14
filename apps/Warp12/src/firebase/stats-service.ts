@@ -90,6 +90,8 @@ export interface ReportLocalAiMatchInput {
   opponentClass1Star?: boolean;
   objective: RatedObjective;
   advisorUsed: boolean;
+  /** Bridge console unlock used this match (server admin can still TEI-rate). */
+  devToolsUsed?: boolean;
   decisionPct?: number;
   decisionGrade?: string;
   seed: number;
@@ -228,9 +230,13 @@ export function previewLocalAiMatchReport(
   current: LocalAiSkillStats,
   input: ReportLocalAiMatchInput,
   won: boolean,
-  startingRating?: { mu: number; sigma: number }
+  startingRating?: { mu: number; sigma: number },
+  options?: { readonly isAdmin?: boolean }
 ): LocalAiMatchReport {
-  const teiEligible = !input.advisorUsed && isRatedLocalGame(input.config);
+  const teiEligible =
+    !input.advisorUsed &&
+    !(input.devToolsUsed === true && options?.isAdmin !== true) &&
+    isRatedLocalGame(input.config);
   if (!teiEligible) {
     return {
       rated: false,
@@ -405,6 +411,7 @@ async function uploadLocalAiMatch(
     seed: input.seed,
     config: input.config,
     humanActions,
+    ...(input.devToolsUsed === true ? { devToolsUsed: true } : {}),
   });
 
   return {

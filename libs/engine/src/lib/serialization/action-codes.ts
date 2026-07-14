@@ -22,6 +22,12 @@ export enum ActionCode {
   RESOLVE_CONTINUUM_WAGER = 0x0d,
   PICK_FROM_PACK = 0x0e,
   END_ROUND = 0x0f,
+  /** Scoring annotation — see GameAction SALAMANDER_PENALTY. */
+  SALAMANDER_PENALTY = 0x10,
+  /** Scoring annotation — see GameAction LONGEST_TRAIL_BONUS. */
+  LONGEST_TRAIL_BONUS = 0x11,
+  /** Scoring annotation — see GameAction TEMPORAL_DEBT_PENALTY. */
+  TEMPORAL_DEBT_PENALTY = 0x12,
 }
 
 /** Route kind encoding (2 bits in route byte). */
@@ -48,19 +54,23 @@ export enum FlashCode {
 /**
  * Route byte encoding:
  * Bits 7-6: RouteKind (00=trail, 01=neutral, 10=stabilizer, 11=alert)
- * Bits 5-0: Player ID (for warp-trail) or flags
+ * Bits 5-0: Player index into EncodeContext.playerIds (or 0x3f for NZ cover)
  */
-export function encodeRoute(route: {
-  kind: 'warp-trail' | 'neutral-zone' | 'fracture-stabilizer' | 'red-alert-cover';
-  playerId?: string;
-  trailPlayerId?: string;
-  neutralZone?: boolean;
-}): number {
+export function encodeRoute(
+  route: {
+    kind: 'warp-trail' | 'neutral-zone' | 'fracture-stabilizer' | 'red-alert-cover';
+    playerId?: string;
+    trailPlayerId?: string;
+    neutralZone?: boolean;
+  },
+  playerIds: readonly string[]
+): number {
   let byte = 0;
 
   switch (route.kind) {
     case 'warp-trail': {
-      byte = (RouteKind.WARP_TRAIL << 6) | parsePlayerIndex(route.playerId!);
+      byte =
+        (RouteKind.WARP_TRAIL << 6) | playerIndex(route.playerId!, playerIds);
       break;
     }
     case 'neutral-zone': {
@@ -74,7 +84,7 @@ export function encodeRoute(route: {
     case 'red-alert-cover': {
       byte = RouteKind.RED_ALERT_COVER << 6;
       if (route.trailPlayerId) {
-        byte |= parsePlayerIndex(route.trailPlayerId);
+        byte |= playerIndex(route.trailPlayerId, playerIds);
       } else if (route.neutralZone) {
         byte |= 0x3f; // Special marker for neutral zone
       }
@@ -109,15 +119,15 @@ export function decodeRoute(
   }
 }
 
-/** Extract player index from player ID (e.g., "player-0" → 0). */
-function parsePlayerIndex(playerId: string): number {
-  const match = /(\d+)$/.exec(playerId);
-  if (!match) {
-    throw new Error(`Cannot parse player index from: ${playerId}`);
+/** Resolve a captain ID to its index in the encode/decode player list. */
+function playerIndex(playerId: string, playerIds: readonly string[]): number {
+  const index = playerIds.indexOf(playerId);
+  if (index === -1) {
+    throw new Error(`Unknown player ID in route: ${playerId}`);
   }
-  const index = Number.parseInt(match[1], 10);
-  if (index < 0 || index > 63) {
-    throw new Error(`Player index out of range: ${index}`);
+  if (index > 62) {
+    // 0x3f reserved for red-alert NZ cover marker
+    throw new Error(`Player index out of range for route byte: ${index}`);
   }
   return index;
 }
