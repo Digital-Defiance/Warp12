@@ -39,6 +39,7 @@ function mergeCaptainMetadata(
       displayName: captain.displayName,
       pointsScore: captain.pointsScore,
       joinedAt: prior?.joinedAt ?? now,
+      ...(captain.squadronId ? { squadronId: captain.squadronId } : {}),
     };
     if (prior && isAiCaptain(prior)) {
       merged.isAi = true;

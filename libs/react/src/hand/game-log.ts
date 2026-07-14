@@ -4,6 +4,8 @@ import {
   isPipExhausted,
   isRedAlertBlocking,
   isTrueRedAlert,
+  routeIsOwnTrail,
+  trailKeyFor,
   type ChartRoute,
   type Coordinate,
   type GameAction,
@@ -70,6 +72,11 @@ export interface GameLogEntry {
   readonly spacedockValue?: number;
   readonly roster?: readonly GameLogRosterEntry[];
   readonly effects: readonly GameLogEffect[];
+  /** Module Iota: forced draw triggered by charting a double. */
+  readonly doubleDown?: {
+    readonly targetCaptainId: string;
+    readonly drawCount: number;
+  };
   /** For SPOOL_WARP_DRIVE: tiles played (count only, for privacy) */
   readonly spoolDetails?: {
     readonly tilesPlayed: number;
@@ -296,8 +303,18 @@ export function formatGameLogLine(
       const ratings = rosterPhrase(entry.roster, names);
       return ratings ? `${time} - Ratings · ${ratings}` : '';
     }
-    case 'CHART_COORDINATE':
-      return `${prefix} played ${tilePhrase(entry.coordinate)} on ${trailPhrase(entry.route, entry.captainId, names)}${effectsPhrase(entry.effects)}`;
+    case 'CHART_COORDINATE': {
+      const base = `${prefix} played ${tilePhrase(entry.coordinate)} on ${trailPhrase(entry.route, entry.captainId, names)}${effectsPhrase(entry.effects)}`;
+      if (!entry.doubleDown) {
+        return base;
+      }
+      const target = captainLabel(entry.doubleDown.targetCaptainId, names);
+      const drawPhrase =
+        entry.doubleDown.drawCount === 1
+          ? 'draws 1'
+          : `draws ${entry.doubleDown.drawCount}`;
+      return `${base} → Double Down! ${target} ${drawPhrase}`;
+    }
     case 'DRAW_FROM_UNCHARTED':
       if (entry.effects.includes('red-alert-opened')) {
         return `${prefix} drew and could not answer the Double${effectsPhrase(entry.effects)}`;
@@ -386,19 +403,20 @@ function roundStarterOpeningBeaconDeployed(
 ): boolean {
   if (
     action.route.kind !== 'warp-trail' ||
-    action.route.playerId !== action.playerId ||
+    !routeIsOwnTrail(before, action.playerId, action.route) ||
     action.playerId !== before.table.spacedock.placedBy
   ) {
     return false;
   }
 
   const playerId = action.playerId;
-  const ownTilesBefore = before.table.warpTrails[playerId]?.tiles.length ?? 0;
-  const ownTilesAfter = after.table.warpTrails[playerId]?.tiles.length ?? 0;
+  const trailKey = trailKeyFor(before, playerId);
+  const ownTilesBefore = before.table.warpTrails[trailKey]?.tiles.length ?? 0;
+  const ownTilesAfter = after.table.warpTrails[trailKey]?.tiles.length ?? 0;
   const beaconBefore =
-    before.table.warpTrails[playerId]?.distressBeacon.active ?? false;
+    before.table.warpTrails[trailKey]?.distressBeacon.active ?? false;
   const beaconAfter =
-    after.table.warpTrails[playerId]?.distressBeacon.active ?? false;
+    after.table.warpTrails[trailKey]?.distressBeacon.active ?? false;
 
   return (
     ownTilesBefore === 0 &&
@@ -444,8 +462,9 @@ function chartEffects(
   // Module Lambda: Detect wormhole (trail swap)
   const beforeNzLength = before.table.neutralZone.tiles.length;
   const afterNzLength = after.table.neutralZone.tiles.length;
-  const beforeTrailLength = before.table.warpTrails[action.playerId]?.tiles.length ?? 0;
-  const afterTrailLength = after.table.warpTrails[action.playerId]?.tiles.length ?? 0;
+  const actorTrailKey = trailKeyFor(before, action.playerId);
+  const beforeTrailLength = before.table.warpTrails[actorTrailKey]?.tiles.length ?? 0;
+  const afterTrailLength = after.table.warpTrails[trailKeyFor(after, action.playerId)]?.tiles.length ?? 0;
   const wormholeOpened = 
     isDouble(action.coordinate) &&
     action.route.kind === 'neutral-zone' &&
@@ -519,9 +538,11 @@ function drawEffects(
   const effects: GameLogEffect[] = [];
   const wasBlocking = isRedAlertBlocking(before.table.redAlert, playerId);
   const beaconBefore =
-    before.table.warpTrails[playerId]?.distressBeacon.active ?? false;
+    before.table.warpTrails[trailKeyFor(before, playerId)]?.distressBeacon.active ??
+    false;
   const beaconAfter =
-    after.table.warpTrails[playerId]?.distressBeacon.active ?? false;
+    after.table.warpTrails[trailKeyFor(after, playerId)]?.distressBeacon.active ??
+    false;
 
   if (wasBlocking && beaconAfter && !beaconBefore) {
     effects.push('red-alert-opened');
@@ -559,6 +580,35 @@ function endRoundEffects(after: RoundState): GameLogEffect[] {
     return ['round-won'];
   }
   return [];
+}
+
+/** Module Iota: detect tiles forcibly drawn onto the next captain's hand. */
+function detectDoubleDownDraw(
+  before: GameState,
+  after: GameState,
+  action: Extract<GameAction, { type: 'CHART_COORDINATE' }>
+): GameLogEntry['doubleDown'] | undefined {
+  if (!before.modules.doubleDown?.enabled || !isDouble(action.coordinate)) {
+    return undefined;
+  }
+  const beforeRound = before.round;
+  const afterRound = after.round;
+  if (!beforeRound || !afterRound) {
+    return undefined;
+  }
+
+  for (const captainId of afterRound.turnOrder) {
+    if (captainId === action.playerId) {
+      continue;
+    }
+    const drawn =
+      (afterRound.hands[captainId]?.length ?? 0) -
+      (beforeRound.hands[captainId]?.length ?? 0);
+    if (drawn > 0) {
+      return { targetCaptainId: captainId, drawCount: drawn };
+    }
+  }
+  return undefined;
 }
 
 export function buildAutoAllStopLogEntry(
@@ -606,7 +656,8 @@ export function buildGameLogEntry(
   const at = new Date().toISOString();
 
   switch (action.type) {
-    case 'CHART_COORDINATE':
+    case 'CHART_COORDINATE': {
+      const doubleDown = detectDoubleDownDraw(before, after, action);
       return {
         at,
         kind: action.type,
@@ -615,7 +666,9 @@ export function buildGameLogEntry(
         coordinate: action.coordinate,
         route: routeToLogRoute(action.route),
         effects: chartEffects(beforeRound, afterRound, action),
+        ...(doubleDown ? { doubleDown } : {}),
       };
+    }
     case 'DRAW_FROM_UNCHARTED':
       return {
         at,

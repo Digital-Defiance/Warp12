@@ -138,6 +138,13 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Module Zeta: squad-vs-squad archive written by reportOnlineMatch only.
+    match /squadMatches/{gameId} {
+      allow read: if isSignedIn()
+        && request.auth.uid in resource.data.memberUids;
+      allow create, update, delete: if false;
+    }
+
     match /charters/{charterId} {
       allow read: if isSignedIn()
         && (
@@ -240,9 +247,21 @@ service cloud.firestore {
           return get(/databases/$(database)/documents/games/$(gameId)).data;
         }
 
+        // Module Zeta: sender's squadronId on the parent game doc, or null.
+        function senderSquadronId() {
+          return parentGameForMsg().captains
+            .filter(c => c.id == request.auth.uid)[0].get('squadronId', null);
+        }
+
         // Any sector member can read all messages (including DMs — per the
-        // honor model, not private to sender/recipient).
-        allow read: if isSignedIn() && isMember(parentGameForMsg());
+        // honor model, not private to sender/recipient). Squad-channel
+        // messages are further restricted to that squad's own members.
+        allow read: if isSignedIn()
+          && isMember(parentGameForMsg())
+          && (
+            resource.data.get('channel', 'table') != 'squad'
+            || resource.data.squadronId == senderSquadronId()
+          );
 
         // Write rules: sender must be a member; enforce rated-sector comms
         // gate at the rule level so tampered clients cannot bypass it.
@@ -251,17 +270,32 @@ service cloud.firestore {
           && request.resource.data.from == request.auth.uid
           && request.resource.data.at is string
           && request.resource.data.kind in ['phrase', 'text']
-          // During live rated play: only public quick-hail phrases (no text, no DM).
+          // Module Zeta: a squad-channel message is always allowed (honor
+          // system — coordinate strategy, never paste raw hand contents) but
+          // only for a captain actually on that squad, and only when the
+          // sector is actually running Module Zeta.
           && (
-            // Non-active phases (lobby, complete) — anything goes.
-            parentGameForMsg().phase != 'active'
-            // Active unrated — anything goes.
-            || parentGameForMsg().get('rated', true) == false
-            // Active rated — must be a phrase with no recipient (public only).
+            (
+              request.resource.data.get('channel', 'table') == 'squad'
+              && parentGameForMsg().get('modules', {}).get('squadrons', false) == true
+              && request.resource.data.squadronId == senderSquadronId()
+              && senderSquadronId() != null
+            )
             || (
-              request.resource.data.kind == 'phrase'
-              && request.resource.data.get('phraseId', '') != ''
-              && !request.resource.data.keys().hasAny(['text', 'to'])
+              request.resource.data.get('channel', 'table') != 'squad'
+              // During live rated play: only public quick-hail phrases (no text, no DM).
+              && (
+                // Non-active phases (lobby, complete) — anything goes.
+                parentGameForMsg().phase != 'active'
+                // Active unrated — anything goes.
+                || parentGameForMsg().get('rated', true) == false
+                // Active rated — must be a phrase with no recipient (public only).
+                || (
+                  request.resource.data.kind == 'phrase'
+                  && request.resource.data.get('phraseId', '') != ''
+                  && !request.resource.data.keys().hasAny(['text', 'to'])
+                )
+              )
             )
           );
 

@@ -15,6 +15,8 @@ export interface Captain {
   readonly displayName: string;
   /** Cumulative points score across completed rounds. */
   readonly pointsScore: number;
+  /** Module Zeta: squadron this captain belongs to, when squadrons are enabled. */
+  readonly squadronId?: string;
 }
 
 export type PlayerId = Captain['id'];

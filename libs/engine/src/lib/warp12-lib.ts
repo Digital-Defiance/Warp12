@@ -1,5 +1,6 @@
 export * from './types/coordinate.js';
 export * from './types/player.js';
+export * from './types/squadrons.js';
 export * from './types/trails.js';
 export * from './types/anomalies.js';
 export * from './types/modules.js';
@@ -14,6 +15,7 @@ export * from './setup/create-game.js';
 export * from './engine/apply-action.js';
 export * from './engine/legal-moves.js';
 export * from './engine/beacon.js';
+export * from './engine/squadrons.js';
 export * from './engine/scoring.js';
 export * from './engine/continuum.js';
 export * from './engine/warp-drive-spool.js';

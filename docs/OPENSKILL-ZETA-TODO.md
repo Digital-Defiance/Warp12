@@ -46,16 +46,16 @@ The OpenSkill rating system is fully integrated with rich user experience:
   - ✅ Conservative estimates with disclaimers
 
 **Phase 4 Technical Documentation** (substantial academic work, not blocking):
-- TEI spec rewrite (tei-spec.md) — Technical specification document  
-- Paper updates (tei-paper.tex) — Academic publication (LaTeX)
-- Figure regeneration — Visual assets for paper
+- TEI spec (`tei-spec.md`) — ✅ OpenSkill normative rewrite already shipped; light sync §6.5 team/Zeta gate + E8 modules (2026-07-13)
+- Paper updates (`tei-paper.tex`) — ✅ Module study §9 + figures 11–20; ✅ OpenSkill μ/σ rewrite of §5–7 + figures 6/7/10 (2026-07-13)
+- Figure regeneration — ✅ Module figures 11–20; ✅ OpenSkill ladder / calibration / Δμ figures
+- `openskill-docs-todo.md` — ✅ archived as complete; `tei-paper.md` marked superseded archive
 
-**Assessment:** Phase 3 is **100% COMPLETE**. All required and optional UI/UX items implemented, including both future enhancements. The rating system is fully production-ready with comprehensive visualization, advanced power-user features, and match preview capabilities.
+**Assessment:** Phase 3 is **100% COMPLETE**. Module balance study complete: **Epsilon = Warped/party**; **Zeta = skill-promote** (FFA TEI still gated on squad-track calibration).
 
-### ⏭️ READY FOR MODULE ZETA: YES
-Phase 5 (Module Zeta - team play) can proceed immediately. The rating system supports team ratings via OpenSkill's `updateTeamRatings()`.
+**⏭️ MODULE ZETA STATUS:** Engine shipped; **skill-promote** (2.94/4). Dedicated **squad TEI track** is live (`SQUADRONS_RATING_CALIBRATED = true`) — writes `squadRating` only, never FFA `humanRating`. **Epsilon** remains the Warped/party module (luck collapse).
 
-**Bottom line:** OpenSkill migration is **100% COMPLETE** for product launch. Users get comprehensive rating visualization, progression tracking, and celebration effects. Remaining items are optional enhancements to consider post-launch based on actual user feedback.
+**Bottom line:** OpenSkill migration is **100% COMPLETE** for product launch. Module taxonomy: **Promote** Official + most singles (Iota best) + Zeta gameplay; **Warped** Epsilon (party) + Kappa.
 
 ---
 
@@ -165,15 +165,14 @@ Phase 5 (Module Zeta - team play) can proceed immediately. The rating system sup
 - **Next:** Integrate into match log accumulator
 - **Status:** ✅ Implemented (2026-07-13)
 
-### Module Epsilon Bug (W15+ Spacedock)
-- **Issue:** Module Epsilon (drafting) crashes on W15+ games with "Spacedock coordinate 14-14 is missing from the shuffled set"
-- **Root cause:** Drafting module not handling higher warp factors correctly (trying to use 14-14 double in W15 game)
-- **Impact:** Blocks Module Epsilon calibration runs (19K games for comprehensive analysis)
-- **Priority:** Low (not blocking rating system deployment)
-- **Fix location:** `libs/engine/src/lib/types/modules.ts` or drafting implementation
-- **Workaround:** Skip epsilon in module calibration runs for now
-- **Related:** Comprehensive luck/skill study (171K games) may need re-run after fix
-
+### Module Epsilon Bug (W15+ Spacedock) — FIXED
+- **Issue:** Module Epsilon (drafting) crashed with "Spacedock coordinate N-N is missing from the shuffled set" (seen on W9 8-8, W15 14-14, any config where packs filled the entire set).
+- **Root cause (two interacting bugs):**
+  1. Self-play stall guard treated empty uncharted + empty hands during drafting as a blocked round, force-ending after ~2×playerCount picks.
+  2. Mid-draft picks lived only in `draftState.pickedTiles` (hands still empty); `collectRoundCoordinatesForRecycle` did not collect them, so the next Spacedock was absent.
+- **Contributing:** Interactive draft pack size used `floor(available/players)`, maximizing packs and leaving uncharted empty whenever the set divided evenly.
+- **Fix (2026-07-13):** Skip stall guard during drafting; recycle `pickedTiles`; size packs to warp-set hand size.
+- **Status:** ✅ Fixed — W9 2p epsilon self-play completes full campaigns.
 ---
 
 ## Phase 2: Backend Integration (Week 1-2) — **COMPLETE ✅**
@@ -488,7 +487,7 @@ We've implemented a gamified "TEI Grade" format on top of OpenSkill that creates
 
 ## Phase 4: Documentation Updates (Week 2-3)
 
-**STATUS:** User-facing docs complete ✅. Technical/academic docs require substantial work ⏳.
+**STATUS:** Documentation complete ✅ (user-facing + normative spec + research paper).
 
 **✅ COMPLETE - User & Developer Documentation:**
 - README.md — OpenSkill anchors, TEI Grade explanation
@@ -496,108 +495,48 @@ We've implemented a gamified "TEI Grade" format on top of OpenSkill that creates
 - RULES.md — Section VIII fully updated
 - calibration-log.md — OpenSkill migration entry added
 
-**⏳ REMAINING - Technical/Academic Documentation:**
-These are substantial rewrites for technical specification and academic publication:
-- [x] TEI spec (tei-spec.md) — Technical specification for implementers
-- [ ] Paper (tei-paper.tex) — Academic publication 
-- [ ] Figures regeneration — Visual assets for paper
+**✅ COMPLETE - Technical/Academic Documentation:**
+- [x] TEI spec (tei-spec.md) — Normative OpenSkill spec (μ/σ, grades, anchors); light sync team/Zeta gate + E8 modules (2026-07-13)
+- [x] Paper (tei-paper.tex) — OpenSkill §5–7 + Section 9 module study + figures 11–20
+- [x] Figures regeneration — `create-paper-figures.py` + `create-module-figures.py`
+- [x] `openskill-docs-todo.md` archived; `tei-paper.md` marked superseded Elo export
 
-**Assessment:** Core product documentation is complete. Technical spec and paper are large efforts that don't block product launch or Module Zeta implementation.
+**Assessment:** Core product + academic documentation is complete. Paper includes the 285k-game module balance study (**Epsilon = party Warped**; Zeta = skill-promote, FFA-gated). Remaining work is product (squad TEI track), not docs rewrites.
 
-Note that the TEI spec and paper rewrites need to include our TEI Grade system and how we intend it to make the OpenSkill system more user-palatable.
-
-### 4.1 TEI Spec Rewrite
-- [ ] **Update docs/tei-spec.md** — Complete rewrite of §5-8
-  - [ ] **§2 Terminology**
-    - [ ] Add μ (mu), σ (sigma), display rating
-    - [ ] Remove K-factor references
-    - [ ] Add "ordinal rating" for matchmaking
-  - [ ] **§3 Rating State**
-    - [ ] Replace Elo integers with (μ, σ) tuples
-    - [ ] Update storage examples
-    - [ ] Add uncertainty decay explanation
-  - [ ] **§6 Core Update Mathematics** — MAJOR REWRITE
-    - [ ] **DELETE §6.1-6.5** (all Elo formulas)
-    - [ ] **NEW §6.1:** OpenSkill rating model (Gaussian, Bayesian inference)
-    - [ ] **NEW §6.2:** FFA update (single `rate()` call)
-    - [ ] **NEW §6.3:** Team update (same `rate()` with teams)
-    - [ ] **NEW §6.4:** Reference opponent update (fixed AI anchors)
-    - [ ] Add mathematical notation (factor graphs, message passing)
-    - [ ] Reference OpenSkill paper in bibliography
-  - [ ] **§7 Constants**
-    - [ ] Replace fixed TEI integers with (μ, σ) anchors
-    - [ ] Update reference bands table
-    - [ ] Update display rating calculation
-  - [ ] **§8 Conformance Test Vectors**
-    - [ ] Provide OpenSkill test cases
-    - [ ] 2-player: winner/loser μ changes
-    - [ ] 4-player: rank-based updates
-    - [ ] Team: 2v2 updates
-  - [ ] **§9 Leaderboard Display**
-    - [ ] Update to show display rating
-    - [ ] Provisional badge rules (σ threshold)
-  - [ ] **§10 Mixed Tables**
-    - [ ] Update anchor handling (fixed μ, σ for AI)
-  - [ ] **§11 Worked Examples**
-    - [ ] Rewrite with OpenSkill math
-    - [ ] Show μ/σ updates, not TEI deltas
+### 4.1 TEI Spec
+- [x] **`docs/tei-spec.md`** — Already OpenSkill normative (no Elo rewrite needed)
+  - [x] Terminology: μ, σ, display rating, ordinal
+  - [x] Rating state: `(μ, σ, matches)` + cached display fields
+  - [x] §6: OpenSkill updates (vs-AI, FFA, mixed); **§6.5 team / Zeta gate**
+  - [x] §7: Calibrated `(μ, σ)` anchors + TEI grades
+  - [x] §8–11: Conformance smoke, leaderboards, mixed tables, worked examples
+  - [x] **E8 modules** — Warped excluded; Zeta TEI gated on `SQUADRONS_RATING_CALIBRATED`
 
 ### 4.2 Paper Complete Rewrite
-- [ ] **Update docs/tei-paper.tex** — Full revision
-  - [ ] **Abstract**
-    - [ ] Replace "Elo-style" with "OpenSkill Bayesian rating"
-    - [ ] Update key findings to reference μ/σ
-  - [ ] **§1 Introduction**
-    - [ ] Update "TEI" description (now OpenSkill-based)
-  - [ ] **§2 Related Work**
-    - [ ] Add TrueSkill, OpenSkill, Weng-Lin citations
-    - [ ] Explain why OpenSkill over Elo for team games
-  - [ ] **§5 TEI Rating System** — COMPLETE REWRITE
-    - [ ] **§5.1:** OpenSkill model (μ, σ, display rating)
-    - [ ] **§5.2:** Reference bands (now μ/σ tuples, not integers)
-    - [ ] **§5.3:** Update rules (Bayesian, not K-factor)
-    - [ ] **§5.4:** Percentile boards (unchanged logic)
-  - [ ] **§6 Calibration Methodology**
-    - [ ] Update to reference OpenSkill anchor calibration
-    - [ ] Keep self-play loop description (unchanged)
-    - [ ] Update metrics to use μ instead of TEI
-  - [ ] **§7 Results: AI Calibration**
-    - [ ] Replace "ΔTEI" with "Δμ" in tables
-    - [ ] Update win rate → μ gap calculations
-    - [ ] Keep win rate percentages (unchanged)
-  - [ ] **§8 Luck vs Skill** — Minimal changes
-    - [ ] Update axis labels (if graphs show ratings)
-    - [ ] Otherwise unchanged (measured game complexity)
-  - [ ] **§9 Discussion**
-    - [ ] Update "what calibration teaches" (OpenSkill lessons)
-    - [ ] Add note on team play support (Module Zeta)
-  - [ ] **§10 Conclusion**
-    - [ ] Update summary to reference OpenSkill
-    - [ ] Mention unified FFA + team rating
-  - [ ] **Bibliography**
-    - [ ] Add OpenSkill citations
-    - [ ] Add TrueSkill citations
-    - [ ] Add Bayesian skill rating papers
+- [x] **Update docs/tei-paper.tex** — Module study + OpenSkill TEI sections (2026-07-13)
+  - [x] Abstract: 285k-game module findings; Epsilon party Warped; Zeta skill-promote
+  - [x] Contributions: module balance item no longer pending
+  - [x] § House rules / modules list: full Alpha–Mu + Warped labels
+  - [x] **NEW §9 Module Balance** — ranking table, figures 11–20, product taxonomy
+  - [x] Discussion / Conclusion / Reproducibility / Code map updated
+  - [x] **OpenSkill μ/σ rewrite of §5–7** — anchors table, TEI grades, 2k-game matrices, Δμ captions
 
 ### 4.3 Figures & Tables
-- [ ] **Figure 6 (TEI ladder)** — `tools/nn/figures/figure6-tei-ladder.png`
-  - [ ] Regenerate with μ±σ error bars instead of fixed integers
-  - [ ] Show Ensign: μ=18±4, Lieutenant: μ=25±3.5, Commander: μ=32±3
-  - [ ] Update caption
-- [ ] **Figure 10 (points vs go-out)** — Update axis labels
-  - [ ] "Implied Δμ" instead of "Implied ΔTEI"
-  - [ ] Otherwise keep same data/trends
-- [ ] **Table 1 (reference bands)** — Regenerate
-  ```
-  | Class | Points μ | σ | Display | Go-Out μ | σ | Display |
-  | IV    | 18.0     | 4.0 | 6.0   | 17.5     | 4.5 | 4.0    |
-  | III   | 25.0     | 3.5 | 14.5  | 26.0     | 4.0 | 14.0   |
-  | II    | 32.0     | 3.0 | 23.0  | 34.0     | 3.5 | 23.5   |
-  ```
-- [ ] **Update figure generation scripts** — `tools/nn/create-figures.py`
-  - [ ] Update to read OpenSkill data format
-  - [ ] Regenerate all rating-related figures
-  - [ ] Commit updated PNGs
+- [x] **Figures 11–20 (module study)** — `tools/nn/create-module-figures.py`
+  - [x] figure11-module-skill-ranking.png
+  - [x] figure12-module-warp-heatmap.png
+  - [x] figure13-epsilon-collapse.png
+  - [x] figure14-module-metric-profiles.png
+  - [x] figure15-w12-module-fleet-curves.png
+  - [x] figure16-epsilon-deficit-heatmap.png
+  - [x] figure17-iota-spread-lift-w12.png
+  - [x] figure18-module-outcome-mix.png
+  - [x] figure19-legal-vs-spread-scatter.png
+  - [x] figure20-hand-pressure-bars.png
+  - [x] table4-module-ranking.tex
+- [x] **Figure 6 (TEI ladder)** — regenerated with μ±σ + TEI grades
+- [x] **Figure 7 (calibration matrix)** — 2k-game OpenSkill win rates
+- [x] **Figure 10 (points vs go-out)** — |Δμ| axis labels
 
 ### 4.4 Other Documentation
 - [x] **Update README.md** — ✅ COMPLETE
@@ -621,117 +560,172 @@ Note that the TEI spec and paper rewrites need to include our TEI Grade system a
 
 ---
 
+## Phase 5 — Pre-Implementation Validation (2026-07-13)
+
+**Plan reviewed against the actual codebase before starting. Findings below correct/expand the 5.x tasks. Read this before implementing.**
+
+### What's already done (plan was stale)
+- `SquadronsModule` **already exists** in `types/modules.ts` with `enabled` + `squadronSize`, wired through `DEFAULT_MODULES`, `GameModuleConfig`, `resolveModules`. Task 5.1 "add squadronSize" is done.
+- `updateTeamRatings()` **already exists and is solid** (`libs/engine/src/lib/rating/update-team.ts`): takes `Team[]` (members + rank), returns `Map<playerId, PlayerRating>`. Plus `updateTwoTeamMatch`. Task 5.4's core dependency is ready.
+
+### Corrections to the plan
+- **Win detection is in `apply-action.ts`, NOT `round-resolution.ts`.** `applyChartToRoute` sets `emptyHandWin → roundWinnerId` / `pendingRoundWin`. `round-resolution.ts` only handles blocked rounds + finalizing a pending (post-Continuum) win. Squad victory work goes in `apply-action.ts`.
+- **"Shared trail" is the linchpin and touches ~20 files**, not just `apply-action.ts`. Every indexed `warpTrails[playerId]` / `[route.playerId]` access assumes one-trail-per-captain: `legal-moves.ts`, `beacon.ts` (all gates), `apply-action.ts`, `table-state.ts`, `fracture-stabilizers.ts`, `longest-trail.ts`, `pip-inventory.ts`, `engine-invariants.ts`, `serialization/{encode,decode}-state.ts`, plus AI (`heuristics.ts`, `context.ts`, `spool-strategy.ts`, `advisor-concepts.ts`, `luck-skill-metrics.ts`).
+- **Shared beacon "deploys when all members stuck" has no home today.** Engine is strictly one-active-player-per-turn; nothing evaluates "all squadmates stuck." New per-squad beacon machinery required.
+- **Scoring lands in an already-overloaded `tallyRoundPoints`** (Kappa/Theta/Delta/Eta/salamander-swap branches). Squad aggregation must group captains by squad.
+- **Bridge seating omitted.** `turnOrder` is flat `captains.map(c=>c.id)`. Rules require teammates to alternate with opposing squads → need interleaved turn order in `create-game`/setup.
+- **Comms/team-chat omitted entirely** (see decisions below).
+- Pre-existing drift (not Zeta's job): code Module Delta = `warpDriveSpool`, but RULES Delta = "Hot Potato"; hazard-marker penalty in `scoring.ts` is gated on `warpDriveSpoolEnabled`.
+
+### DECISIONS (locked 2026-07-13)
+1. **Trail data model: Model C — canonical trail per squad + `trailKeyFor(round, playerId)` resolver.** In FFA `trailKeyFor` = identity (zero behavior change). In squads it maps every member to the squad's canonical trail key (the squad's designated owner id). One shared trail + one shared beacon per squad, matching the rules, while confining edits to indexed access sites. (Model A = per-player trails aliased: violates "one trail per squad." Model B = re-key `warpTrails` by TrailId: cleanest but largest blast radius incl. serialization. C is the pragmatic middle.)
+2. **AI teammates: NO shared hand info.** Squadmates decide from public state only (same as any AI). Keeps replay deterministic; no cooperative search. AI coordination is heuristic bias toward the shared squad trail only.
+3. **Rating scope: online first (multi-human squads, optional AI fill).** Local practice-AI squad rating is a follow-up (needs replay-harness team support).
+4. **Points squad scoring:** each member's `pointsScore` stores the **squad aggregate** so cumulative standings are squad-level. Interpretation (rules were ambiguous): the **winning squad** (squad of the member who went out) scores **0 for all members**; each **losing squad** scores its **aggregate remaining pips**, assigned to every member. Blocked round: every squad scores its aggregate.
+8. **Shared beacon falls out of Model C for free:** the beacon lives on the trail keyed by `trailKey`, so routing beacon reads/writes through `trailKeyFor` makes it shared automatically — any squadmate charting the squad trail clears it. The plan's "deploys only when all members stuck" was dropped as over-engineered and less rules-faithful ("shields up as long as ANY member keeps momentum").
+5. **Mixed human/AI squads:** allowed and rated online (AI = fixed anchors), consistent with FFA rule today.
+6. **Objectives:** support both go-out and points. Go-out is *less* engine work (no aggregate scoring — first squad with an empty-handed member wins). Rated-vs-exhibition for go-out squads is a balance question deferred to 5.6 calibration, not a feasibility one.
+7. **Comms:** two channels with a tab switcher. **Table channel** keeps `resolveCommsMode` (quick-only during rated active play). **Team channel** is always `full` (intra-squad coordination is the mechanic, not collusion). **Honor-system rule:** discuss strategy, never paste raw hand contents. Requires `channel` field on `SubspaceMessage`, `resolveCommsMode(channel, ...)`, Firestore rules change, and RULES.tex §IX Zeta exception. Rated-vs-exhibition for Zeta is gated on 5.6 calibration.
+
+### "Rating server" / "squad-aware replay" clarified
+- "Rating server" = Firebase Cloud Functions (`functions/`). No separate server.
+- `report-online-match.ts`: does NOT replay — reads finished `games/{gameId}` doc, computes ranks from stored scores, applies FFA ratings. Squad path = group by squadron, rank squads, call `updateTeamRatings()`.
+- `practice-ai-replay.ts`: re-simulates solo human moves vs seeded AI to verify wins. Squad practice rating (deferred) would need this harness to understand teams.
+
+---
+
 ## Phase 5: Module Zeta Implementation (Week 3)
 
-### 5.1 Types & Game State
-- [ ] **Update modules.ts** — `libs/engine/src/lib/types/modules.ts`
-  - [ ] `SquadronsModule` already exists, verify fields
-  - [ ] Add `squadronSize: number` (2-3 captains per squad)
-- [ ] **Update game-state.ts** — `libs/engine/src/lib/types/game-state.ts`
-  - [ ] Add `squadrons?: Squadron[]` to GameState
-  ```typescript
-  interface Squadron {
-    id: string;           // squadId
-    memberIds: PlayerId[];
-    sharedTrailId: string; // Which trail they share
-  }
-  ```
-- [ ] **Update trails.ts** — `libs/engine/src/lib/types/trails.ts`
-  - [ ] Add `squadronId?: string` to Trail
-  - [ ] Shared trails have multiple "owners"
-- [ ] **Update player.ts** — `libs/engine/src/lib/types/player.ts`
-  - [ ] Add `squadronId?: string` to Captain
+### 5.1 Types & Game State — ✅ COMPLETE (2026-07-13)
+- [x] **modules.ts** — `SquadronsModule` verified (enabled + squadronSize; already wired through DEFAULT_MODULES / GameModuleConfig / resolveModules).
+- [x] **types/squadrons.ts** — NEW. `Squadron { id, memberIds, trailKey }` (Model C: `trailKey` = canonical shared-trail key, not `sharedTrailId`).
+- [x] **game-state.ts** — `squadrons?` added to both `GameState` and `RoundState` (engine reads it from the round).
+- [x] **player.ts** — `squadronId?` added to `Captain`. (Trail sharing is via `trailKey`, so `trails.ts` needs no `squadronId`.)
+- [x] Exported from `warp12-engine` barrel.
 
-### 5.2 Engine Logic
-- [ ] **Squad formation** — `libs/engine/src/lib/engine/squadrons.ts`
-  - [ ] `formSquadrons()` — divide captains into equal teams
-  - [ ] Validate: even division, 2-3 per squad, min 2 squads
-  - [ ] Assign squadIds, create shared trails
-- [ ] **Shared trail mechanics** — Update `apply-action.ts`
-  - [ ] When any squad member plays on squad trail → all benefit
-  - [ ] Trail legality: any squad member can play on squad trail
-  - [ ] Beacon: shared per squad (all members contribute to clearing)
-- [ ] **Squad beacon logic** — Update `beacon.ts`
-  - [ ] Beacon deploys when **all** squad members are stuck
-  - [ ] Beacon clears when **any** squad member plays on squad trail
-  - [ ] Track beacon state per squad, not per individual
-- [ ] **Squad victory** — Update `round-resolution.ts`
-  - [ ] Round ends when **any** squad member empties hand
-  - [ ] Winning squad = squad with the empty-hand member
-  - [ ] Squad rank = aggregate remaining pips across all members
-- [ ] **Squad scoring** — Update `scoring.ts`
-  - [ ] Sum all tiles remaining in all squad members' hands
-  - [ ] Winning squad scores 0 (all members)
-  - [ ] Losing squads score aggregate pips
-- [ ] **Unit tests** — `libs/engine/src/lib/engine/squadrons.spec.ts`
-  - [ ] Test squad formation (4 captains → 2 squads of 2)
-  - [ ] Test shared trail play (both members contribute)
-  - [ ] Test shared beacon (cleared by any member)
-  - [ ] Test squad victory (one member out = squad wins)
-  - [ ] Test squad scoring (aggregate pips)
+### 5.2 Engine Logic — ✅ CORE COMPLETE (2026-07-13)
+- [x] **Squad formation** — `engine/squadrons.ts`: `formSquadrons()` (validates 2–3/squad, ≥2 equal squads), interleaved **bridge seating** turn order, `trailKeyFor` / `sameTrailGroup` / `trailGroupMembers` / `squadronForPlayer` resolvers.
+- [x] **Squad-aware table creation** — `table-state.ts` `createInitialTable(..., squadrons?)` builds one shared trail per squad (keyed by trailKey).
+- [x] **Threading** — `create-game.ts` `startGame` forms squads, applies interleaved seating, assigns `squadronId`, sets `squadrons` on game+round; `scoring.ts` threads squadrons through the subsequent-round re-deal.
+- [x] **Shared trail mechanics** — `legal-moves.ts` (own = squad trail via trailKey; opponent trails de-duped by key), `apply-action.ts` (chart/auto-raise/beacon/wormhole/spool + both SHIELDS_UP checks now use `sameTrailGroup`).
+- [x] **Shared beacon** — falls out of Model C: beacon lives on the trailKey trail; routing beacon reads/writes in `beacon.ts` + `apply-action.ts` through `trailKeyFor` makes it shared (any squadmate clears it). (Superseded the plan's "deploys when all members stuck.")
+- [x] **Squad victory** — go-out uses existing `roundWinnerId` (the member who emptied); the squad is derived downstream. (No `round-resolution.ts` change needed — win detection lives in `apply-action.ts`.)
+- [x] **Squad scoring** — `scoring.ts` `tallyRoundPoints`: winning squad → 0 all members; losing squads → aggregate pips per member.
+- [x] **Tests** — `engine/squadrons.spec.ts` (20): formation, interleaving, resolvers, startGame structure, shared-beacon clear by squadmate, points aggregation (normal win + blocked round). Plus 3 **fuzz presets** in `random-play-harness.spec.ts` (2×2 points, 2×3 go-out, 2×2 + Official Warp) — all engine invariants hold over full random squad games. **Full engine suite: 574 passing, 0 regressions.**
 
-### 5.3 AI Support
-- [ ] **AI squad coordination** — `libs/engine/src/lib/ai/squad-tactics.ts`
-  - [ ] Heuristic: prefer playing on squad trail when possible
-  - [ ] Heuristic: coordinate to clear squad beacon
-  - [ ] Heuristic: avoid blocking squadmates
-- [ ] **Update skill profiles** — `libs/engine/src/lib/ai/skill.ts`
-  - [ ] Add `squadCoordination` weight (how much to favor squad trail)
-  - [ ] Commander: high coordination (0.8)
-  - [ ] Lieutenant: medium (0.5)
-  - [ ] Ensign: low (0.2)
+**5.2 fully complete** — including the blocked-round squad-aggregation numeric test (no exemption, matches Section V: every squad scores its own aggregate).
 
-### 5.4 Rating Integration
-- [ ] **Squad match reporting** — `functions/src/squads/report-squad-match.ts`
-  - [ ] Accept squad rosters + final standings
-  - [ ] Use `updateTeamRatings()` from Phase 1
-  - [ ] Update each captain's individual rating
-  - [ ] Write to `playerStats/{uid}/rating`
-- [ ] **Eligibility checks** — Extend TEI spec rules
-  - [ ] All captains in squads must be signed in
-  - [ ] Squad rosters locked at match start
-  - [ ] Module Zeta enabled
-  - [ ] Standard objective (goOut or points)
-  - [ ] No advisor use
-- [ ] **Match history** — `functions/src/squads/squad-match-history.ts`
-  - [ ] Store squad matches separately: `squadMatches/{matchId}`
-  - [ ] Include: rosters, standings, rating changes per captain
-  - [ ] Link from individual profiles
+### 5.3 AI Support — ✅ COMPLETE (2026-07-13)
+- [x] **Correctness prerequisite (not in original plan, discovered while implementing):** several existing heuristics and AI helpers compared `route.playerId === ctx.obs.playerId` directly to detect "own trail." Under Model C a squadmate's own-trail move resolves to the squad's `trailKey`, which can differ from their own id — so these would have silently misclassified a squadmate's own-trail play as an opponent-trail play (and `defensiveShared` would have treated a squadmate's shared trail as something to *defend against*). Added `routeIsOwnTrail()` to `engine/squadrons.ts` and fixed every site: `heuristics.ts` (`goOutDumpPhase`, `goOutTrailPriority`, `goOutOpponentTrailDump`, `goOutAvoidMayhem`/`playDoublesEarly`, `ownTrail`, `defensiveShared`, `longestTrailBonus`), `explain-action.ts` (advisor text), `spool-strategy.ts` (Module Delta own/opponent classification + trail-length race, de-duped by trail key). Verified behavior-preserving in FFA (`routeIsOwnTrail` ≡ identity comparison when no squads) — full suite still 574/574 before adding new tests.
+  - Left as a noted follow-up (calibration-only, not decision-affecting): `luck-skill-metrics.ts`'s `categorizeChartTarget`/`updateTrailDevelopment` still use direct id comparison for self-play telemetry; only matters once Zeta calibration (5.6) runs squad self-play.
+- [x] **AI squad coordination heuristic** — added `H.squadCoordination` to `heuristics.ts` (not a separate `squad-tactics.ts` file — kept in the existing heuristic registry/pattern for consistency). Scores charting on the shared squad trail (`routeIsOwnTrail`) with a bonus when it also clears the squad's shared beacon (public info only — no squadmate hand inspected, per the no-shared-info decision). Registered in `DEFAULT_WARP_HEURISTICS`.
+  - "Avoid blocking squadmates" was **not** added as a separate heuristic — with shared trails there is no distinct "block a squadmate" action to avoid (any squad member's own-trail chart benefits the squad); this concern is naturally absorbed by shared-trail legality itself.
+- [x] **Skill profiles** — `H.squadCoordination` weight added to both `POINTS_PRESETS` and `GO_OUT_PRESETS` (all three tiers, both objectives): Ensign 0.2, Lieutenant 0.5, Commander 0.8 — matches the plan exactly.
+- [x] **Test** — `engine/squadrons.spec.ts`: constructs a real board where both the squad trail and an opposing trail are equally legal, runs an actual deterministic (`temperature: 0, blunderRate: 0`) Commander `WarpAiPlayer.decideGameAction`, and asserts it picks the squad trail. **Full engine suite: 575 passing.**
+- Note on human vs AI TEI scales (clarified mid-session): human TEI is continuous 0–99 (`μ − 3σ`, engine `tei-grade.ts`); AI opponents remain the three fixed anchors (`WarpSkillLevel = ensign|lieutenant|commander`, `tei-spec.md` §7.1) — `squadCoordination`'s tiered weights are on the AI-difficulty axis, not the human score axis. No engine change from this; just a mental-model check.
 
-### 5.5 UI for Squads
-- [ ] **Squad formation UI** — `apps/Warp12/src/app/lobby-squad-form.tsx`
-  - [ ] Drag-and-drop captain assignment to squads
-  - [ ] Auto-balance squads (equal size)
-  - [ ] Squad naming (optional)
-  - [ ] Preview shared trail layout
-- [ ] **In-game squad indicators**
-  - [ ] Color-code squadmates (shared trail color)
-  - [ ] Squad HUD showing all members' hand counts
-  - [ ] Shared beacon indicator
-- [ ] **Squad match summary** — Post-game
-  - [ ] Show squad standings (rank)
-  - [ ] Show each captain's rating change
-  - [ ] Aggregate rating change per squad (average Δμ)
-- [ ] **Profile squad stats** — `apps/Warp12/src/app/profile-squad-tab.tsx`
-  - [ ] New tab: "Squad Play"
-  - [ ] Show squad matches played
-  - [ ] Show rating from squad games
-  - [ ] List recent squad teammates
+### 5.4 Rating Integration — ✅ CORE COMPLETE (2026-07-13)
+- [x] **Squad match reporting** — done as a branch inside `functions/src/report-online-match.ts` (`reportOnlineSquadMatch`), not a separate `functions/src/squads/` module. Rationale: it needs the exact same idempotency/transaction/eligibility scaffolding as the FFA path (charter checks, advisor check, verified-account check, `phase === 'complete'` guard) — duplicating that into a new file would have drifted from the FFA path over time.
+  - [x] Accepts squad rosters + final standings (read from the Firestore game doc's new `squadrons` field — see schema below)
+  - [x] Uses `updateTeamRatings()` — **and critically, feeds it each member's own prior rating, never a squad average.** Verified with dedicated tests at both the engine layer (`libs/engine/src/lib/rating/update-team.spec.ts`, 10 tests — a strong-veteran + fresh-teammate pair on the same winning squad get different posteriors) and the Cloud Function layer (`functions/src/tei/apply-squad-tei.spec.ts`, "reads the player's OWN prior rating from Firestore, not a squad average"). This was an explicit ask — confirmed OpenSkill's per-individual credit assignment survives the full wiring, not just the library call.
+  - [x] Updates each captain's individual rating → written to `playerStats/{uid}.squadRating[track]` (new field, kept separate from `humanRating` — squad and FFA are different skills, matching how `groupRating` is already separate)
+  - [x] `matchHistory` entries added for parity with the FFA path (`opponentContext: 'squad'`, includes `squadId`)
+- [x] **Eligibility checks:**
+  - [x] Module Zeta enabled + rosters present → `isSquadGame()`
+  - [x] Standard objective (goOut or points) — reuses existing objective gate
+  - [x] No advisor use — reuses existing `anyCaptainUsedAdvisor` check (squad branch runs after it)
+  - [x] Signed-in humans — reuses existing per-human `isVerifiedAccount` loop
+  - [x] **Gate:** `SQUADRONS_RATING_CALIBRATED` (`anchors.ts`, **`true`** as of 2026-07-13) — eligible Zeta sectors rate on `squadRating`. Fallback ineligibility reason `squadrons_not_calibrated` retained if the flag is ever flipped off.
+  - [ ] "Squad rosters locked at match start" — not separately enforced; rosters come from `formSquadrons()` at `startGame` and there's no mid-game re-formation path, so this is implicitly true today. Revisit if a future feature allows mid-game roster edits.
+- [x] **Separate `squadMatches/{gameId}` history collection** — written by `reportOnlineSquadMatch` (`buildSquadMatchArchive`); client `listMySquadMatches` + profile “Squad sector archive”; rules + composite index.
+- [x] **Drag-and-drop manual override** — `modules.squadronRosters` + engine `formSquadrons(..., explicitRosters)` / `reconcileSquadronRosters`; lobby drag chips swap seats.
+
+**Also fixed while wiring this up:**
+- **Stale `functions/node_modules/warp12-engine` trap.** Yarn (`nodeLinker: node-modules`) copies `file:vendor/...` deps into `node_modules` at install time and does not re-copy them just because `vendor/` was rebuilt — `tsc` was silently compiling against a stale engine snapshot missing the new squadron exports. Fixed permanently: `scripts/prepare-functions-packages.sh` now runs `yarn install` right after staging `vendor/`, so `yarn build:functions` (and deploy scripts, which call the same prep step) self-heals every time.
+- **`functions/src` had no unit test story.** `admin.firestore()` executes at module load in files that import `firebase-admin`, so those can't be unit tested without mocking Firebase. Extracted the pure ranking/eligibility logic (`isSquadGame`, `evaluateOnlineRatingEligibility`, `computeOnlineRanks`, `computeOnlineSquadRanks`, `aiSkill`, `isAiGameCaptain`) into a new zero-Firebase-import module, `functions/src/online-match-eligibility.ts`, re-exported from `report-online-match.ts` for backward compatibility. Added `functions/vitest.config.mts` + `yarn test:functions` (now part of `yarn test:libs`). **37 functions tests passing** (15 eligibility/ranking + 22 squad-rating-application), zero regressions.
+
+**Client/schema changes required to make this reachable at all (server can't rank squads it never sees):**
+- `apps/Warp12/src/firebase/schema.ts` — added `FirestoreCaptain.squadronId?`, `FirestoreSquadron` type, `FirestoreGameDocument.squadrons?`, `modules.squadrons?`.
+- `apps/Warp12/src/firebase/serialize.ts` — `serializePublicGame` / `mergeHandsIntoGame` round-trip `state.squadrons` (with `trailKey`), round-scoped `squadrons`, each captain's `squadronId`, plus Gamma `sensorGrid`, Epsilon `draftState`, Delta hazard fields, Eta `debtTokens`, Lambda `wormholeOpened` (2026-07-13 serialize finish).
+
+### 5.5 UI for Squads — ✅ COMPLETE (2026-07-13)
+- [x] **Squad formation UI** — `squadron-formation-preview.tsx`, wired into the module toggles in `online-lobby-page.tsx` under the new Module Zeta checkbox. Renders a **live** read-only preview (calls the real engine `formSquadrons()` — not a reimplementation) showing exactly which squads will form and who's in each, updating automatically as captains join/leave/AI-fill and as the host changes squadron size (2 or 3). Color-coded per squad using the same palette as the in-game tails HUD, so a squad's color is visually consistent from lobby through the match. Shows a clear inline error instead of squads when the current roster can't divide evenly (e.g. 5 captains at squad size 2) rather than silently guessing.
+  - [x] Auto-balance display — engine does the balancing (`formSquadrons` round-robin); this surfaces it live.
+  - [x] Squadron size selection (2 or 3 per squad)
+  - [x] Drag-and-drop manual override — host assigns via `squadronRosters` (engine explicit rosters + reconcile on join/leave); preview chips swap on drop (2026-07-13).
+  - [x] **Squad naming — done (2026-07-13).** Added optional `name?: string` to the engine `Squadron` type; `formSquadrons()` takes an optional 3rd `squadronNames?: readonly (string|undefined)[]` param (index-aligned, trimmed, blank → undefined) and a new `squadronDisplayName(squadrons, squad)` helper (returns `squad.name` or falls back to `Squad ${index+1}`). Threaded through `SquadronsModule.squadronNames?` / `GameModuleConfig.squadronNames?` in `modules.ts` → `resolveModules()` → `startGame()`. Client schema (`FirestoreSquadron.name?`) and `serialize.ts` round-trip the name. Lobby UI: `squadron-formation-preview.tsx` now renders a text `<input maxLength={24}>` per squad row (placeholder = fallback name) instead of a static label, wired to `formSquadrons` for the live preview; `online-lobby-page.tsx` persists `squadronNames` into `lobby.modules`. **Comms panel now shows the viewer's own squad name on the Squad tab** (`comms-panel.tsx` `viewerSquadronName` prop; `online-game-page.tsx` computes it via `squadronDisplayName` looked up from `game.squadrons`) instead of a hardcoded "Squad" label. Checked every other UI surface that references squads (`captain-tails-hud.tsx` only uses `squadronId` for CSS color-coding, never renders "Squad N" as text; profile/summary "Squad TEI" headers are section labels, not per-squad names) — no other hardcoded label needed updating. Tests: `squadrons.spec.ts` (+8: naming assignment, blank/trim handling, backward compat, `squadronDisplayName` fallback, end-to-end `startGame` threading) and `squadron-formation-preview.spec.tsx` (+3: renders name inputs, calls `onSquadronNamesChange` on edit via `fireEvent.change`, falls back to placeholder when unnamed).
+  - [x] **Preview shared trail layout — done (2026-07-13).** Each squad row in `squadron-formation-preview.tsx` now renders a small illustrative diagram (one dot per squadmate, converging on a line labeled "Shared Warp Trail") below the name/roster line, visually reinforcing Model C before launch — that the squad plays onto **one** shared trail, not one trail per captain. Purely illustrative (`role="img"` with a descriptive `aria-label`, e.g. "2 captains share one warp trail"); no game logic reads from it. Hint text below the list also now says so explicitly. Tests: `squadron-formation-preview.spec.tsx` (+2: node count matches squad size for 2-per-squad and 3-per-squad rosters).
+  - **Tests:** `squadron-formation-preview.spec.tsx`, 4 tests (valid roster, too-small roster, uneven roster, 3-squad scaling) — first React-component-render test in this app (`@testing-library/react` was already a devDependency but previously unused for component rendering).
+- [x] **In-game squad indicators** — `captain-tails-hud.tsx`:
+  - [x] **Correctness fix found while implementing:** `buildTailRows` indexed `round.table.warpTrails[captainId]` directly — under Model C, squad members other than the trail's canonical `trailKey` owner would show an empty/wrong trail in the HUD. Fixed with `trailKeyFor()`.
+  - [x] Color-code squadmates — left border stripe keyed by `data-squadron` (`squad-1`/`squad-2`/`squad-3`, stable per-session colors), so squadmates are visually grouped in the tails list without fighting the existing active/hazard background states.
+  - [x] Squad HUD hand counts — already rendered per-captain elsewhere in the bridge table (`handCounts[id] ?? round.hands[id]?.length`); squad color-coding on the HUD now lets you visually group those existing per-captain counts by squad.
+  - [x] Shared beacon indicator — falls out for free: since the trail (and its beacon) is now correctly read via `trailKeyFor`, every squadmate's row already shows the *actual* shared shields state (this was the bug, not a missing feature).
+- [x] **Squad match summary** — `stats-service.ts` (`OnlineHumanSelfReport`/`OnlineMatchCallableResult` now carry `squadId` from the server) + `campaign-complete-overlay.tsx` (TEI section header reads "Squad TEI" instead of "TEI"/"Crew TEI" when `squadId` is present, reusing the existing `TeiChange` before/after display — no new component needed since squad ratings are still per-individual `StoredRating`).
+- [x] **Profile squad stats** — added `squadRating`/`squadRatedGameIds` to the client `PlayerStatsDocument` schema (parity with server), `squadObjectiveTeiStats()` helper (parallel to `humanObjectiveTeiStats`), and a `SquadTeiTable` component (parallel to `HumanTeiTable`, reuses `TeiCell`/`TeiDisplay`) rendered in a new "Squad Play (Module Zeta)" fieldset on the profile page. Hidden entirely until the captain has played a rated squad match (`rating.matches > 0`), consistent with how no-data states are handled elsewhere on the page.
+- [x] **Squad Chat — fully done** (2026-07-13):
+  - [x] `resolveCommsMode(rated, phase, channel)` — new `channel: 'table'|'squad'` param. Table channel behavior unchanged (quick-only during rated active play); squad channel is always `full` — honor system, matches RULES.tex "Collaborative Command." 6 tests passing.
+  - [x] `SubspaceMessage` schema: added `channel?` + `squadronId?`. `sendTextMessage()` accepts an optional `{channel:'squad', squadronId}` arg.
+  - [x] `firestore.rules`: squad-channel messages readable only by same-squad members; writable only by a captain who is actually on that squad in a sector actually running Module Zeta (server-enforced, not just client-side).
+  - [x] **Tab-switcher UI done** (2026-07-13): `comms-panel.tsx` now renders Table/Squad tabs (squad-less viewers/sectors never see the tab, collapse to table). Distinct colors per your ask — table = neutral slate, squad = warm amber (`channelTabTable` / `channelTabSquad` in `comms-panel.module.scss`) so it's visually unmistakable which channel you're on. Messages are filtered client-side by `channel`/`squadronId`; `sendTextMessage` tags outgoing squad messages accordingly. `online-game-page.tsx` passes `rated`/`phase`/`viewerSquadronId` instead of a precomputed mode, so the panel resolves table-vs-squad mode itself per active tab. Verified: app-wide `tsc --noEmit` clean, full bridge suite 270/270 passing (no regressions).
+
+### ⚠️ Correction (2026-07-13, caught by user challenge on "falls out for free")
+When closing out the HUD indicators above, I claimed the shared-beacon indicator "falls out for free" and treated `apps/Warp12/src/app/captain-tails-hud.tsx` as the only place with the `warpTrails[captainId]` indexing bug. **That was an unverified shortcut** — I never checked `libs/react` (the adapter library that actually renders the live game table, not just the HUD overlay). It had the same bug, and worse:
+
+- **`libs/react/src/adapters/game-to-trains.ts` (`gameStateToTrains`)** — indexed `warpTrails[captainId]` with **no null guard**, then did `trail.tiles` unconditionally. For any squad member who isn't their squad's `trailKey` owner, this **crashed** rendering the live table (confirmed empirically: `TypeError: Cannot read properties of undefined (reading 'tiles')`). Fixed via `trailKeyFor()`; also fixed the fracture-anchor comparison (`fracture.trailCaptainId === trailKey`, not `captainId`).
+- **`libs/react/src/adapters/trail-access.ts` (`buildTrailSpokeStatuses`)** — same unguarded crash, feeding `trailOpenValue(trail, ...)`. This is what actually drives `TrailSpokeStatus` — the data I'd claimed "just worked." Fixed via `trailKeyFor()`; also fixed the `redAlertTrail` comparison (`redAlert.trailPlayerId === trailKey`).
+- **`libs/react/src/adapters/table-focus.ts`** — one unguarded crash site in `detectNewChart`'s fracture branch; a second, non-crashing but semantically wrong site (camera-pan target misattributed to the trailKey owner when a non-owner squadmate charts, since raw-id comparison silently never matches for them). Both fixed.
+- **`libs/engine/src/lib/engine/continuum.ts` (`trailsOpenToOthers`)** — the root engine helper itself only resolved `warpTrails[trailPlayerId]` directly. Fixed at the source (now calls `trailKeyFor` internally, idempotent for FFA and for callers that already pass a trailKey) so every caller — engine and react — is correct without needing to remember to resolve first.
+- **`libs/react/src/hand/game-log.ts`** — three sites with the same pattern (`roundStarterOpeningBeaconDeployed`, wormhole-detection trail lengths, `drawEffects` beacon check); all `?.`-guarded so non-crashing, but semantically wrong (would misreport beacon/trail-length deltas for squadmates). Fixed via `trailKeyFor`/`routeIsOwnTrail`. Two other sites (`route.playerId` accesses) were already correct as-is — `route.playerId` on a warp-trail route is always emitted as a trailKey by the engine, not a raw captain id.
+
+**Fixed and verified properly this time:**
+- 5 new tests added (`game-to-trains.spec.ts` ×3, `trail-access.spec.ts` ×2) — including an explicit "does not crash" test per file, which would have failed with the exact `TypeError` above before the fix.
+- Crash confirmed empirically via a standalone repro (not just inferred from reading code) before claiming it was real.
+- Full suite re-run after the fix: **589 engine + 69 react + 274 bridge + 22 functions = 954 tests, zero regressions.** `tsc --noEmit` clean on the app.
+
+**Lesson recorded for future phases:** "falls out for free" is a claim that requires checking every consumer of the data path, not just the one component being actively edited. `libs/react` sits between the engine and every UI surface (HUD, live table, camera focus, action log) — any Model-C correctness fix must be checked there, not assumed.
+
+### Full repo-wide sweep (2026-07-13, requested explicitly — "fix the shortcuts, not document them")
+User asked for a comprehensive sweep for every remaining `warpTrails[playerId]`-shaped or `route.playerId ===`-shaped comparison that could still be wrong under squads, and to **fix**, not just catalogue, anything found. Full results:
+
+**Additional real bugs found and fixed (all beyond the correction above):**
+- **`apps/Warp12/src/app/bridge-table.tsx`** (the live game screen) — `trainConnectValue` (drives own-trail connect-value UI hints) and `ownTrail`/`shieldsDown` (drives the local human's shield/helm-control UI) both indexed `warpTrails[handOwnerId]` directly. For a squad member who isn't their squad's trailKey owner: `trainConnectValue` silently fell back to the spacedock value instead of the real trail's open end; `shieldsDown` was always `false` regardless of the squad's actual beacon state, which could show wrong helm controls. Fixed via `trailKeyFor`.
+- **`libs/engine/src/lib/serialization/encode-state.ts`** (binary match-log encoder, used in production by `apps/Warp12/src/game/match-log-binary.ts`) — encoded an empty trail (`[0,0]`) for any non-owner squadmate's slot instead of their real shared trail content. Silent data-integrity bug in exported match logs for any squad game. Fixed via `trailKeyFor`.
+- **`libs/engine/src/lib/types/subspace-fracture-scope.ts` (`subspaceFractureAppliesToDouble`)** — **rules-affecting bug with zero prior test coverage.** The "Own Trail" Subspace Fracture scope compared `route.playerId === playerId` directly; since `route.playerId` is the trail's canonical key, a non-owner squadmate charting a double on their own (shared) trail would never open a fracture — the module would silently degrade to doing nothing for that squad. Fixed by threading `round` into the function and comparing via `sameTrailGroup`. Added a dedicated spec (8 unit tests) plus an end-to-end `applyAction`-level squad test (this function had no direct tests at all before this pass).
+- **`libs/engine/src/lib/engine/warp-drive-spool.ts` (`executeWarpDriveSpool`, Module Delta)** — 6 sites computing `isOwnTrail` via direct `route.playerId === playerId`, used to decide whether spooling clears the hazard marker, plus the same fracture-scope call as above. Fixed by threading `round` through the function signature (all 8 call sites in its own spec updated to pass a round fixture) and using `routeIsOwnTrail`.
+- **`libs/engine/src/lib/engine/house-rules.ts`** — **three separate bugs**, all with real gameplay impact when Deluxe house rules combine with Zeta: a second (module-local) copy of `hasEstablishedWarpTrail` indexing `warpTrails[playerId]` directly; `allCaptainsHaveStartedTrails` (drives `neutralZoneAfterAllTrails`) iterating captains but only ever seeing the trailKey owner's tiles, so it could never become true once any squad had 2+ members regardless of actual board state; `canChartOnOpponentTrail`'s `trailCaptainId === actingPlayerId` check, same pattern as everywhere else; `roundStarterOpeningObligation`'s own-tiles check. All fixed via `trailKeyFor`/`sameTrailGroup`. Added 2 new squad-specific tests proving each fix.
+- **`libs/engine/src/lib/ai/explain-turn-resolution.ts`** — 3 sites (advisor/coach explanation text): `redAlertTargetLabel` would say "another captain's warp trail" for a squadmate's own shared trail; two `beaconActive` checks (manual shield control hints) read the wrong (always-false) beacon state for non-owner squadmates. Fixed via `sameTrailGroup`/`trailKeyFor`.
+- **`libs/engine/src/lib/ai/luck-skill-metrics.ts`** — the two sites previously *documented as deferred* in the 5.3 write-up (`categorizeChartTarget`, `updateTrailDevelopment`, plus the `shieldsDown` sampler) are now actually fixed rather than left as a note, by threading `round` through both function signatures. Confirmed via repo-wide search that `recordAction` (the only caller of `updateTrailDevelopment`) has zero call sites anywhere in the codebase today — genuinely dead/not-yet-wired code, but fixed now so it's correct whenever calibration wires it up.
+
+**Confirmed NOT bugs (checked, not just assumed):**
+- `apps/Warp12/src/app/hub-harness-fixtures.ts` — visual-approval test harness; always builds FFA-only rounds (no `squadrons` ever passed to `createInitialTable`), so direct indexing is correct there by construction.
+- `docs/module-lambda-wormholes-design.md` — a design doc, not executable code, for a Warped/exhibition-only module never combined with rated squad play.
+- `apps/Warp12/src/firebase/serialize.ts:248` — rebuilds `warpTrails` from an array of encoded trail docs by their own `playerId` field (i.e. whatever the trailKey owner's id actually is), not a lookup keyed by an assumed captain id — correct regardless of squad structure.
+- `bridge-table.tsx`'s `routesEqual` and the engine's own `routesEqual` in `legal-moves.ts` — compare two already-resolved `ChartRoute` objects to each other (both `playerId`s are trailKeys already), not a route against a raw captain id.
+- Route-to-route/anchor `SpoolOption` comparisons (`legal-spool-options.spec.ts`, `rules-compliance.spec.ts`, `advisor-report.spec.ts`, etc.) — FFA-only test fixtures with no squads constructed, so `route.playerId === 'a'`-style assertions are correct for what they're testing.
+
+**Verification discipline applied throughout this pass (not just claimed):**
+- The `gameStateToTrains`/`buildTrailSpokeStatuses` crash was confirmed with an **actual runtime repro** (`node -e`) producing the exact `TypeError`, not inferred from reading code.
+- Every signature change (`subspaceFractureAppliesToDouble`, `executeWarpDriveSpool`, `categorizeChartTarget`, `updateTrailDevelopment`, `recordAction`) was verified by running the full engine suite and letting existing specs surface every stale call site — this caught 8 outdated calls in `warp-drive-spool.spec.ts` that a purely manual grep pass could have missed.
+- New regression tests added specifically for squad scenarios (not just "still passes in FFA"): `subspace-fracture-scope.spec.ts` (×2 files, 12 tests total incl. an end-to-end `applyAction` squad test), `house-rules.spec.ts` (+2 squad tests), on top of the earlier `game-to-trains.spec.ts`/`trail-access.spec.ts` crash tests.
+- **Final full cross-package count: 600 engine + 69 react + 274 bridge + 22 functions = 965 tests, zero regressions.** `tsc --noEmit` clean on both the app and functions packages; `yarn build:functions` (which stages the engine into functions' vendor + reinstalls) succeeds end-to-end.
+
+This sweep is now considered complete for the `warpTrails[id]` / `route.playerId ===` bug class specifically. It does not constitute a guarantee that no other Model-C correctness issue exists anywhere in the codebase — only that this specific, now well-understood pattern has been searched for exhaustively (engine, react, and app packages) and every real hit fixed and tested.
+
+**Post-sweep addendum (2026-07-13): Squad naming implemented (see updated checkbox above).** Full cross-package count after adding squad naming: **608 engine + 69 react + 277 bridge + 22 functions = 976 tests, zero regressions.** App-wide `tsc --noEmit` clean. This closes out the last `[~]` item under 5.5 UI for Squads that had a real implementation path (drag-and-drop manual override remains `[~]` deferred — genuine engine architecture gap, not a UI shortcut).
+
+**Post-sweep addendum #2 (2026-07-13): Preview shared trail layout implemented.** This item had been left open when the sweep task took priority — now built (see updated checkbox above). Full cross-package count: **608 engine + 69 react + 279 bridge + 22 functions = 978 tests, zero regressions.** App-wide `tsc --noEmit` clean. **Every checkbox under "5.5 UI for Squads" is now either `[x]` done or `[~]` with a documented, genuine architecture blocker** — no remaining undocumented gaps.
 
 ### 5.6 Module Zeta Calibration
-- [ ] **Run calibration** — 19,000 games (38 configs × 500 games)
-  - [ ] Use script: `tools/nn/collect-luck-skill-single-zeta.ts`
-  - [ ] Test 2v2, 3v3 configurations
-  - [ ] Test all warp factors (W9/12/15/18)
-  - [ ] Test both objectives (goOut, points)
-- [ ] **Analyze results** — `tools/nn/analyze-zeta-results.ts`
-  - [ ] Skill ordering preserved? (better squads win more)
-  - [ ] Luck vs skill indicators for team play
-  - [ ] Compare to FFA baseline
-- [ ] **Document findings** — Add to `docs/MODULE-ANALYSIS.md`
-  - [ ] Zeta skill metrics
-  - [ ] Recommendation: rated or exhibition?
-  - [ ] Team coordination impact on skill expression
+- [x] **Luck/skill module matrix** — completed via `run-module-analysis-parallel.sh` (285k games)
+  - [x] Zeta on eligible fleets (even ≥4): avg **2.94/4** skill indicators (16/17 skill-dominant)
+  - [x] Documented in `docs/MODULE-ANALYSIS.md`, paper §9, RULES.md (Warped status)
+- [x] **Product call (2026-07-13):** Epsilon is **Warped / party** (luck collapse). Zeta is **not** Warped — skill-promote gameplay
+- [x] **Dedicated squad TEI track** (rated crew play, 2026-07-13)
+  - [x] Team-vs-team OpenSkill calibration harness (`openskill-squad-calibration.spec.ts`; points 2v2 Cmdr/Lt/Ens)
+  - [x] Separate `squadRating` write path (`apply-squad-tei.ts`) + eligibility
+  - [x] Flip `SQUADRONS_RATING_CALIBRATED = true` for the squad track only
+  - [ ] Optional later: 3v3 report sample + Squad TEI leaderboard surface
 
 ---
 
@@ -792,14 +786,13 @@ Note that the TEI spec and paper rewrites need to include our TEI Grade system a
 ## Phase 7: Deployment & Launch (Week 4)
 
 ### 7.1 Pre-Launch Checklist
-- [ ] **Wipe production Firebase** — Delete all old Elo data
-- [ ] **Deploy Firestore rules** — `yarn deploy:firestore`
-- [ ] **Deploy Cloud Functions** — `yarn deploy:functions`
-- [ ] **Deploy hosting** — `yarn deploy:hosting`
-- [ ] **Verify deployed version**
-  - [ ] Test match on production Firebase
-  - [ ] Verify rating updates save correctly
-  - [ ] Check leaderboard displays properly
+- [ ] **Wipe production Firebase** *(launch ops — only if Elo/OpenSkill cutover still pending; user previously OK'd wipe with no prod users)* — wipe `playerStats` / legacy Elo before first OpenSkill TEI + Squad TEI traffic
+- [ ] **Deploy** — rebuild so Functions pick up `SQUADRONS_RATING_CALIBRATED = true`:
+  - `yarn build:engine && bash scripts/prepare-functions-packages.sh` (or `yarn build:functions`)
+  - `yarn deploy:firestore` · `yarn deploy:functions` · `yarn deploy:hosting`
+- [ ] **Verify** rated FFA Warp 12 + rated Zeta 2v2 both write (`humanRating` vs `squadRating`)
+  - Profile “Your Squad TEI” updates after a rated Zeta sector
+  - Warped modules (Epsilon/Kappa/Lambda) stay exhibition
 
 ### 7.2 Documentation Finalization
 - [ ] **Publish updated TEI spec** — Push `docs/tei-spec.md` to main
@@ -888,11 +881,11 @@ These MUST be done sequentially:
 - ✅ UI supports squad games
 
 ### Documentation
-- ✅ TEI spec §6 completely rewritten
-- ✅ Paper §5-6 completely rewritten
-- ✅ All figures regenerated
-- ✅ RULES.md updated for users
-- ✅ AGENTS.md updated for contributors
+- ✅ `tei-spec.md` OpenSkill normative + team/Zeta gate sync
+- ✅ Paper §5–7 OpenSkill rewrite + §9 module study (figures 6–7, 10–20)
+- ✅ All paper figures regenerated (`create-paper-figures.py`, `create-module-figures.py`)
+- ✅ RULES.md / AGENTS.md / openskill-docs-todo archived
+- ✅ `tei-paper.md` marked superseded Elo export
 
 ---
 

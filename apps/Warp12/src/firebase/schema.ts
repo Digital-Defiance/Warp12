@@ -24,12 +24,13 @@ export interface FirestoreGameDocument {
   hostId: string;
   createdAt: string;
   updatedAt: string;
-  modules: {
-    continuum: boolean;
-    salamanderPenalty: boolean;
-    subspaceFracture: boolean;
-    subspaceFractureScope: import('warp12-engine').SubspaceFractureScope;
-  };
+  modules: import('warp12-engine').GameModuleConfig;
+  /**
+   * Module Zeta: squad rosters for this sector, present only when the
+   * squadrons module is enabled. Mirrors `GameState.squadrons` so the rating
+   * Cloud Function can rank squads without replaying the match.
+   */
+  squadrons?: FirestoreSquadron[];
   houseRules?: HouseRulesConfig;
   /** Sector scoring objective. */
   objective: GameObjective;
@@ -77,6 +78,30 @@ export interface FirestoreCaptain {
    * Firebase Auth before applying any TEI.
    */
   verified?: boolean;
+  /** Module Zeta: squadron this captain belongs to, when squadrons are enabled. */
+  squadronId?: string;
+}
+
+/** Module Zeta: a squad roster, mirrored from `GameState.squadrons`. */
+export interface FirestoreSquadron {
+  id: string;
+  memberIds: string[];
+  /**
+   * Canonical shared-trail key (Model C). Fallbacks to `memberIds[0]` when
+   * missing on legacy docs.
+   */
+  trailKey?: string;
+  /** Host-chosen display name, if set. */
+  name?: string;
+}
+
+/** Module Epsilon: pack-and-pass draft snapshot on the public round. */
+export interface FirestoreDraftState {
+  currentDrafter: string;
+  draftOrder: string[];
+  pickNumber: number;
+  currentPacks: Record<string, FirestoreCoordinate[]>;
+  pickedTiles: Record<string, FirestoreCoordinate[]>;
 }
 
 export interface OnlineLobbySettings {
@@ -129,6 +154,23 @@ export interface FirestorePublicRound {
   shieldChangedThisTurn?: boolean;
   /** Transient return-to-warp signal (drives the cue/log on other clients). */
   returnedToWarp?: boolean;
+  /** Module Lambda: transient wormhole-opened cue. */
+  wormholeOpened?: boolean;
+  /** Module Gamma: face-up sensor market. */
+  sensorGrid?: FirestoreCoordinate[];
+  /** Module Epsilon: pack-and-pass draft (null / omitted outside drafting). */
+  draftState?: FirestoreDraftState | null;
+  /** Module Delta: captain holding the Hazard Marker. */
+  hazardMarkerHolder?: string | null;
+  /** Module Delta: passes while holding the marker (resets on transfer). */
+  hazardMarkerPassCount?: number;
+  /** Module Eta: debt tokens per captain. */
+  debtTokens?: Record<string, number>;
+  /**
+   * Module Zeta: round-scoped squads (includes trailKey). Prefer this over the
+   * top-level game `squadrons` when rehydrating an active round.
+   */
+  squadrons?: FirestoreSquadron[];
   /** Applied-action history for this round (shared log + advisor source). */
   moveLog?: FirestoreRoundMove[];
   table: FirestoreTableDocument;

@@ -34,6 +34,7 @@ export { updateVsAI, updateMixedTable } from './update-vs-ai.js';
 export {
   INITIAL_ANCHORS,
   ANCHORS_CALIBRATED,
+  SQUADRONS_RATING_CALIBRATED,
   getAIAnchor,
 } from './anchors.js';
 

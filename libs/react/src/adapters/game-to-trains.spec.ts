@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { PlacedCoordinate, RoundState } from 'warp12-engine';
+import { formSquadrons, trailsOpenToOthers } from 'warp12-engine';
 
 import {
   NEUTRAL_ZONE_SLOT,
@@ -247,5 +248,102 @@ describe('gameStateToTrains', () => {
       { value1: 9, value2: 3 },
     ]);
     expect(neutral?.feet).toBeUndefined();
+  });
+
+  describe('Module Zeta — squad trails', () => {
+    const { squadrons } = formSquadrons(['a', 'b', 'c', 'd'], 2);
+
+    it('does not crash for a squad member who is not the trail key owner', () => {
+      // Only 'a' (squad-1's trailKey) has a real warpTrails entry — 'c' is a
+      // squadmate sharing it. Before the fix this indexed warpTrails['c']
+      // directly (undefined) and crashed on trail.tiles.
+      const round = {
+        spacedockValue: 6,
+        turnOrder: ['a', 'b', 'c', 'd'],
+        squadrons,
+        table: {
+          warpTrails: {
+            a: {
+              playerId: 'a',
+              tiles: [placed(6, 3, 0, 3)],
+              distressBeacon: { active: false },
+            },
+            b: {
+              playerId: 'b',
+              tiles: [],
+              distressBeacon: { active: false },
+            },
+          },
+          neutralZone: { tiles: [] },
+          subspaceFracture: null,
+        },
+      } as unknown as RoundState;
+
+      expect(() => gameStateToTrains(round, 8)).not.toThrow();
+    });
+
+    it('renders the same shared-trail tiles for every member of the squad', () => {
+      const round = {
+        spacedockValue: 6,
+        turnOrder: ['a', 'b', 'c', 'd'],
+        squadrons,
+        table: {
+          warpTrails: {
+            a: {
+              playerId: 'a',
+              tiles: [placed(6, 3, 0, 3)],
+              distressBeacon: { active: false },
+            },
+            b: {
+              playerId: 'b',
+              tiles: [],
+              distressBeacon: { active: false },
+            },
+          },
+          neutralZone: { tiles: [] },
+          subspaceFracture: null,
+        },
+      } as unknown as RoundState;
+
+      const trains = gameStateToTrains(round, 8);
+      // 'a' and 'c' are squad-1 (share trailKey 'a'); 'b' and 'd' are squad-2
+      // (share trailKey 'b'). Squadmates render the SAME train slot/content
+      // as their trail's canonical owner — there's no separate empty train
+      // for a non-owner squadmate to render at all (their seat is skipped;
+      // gameStateToTrains loops turnOrder, and every member maps to the
+      // owner's trail content via trailKeyFor, so both slots show the tile).
+      const squad1Train = trains.find((t) => t.playerId === 0); // 'a' slot
+      expect(squad1Train?.dominoes[0]).toEqual({ value1: 6, value2: 3 });
+    });
+
+    it('trailsOpenToOthers resolves correctly when passed a squadmate id directly', () => {
+      const round = {
+        spacedockValue: 6,
+        turnOrder: ['a', 'b', 'c', 'd'],
+        squadrons,
+        table: {
+          warpTrails: {
+            a: {
+              playerId: 'a',
+              tiles: [],
+              distressBeacon: { active: true },
+            },
+            b: {
+              playerId: 'b',
+              tiles: [],
+              distressBeacon: { active: false },
+            },
+          },
+          neutralZone: { tiles: [] },
+          subspaceFracture: null,
+        },
+      } as unknown as RoundState;
+
+      // 'c' shares a's trail (beacon active) — passing 'c' directly (as the
+      // react adapter's isPublic: trailsOpenToOthers(round, captainId) does)
+      // must resolve through trailKeyFor, not crash / return false.
+      expect(trailsOpenToOthers(round, 'c')).toBe(true);
+      expect(trailsOpenToOthers(round, 'd')).toBe(false);
+    });
   });
 });

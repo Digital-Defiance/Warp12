@@ -7,6 +7,7 @@ import type {
 } from 'warp12-engine';
 import {
   defaultCampaignRounds,
+  hasWarpedModules,
   neuralWeightsAvailable,
   normalizeWarpFactor,
   warpSetProfile,
@@ -94,6 +95,12 @@ export interface LocalGameConfig {
   readonly rulesProfileId?: string;
   /** Double-N max pip for this sector (9 / 12 / 15 / 18). */
   readonly maxPip: WarpFactor;
+  /**
+   * When true (default), solo Warp-12 play reports TEI and the advisor UI is
+   * hidden. Uncheck in the lobby for a casual session with the advisor available.
+   * Ignored for pass-and-play, exhibition sets, and Ω+ extended thinking.
+   */
+  readonly rated?: boolean;
 }
 
 /** Named AI officers drawn in order when the fleet grows. */
@@ -177,14 +184,30 @@ export function localMatchHasExtendedThinking(
 }
 
 /**
+ * Whether this local setup is eligible to offer a Rated TEI lobby toggle
+ * (Warp 12 solo vs AI, no Ω+). Exhibition / pass-and-play never offer it.
+ */
+export function localGameCanOfferRated(config: Pick<
+  LocalGameConfig,
+  'maxPip' | 'humanCaptains' | 'aiCaptains' | 'modules'
+>): boolean {
+  return (
+    config.maxPip === 12 &&
+    !isPassAndPlay(config as LocalGameConfig) &&
+    !localMatchHasExtendedThinking(config.aiCaptains) &&
+    !hasWarpedModules(config.modules)
+  );
+}
+
+/**
  * Solo vs-AI local matches may report TEI when signed in and unassisted.
  * TEI ladders are Warp 12 only (product rule) — exhibition sets never rate.
+ * Host may opt out via `config.rated === false` (casual + advisor available).
  */
 export function isRatedLocalGame(config: LocalGameConfig): boolean {
   return (
-    config.maxPip === 12 &&
-    !isPassAndPlay(config) &&
-    !localMatchHasExtendedThinking(config.aiCaptains)
+    config.rated !== false &&
+    localGameCanOfferRated(config)
   );
 }
 
@@ -249,5 +272,6 @@ export function defaultLocalGameConfig(
     aiCaptains: buildAiCaptains(count - 1, factor),
     rulesProfileId: WARP12_OFFICIAL_RULES_PROFILE_ID,
     maxPip: factor,
+    rated: factor === 12,
   };
 }

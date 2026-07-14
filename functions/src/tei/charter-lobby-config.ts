@@ -10,7 +10,7 @@ export interface CharterModulesConfig {
   continuum: boolean;
   subspaceFracture: boolean;
   subspaceFractureScope: CharterSubspaceFractureScope;
-  // Rated modules (Gamma, Delta, Eta, Theta, Iota, Kappa)
+  // Rated modules (Gamma, Delta, Eta, Theta, Iota)
   sensorGrid: boolean;
   sensorGridSize?: number;
   warpDriveSpool: boolean;
@@ -20,8 +20,8 @@ export interface CharterModulesConfig {
   longestTrailBonus?: number;
   doubleDown: boolean;
   doubleDownDrawCount?: number;
+  // Warped / exhibition (Kappa, Lambda) — never rate
   temporalInversion: boolean;
-  // Warped/Exhibition modules (Lambda)
   wormholes: boolean;
 }
 

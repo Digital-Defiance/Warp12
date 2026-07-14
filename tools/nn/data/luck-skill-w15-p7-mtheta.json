@@ -1,0 +1,28 @@
+{
+  "warpFactor": 15,
+  "playerCount": 7,
+  "moduleConfig": "theta",
+  "moduleLabel": "Module Theta (Longest Trail)",
+  "zetaOmitted": false,
+  "games": 500,
+  "objective": "points",
+  "summary": {
+    "games": 500,
+    "playerCount": 7,
+    "maxPip": 15,
+    "objective": "points",
+    "avgLegalMovesPerTurn": 2.0868158898119824,
+    "avgUniqueTrainsPerTurn": 0.9627566302719717,
+    "avgConstrainedTileFraction": 0.5787465155545165,
+    "avgUniquePipsInHand": 7.680257012168968,
+    "avgMaxPipCluster": 2.3839886035936497,
+    "avgHandEntropy": 2.6087108427840544,
+    "avgMoveValueSpread": 3.377673495667372,
+    "avgNearOptimalFraction": 0.7959932749133303,
+    "avgOwnTrailPlayRate": 0,
+    "avgShieldsDownRate": 0.12872702640468403
+  },
+  "skillIndicators": 3,
+  "timestamp": "2026-07-14T01:35:17.016Z",
+  "durationSeconds": 26.829
+}

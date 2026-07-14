@@ -14,6 +14,7 @@ import {
   countDoublesOnTable,
   isTrueRedAlert,
   trailOpenValue,
+  trailKeyFor,
   pickBalancedTile,
   type ActionResult,
   type AdvisorActionLogEntry,
@@ -28,8 +29,16 @@ import {
   type WarpAiPlayer,
   type AdvisorModelWeights,
   type OmegaModelWeights,
+  toModuleConfig,
 } from 'warp12-engine';
 import { resolveHelmControls } from '../game/helm-controls.js';
+import {
+  doubleDownNoticeFromEntry,
+  formatDoubleDownFeedback,
+  formatModuleFeedbackFromLogEntry,
+  formatSpoolFeedback,
+  type DoubleDownNotice,
+} from '../game/module-feedback.js';
 import { DominoHub, DominoTile, DominoThemeProvider } from 'double-eighteen';
 import {
   coachActionKind,
@@ -84,7 +93,7 @@ import {
   type ShareRoundMetadata,
 } from '../game/share-round.js';
 import type { LocalGameConfig } from '../game/local-game-config';
-import { isPassAndPlay, neuralAiSupported } from '../game/local-game-config';
+import { isPassAndPlay, isRatedLocalGame, neuralAiSupported } from '../game/local-game-config';
 import type { FirestoreCaptain, FirestoreRoundMove } from '../firebase/schema.js';
 import { useGameSoundEffects } from '../game/use-game-sounds.js';
 import { useBridgeAmbience } from '../game/use-bridge-ambience.js';
@@ -571,6 +580,11 @@ export function BridgeTable({
         const localWon = humanWonLocalMatch(game, localConfig.humanId);
         if (result.status === 'uploaded') {
           setMatchReport(result.report);
+          if (!result.report.rated && !advisorUsedThisMatchRef.current) {
+            setMatchReportNotice(
+              'Casual match complete — TEI was not updated (sector was unrated).'
+            );
+          }
           void playerStatsRef.current.refresh();
           return;
         }
@@ -638,7 +652,8 @@ export function BridgeTable({
       captains,
       game.objective,
       sectorRated,
-      game.maxPip ?? 12
+      game.maxPip ?? 12,
+      toModuleConfig(game.modules)
     );
     if (!eligibility.rated) {
       setMatchReportNotice(
@@ -725,6 +740,10 @@ export function BridgeTable({
   const [selectedTile, setSelectedTile] = useState<Coordinate | null>(null);
   const [showSpoolPicker, setShowSpoolPicker] = useState(false);
   const [lastMessage, setLastMessage] = useState<string | null>(null);
+  const [doubleDownNotice, setDoubleDownNotice] =
+    useState<DoubleDownNotice | null>(null);
+  const moduleFeedbackProcessedRef = useRef(0);
+  const prevActivePlayerRef = useRef<string | null>(null);
   const [coachSuggestion, setCoachSuggestion] = useState<CoachSuggestion | null>(
     null
   );
@@ -966,9 +985,63 @@ export function BridgeTable({
   useEffect(() => {
     prevRoundRef.current = null;
     syncedMoveLogCountRef.current = 0;
+    moduleFeedbackProcessedRef.current = 0;
     setActionFocus(null);
     setSelectedTile(null);
+    setDoubleDownNotice(null);
   }, [round?.roundNumber]);
+
+  // Online: toast/banner when Double Down or spool entries sync from move log.
+  useEffect(() => {
+    if (!isOnline) {
+      return;
+    }
+    if (gameLogEntries.length < moduleFeedbackProcessedRef.current) {
+      moduleFeedbackProcessedRef.current = 0;
+    }
+    if (gameLogEntries.length <= moduleFeedbackProcessedRef.current) {
+      return;
+    }
+    for (
+      let i = moduleFeedbackProcessedRef.current;
+      i < gameLogEntries.length;
+      i += 1
+    ) {
+      const entry = gameLogEntries[i];
+      if (entry.doubleDown) {
+        const notice = doubleDownNoticeFromEntry(entry);
+        if (notice) {
+          setDoubleDownNotice(notice);
+        }
+        setLastMessage(
+          formatDoubleDownFeedback(entry, names, handOwnerId) ?? null
+        );
+      } else if (entry.kind === 'SPOOL_WARP_DRIVE') {
+        const feedback = formatModuleFeedbackFromLogEntry(
+          entry,
+          names,
+          handOwnerId
+        );
+        if (feedback) {
+          setLastMessage(feedback);
+        }
+      }
+    }
+    moduleFeedbackProcessedRef.current = gameLogEntries.length;
+  }, [gameLogEntries, handOwnerId, isOnline, names]);
+
+  // Clear Double Down HUD once the affected captain's turn ends.
+  useEffect(() => {
+    const activePlayerId = round?.activePlayerId ?? null;
+    if (
+      doubleDownNotice &&
+      prevActivePlayerRef.current === doubleDownNotice.targetCaptainId &&
+      activePlayerId !== doubleDownNotice.targetCaptainId
+    ) {
+      setDoubleDownNotice(null);
+    }
+    prevActivePlayerRef.current = activePlayerId;
+  }, [doubleDownNotice, round?.activePlayerId]);
 
   useEffect(() => {
     if (!round || !autoFollowAction || round.phase !== 'playing') {
@@ -1165,7 +1238,8 @@ export function BridgeTable({
         onlineCaptains ?? [],
         game.objective,
         sectorRated,
-        game.maxPip ?? 12
+        game.maxPip ?? 12,
+        toModuleConfig(game.modules)
       ).rated
     ) {
       return false;
@@ -1189,15 +1263,40 @@ export function BridgeTable({
     round.continuumPendingInvoker !== handOwnerId &&
     round.continuumWagerPending?.playerId !== handOwnerId;
 
+  /**
+   * Rated sectors hide the advisor entirely (button + teaching mode) so it
+   * cannot eat HUD space or be clicked by accident. Online: host Rated flag.
+   * Local: lobby Rated / TEI-eligible config.
+   */
+  const advisorSuppressedForRated = useMemo(() => {
+    if (isOnline) {
+      return sectorRated === true && (game.maxPip ?? 12) === 12;
+    }
+    return !!localConfig && isRatedLocalGame(localConfig);
+  }, [isOnline, sectorRated, game.maxPip, localConfig]);
+
+  const showAdvisorControls = coachAvailable && !advisorSuppressedForRated;
+
   useEffect(() => {
-    if (!coachAvailable) {
+    if (!advisorSuppressedForRated) {
+      return;
+    }
+    setCoachSuggestion(null);
+    setAdvisorConfirmOpen(false);
+    if (teachingMode) {
+      patchTablePrefs({ teachingMode: false });
+    }
+  }, [advisorSuppressedForRated, patchTablePrefs, teachingMode]);
+
+  useEffect(() => {
+    if (!coachAvailable || advisorSuppressedForRated) {
       setCoachSuggestion(null);
       return;
     }
     if (!teachingMode) {
       setCoachSuggestion(null);
     }
-  }, [activePlayerId, round?.roundNumber, coachAvailable, teachingMode]);
+  }, [activePlayerId, round?.roundNumber, coachAvailable, teachingMode, advisorSuppressedForRated]);
 
   const coachAnnouncedKeyRef = useRef<string | null>(null);
 
@@ -1245,7 +1344,8 @@ export function BridgeTable({
         onlineCaptains ?? [],
         game.objective,
         sectorRated,
-        game.maxPip ?? 12
+        game.maxPip ?? 12,
+        toModuleConfig(game.modules)
       ).rated
     );
   }, [isOnline, onlineCaptains, game.objective, sectorRated, game.maxPip]);
@@ -1279,12 +1379,13 @@ export function BridgeTable({
   }, [activePlayerId]);
 
   useEffect(() => {
-    if (!teachingMode || !coachAvailable) {
+    if (!teachingMode || !coachAvailable || advisorSuppressedForRated) {
       return;
     }
 
     // Teaching mode auto-consults every turn; in a rated online sector, ask for
     // consent before the first auto-engagement rather than silently unrating.
+    // (Rated sectors normally suppress the advisor entirely — this is a backstop.)
     if (advisorEngageNeedsConfirm()) {
       setAdvisorConfirmOpen(true);
       return;
@@ -1305,6 +1406,7 @@ export function BridgeTable({
     applyCoachSuggestion(suggestion, { announce: true });
   }, [
     advisorEngageNeedsConfirm,
+    advisorSuppressedForRated,
     applyCoachSuggestion,
     coachAvailable,
     coachSuggestionOptions,
@@ -1317,7 +1419,11 @@ export function BridgeTable({
     if (!round) {
       return undefined;
     }
-    const trail = round.table.warpTrails[handOwnerId];
+    // Module Zeta: read the shared squad trail via trailKeyFor — a
+    // squadmate who isn't the trail's canonical owner has no entry keyed by
+    // their own id, which would otherwise silently fall back to the
+    // spacedock value instead of the real (shared) trail's open end.
+    const trail = round.table.warpTrails[trailKeyFor(round, handOwnerId)];
     if (!trail) {
       return round.spacedockValue;
     }
@@ -1459,7 +1565,12 @@ export function BridgeTable({
     [trailSpokes]
   );
 
-  const ownTrail = round ? round.table.warpTrails[handOwnerId] : undefined;
+  // Module Zeta: own trail is the shared squad trail — read via trailKeyFor
+  // so a non-owner squadmate sees their squad's real beacon state, not an
+  // always-false fallback from an empty lookup.
+  const ownTrail = round
+    ? round.table.warpTrails[trailKeyFor(round, handOwnerId)]
+    : undefined;
   const shieldsDown = ownTrail?.distressBeacon.active === true;
   const helmControls = resolveHelmControls({
     round,
@@ -1591,9 +1702,30 @@ export function BridgeTable({
       setSelectedTile(null);
       setCoachSuggestion(null);
       recordGameLog(before, result.state, action);
+      const logEntry = buildGameLogEntry(before, result.state, action);
+      if (logEntry?.doubleDown) {
+        const notice = doubleDownNoticeFromEntry(logEntry);
+        if (notice) {
+          setDoubleDownNotice(notice);
+        }
+        setLastMessage(
+          formatDoubleDownFeedback(logEntry, names, handOwnerId) ?? null
+        );
+      } else if (action.type === 'SPOOL_WARP_DRIVE') {
+        setLastMessage(
+          formatSpoolFeedback({
+            before,
+            after: result.state,
+            action,
+            entry: logEntry,
+            names,
+            viewerId: handOwnerId,
+          }) ?? null
+        );
+      }
       setLocalGame(result.state);
     },
-    [game, onAction, recordGameLog, ensureRoundReshuffle]
+    [game, handOwnerId, names, onAction, recordGameLog, ensureRoundReshuffle]
   );
 
   const exportLocalDebug = async () => {
@@ -1774,12 +1906,15 @@ export function BridgeTable({
   ]);
 
   const askCoach = useCallback(async () => {
+    if (advisorSuppressedForRated) {
+      return;
+    }
     if (advisorEngageNeedsConfirm()) {
       setAdvisorConfirmOpen(true);
       return;
     }
     await runAskCoach();
-  }, [advisorEngageNeedsConfirm, runAskCoach]);
+  }, [advisorEngageNeedsConfirm, advisorSuppressedForRated, runAskCoach]);
 
   const confirmAdvisorEngage = useCallback(() => {
     advisorConsentRef.current = true;
@@ -2523,7 +2658,7 @@ export function BridgeTable({
                 Leave bridge
               </button>
             )}
-            {coachAvailable && !teachingMode && (
+            {showAdvisorControls && !teachingMode && (
               <button
                 type="button"
                 className={styles.controlBtn}
@@ -2657,6 +2792,7 @@ export function BridgeTable({
           onPipPresetChange={(next) => patchTablePrefs({ pipPreset: next })}
           teachingMode={teachingMode}
           onTeachingModeChange={(next) => patchTablePrefs({ teachingMode: next })}
+          advisorAvailable={!advisorSuppressedForRated}
           advisorNeuralAvailable={neuralAdvisorOk}
           autoFollowAction={autoFollowAction}
           onAutoFollowActionChange={(next) =>
@@ -2785,10 +2921,11 @@ export function BridgeTable({
           longestTrailCaptains={longestTrailData.captains}
           longestTrailLength={longestTrailData.length}
           hazardMarkerHolder={longestTrailData.hazardHolder}
+          doubleDownNotice={doubleDownNotice}
         />
         )}
 
-        {coachSuggestion && (
+        {coachSuggestion && !advisorSuppressedForRated && (
           <FloatingCoachPanel
             containerRef={bridgeSurfaceRef}
             suggestion={coachSuggestion.action}

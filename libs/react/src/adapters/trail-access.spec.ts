@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { RoundState } from 'warp12-engine';
+import { formSquadrons } from 'warp12-engine';
 
 import {
   buildTrailSpokeStatuses,
@@ -173,6 +174,55 @@ describe('buildTrailSpokeStatuses', () => {
       'red-alert'
     );
     expect(openTrailCaptainNames(statuses)).toEqual([]);
+  });
+
+  describe('Module Zeta — squad trails', () => {
+    const { squadrons } = formSquadrons(['a', 'b', 'c', 'd'], 2);
+
+    it('does not crash for a squad member who is not the trail key owner', () => {
+      // Only 'a' (squad-1's trailKey) has a real warpTrails entry. Before the
+      // fix this indexed warpTrails['c'] directly (undefined) and crashed
+      // inside trailOpenValue(trail, ...).
+      const withSquads = round({
+        turnOrder: ['a', 'b', 'c', 'd'],
+        squadrons,
+        table: {
+          warpTrails: {
+            a: { playerId: 'a', tiles: [], distressBeacon: { active: true } },
+            b: { playerId: 'b', tiles: [], distressBeacon: { active: false } },
+          },
+          neutralZone: { tiles: [] },
+          subspaceFracture: null,
+          redAlert: null,
+        },
+      } as unknown as Partial<RoundState> & Pick<RoundState, 'turnOrder'>);
+
+      expect(() => buildTrailSpokeStatuses(withSquads, names, 8)).not.toThrow();
+    });
+
+    it('shows the shared beacon state for every member of the squad', () => {
+      const withSquads = round({
+        turnOrder: ['a', 'b', 'c', 'd'],
+        squadrons,
+        table: {
+          warpTrails: {
+            a: { playerId: 'a', tiles: [], distressBeacon: { active: true } },
+            b: { playerId: 'b', tiles: [], distressBeacon: { active: false } },
+          },
+          neutralZone: { tiles: [] },
+          subspaceFracture: null,
+          redAlert: null,
+        },
+      } as unknown as Partial<RoundState> & Pick<RoundState, 'turnOrder'>);
+
+      const statuses = buildTrailSpokeStatuses(withSquads, names, 8);
+      // 'a' and 'c' share squad-1's trail (beacon active → 'open').
+      expect(statuses.find((s) => s.captainId === 'a')?.state).toBe('open');
+      expect(statuses.find((s) => s.captainId === 'c')?.state).toBe('open');
+      // 'b' and 'd' share squad-2's trail (beacon down → 'shields').
+      expect(statuses.find((s) => s.captainId === 'b')?.state).toBe('shields');
+      expect(statuses.find((s) => s.captainId === 'd')?.state).toBe('shields');
+    });
   });
 });
 

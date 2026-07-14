@@ -2,7 +2,8 @@
   "warpFactor": 12,
   "playerCount": 3,
   "moduleConfig": "all",
-  "moduleLabel": "All Modules (stress test)",
+  "moduleLabel": "All Modules (stress test) (Zeta omitted — fleet too small/uneven)",
+  "zetaOmitted": true,
   "games": 500,
   "objective": "points",
   "summary": {
@@ -10,18 +11,18 @@
     "playerCount": 3,
     "maxPip": 12,
     "objective": "points",
-    "avgLegalMovesPerTurn": 2.1893948811322357,
-    "avgUniqueTrainsPerTurn": 0.9208247191143173,
-    "avgConstrainedTileFraction": 0.6078000090233224,
-    "avgUniquePipsInHand": 8.135867860012821,
-    "avgMaxPipCluster": 3.325246470533328,
-    "avgHandEntropy": 2.635384748947344,
-    "avgMoveValueSpread": 3.1657756585492867,
-    "avgNearOptimalFraction": 0.7722920553533477,
+    "avgLegalMovesPerTurn": 2.1469901410715844,
+    "avgUniqueTrainsPerTurn": 0.9371713417866248,
+    "avgConstrainedTileFraction": 0.628429782792644,
+    "avgUniquePipsInHand": 8.347945015304887,
+    "avgMaxPipCluster": 3.1951448895361976,
+    "avgHandEntropy": 2.7146781914572093,
+    "avgMoveValueSpread": 3.1875618613665764,
+    "avgNearOptimalFraction": 0.7579781184632961,
     "avgOwnTrailPlayRate": 0,
-    "avgShieldsDownRate": 0.09908423430158476
+    "avgShieldsDownRate": 0.036749391620809854
   },
   "skillIndicators": 3,
-  "timestamp": "2026-07-12T23:09:16.394Z",
-  "durationSeconds": 153.967
+  "timestamp": "2026-07-14T01:29:40.177Z",
+  "durationSeconds": 17.629
 }

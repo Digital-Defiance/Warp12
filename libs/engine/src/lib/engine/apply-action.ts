@@ -49,6 +49,7 @@ import {
   placedTile,
   routineChartsBlockedByManualShieldWindow,
 } from './legal-moves.js';
+import { sameTrailGroup, trailKeyFor } from './squadrons.js';
 import {
   canDeployDistressBeacon,
   canDrawFromUncharted,
@@ -118,7 +119,8 @@ function executeWormholeSwap(
   playerId: string
 ): RoundState {
   const table = round.table;
-  const captainTrail = table.warpTrails[playerId];
+  const trailKey = trailKeyFor(round, playerId);
+  const captainTrail = table.warpTrails[trailKey];
   const neutralZone = table.neutralZone;
 
   if (!captainTrail) {
@@ -128,7 +130,7 @@ function executeWormholeSwap(
 
   // Swap the trails
   const newCaptainTrail: WarpTrail = {
-    playerId,
+    playerId: trailKey,
     tiles: neutralZone.tiles,
     distressBeacon: { active: false, chartedOwnTrailSinceDown: false }, // Beacon destroyed during transit
   };
@@ -141,7 +143,7 @@ function executeWormholeSwap(
     ...table,
     warpTrails: {
       ...table.warpTrails,
-      [playerId]: newCaptainTrail,
+      [trailKey]: newCaptainTrail,
     },
     neutralZone: newNeutralZone,
   };
@@ -229,7 +231,7 @@ function resolvePostChartAnomalies(
 
   const playedDouble = isDouble(placed.coordinate);
   const onOwnTrail =
-    route.kind === 'warp-trail' && route.playerId === playerId;
+    route.kind === 'warp-trail' && sameTrailGroup(round, playerId, route.playerId);
 
   if (playedDouble) {
     nextRound = clearTemporalInversionOnDouble(nextRound);
@@ -259,7 +261,7 @@ function resolvePostChartAnomalies(
         nextRound = afterImmunity;
         const fractureApplies =
           subspaceFracture.enabled &&
-          subspaceFractureAppliesToDouble(route, playerId, subspaceFracture.scope);
+          subspaceFractureAppliesToDouble(route, playerId, subspaceFracture.scope, nextRound);
         const fractureImmune = consumed && onOwnTrail;
         if (fractureApplies && !fractureImmune) {
           const existingFracture = table.subspaceFracture;
@@ -429,11 +431,12 @@ function applyChartToRoute(
         table = nextRound.table;
         
         // Place the tile on the captain's NEW trail (which is the old NZ after swap)
+        const swapTrailKey = trailKeyFor(nextRound, playerId);
         table = {
           ...table,
           warpTrails: {
             ...table.warpTrails,
-            [playerId]: appendToTrail(table.warpTrails[playerId]!, placed),
+            [swapTrailKey]: appendToTrail(table.warpTrails[swapTrailKey]!, placed),
           },
         };
       } else {
@@ -460,8 +463,11 @@ function applyChartToRoute(
       const trail = table.warpTrails[route.playerId];
       const connectingValue = trailOpenValue(trail, round.spacedockValue);
       placed = placedTile(removed, trail.tiles.length, connectingValue)!;
+      // Module Zeta: "own trail" is the shared squad trail — any squadmate
+      // charting it raises/services the shared beacon.
+      const chartingOwnTrail = sameTrailGroup(round, playerId, route.playerId);
       const autoRaiseOnOwnTrail =
-        route.playerId === playerId &&
+        chartingOwnTrail &&
         !options.houseRules.beaconClearsOnAnyPlay &&
         !options.houseRules.manualShieldControl;
       let updatedTrail = autoRaiseOnOwnTrail
@@ -472,7 +478,7 @@ function applyChartToRoute(
       // serviced your own trail since dropping them).
       if (
         options.houseRules.manualShieldControl &&
-        route.playerId === playerId &&
+        chartingOwnTrail &&
         updatedTrail.distressBeacon.active &&
         updatedTrail.distressBeacon.chartedOwnTrailSinceDown !== true
       ) {
@@ -496,13 +502,14 @@ function applyChartToRoute(
   }
 
   if (options.houseRules.beaconClearsOnAnyPlay) {
-    const trail = table.warpTrails[playerId];
+    const ownTrailKey = trailKeyFor(round, playerId);
+    const trail = table.warpTrails[ownTrailKey];
     if (trail?.distressBeacon.active) {
       table = {
         ...table,
         warpTrails: {
           ...table.warpTrails,
-          [playerId]: clearDistressBeacon(trail),
+          [ownTrailKey]: clearDistressBeacon(trail),
         },
       };
     }
@@ -529,7 +536,7 @@ function applyChartToRoute(
     isDouble(placed.coordinate) &&
     placed.coordinate.low === 0 &&
     route.kind === 'warp-trail' &&
-    route.playerId === playerId;
+    sameTrailGroup(nextRound, playerId, route.playerId);
 
   if (playedZeroZero) {
     nextRound = { ...nextRound, continuumPendingInvoker: playerId };
@@ -540,7 +547,8 @@ function applyChartToRoute(
   const openingIncomplete =
     options.houseRules.roundStarterPlaysTwo &&
     playerId === nextRound.table.spacedock.placedBy &&
-    (nextRound.table.warpTrails[playerId]?.tiles.length ?? 0) < 2;
+    (nextRound.table.warpTrails[trailKeyFor(nextRound, playerId)]?.tiles.length ??
+      0) < 2;
 
   if (
     !emptyHandWin &&
@@ -633,12 +641,13 @@ function applyRoundStarterOpeningFailure(
   playerId: string,
   houseRules: HouseRules
 ): RoundState {
-  const trail = round.table.warpTrails[playerId];
+  const trailKey = trailKeyFor(round, playerId);
+  const trail = round.table.warpTrails[trailKey];
   const withBeacon = updateTable(round, {
     ...round.table,
     warpTrails: {
       ...round.table.warpTrails,
-      [playerId]: deployBeaconOnTrail(trail),
+      [trailKey]: deployBeaconOnTrail(trail),
     },
   });
   const cleared: RoundState = {
@@ -890,8 +899,11 @@ function handleWarpDriveSpool(
       return fail('INVALID_ROUTE');
     }
     
-    // Check shields if playing on opponent's trail
-    if (route.playerId !== playerId && !trailsOpenToOthers(round, route.playerId)) {
+    // Check shields if playing on an opposing squad's trail
+    if (
+      !sameTrailGroup(round, playerId, route.playerId) &&
+      !trailsOpenToOthers(round, route.playerId)
+    ) {
       return fail('SHIELDS_UP');
     }
 
@@ -919,7 +931,8 @@ function handleWarpDriveSpool(
     drawPool,
     state.modules,
     route,
-    playerId
+    playerId,
+    round
   );
 
   // Update round state with spool results
@@ -941,9 +954,12 @@ function handleWarpDriveSpool(
         return fail('INVALID_ROUTE');
       }
       
-      // Clear beacon if playing on own trail
+      // Clear beacon if playing on own (squad) trail
       let updatedTrail = trail;
-      if (route.playerId === playerId && trail.distressBeacon.active) {
+      if (
+        sameTrailGroup(nextRound, playerId, route.playerId) &&
+        trail.distressBeacon.active
+      ) {
         updatedTrail = clearDistressBeacon(trail);
       }
       
@@ -1118,13 +1134,16 @@ function handlePassRedAlert(
   nextRound = { ...nextRound, continuumEffects };
 
   if (!freePass) {
+    const beaconTrailKey = trailKeyFor(nextRound, playerId);
     nextRound = {
       ...nextRound,
       table: {
         ...nextRound.table,
         warpTrails: {
           ...nextRound.table.warpTrails,
-          [playerId]: deployBeaconOnTrail(nextRound.table.warpTrails[playerId]),
+          [beaconTrailKey]: deployBeaconOnTrail(
+            nextRound.table.warpTrails[beaconTrailKey]
+          ),
         },
       },
     };
@@ -1165,7 +1184,8 @@ function handleDeployBeacon(
   playerId: string,
   options?: { afterDraw?: boolean }
 ): ActionResult {
-  if (round.table.warpTrails[playerId]?.distressBeacon.active) {
+  const trailKey = trailKeyFor(round, playerId);
+  if (round.table.warpTrails[trailKey]?.distressBeacon.active) {
     return fail('BEACON_ALREADY_ACTIVE');
   }
   if (!canDeployDistressBeacon(round, playerId, { ...options, houseRules: state.houseRules })) {
@@ -1179,7 +1199,7 @@ function handleDeployBeacon(
     return fail('BEACON_NOT_ALLOWED');
   }
 
-  const trail = round.table.warpTrails[playerId];
+  const trail = round.table.warpTrails[trailKey];
   let continuumEffects = round.continuumEffects;
   let redAlert = round.table.redAlert;
   if (redAlert?.responsiblePlayerId === playerId) {
@@ -1195,7 +1215,7 @@ function handleDeployBeacon(
     ...round.table,
     warpTrails: {
       ...round.table.warpTrails,
-      [playerId]: deployBeaconOnTrail(trail),
+      [trailKey]: deployBeaconOnTrail(trail),
     },
     redAlert,
   });
@@ -1222,13 +1242,14 @@ function handleRaiseShields(
   if (!canRaiseShieldsManually(round, playerId, state.houseRules)) {
     return fail('RAISE_SHIELDS_NOT_ALLOWED');
   }
-  const trail = round.table.warpTrails[playerId];
+  const trailKey = trailKeyFor(round, playerId);
+  const trail = round.table.warpTrails[trailKey];
   const nextRound: RoundState = {
     ...updateTable(round, {
       ...round.table,
       warpTrails: {
         ...round.table.warpTrails,
-        [playerId]: clearDistressBeacon(trail),
+        [trailKey]: clearDistressBeacon(trail),
       },
     }),
     shieldChangedThisTurn: true,
@@ -1588,7 +1609,7 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
 
       if (
         action.route.kind === 'warp-trail' &&
-        action.route.playerId !== action.playerId &&
+        !sameTrailGroup(round, action.playerId, action.route.playerId) &&
         !trailsOpenToOthers(round, action.route.playerId)
       ) {
         return fail('SHIELDS_UP');

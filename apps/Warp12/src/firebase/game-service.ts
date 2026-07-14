@@ -2,6 +2,7 @@ import {
   DEFAULT_CAMPAIGN_ROUNDS,
   DEFAULT_GAME_OBJECTIVE,
   generateCoordinateSet,
+  hasWarpedModules,
   resolveHouseRules,
   shuffleCoordinates,
   startGame,
@@ -124,6 +125,13 @@ export async function createLobby(
       ...(options.verified !== undefined ? { verified: options.verified } : {}),
     },
   ];
+  const modules = options.modules ?? {};
+  const maxPip = options.maxPip ?? 12;
+  // Warped modules (Epsilon/Kappa/Lambda) never rate — force casual.
+  const rated =
+    maxPip === 12 && !hasWarpedModules(modules)
+      ? (options.rated ?? true)
+      : false;
   const payload: FirestoreGameDocument = {
     id: gameId,
     phase: 'lobby',
@@ -132,20 +140,13 @@ export async function createLobby(
     updatedAt: now,
     objective: options.objective ?? DEFAULT_GAME_OBJECTIVE,
     campaignRounds: options.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS,
-    maxPip: options.maxPip ?? 12,
-    rated:
-      (options.maxPip ?? 12) === 12 ? (options.rated ?? true) : false,
+    maxPip,
+    rated,
     maxPlayers: clampOnlineMaxPlayers(
       options.maxPlayers ?? ONLINE_MAX_PLAYERS,
-      warpSetProfile(options.maxPip ?? 12).maxPlayers
+      warpSetProfile(maxPip).maxPlayers
     ),
-    modules: {
-      continuum: options.modules?.continuum ?? false,
-      salamanderPenalty: options.modules?.salamanderPenalty ?? false,
-      subspaceFracture: options.modules?.subspaceFracture ?? false,
-      subspaceFractureScope:
-        options.modules?.subspaceFractureScope ?? 'own-trail',
-    },
+    modules: { ...modules },
     houseRules: options.houseRules,
     ...(options.charterId
       ? {
@@ -422,12 +423,17 @@ export async function updateLobbySettings(
     }
 
     const nextMaxPip = settings.maxPip ?? data.maxPip ?? 12;
-    const nextRated =
+    const nextModules = settings.modules ?? data.modules;
+    let nextRated: boolean | undefined =
       nextMaxPip !== 12
         ? false
         : settings.rated !== undefined
           ? settings.rated
           : undefined;
+    // Warped modules force casual; keep the host from leaving rated=true.
+    if (hasWarpedModules(nextModules)) {
+      nextRated = false;
+    }
 
     tx.update(gameRef(gameId), {
       ...(settings.objective !== undefined
@@ -495,12 +501,7 @@ export async function launchOnlineGame(
           id: c.id,
           displayName: c.displayName,
         })),
-        modules: {
-          continuum: lobby.modules.continuum,
-          salamanderPenalty: lobby.modules.salamanderPenalty,
-          subspaceFracture: lobby.modules.subspaceFracture,
-          subspaceFractureScope: lobby.modules.subspaceFractureScope,
-        },
+        modules: lobby.modules ?? {},
         houseRules: lobby.houseRules,
         objective: lobby.objective ?? 'points',
         campaignRounds: lobby.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS,

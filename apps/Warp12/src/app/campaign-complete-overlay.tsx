@@ -199,7 +199,13 @@ export function CampaignCompleteOverlay({
               </>
             ) : (
               <div className={styles.roundEndBody}>
-                <strong>{matchReport.charterId ? 'Crew TEI' : 'TEI'}</strong> (
+                <strong>
+                  {'squadId' in matchReport && matchReport.squadId
+                    ? 'Squad TEI'
+                    : matchReport.charterId
+                      ? 'Crew TEI'
+                      : 'TEI'}
+                </strong> (
                 {TEI_OBJECTIVE_LABEL[matchReport.objective]}):
                 <br />
                 <TeiChange

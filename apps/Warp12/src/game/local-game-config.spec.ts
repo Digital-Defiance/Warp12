@@ -20,6 +20,14 @@ describe('local-game-config', () => {
     expect(isRatedLocalGame(config)).toBe(true);
   });
 
+  it('blocks TEI when Warped modules are enabled', () => {
+    const config = {
+      ...defaultLocalGameConfig('Armstrong', 4),
+      modules: { drafting: true },
+    };
+    expect(isRatedLocalGame(config)).toBe(false);
+  });
+
   it('supports a heads-up solo game (2 players: one human vs one AI)', () => {
     expect(LOCAL_MIN_PLAYERS).toBe(2);
     expect(clampLocalPlayerCount(2)).toBe(2);
@@ -62,6 +70,14 @@ describe('local-game-config', () => {
     expect(isRatedLocalGame(defaultLocalGameConfig('Armstrong', 4, 12))).toBe(
       true
     );
+  });
+
+  it('honors rated: false as casual (advisor allowed)', () => {
+    const config = {
+      ...defaultLocalGameConfig('Armstrong', 4),
+      rated: false as const,
+    };
+    expect(isRatedLocalGame(config)).toBe(false);
   });
 
   it('treats two or more human seats as pass-and-play', () => {

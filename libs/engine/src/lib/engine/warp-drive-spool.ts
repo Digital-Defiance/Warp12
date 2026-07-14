@@ -1,9 +1,11 @@
 import type { Coordinate } from '../types/coordinate.js';
 import type { PlayerId } from '../types/player.js';
+import type { RoundState } from '../types/game-state.js';
 import type { ChartRoute } from '../types/actions.js';
 import type { GameModules } from '../types/modules.js';
 import { isDouble } from '../types/coordinate.js';
 import { subspaceFractureAppliesToDouble } from '../types/modules.js';
+import { routeIsOwnTrail } from './squadrons.js';
 import { MAX_SPOOL_TILES } from '../constants/setup.js';
 
 /**
@@ -61,7 +63,8 @@ export function executeWarpDriveSpool(
   unchartedSectors: readonly Coordinate[],
   modules: GameModules,
   route: ChartRoute,
-  playerId: PlayerId
+  playerId: PlayerId,
+  round: RoundState
 ): SpoolResult {
   const played: Coordinate[] = [];
   const sentToHand: Coordinate[] = [];
@@ -81,7 +84,7 @@ export function executeWarpDriveSpool(
       sentToHand.push(drawn);
       
       // Determine if hazard clears: own trail + 2+ tiles played
-      const isOwnTrail = route.kind === 'warp-trail' && route.playerId === playerId;
+      const isOwnTrail = routeIsOwnTrail(round, playerId, route);
       const clearsHazard = isOwnTrail && played.length >= 2;
       
       return {
@@ -106,7 +109,7 @@ export function executeWarpDriveSpool(
       // Check if Subspace Fracture applies
       const needsFracture = 
         modules.subspaceFracture.enabled &&
-        subspaceFractureAppliesToDouble(route, playerId, modules.subspaceFracture.scope);
+        subspaceFractureAppliesToDouble(route, playerId, modules.subspaceFracture.scope, round);
 
       if (needsFracture) {
         // Need 3 stabilizers
@@ -117,7 +120,7 @@ export function executeWarpDriveSpool(
         for (let i = 0; i < 3; i++) {
           if (remaining.length === 0) {
             // Out of tiles during fracture - fail
-            const isOwnTrail = route.kind === 'warp-trail' && route.playerId === playerId;
+            const isOwnTrail = routeIsOwnTrail(round, playerId, route);
             const clearsHazard = isOwnTrail && played.length >= 2;
             
             return {
@@ -150,7 +153,7 @@ export function executeWarpDriveSpool(
 
             sentToHand.push(...failedStabilizers);
             
-            const isOwnTrail = route.kind === 'warp-trail' && route.playerId === playerId;
+            const isOwnTrail = routeIsOwnTrail(round, playerId, route);
             const clearsHazard = isOwnTrail && played.length >= 2;
             
             return {
@@ -188,7 +191,7 @@ export function executeWarpDriveSpool(
 
         if (remaining.length === 0) {
           // No tiles left to cover - spool ends with active Red Alert
-          const isOwnTrail = route.kind === 'warp-trail' && route.playerId === playerId;
+          const isOwnTrail = routeIsOwnTrail(round, playerId, route);
           const clearsHazard = isOwnTrail && played.length >= 2;
           
           return {
@@ -211,7 +214,7 @@ export function executeWarpDriveSpool(
           sentToHand.push(cover);
           remaining = afterCover;
 
-          const isOwnTrail = route.kind === 'warp-trail' && route.playerId === playerId;
+          const isOwnTrail = routeIsOwnTrail(round, playerId, route);
           const clearsHazard = isOwnTrail && played.length >= 2;
 
           return {
@@ -237,7 +240,7 @@ export function executeWarpDriveSpool(
   }
 
   // Ran out of tiles - spool ends successfully
-  const isOwnTrail = route.kind === 'warp-trail' && route.playerId === playerId;
+  const isOwnTrail = routeIsOwnTrail(round, playerId, route);
   const clearsHazard = isOwnTrail && played.length >= 2;
   
   return {

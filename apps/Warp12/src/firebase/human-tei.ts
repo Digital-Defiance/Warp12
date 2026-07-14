@@ -1,7 +1,10 @@
 import {
+  type GameModuleConfig,
   type GameObjective,
   type GameState,
   getTeiDisplay,
+  hasWarpedModules,
+  SQUADRONS_RATING_CALIBRATED,
   updateFFARatings,
   type PlayerRating,
 } from 'warp12-engine';
@@ -43,7 +46,9 @@ export type OnlineRatingIneligibleReason =
   | 'not_enough_humans'
   | 'unrated_participant'
   | 'unrated_ai'
-  | 'exhibition_set';
+  | 'exhibition_set'
+  | 'squadrons_not_calibrated'
+  | 'warped_modules';
 
 export interface OnlineRatingEligibility {
   readonly rated: boolean;
@@ -61,16 +66,18 @@ type EligibilityCaptain = Pick<
  * Whether a completed/lobby online sector qualifies for human-pool TEI under
  * context B: two or more verified humans, and any AI seats are Ensign–Commander
  * anchors (no Ω / Class I* / other neural opponents). Mirrors the authoritative server
- * gate in `functions/src/report-online-match.ts`; the lobby uses it to warn
+ * gate in `functions/src/online-match-eligibility.ts`; the lobby uses it to warn
  * captains before launch.
  *
- * Warp 9 / 15 / 18 are exhibition-only until per-set TEI tracks exist.
+ * Warp 9 / 15 / 18 are exhibition-only. Warped modules never rate. Module Zeta
+ * writes the dedicated squadRating track when `SQUADRONS_RATING_CALIBRATED`.
  */
 export function onlineMatchRatingEligibility(
   captains: readonly EligibilityCaptain[],
   objective: GameObjective,
   rated = true,
-  maxPip = 12
+  maxPip = 12,
+  modules?: GameModuleConfig | null
 ): OnlineRatingEligibility {
   if (!rated) {
     return { rated: false, reason: 'casual', unratedCaptainIds: [] };
@@ -80,6 +87,16 @@ export function onlineMatchRatingEligibility(
   }
   if (objective !== 'go-out' && objective !== 'points') {
     return { rated: false, reason: 'objective_not_rated', unratedCaptainIds: [] };
+  }
+  if (hasWarpedModules(modules)) {
+    return { rated: false, reason: 'warped_modules', unratedCaptainIds: [] };
+  }
+  if (modules?.squadrons === true && !SQUADRONS_RATING_CALIBRATED) {
+    return {
+      rated: false,
+      reason: 'squadrons_not_calibrated',
+      unratedCaptainIds: [],
+    };
   }
 
   const humans = captains.filter((captain) => !isAiCaptain(captain));
@@ -128,6 +145,10 @@ export function onlineUnratedNotice(reason: string | undefined): string {
       return 'Unrated sector — sector settings do not match the crew charter (fleet size, objective, or rules).';
     case 'exhibition_set':
       return 'Exhibition sector — Warp 9 / 15 / 18 do not update TEI. Play Warp 12 for rated ladders.';
+    case 'warped_modules':
+      return 'Exhibition sector — a Warped module (Epsilon / Kappa / Lambda) was aboard. TEI stays off.';
+    case 'squadrons_not_calibrated':
+      return 'Unrated sector — Module Zeta (Squadrons) squad TEI is temporarily gated.';
     default:
       return 'This sector was unrated.';
   }
@@ -150,6 +171,10 @@ export function onlineRatingWarning(
       return 'Rated sectors need at least two signed-in captains. This match will be unrated.';
     case 'exhibition_set':
       return 'Exhibition set — Warp 9 / 15 / 18 are unrated. TEI ladders are Warp 12 only.';
+    case 'warped_modules':
+      return 'Warped module aboard (Epsilon / Kappa / Lambda) — exhibition only; TEI stays off.';
+    case 'squadrons_not_calibrated':
+      return 'Module Zeta (Squadrons) — squad TEI is temporarily gated.';
     case 'unrated_participant': {
       const names = eligibility.unratedCaptainIds
         .map((id) => captains.find((c) => c.id === id)?.displayName ?? 'a guest')
@@ -181,6 +206,19 @@ export function humanObjectiveTeiStats(
     return emptyObjectiveTeiStats();
   }
   return humanRating;
+}
+
+/** Module Zeta: squad-play rating stats (parallel to humanObjectiveTeiStats). */
+export function squadObjectiveTeiStats(
+  doc: PlayerStatsDocument | null | undefined,
+  objective: RatedObjective
+): ObjectiveTeiStats {
+  const key = objectiveTeiKey(objective);
+  const squadRating = doc?.squadRating?.[key];
+  if (!squadRating) {
+    return emptyObjectiveTeiStats();
+  }
+  return squadRating;
 }
 
 export function displayHumanObjectiveTei(

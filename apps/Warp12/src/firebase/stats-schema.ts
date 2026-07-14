@@ -92,6 +92,10 @@ export interface PlayerStatsDocument {
   humanRating?: HumanRatingStats;
   /** Idempotency — sector game ids already applied to humanRating. */
   humanRatedGameIds?: string[];
+  /** Module Zeta: squad-play rating (online rated squad sectors). */
+  squadRating?: HumanRatingStats;
+  /** Idempotency — sector game ids already applied to squadRating. */
+  squadRatedGameIds?: string[];
   /** Recent local-AI matches for profile trends (newest first). */
   matchHistory?: MatchHistoryEntry[];
   localAi?: LocalAiStats;

@@ -59,6 +59,14 @@ export interface DraftingModule {
 export interface SquadronsModule {
   readonly enabled: boolean;
   readonly squadronSize: number; // 2-3 captains per squadron
+  /** Host-chosen squad names, index-aligned with formation order. */
+  readonly squadronNames?: readonly string[];
+  /**
+   * Optional host-assigned membership (drag-roster). Each inner array is one
+   * squad of `squadronSize` captain ids. When omitted, `formSquadrons`
+   * round-robins from lobby seat order.
+   */
+  readonly squadronRosters?: readonly (readonly string[])[];
 }
 
 /** Module Theta: Longest Trail Bonus — captain with longest trail gets bonus, includes spool mechanic for strategic resource draw. */
@@ -135,6 +143,10 @@ export interface GameModuleConfig {
   draftingPackSize?: number;
   squadrons?: boolean;
   squadronSize?: number;
+  /** Host-chosen squad names, index-aligned with formation order. */
+  squadronNames?: readonly string[];
+  /** Host-assigned squad membership; see {@link SquadronsModule.squadronRosters}. */
+  squadronRosters?: readonly (readonly string[])[];
   longestTrail?: boolean;
   longestTrailBonus?: number;
   doubleDown?: boolean;
@@ -145,6 +157,73 @@ export interface GameModuleConfig {
   wormholes?: boolean;
   subspaceFracture?: boolean;
   subspaceFractureScope?: SubspaceFractureScope;
+}
+
+/**
+ * Exhibition / party modules that must never update TEI (RULES §VI Warped,
+ * tei-spec E8). Module Zeta (squadrons) is *not* Warped — it is gated separately
+ * via `SQUADRONS_RATING_CALIBRATED` (squadRating track when true).
+ */
+export type WarpedModuleKey =
+  | 'drafting'
+  | 'temporalInversion'
+  | 'wormholes';
+
+/** Flat lobby / Firestore view of which Warped modules are enabled. */
+export function warpedModuleKeys(
+  config: GameModuleConfig | null | undefined
+): WarpedModuleKey[] {
+  if (!config) {
+    return [];
+  }
+  const keys: WarpedModuleKey[] = [];
+  if (config.drafting === true) {
+    keys.push('drafting');
+  }
+  if (config.temporalInversion === true) {
+    keys.push('temporalInversion');
+  }
+  if (config.wormholes === true) {
+    keys.push('wormholes');
+  }
+  return keys;
+}
+
+export function hasWarpedModules(
+  config: GameModuleConfig | null | undefined
+): boolean {
+  return warpedModuleKeys(config).length > 0;
+}
+
+/** Flatten resolved engine modules back to the lobby/Firestore config shape. */
+export function toModuleConfig(modules: GameModules): GameModuleConfig {
+  return {
+    continuum: modules.continuum.enabled,
+    salamanderPenalty: modules.salamanderPenalty.enabled,
+    sensorGrid: modules.sensorGrid.enabled,
+    sensorGridSize: modules.sensorGrid.gridSize,
+    warpDriveSpool: modules.warpDriveSpool.enabled,
+    drafting: modules.drafting.enabled,
+    draftingPackSize: modules.drafting.packSize,
+    squadrons: modules.squadrons.enabled,
+    squadronSize: modules.squadrons.squadronSize,
+    ...(modules.squadrons.squadronNames
+      ? { squadronNames: modules.squadrons.squadronNames }
+      : {}),
+    ...(modules.squadrons.squadronRosters
+      ? { squadronRosters: modules.squadrons.squadronRosters }
+      : {}),
+    longestTrail: modules.longestTrail.enabled,
+    longestTrailBonus: modules.longestTrail.bonus,
+    doubleDown: modules.doubleDown.enabled,
+    doubleDownDrawCount: modules.doubleDown.drawCount,
+    temporalDebt: modules.temporalDebt.enabled,
+    temporalDebtCost: modules.temporalDebt.costPerToken,
+    temporalInversion: modules.temporalInversion.enabled,
+    wormholes: modules.wormholes.enabled,
+    subspaceFracture: modules.subspaceFracture.enabled,
+    subspaceFractureScope: modules.subspaceFracture.scope,
+  };
 }
 
 export function resolveModules(config: GameModuleConfig = {}): GameModules {
@@ -170,6 +249,10 @@ export function resolveModules(config: GameModuleConfig = {}): GameModules {
     squadrons: {
       enabled: config.squadrons ?? false,
       squadronSize: config.squadronSize ?? 2,
+      ...(config.squadronNames ? { squadronNames: config.squadronNames } : {}),
+      ...(config.squadronRosters
+        ? { squadronRosters: config.squadronRosters }
+        : {}),
     },
     longestTrail: {
       enabled: config.longestTrail ?? false,

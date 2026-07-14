@@ -125,6 +125,12 @@ export interface HumanRatingStats {
   seasonKey?: string;
 }
 
+/** Module Zeta: squad (team) rating stats, split by objective like humanRating. */
+export interface SquadRatingStats {
+  goOut?: ObjectiveRatingStats;
+  points?: ObjectiveRatingStats;
+}
+
 export interface PlayerStatsDocument {
   uid: string;
   displayName: string;
@@ -143,7 +149,23 @@ export interface PlayerStatsDocument {
   /** Crew-specific ratings (charter matches). */
   groupRating?: Record<string, HumanRatingStats>;
   groupRatedIds?: string[];
+  /**
+   * Module Zeta: squad-play rating (online rated squad sectors). Kept separate
+   * from `humanRating` — squad and FFA performance are different skills.
+   * Only written once `SQUADRONS_RATING_CALIBRATED` is true (see anchors.ts).
+   */
+  squadRating?: SquadRatingStats;
+  squadRatedGameIds?: string[];
   updatedAt: string;
+}
+
+export function squadObjectiveRatingStats(
+  doc: PlayerStatsDocument | null | undefined,
+  objective: RatedObjective
+): ObjectiveRatingStats {
+  const key = objectiveToTrackKey(objective);
+  const existing = doc?.squadRating?.[key];
+  return existing ?? emptyObjectiveRatingStats();
 }
 
 export function humanObjectiveRatingStats(

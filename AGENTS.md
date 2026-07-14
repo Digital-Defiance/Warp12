@@ -59,6 +59,8 @@ Scripts call Vite/Vitest **directly** and avoid `nx run` orchestration (which ca
 **AI training/calibration:** 
 - `calibrate:ai-tei` — AI tier calibration (points objective, 200 games)
 - `calibrate:ai-tei-dti` — with Drop to Impulse house rule
+- `calibrate:openskill` / `calibrate:openskill:quick` — FFA OpenSkill anchor calibration
+- `calibrate:openskill-squad` / `calibrate:openskill-squad:quick` — Module Zeta 2v2 team-rating ordering
 - `calibrate:modules` — Module balance testing (500 games, **verbose reporter**, runs with parallelism)
 - `calibrate:modules:quick` — Quick module test (100 games, verbose reporter)
 - `calibrate:modules:dot` — Dot reporter (compact, shows dots for each completed test)

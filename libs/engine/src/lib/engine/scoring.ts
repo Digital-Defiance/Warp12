@@ -130,9 +130,21 @@ function tallyRoundPoints(state: GameState, round: RoundState) {
     }
   }
 
-  return state.captains.map((captain) => {
+  // Module Zeta: the winning squad is the squad of the captain who went out.
+  const squadrons = round.squadrons;
+  const winningSquadId =
+    squadrons && !round.roundBlocked && round.roundWinnerId
+      ? squadrons.find((s) => s.memberIds.includes(round.roundWinnerId!))?.id ??
+        null
+      : null;
+
+  const perCaptain = state.captains.map((captain) => {
     const hand = round.hands[captain.id] ?? [];
-    const isWinner = !round.roundBlocked && captain.id === round.roundWinnerId;
+    // In squad play the whole winning squad scores the go-out (0); otherwise the
+    // individual round winner scores 0.
+    const isWinner = squadrons
+      ? winningSquadId != null && captain.squadronId === winningSquadId
+      : !round.roundBlocked && captain.id === round.roundWinnerId;
     
     let penalty = 0;
     
@@ -209,9 +221,32 @@ function tallyRoundPoints(state: GameState, round: RoundState) {
       penalty += debt * costPerToken;
     }
     
-    return {
+    return { captain, penalty };
+  });
+
+  // FFA: each captain keeps their own penalty.
+  if (!squadrons) {
+    return perCaptain.map(({ captain, penalty }) => ({
       ...captain,
       pointsScore: captain.pointsScore + penalty,
+    }));
+  }
+
+  // Module Zeta: aggregate each squad's penalties and assign the squad total to
+  // every member, so cumulative standings compare squads (decision #4). The
+  // winning squad's members each computed 0, so their squad total is 0.
+  const squadTotals = new Map<string, number>();
+  for (const { captain, penalty } of perCaptain) {
+    const key = captain.squadronId ?? captain.id;
+    squadTotals.set(key, (squadTotals.get(key) ?? 0) + penalty);
+  }
+
+  return perCaptain.map(({ captain, penalty }) => {
+    const key = captain.squadronId ?? captain.id;
+    const squadPenalty = squadTotals.get(key) ?? penalty;
+    return {
+      ...captain,
+      pointsScore: captain.pointsScore + squadPenalty,
     };
   });
 }
@@ -276,7 +311,9 @@ export function scoreRound(
       shuffledCoordinates: shuffled,
       turnOrder: round.turnOrder,
       maxPip: state.maxPip ?? DOUBLE_TWELVE_MAX_PIPS,
-      // packSize omitted - will be calculated automatically
+      largeFleetHandSize: state.houseRules.largeFleetHandSize,
+      packSize: state.modules.drafting.packSize,
+      squadrons: round.squadrons,
     });
     
     // Apply module-specific round initialization
@@ -324,7 +361,7 @@ export function scoreRound(
     largeFleetHandSize: state.houseRules.largeFleetHandSize,
     maxPip: state.maxPip ?? DOUBLE_TWELVE_MAX_PIPS,
   });
-  let nextRound = createRoundStateFromDeal(nextDeal);
+  let nextRound = createRoundStateFromDeal(nextDeal, round.squadrons);
 
   // Module Delta: Initialize hazard marker with round starter
   if (state.modules.warpDriveSpool.enabled) {

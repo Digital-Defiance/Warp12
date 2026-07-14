@@ -101,6 +101,10 @@ export const HomePage: FC<HomePageProps> = ({ factor }) => {
             About &amp; TEI
           </Link>
           {' · '}
+          <Link to="/modules" className={styles.heroLink}>
+            Modules
+          </Link>
+          {' · '}
           <Link to="/rules" className={styles.heroLink}>
             Operations Manual
           </Link>
@@ -130,6 +134,10 @@ export const HomePage: FC<HomePageProps> = ({ factor }) => {
       <p className={styles.heroLinks}>
         <Link to="/about" className={styles.heroLink}>
           About Warp — engine, TEI, and what we claim
+        </Link>
+        {' · '}
+        <Link to="/modules" className={styles.heroLink}>
+          Modules — play-tested, Promote vs Warped
         </Link>
         {' · '}
         <Link to="/rules" className={styles.heroLink}>
@@ -238,6 +246,10 @@ export const HomePage: FC<HomePageProps> = ({ factor }) => {
         &nbsp;|&nbsp;
         <Link to="/about" className={styles.footerLink}>
           About
+        </Link>
+        &nbsp;|&nbsp;
+        <Link to="/modules" className={styles.footerLink}>
+          Modules
         </Link>
         &nbsp;|&nbsp;
         <Link to="/privacy" className={styles.footerLink}>

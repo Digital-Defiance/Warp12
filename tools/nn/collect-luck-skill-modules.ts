@@ -84,6 +84,52 @@ const MODULE_CONFIGS: Record<string, { modules?: GameModuleConfig; houseRules?: 
     label: 'Module Zeta (Squadrons)',
   },
 
+  eta: {
+    modules: {
+      temporalDebt: true,
+      temporalDebtCost: 2,
+    },
+    label: 'Module Eta (Temporal Debt)',
+  },
+
+  theta: {
+    modules: {
+      longestTrail: true,
+      longestTrailBonus: -3,
+    },
+    label: 'Module Theta (Longest Trail)',
+  },
+
+  iota: {
+    modules: {
+      doubleDown: true,
+      doubleDownDrawCount: 2,
+    },
+    label: 'Module Iota (Double Down)',
+  },
+
+  kappa: {
+    modules: {
+      temporalInversion: true,
+    },
+    label: 'Module Kappa (Temporal Inversion)',
+  },
+
+  lambda: {
+    modules: {
+      wormholes: true,
+    },
+    label: 'Module Lambda (Wormholes)',
+  },
+
+  mu: {
+    modules: {
+      subspaceFracture: true,
+      subspaceFractureScope: 'own-trail',
+    },
+    label: 'Subspace Fracture (Own Trail)',
+  },
+
   // Official Warp preset
   official: {
     modules: {
@@ -99,7 +145,8 @@ const MODULE_CONFIGS: Record<string, { modules?: GameModuleConfig; houseRules?: 
     label: 'Official Warp 12 Preset',
   },
 
-  // All modules enabled (stress test)
+  // All modules enabled (stress test). Zeta is dropped at runtime when the
+  // fleet cannot form equal squads (odd counts, or fewer than 4 captains).
   all: {
     modules: {
       continuum: true,
@@ -125,6 +172,36 @@ const MODULE_CONFIGS: Record<string, { modules?: GameModuleConfig; houseRules?: 
   },
 };
 
+/** Module Zeta needs ≥2 equal squads (even fleet ≥4 for squadronSize=2). */
+function fleetSupportsSquadrons(
+  playerCount: number,
+  squadronSize = 2
+): boolean {
+  return playerCount >= squadronSize * 2 && playerCount % squadronSize === 0;
+}
+
+function resolveModulesForFleet(
+  modules: GameModuleConfig | undefined,
+  playerCount: number
+): { modules?: GameModuleConfig; zetaOmitted: boolean } {
+  if (!modules?.squadrons) {
+    return { modules, zetaOmitted: false };
+  }
+  const squadronSize = modules.squadronSize ?? 2;
+  if (fleetSupportsSquadrons(playerCount, squadronSize)) {
+    return { modules, zetaOmitted: false };
+  }
+  return {
+    modules: {
+      ...modules,
+      squadrons: false,
+      squadronSize: undefined,
+      squadronNames: undefined,
+    },
+    zetaOmitted: true,
+  };
+}
+
 const config = MODULE_CONFIGS[MODULE_CONFIG];
 if (!config) {
   console.error(`Unknown module config: ${MODULE_CONFIG}`);
@@ -132,7 +209,44 @@ if (!config) {
   process.exit(1);
 }
 
-console.error(`\n=== W${WARP_FACTOR} · ${PLAYER_COUNT}p · ${config.label} ===`);
+const { modules: resolvedModules, zetaOmitted } = resolveModulesForFleet(
+  config.modules,
+  PLAYER_COUNT
+);
+
+// Standalone zeta with an ineligible fleet: skip cleanly (shell already gates this,
+// but keep a safe exit for manual runs).
+if (MODULE_CONFIG === 'zeta' && zetaOmitted) {
+  console.error(
+    `\n=== W${WARP_FACTOR} · ${PLAYER_COUNT}p · ${config.label} ===`
+  );
+  console.error(
+    `Skipping: Module Zeta needs an even fleet of ≥4 captains (got ${PLAYER_COUNT}).\n`
+  );
+  writeFileSync(
+    OUTPUT_PATH,
+    JSON.stringify(
+      {
+        warpFactor: WARP_FACTOR,
+        playerCount: PLAYER_COUNT,
+        moduleConfig: MODULE_CONFIG,
+        objective: OBJECTIVE,
+        skipped: true,
+        reason: `zeta requires even playerCount >= 4 (got ${PLAYER_COUNT})`,
+        games: 0,
+      },
+      null,
+      2
+    )
+  );
+  process.exit(0);
+}
+
+const label = zetaOmitted
+  ? `${config.label} (Zeta omitted — fleet too small/uneven)`
+  : config.label;
+
+console.error(`\n=== W${WARP_FACTOR} · ${PLAYER_COUNT}p · ${label} ===`);
 console.error(`Games: ${GAMES}, Objective: ${OBJECTIVE}\n`);
 
 const startTime = Date.now();
@@ -159,7 +273,7 @@ const matchResult = runSelfPlayMatch(
   {
     games: GAMES,
     seed: BASE_SEED,
-    modules: config.modules,
+    modules: resolvedModules,
     houseRules: config.houseRules,
     objective: OBJECTIVE,
     maxPip: WARP_FACTOR,
@@ -180,7 +294,8 @@ const summary = summarizeLuckSkillMetrics(
   OBJECTIVE
 );
 
-// Calculate skill indicators
+// Calculate skill indicators (0–4). Thresholds are frozen absolute guards —
+// keep in sync with docs/tei-paper.tex §9 and docs/MODULE-ANALYSIS.md.
 const skillIndicators = [
   summary.avgLegalMovesPerTurn >= 3.0,
   summary.avgConstrainedTileFraction > 0.5,
@@ -211,7 +326,8 @@ const output = {
   warpFactor: WARP_FACTOR,
   playerCount: PLAYER_COUNT,
   moduleConfig: MODULE_CONFIG,
-  moduleLabel: config.label,
+  moduleLabel: label,
+  zetaOmitted,
   games: GAMES,
   objective: OBJECTIVE,
   summary,

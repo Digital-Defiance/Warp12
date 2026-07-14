@@ -54,27 +54,27 @@ These need to be fixed but don't block AI heuristics work or calibration.
 ### P1 - Important (Confusing Without)
 
 #### Double Down Notification
-- [ ] **Action log entry** when Double Down triggers
-  - Add to `buildGameLogEntry` in `online-action.ts`
-  - Format: "[Player] charted double → Double Down! [NextPlayer] draws 2"
-- [ ] **Visual notification** (toast/banner) when tiles are forcibly drawn
-  - Add to bridge table when `DRAW_FROM_UNCHARTED` action occurs during Double Down
-- [ ] **HUD indicator** showing "Double Down active - you must draw 2"
-  - Display on affected player's turn
+- [x] **Action log entry** when Double Down triggers
+  - `buildGameLogEntry` / `formatGameLogEntry` in `libs/react/.../game-log.ts`
+  - Format: `… played … → Double Down! [Target] draws N`
+- [x] **Visual notification** (toast/banner) when tiles are forcibly drawn
+  - `module-feedback.ts` + `bridge-table.tsx` (local dispatch + online move-log sync)
+- [x] **HUD indicator** on the affected captain's turn
+  - `sector-status-hud.tsx` Double Down row while notice is active
 
 #### Spool Action Button
-- [ ] **Add WARP_DRIVE_SPOOL button** to legal moves UI
-  - Show when Delta or Theta is enabled
-  - Show when not blocked by Red Alert or Subspace Fracture
-  - Place near DRAW button
-- [ ] **Spool feedback** - show tiles being drawn one-by-one
-- [ ] **Spool result summary** - "Spooled 3 tiles, drew 1 mismatch"
+- [x] **SPOOL_WARP_DRIVE control** next to Draw when `getSpoolOptions` is non-empty
+  - Label: “Engage warp drive”; multi-route picker when needed
+- [x] **Spool result summary** via `formatSpoolFeedback` toast
+  - One-by-one draw animation left as P2
+- [~] **Spool feedback** tile-by-tile animation (P2)
 
 #### Firebase Schema Verification
-- [ ] **Verify all new module fields** serialize/deserialize correctly
-  - Check `schema.ts` for complete module coverage
-  - Check `serialize.ts` for all module state
-  - Test online sync with new modules enabled
+- [x] **Verify all new module fields** serialize/deserialize correctly (2026-07-13)
+  - [x] `schema.ts` — sensorGrid, draftState, hazard marker, debtTokens, wormholeOpened, round.squadrons + trailKey
+  - [x] `serialize.ts` / `mergeHandsIntoGame` round-trip
+  - [x] `mergeCaptainMetadata` preserves `squadronId`
+  - [x] Online lobby toggles for Eta / Epsilon / Lambda (Zeta already present; local/P&amp;P intentionally omit Zeta)
 
 ---
 

@@ -10,6 +10,7 @@ import type { PlayerId } from '../types/player.js';
 import type { WarpAiAction } from './actions.js';
 import { warpCandidateGenerator } from './candidate-generator.js';
 import { observe } from './observation.js';
+import { routeIsOwnTrail, trailKeyFor } from '../engine/squadrons.js';
 
 /**
  * Per-turn decision complexity metrics.
@@ -276,21 +277,25 @@ export function measureMoveValueSpread(
 
 /**
  * Track whether a chart action was on own trail, other trail, or neutral zone.
+ * Module Zeta: "own" trail is the shared squad trail — pass `round` so a
+ * squadmate's own-trail chart on a route keyed by their trailKey (not their
+ * own id) is still classified as "own", not "other".
  */
 export function categorizeChartTarget(
   action: WarpAiAction,
-  playerId: PlayerId
+  playerId: PlayerId,
+  round: RoundState
 ): 'own' | 'other' | 'neutral' | 'none' {
   if (action.kind !== 'chart') {
     return 'none';
   }
   
   const route = action.move.route;
-  if (route.kind === 'warp-trail' && route.playerId === playerId) {
+  if (route.kind === 'warp-trail' && routeIsOwnTrail(round, playerId, route)) {
     return 'own';
   } else if (route.kind === 'neutral-zone') {
     return 'neutral';
-  } else if (route.kind === 'warp-trail' && route.playerId !== playerId) {
+  } else if (route.kind === 'warp-trail' && !routeIsOwnTrail(round, playerId, route)) {
     return 'other';
   }
   
@@ -322,7 +327,8 @@ export function updateTrailDevelopment(
   metrics: Record<PlayerId, TrailDevelopmentMetrics>,
   playerId: PlayerId,
   action: WarpAiAction,
-  shieldsDown: boolean
+  shieldsDown: boolean,
+  round: RoundState
 ): void {
   const m = metrics[playerId];
   if (!m) return;
@@ -332,7 +338,7 @@ export function updateTrailDevelopment(
     m.shieldsDownTurns++;
   }
   
-  const category = categorizeChartTarget(action, playerId);
+  const category = categorizeChartTarget(action, playerId, round);
   if (category === 'own') {
     m.ownTrailPlays++;
   } else if (category === 'other' || category === 'neutral') {
@@ -390,7 +396,8 @@ export class LuckSkillMetricsSampler {
     const m = this.trailDevelopment[playerId];
     if (m) {
       m.totalTurns++;
-      const trail = round.table.warpTrails[playerId];
+      // Module Zeta: read the shared squad trail via trailKeyFor.
+      const trail = round.table.warpTrails[trailKeyFor(round, playerId)];
       if (trail && trail.tiles.length === 0) {
         m.shieldsDownTurns++;
       }
@@ -401,8 +408,13 @@ export class LuckSkillMetricsSampler {
    * Update trail development after an action is known.
    * Called separately when action details are available.
    */
-  recordAction(playerId: PlayerId, action: WarpAiAction, shieldsDown: boolean): void {
-    updateTrailDevelopment(this.trailDevelopment, playerId, action, shieldsDown);
+  recordAction(
+    playerId: PlayerId,
+    action: WarpAiAction,
+    shieldsDown: boolean,
+    round: RoundState
+  ): void {
+    updateTrailDevelopment(this.trailDevelopment, playerId, action, shieldsDown, round);
   }
   
   /**

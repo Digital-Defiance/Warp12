@@ -9,6 +9,49 @@
   padding: 0.75rem;
 }
 
+.channelTabs {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.channelTab {
+  flex: 1;
+  font-family: var(--font-federation);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+
+  &:hover {
+    opacity: 0.85;
+  }
+}
+
+// Table channel — neutral slate (matches the panel background family).
+.channelTabTable {
+  background: #0f172a;
+  color: #94a3b8;
+  border-color: #334155;
+}
+
+// Squad channel — distinct warm accent so it's unmistakably NOT the table
+// channel (prevents "did I just say that to everyone" mistakes).
+.channelTabSquad {
+  background: rgba(217, 119, 6, 0.12);
+  color: #fbbf24;
+  border-color: #b45309;
+}
+
+.channelTabActive {
+  opacity: 1;
+  font-weight: 700;
+}
+
 .log {
   flex: 1;
   overflow-y: auto;

@@ -11,6 +11,8 @@ import type {
 export interface SerializableLocalGameConfig {
   humanId: string;
   humanName: string;
+  /** Pass-and-play seats; length ≥ 2 means unrated. */
+  humanCaptains?: readonly { id: string; displayName: string }[];
   playerCount: number;
   objective: GameObjective;
   campaignRounds: number;
@@ -18,6 +20,11 @@ export interface SerializableLocalGameConfig {
   houseRules?: HouseRulesConfig;
   /** Double-N max pip. Omitted / 12 = rated-eligible Warp 12. */
   maxPip?: number;
+  /**
+   * Host intent. `false` = casual (advisor OK, no TEI). Omitted / true = TEI
+   * when otherwise eligible.
+   */
+  rated?: boolean;
   aiCaptains: readonly {
     id: string;
     displayName: string;

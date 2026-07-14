@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   applyAction,
+  squadronDisplayName,
   type ActionResult,
   type ActionViolation,
   type GameAction,
@@ -22,7 +23,6 @@ import {
   type FirestoreRoundMove,
 } from '../firebase';
 import { isAiCaptain } from '../game/ai-captain.js';
-import { resolveCommsMode } from '../game/comms-mode.js';
 import {
   subscribeMessages,
   type SubspaceMessage,
@@ -323,10 +323,17 @@ export function OnlineGamePage() {
     setCommsOpen((open) => !open);
   }, []);
 
-  const commsMode = resolveCommsMode(
-    sectorRated,
-    game?.phase === 'active' ? 'active' : game?.phase === 'complete' ? 'complete' : 'lobby'
-  );
+  const commsPhase: 'lobby' | 'active' | 'complete' =
+    game?.phase === 'active' ? 'active' : game?.phase === 'complete' ? 'complete' : 'lobby';
+  const viewerSquadronId = sectorCaptains.find((c) => c.id === uid)?.squadronId;
+  const viewerSquadronName = useMemo(() => {
+    const squadrons = game?.squadrons;
+    if (!squadrons || !viewerSquadronId) {
+      return undefined;
+    }
+    const squad = squadrons.find((s) => s.id === viewerSquadronId);
+    return squad ? squadronDisplayName(squadrons, squad) : undefined;
+  }, [game?.squadrons, viewerSquadronId]);
 
   const hostResetSector = async () => {
     if (!code || !uid) {
@@ -454,8 +461,11 @@ export function OnlineGamePage() {
             sectorCaptains.find((c) => c.id === uid)?.displayName ?? 'Captain'
           }
           messages={commsMessages}
-          mode={commsMode}
+          rated={sectorRated}
+          phase={commsPhase}
           captains={sectorCaptains}
+          viewerSquadronId={viewerSquadronId}
+          viewerSquadronName={viewerSquadronName}
           muted={mutedUids}
           onMute={handleMute}
         />

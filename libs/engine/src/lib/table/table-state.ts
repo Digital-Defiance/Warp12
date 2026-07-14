@@ -1,21 +1,35 @@
 import { isDouble } from '../types/coordinate.js';
 import type { TableState } from '../types/game-state.js';
 import type { PlayerId } from '../types/player.js';
+import type { Squadron } from '../types/squadrons.js';
 import type { NeutralZone, WarpTrail } from '../types/trails.js';
 
 export function createInitialTable(
   playerIds: readonly PlayerId[],
   spacedockValue: number,
-  spacedockPlacedBy: PlayerId
+  spacedockPlacedBy: PlayerId,
+  squadrons?: readonly Squadron[]
 ): TableState {
   const warpTrails: Record<PlayerId, WarpTrail> = {};
 
-  for (const playerId of playerIds) {
-    warpTrails[playerId] = {
-      playerId,
-      tiles: [],
-      distressBeacon: { active: false },
-    };
+  if (squadrons && squadrons.length > 0) {
+    // Module Zeta (Model C): one shared trail per squad, keyed by the squad's
+    // canonical trailKey. Members without the key share the squad trail.
+    for (const squad of squadrons) {
+      warpTrails[squad.trailKey] = {
+        playerId: squad.trailKey,
+        tiles: [],
+        distressBeacon: { active: false },
+      };
+    }
+  } else {
+    for (const playerId of playerIds) {
+      warpTrails[playerId] = {
+        playerId,
+        tiles: [],
+        distressBeacon: { active: false },
+      };
+    }
   }
 
   return {

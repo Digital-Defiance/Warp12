@@ -31,6 +31,19 @@
   &[data-state='red-alert'] .name {
     color: var(--warp-danger, #f87171);
   }
+
+  // Module Zeta: squad color-coding — a left stripe so squadmates are
+  // visually grouped without fighting the active/hazard background states.
+  // squad-1/2/3 keep stable colors across a session (squad ids are stable).
+  &[data-squadron='squad-1'] {
+    border-left: 3px solid #5eead4;
+  }
+  &[data-squadron='squad-2'] {
+    border-left: 3px solid #fbbf24;
+  }
+  &[data-squadron='squad-3'] {
+    border-left: 3px solid #c084fc;
+  }
 }
 
 .nameCell {

@@ -23,6 +23,14 @@
         { "fieldPath": "charterId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "squadMatches",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "memberUids", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "playedAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

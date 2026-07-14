@@ -6,6 +6,7 @@
 
 import type { WarpAiObservation } from './observation.js';
 import type { PlayerId } from '../types/player.js';
+import { sameTrailGroup, trailKeyFor } from '../engine/squadrons.js';
 
 /**
  * Estimate expected value of spooling on a route.
@@ -28,7 +29,8 @@ export function estimateSpoolValue(
   
   // Base factors
   const handSize = hand.length;
-  const isOwnTrail = routePlayerId === playerId;
+  const isOwnTrail =
+    routePlayerId !== null && sameTrailGroup(round, playerId, routePlayerId);
   const isNeutralZone = routePlayerId === null;
   const isOpponentTrail = routePlayerId !== null && !isOwnTrail;
   
@@ -47,15 +49,18 @@ export function estimateSpoolValue(
     return -80;
   }
   
-  // Calculate current trail lengths for competition assessment
+  // Calculate current trail lengths for competition assessment (own = squad
+  // trail key; opponent trails already de-duped since they're keyed by squad).
+  const ownTrailKey = trailKeyFor(round, playerId);
   const trails = Object.entries(round.table.warpTrails).map(([id, trail]) => ({
     playerId: id,
     length: trail.tiles.length,
   }));
   
-  const ourTrailLength = trails.find((t) => t.playerId === playerId)?.length ?? 0;
+  const ourTrailLength =
+    trails.find((t) => t.playerId === ownTrailKey)?.length ?? 0;
   const maxOpponentLength = Math.max(
-    ...trails.filter((t) => t.playerId !== playerId).map((t) => t.length),
+    ...trails.filter((t) => t.playerId !== ownTrailKey).map((t) => t.length),
     0
   );
   const neutralZoneLength = round.table.neutralZone.tiles.length;

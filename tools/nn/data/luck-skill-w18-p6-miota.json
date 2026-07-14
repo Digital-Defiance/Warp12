@@ -1,0 +1,28 @@
+{
+  "warpFactor": 18,
+  "playerCount": 6,
+  "moduleConfig": "iota",
+  "moduleLabel": "Module Iota (Double Down)",
+  "zetaOmitted": false,
+  "games": 500,
+  "objective": "points",
+  "summary": {
+    "games": 500,
+    "playerCount": 6,
+    "maxPip": 18,
+    "objective": "points",
+    "avgLegalMovesPerTurn": 1.9810590070605854,
+    "avgUniqueTrainsPerTurn": 0.9202923829250709,
+    "avgConstrainedTileFraction": 0.6005534033005859,
+    "avgUniquePipsInHand": 8.760329502236958,
+    "avgMaxPipCluster": 2.4854642082383274,
+    "avgHandEntropy": 2.7869283664342355,
+    "avgMoveValueSpread": 3.9473386034908415,
+    "avgNearOptimalFraction": 0.7991719276930588,
+    "avgOwnTrailPlayRate": 0,
+    "avgShieldsDownRate": 0.0772474176255025
+  },
+  "skillIndicators": 3,
+  "timestamp": "2026-07-14T01:45:31.241Z",
+  "durationSeconds": 50.097
+}

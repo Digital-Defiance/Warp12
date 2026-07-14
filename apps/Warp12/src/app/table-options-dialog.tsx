@@ -30,6 +30,11 @@ export interface TableOptionsDialogProps {
   onPipPresetChange: (next: WarpPipPreset) => void;
   teachingMode: boolean;
   onTeachingModeChange: (next: boolean) => void;
+  /**
+   * When false (rated sector), the Advisor section is omitted so teaching mode
+   * cannot be enabled mid-match.
+   */
+  advisorAvailable?: boolean;
   /** When false, advisor is heuristics-only (Warp 9/15/18 exhibition). */
   advisorNeuralAvailable?: boolean;
   autoFollowAction: boolean;
@@ -70,6 +75,7 @@ export function TableOptionsDialog({
   onPipPresetChange,
   teachingMode,
   onTeachingModeChange,
+  advisorAvailable = true,
   advisorNeuralAvailable = true,
   autoFollowAction,
   onAutoFollowActionChange,
@@ -283,6 +289,7 @@ export function TableOptionsDialog({
             </p>
           </section>
 
+          {advisorAvailable && (
           <section className={optionStyles.section}>
             <h3 className={optionStyles.sectionTitle}>Advisor</h3>
             <label className={optionStyles.checkboxRow}>
@@ -303,6 +310,7 @@ export function TableOptionsDialog({
                   : 'Turn on to keep the advisor visible with move advice every turn (you still confirm each play).'}
             </p>
           </section>
+          )}
 
           <section className={optionStyles.section}>
             <h3 className={optionStyles.sectionTitle}>Pip readout</h3>

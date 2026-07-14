@@ -1,5 +1,5 @@
 import type { GenericHeuristic } from 'double-eighteen';
-import { salamanderPenaltyApplies } from '../constants/setup.js';
+import { handSizeForPlayerCount, salamanderPenaltyApplies } from '../constants/setup.js';
 import { getLegalMoves } from '../engine/legal-moves.js';
 import {
   coordinateKey,
@@ -18,6 +18,7 @@ import {
   defensiveBlockingMultiplier,
   minOpponentHandSize as minOpponentHandSizeFromObs,
 } from './go-out-race.js';
+import { routeIsOwnTrail, trailKeyFor } from '../engine/squadrons.js';
 
 export type WarpHeuristic = GenericHeuristic<WarpAiAction, WarpEvalContext>;
 
@@ -61,6 +62,8 @@ export const WARP_HEURISTIC_IDS = {
   longestTrailBonus: 'longest-trail-bonus',
   /** Module Iota: Double Down timing strategy. */
   doubleDownTiming: 'double-down-timing',
+  /** Module Zeta: bias toward the shared squad trail (public-info only, no hand sharing). */
+  squadCoordination: 'squad-coordination',
 } as const;
 
 const H = WARP_HEURISTIC_IDS;
@@ -193,7 +196,8 @@ function goOutDumpPhase(ctx: WarpEvalContext): boolean {
   const playerId = ctx.obs.playerId;
   const tuning = ctx.goOutTuning;
   const ownTrailLen =
-    ctx.obs.round.table.warpTrails[playerId]?.tiles.length ?? 0;
+    ctx.obs.round.table.warpTrails[trailKeyFor(ctx.obs.round, playerId)]
+      ?.tiles.length ?? 0;
   const minOppHand = minOpponentHandSize(ctx);
   const tableSize = Math.max(2, ctx.obs.captains.length);
   const buildTrailTarget =
@@ -222,8 +226,7 @@ const goOutTrailPriority: WarpHeuristic = {
     const route = action.move.route;
     const handSize = ctx.hand.length;
     const playerId = ctx.obs.playerId;
-    const onOwnTrail =
-      route.kind === 'warp-trail' && route.playerId === playerId;
+    const onOwnTrail = routeIsOwnTrail(ctx.obs.round, playerId, route);
     if (!onOwnTrail) return 0;
 
     const dumpPhase = goOutDumpPhase(ctx);
@@ -277,7 +280,7 @@ const goOutOpponentTrailDump: WarpHeuristic = {
     const route = action.move.route;
     if (
       route.kind !== 'warp-trail' ||
-      route.playerId === ctx.obs.playerId
+      routeIsOwnTrail(ctx.obs.round, ctx.obs.playerId, route)
     ) {
       return 0;
     }
@@ -404,23 +407,20 @@ const playDoublesEarly: WarpHeuristic = {
     if (!isDouble(action.move.coordinate)) return 0;
     if (ctx.obs.objective === 'go-out') {
       const route = action.move.route;
-      const onOwnTrail =
-        route.kind === 'warp-trail' && route.playerId === ctx.obs.playerId;
+      const onOwnTrail = routeIsOwnTrail(ctx.obs.round, ctx.obs.playerId, route);
       if (!onOwnTrail) return -10;
     }
     return Math.min(ctx.hand.length, 12);
   },
 };
 
-/** Charting on your own Warp Trail keeps shields up and the route under control. */
+/** Charting on your own (squad) Warp Trail keeps shields up and the route under control. */
 const ownTrail: WarpHeuristic = {
   id: H.ownTrail,
   score(action: WarpAiAction, ctx: WarpEvalContext): number {
     if (action.kind !== 'chart') return 0;
     const route = action.move.route;
-    return route.kind === 'warp-trail' && route.playerId === ctx.obs.playerId
-      ? 8
-      : 0;
+    return routeIsOwnTrail(ctx.obs.round, ctx.obs.playerId, route) ? 8 : 0;
   },
 };
 
@@ -488,9 +488,12 @@ const defensiveShared: WarpHeuristic = {
   score(action: WarpAiAction, ctx: WarpEvalContext): number {
     if (action.kind !== 'chart') return 0;
     const route = action.move.route;
+    // Shared = Neutral Zone, or a genuinely opposing squad's open trail — never
+    // a squadmate's own (shared) trail, which you want to help, not hinder.
     const shared =
       route.kind === 'neutral-zone' ||
-      (route.kind === 'warp-trail' && route.playerId !== ctx.obs.playerId);
+      (route.kind === 'warp-trail' &&
+        !routeIsOwnTrail(ctx.obs.round, ctx.obs.playerId, route));
     if (!shared) return 0;
 
     const endValue = newOpenEndValue(action, ctx);
@@ -519,6 +522,40 @@ const salamanderDump: WarpHeuristic = {
     const { low, high } = action.move.coordinate;
     const maxPip = ctx.obs.maxPip ?? 12;
     return low === maxPip && high === maxPip ? 50 : 0;
+  },
+};
+
+/**
+ * Module Zeta (Squadrons): bias toward playing on the shared squad trail so
+ * the AI actively cooperates with its squadmate rather than treating the
+ * shared trail as neutral. Uses only public information (trail contents,
+ * beacon state, own hand) — no squadmate hand is inspected, matching the
+ * no-shared-info decision.
+ *
+ * Weight is set per commission track in skill.ts (`squadCoordination`), so
+ * Commander AI coordinates more strongly than Ensign.
+ */
+const squadCoordination: WarpHeuristic = {
+  id: H.squadCoordination,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (action.kind !== 'chart') return 0;
+    if (!ctx.obs.round.squadrons?.length) return 0;
+    const route = action.move.route;
+    if (!routeIsOwnTrail(ctx.obs.round, ctx.obs.playerId, route)) return 0;
+
+    let value = 6; // Base nudge toward the shared squad trail over solo routes.
+
+    // Extra credit for clearing (or keeping clear) the squad's shared beacon —
+    // public info: any squadmate charting the shared trail lifts shields for
+    // everyone, so this is a real cooperative payoff, not a guess about hands.
+    const trailKey = trailKeyFor(ctx.obs.round, ctx.obs.playerId);
+    const beaconWasDown =
+      ctx.obs.round.table.warpTrails[trailKey]?.distressBeacon.active === true;
+    if (beaconWasDown) {
+      value += 10;
+    }
+
+    return value;
   },
 };
 
@@ -740,16 +777,22 @@ const longestTrailBonus: WarpHeuristic = {
     
     const route = action.move.route;
     const playerId = ctx.obs.playerId;
-    const onOwnTrail = route.kind === 'warp-trail' && route.playerId === playerId;
+    const onOwnTrail = routeIsOwnTrail(ctx.obs.round, playerId, route);
     
     if (!onOwnTrail) return 0;
     
-    // Calculate trail lengths
-    const ownTrailLen = ctx.obs.round.table.warpTrails[playerId]?.tiles.length ?? 0;
+    // Calculate trail lengths (dedupe opponents sharing a squad trail)
+    const ownTrailKey = trailKeyFor(ctx.obs.round, playerId);
+    const ownTrailLen =
+      ctx.obs.round.table.warpTrails[ownTrailKey]?.tiles.length ?? 0;
     let maxOpponentTrailLen = 0;
+    const seenTrailKeys = new Set([ownTrailKey]);
     for (const captain of ctx.obs.captains) {
       if (captain.id === playerId) continue;
-      const oppLen = ctx.obs.round.table.warpTrails[captain.id]?.tiles.length ?? 0;
+      const trailKey = trailKeyFor(ctx.obs.round, captain.id);
+      if (seenTrailKeys.has(trailKey)) continue;
+      seenTrailKeys.add(trailKey);
+      const oppLen = ctx.obs.round.table.warpTrails[trailKey]?.tiles.length ?? 0;
       maxOpponentTrailLen = Math.max(maxOpponentTrailLen, oppLen);
     }
     
@@ -932,9 +975,12 @@ const draftPipBalance: WarpHeuristic = {
     
     // How far into draft are we?
     const pickNumber = draftState.pickedTiles[ctx.obs.playerId]?.length ?? 0;
-    const playerCount = ctx.obs.captains.length;
-    const desiredHandSize = playerCount <= 4 ? 15 : playerCount <= 6 ? 12 : 10;
-    const draftProgress = pickNumber / desiredHandSize;
+    const desiredHandSize = handSizeForPlayerCount(
+      ctx.obs.captains.length,
+      undefined,
+      round.maxPip ?? 12
+    );
+    const draftProgress = pickNumber / Math.max(1, desiredHandSize);
     
     // Calculate current hand pip average
     let totalPips = 0;
@@ -1022,6 +1068,7 @@ export const DEFAULT_WARP_HEURISTICS: WarpHeuristic[] = [
   temporalInversionStrategy,
   longestTrailBonus,
   doubleDownTiming,
+  squadCoordination,
   // Drafting heuristics (Module Epsilon)
   draftDoubles,
   draftConnectors,

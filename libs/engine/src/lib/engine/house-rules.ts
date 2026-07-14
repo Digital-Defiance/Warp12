@@ -1,18 +1,29 @@
 import type { HouseRules } from '../types/house-rules.js';
 import type { RoundState } from '../types/game-state.js';
 import type { PlayerId } from '../types/player.js';
+import { sameTrailGroup, trailKeyFor } from './squadrons.js';
 
 function hasEstablishedWarpTrail(
   round: RoundState,
   playerId: PlayerId
 ): boolean {
-  return (round.table.warpTrails[playerId]?.tiles.length ?? 0) > 0;
+  return (
+    (round.table.warpTrails[trailKeyFor(round, playerId)]?.tiles.length ?? 0) > 0
+  );
 }
 
-/** Every captain has at least one tile on their warp trail. */
+/**
+ * Every captain has at least one tile on their warp trail. Module Zeta: a
+ * squad's shared trail counts for every member once any one of them has
+ * charted on it — read via trailKeyFor so non-owner squadmates aren't
+ * always seen as trail-less (`warpTrails[captainId]` is only populated
+ * under the squad's canonical trailKey).
+ */
 export function allCaptainsHaveStartedTrails(round: RoundState): boolean {
   return round.turnOrder.every(
-    (captainId) => (round.table.warpTrails[captainId]?.tiles.length ?? 0) > 0
+    (captainId) =>
+      (round.table.warpTrails[trailKeyFor(round, captainId)]?.tiles.length ??
+        0) > 0
   );
 }
 
@@ -22,7 +33,9 @@ export function canChartOnOpponentTrail(
   trailCaptainId: PlayerId,
   houseRules: HouseRules
 ): boolean {
-  if (trailCaptainId === actingPlayerId) {
+  // Module Zeta: trailCaptainId is the trail's canonical key — a squadmate's
+  // own (shared) trail must compare via sameTrailGroup, not direct equality.
+  if (sameTrailGroup(round, actingPlayerId, trailCaptainId)) {
     return true;
   }
   if (
@@ -72,8 +85,10 @@ export function roundStarterOpeningObligation(
     return 'second-tile-required';
   }
 
-  // On first tile of the round, require second (but don't restrict route)
-  const ownTiles = round.table.warpTrails[playerId]?.tiles.length ?? 0;
+  // On first tile of the round, require second (but don't restrict route).
+  // Module Zeta: read the shared squad trail via trailKeyFor.
+  const ownTiles =
+    round.table.warpTrails[trailKeyFor(round, playerId)]?.tiles.length ?? 0;
   if (ownTiles === 0) {
     return 'second-tile-required';
   }

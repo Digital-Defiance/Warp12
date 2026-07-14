@@ -26,40 +26,42 @@ echo "Max workers: $WORKERS"
 echo "Objective: $OBJECTIVE"
 echo ""
 
-# Module configs to test
-MODULES=("none" "alpha" "beta" "gamma" "delta" "epsilon" "zeta" "official" "all")
-MODULE_COUNT=${#MODULES[@]}
+# Module configs to test — all 12 named modules + official preset + full stress test.
+# zeta (squadrons, squadronSize=2) requires an even player count >= 4 — formSquadrons()
+# throws otherwise — so standalone zeta is added only when eligible. The "all" stress
+# config still runs on smaller/odd fleets; the collector auto-omits Zeta there.
+MODULES=("none" "alpha" "beta" "gamma" "delta" "epsilon" "eta" "theta" "iota" "kappa" "lambda" "mu" "official" "all")
+MODULE_COUNT=$((${#MODULES[@]} + 1)) # +1 for zeta, added conditionally
 
 # Generate all configurations
 CONFIGS=()
 
-# Warp 9: 2-4 players (limited fleet)
-for P in {2..4}; do
-  for M in "${MODULES[@]}"; do
-    CONFIGS+=("9:$P:$M")
+add_configs_for_warp() {
+  local FACTOR=$1
+  local MIN_P=$2
+  local MAX_P=$3
+  for P in $(seq "$MIN_P" "$MAX_P"); do
+    for M in "${MODULES[@]}"; do
+      CONFIGS+=("$FACTOR:$P:$M")
+    done
+    # zeta needs >=4 players, evenly divisible by squadronSize (2)
+    if [ "$P" -ge 4 ] && [ $((P % 2)) -eq 0 ]; then
+      CONFIGS+=("$FACTOR:$P:zeta")
+    fi
   done
-done
+}
+
+# Warp 9: 2-4 players (limited fleet)
+add_configs_for_warp 9 2 4
 
 # Warp 12: 2-8 players (full range, rated factor)
-for P in {2..8}; do
-  for M in "${MODULES[@]}"; do
-    CONFIGS+=("12:$P:$M")
-  done
-done
+add_configs_for_warp 12 2 8
 
 # Warp 15: 2-12 players
-for P in {2..12}; do
-  for M in "${MODULES[@]}"; do
-    CONFIGS+=("15:$P:$M")
-  done
-done
+add_configs_for_warp 15 2 12
 
 # Warp 18: 2-18 players (large fleet)
-for P in {2..18}; do
-  for M in "${MODULES[@]}"; do
-    CONFIGS+=("18:$P:$M")
-  done
-done
+add_configs_for_warp 18 2 18
 
 TOTAL_CONFIGS=${#CONFIGS[@]}
 
@@ -72,7 +74,7 @@ echo "  - W9:  3 (2-4p)"
 echo "  - W12: 7 (2-8p)"
 echo "  - W15: 11 (2-12p)"
 echo "  - W18: 17 (2-18p)"
-echo "Module configs: $MODULE_COUNT (none, alpha-zeta, official, all)"
+echo "Module configs: $MODULE_COUNT (none, alpha-mu, zeta*, official, all† — *zeta only at even p>=4; †all omits zeta when ineligible)"
 echo ""
 echo "Total configs: $TOTAL_CONFIGS"
 echo "Total games: $((TOTAL_CONFIGS * GAMES))"

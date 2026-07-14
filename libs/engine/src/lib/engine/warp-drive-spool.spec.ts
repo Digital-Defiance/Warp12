@@ -2,6 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { normalizeCoordinate } from '../types/coordinate.js';
 import { executeWarpDriveSpool, determineLongestTrailWinner, executeOverdriveTieBreak } from './warp-drive-spool.js';
 import { DEFAULT_MODULES } from '../types/modules.js';
+import type { RoundState } from '../types/game-state.js';
+
+// executeWarpDriveSpool only reads round.squadrons (via trailKeyFor /
+// routeIsOwnTrail) — an FFA round (squadrons omitted) is sufficient here.
+const FFA_ROUND = {} as RoundState;
 
 describe('Module Delta — Warp Drive Spooling', () => {
   describe('Basic Spool Mechanics', () => {
@@ -19,7 +24,8 @@ describe('Module Delta — Warp Drive Spooling', () => {
         uncharted,
         DEFAULT_MODULES,
         { kind: 'warp-trail', playerId: 'a' },
-        'a'
+        'a',
+      FFA_ROUND
       );
 
       expect(result.success).toBe(false);
@@ -41,7 +47,8 @@ describe('Module Delta — Warp Drive Spooling', () => {
         uncharted,
         DEFAULT_MODULES,
         { kind: 'warp-trail', playerId: 'a' },
-        'a'
+        'a',
+      FFA_ROUND
       );
       expect(result.tilesPlayed).toHaveLength(3);
       expect(result.tilesSentToHand).toHaveLength(0);
@@ -58,7 +65,8 @@ describe('Module Delta — Warp Drive Spooling', () => {
         uncharted,
         DEFAULT_MODULES,
         { kind: 'warp-trail', playerId: 'a' },
-        'a'
+        'a',
+      FFA_ROUND
       );
       expect(result.tilesPlayed).toHaveLength(0);
       expect(result.tilesSentToHand).toHaveLength(1);
@@ -81,7 +89,8 @@ describe('Module Delta — Warp Drive Spooling', () => {
         uncharted,
         DEFAULT_MODULES,
         { kind: 'warp-trail', playerId: 'a' },
-        'a'
+        'a',
+      FFA_ROUND
       );
 
       expect(result.success).toBe(false);
@@ -104,7 +113,8 @@ describe('Module Delta — Warp Drive Spooling', () => {
         uncharted,
         DEFAULT_MODULES,
         { kind: 'warp-trail', playerId: 'a' },
-        'a'
+        'a',
+      FFA_ROUND
       );
 
       expect(result.success).toBe(false);
@@ -125,7 +135,8 @@ describe('Module Delta — Warp Drive Spooling', () => {
         uncharted,
         DEFAULT_MODULES,
         { kind: 'warp-trail', playerId: 'a' },
-        'a'
+        'a',
+      FFA_ROUND
       );
 
       expect(result.success).toBe(false);
@@ -158,7 +169,8 @@ describe('Module Delta — Warp Drive Spooling', () => {
         uncharted,
         modules,
         { kind: 'warp-trail', playerId: 'a' },
-        'a'
+        'a',
+      FFA_ROUND
       );
 
       expect(result.success).toBe(false);
@@ -191,7 +203,8 @@ describe('Module Delta — Warp Drive Spooling', () => {
         uncharted,
         modules,
         { kind: 'warp-trail', playerId: 'a' },
-        'a'
+        'a',
+      FFA_ROUND
       );
 
       expect(result.success).toBe(false);

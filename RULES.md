@@ -586,11 +586,13 @@ their hand in any single round wins the sector immediately.
 
 Warp has designed several Modules (currently 12, Alpha through Zeta)
 that add optional gameplay mechanics. We have taken extensive measures
-to keep rated play unaffected: a skill/luck quantifier and over 171,000
-game combinations across module configurations, checking for strange
-outcomes or behaviors. Some modules are marked **Warped** — intentional
-chaos that throws the game on its head, leans into luck, or can give an
-edge to lesser competitors. Those are exhibition-only and never rated.
+to keep rated play unaffected: a skill/luck quantifier across
+**285,000** Commander self-play games (570 configuration cells × 500
+games; Warp 9/12/15/18 × fleet sizes × module configs), checking for
+strange outcomes or behaviors. Some modules are marked **Warped** —
+intentional chaos that throws the game on its head, leans into luck,
+or can give an edge to lesser competitors. Those are exhibition-only
+and never rated.
 
 *Agree before launch. Unless noted, these are **not** part of standard
 multi-trail tournament practice — though **Sections I–V** (trails,
@@ -955,31 +957,37 @@ expected skill preservation).
 **Status:** Exhibition/Warped mode only—**predicted to significantly
 reduce skill ordering** (untested; awaiting calibration). Never rated.
 
-### Module Epsilon — Tactical Requisition (The Captain's Draft)
+### Module Epsilon — Tactical Requisition (The Captain's Draft) *(Warped — exhibition / party)*
 
-In top-tier Warp 18 engagements, victory is determined at the drafting
-table. Pre-mission optimization is essential; captains must requisition
-their tactical loadout to match the projected skill ceiling of the
-sector.
-
-When **enabled**, the random blind deal is replaced by a drafting phase,
-allowing captains to engage in strategic loadout optimization before the
-sector launch.
+In top-tier Warp 18 engagements, some fleets swear victory is decided at
+the drafting table. When **enabled**, the random blind deal is replaced
+by a pack-and-pass drafting phase before sector launch.
 
 1.  **Requisition Packs:** Uncharted Sectors are scrambled. Each captain
-    receives a Requisition Pack.
+    receives a Requisition Pack sized to the warp-set hand size.
 
 2.  **First Selection:** Captains analyze their initial intel, selecting
     one coordinate to lock into their permanent tactical loadout.
 
 3.  **Data Transfer:** Remaining coordinates are passed clockwise,
-    forcing captains to adapt their strategy based on the available data
-    pool.
+    forcing captains to adapt based on the available data pool.
 
-4.  **Strategic Depth:** This phase transforms the start of the sector
-    from a luck-based event into a high-skill predictive challenge,
-    ensuring that every captain enters the sector with a coherent,
-    optimized navigation strategy.
+4.  **Launch:** When packs are exhausted, play proceeds with the drafted
+    hands; leftovers return to Uncharted Sectors.
+
+**Tactical Impact (calibrated):** Drafting *feels* like a skill upgrade,
+but the comprehensive module study finds the opposite on the table.
+Drafted hands front-load luck and compress mid-game decisions: fewer
+legal moves (~1.3 vs ~2.1 baseline), fewer constrained tiles (36% vs
+57%), narrower move-value spreads, and thinner pip diversity. Average
+skill indicators drop to **1.08/4** (luck-dominant in 27/38 fleet×Warp
+cells). Coherent personal hands leave less room for skillful rescue
+navigation later — the race is often decided by who drafted the lucky
+connectors.
+
+**Status:** Exhibition/Warped mode only — excellent as a **party /
+social** module (the requisition ritual is the entertainment). Never
+rated. Do not enable on competitive TEI sectors.
 
 ### Module Zeta — Fleet Squadrons (Warp Crews)
 
@@ -1013,6 +1021,21 @@ high-complexity 18-captain sectors.
 - **Scoring:** Victory is a team achievement; a squadron goes out when
   *one* captain clears their hand, with the team penalty calculated by
   the aggregate remaining pips.
+
+**Requirements:** Even fleet size, at least two squadrons (for
+`squadronSize=2`, that means ≥4 captains divisible by 2). Odd fleets
+and heads-up cannot form Zeta.
+
+**Tactical Impact (calibrated):** On eligible fleets, Zeta *preserves*
+skill expression well (avg **2.94/4** skill indicators; 16/17 skill-
+dominant cells). Shared trails and bridge seating keep decision
+pressure high — this is a skillful large-fleet mode, not a luck module.
+
+**Status:** Skill-promote. Rated Warp 12 Zeta sectors update the
+dedicated **squad TEI track** (`squadRating` / Squad TEI on the profile
+— never FFA `humanRating`). Gate:
+`SQUADRONS_RATING_CALIBRATED = true` after 2v2 OpenSkill ordering
+self-play (points Cmdr×2 vs Lt×2 ≈62%, vs Ensign ≈88%).
 
 <div class="center">
 

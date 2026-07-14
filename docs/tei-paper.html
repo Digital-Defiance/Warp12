@@ -212,22 +212,33 @@ higher variance</strong> and compressed skill gaps. We demonstrate that
 search algorithms provide different advantages depending on context:
 expectimax wins in 2-player points (64% vs heuristics), while ISMCTS
 excels in 4+ player go-out (31% vs 23% baseline).</p>
-<p>A comprehensive 19,000-game empirical study across 38 configurations
-(4 Warp factors
+<p>A <strong>285<span>,</span>000-game</strong> points self-play
+campaign across <strong>570 configuration cells</strong> (4 Warp factors
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
-2–18 players) reveals that <strong>skill expression increases with both
-tile set size and player count</strong>, contradicting the intuition
-that larger games devolve into luck. We show that Warp factor 12
-(double-twelve dominoes) is the empirically optimal choice for
-competitive rating, exhibiting the highest sensitivity to player
-skill.</p>
+every legal fleet size
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+15 module configs) is our sole skill/luck instrument for board choice
+and module taxonomy. From the <strong>baseline</strong> cells alone we
+find that <strong>skill expression increases with both tile set size and
+player count</strong>, contradicting the intuition that larger games
+devolve into luck, and that Warp factor 12 is the empirically optimal
+choice for competitive rating. Across the full matrix, most optional
+modules preserve the baseline skill ceiling; <strong>Module Iota (Double
+Down) slightly raises it</strong>. <strong>Module Epsilon
+(Drafting)</strong> collapses it (1.08/4 indicators) —
+counter-intuitively, choosing your hand makes outcomes <em>more</em>
+luck-dominated mid-game — and is therefore designated <strong>Warped /
+party</strong>. <strong>Module Zeta (Squadrons)</strong> also preserves
+skill (2.94/4); it never writes FFA TEI — rated Warp 12 crew sectors
+update a dedicated <strong>Squad TEI</strong> track
+(<code>squadRating</code>) after team-track calibration
+(<code>SQUADRONS_RATING_CALIBRATED</code>), not because Zeta is
+luck-dominant.</p>
 <p>Finally, we report on <strong>Class
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math></strong>,
 a neural self-play agent that achieves parity with heuristic baselines
-in small games and outperforms in large fleets, demonstrating that pure
-self-play can produce competitive agents without hand-crafted
-heuristics. All code, data, and reproduction scripts are available as
-open source.</p>
+in small games and outperforms in large fleets. All code, data, and
+reproduction scripts are available as open source.</p>
 </div>
 </header>
 <h1 data-number="1" id="introduction"><span
@@ -282,16 +293,19 @@ Unsatisfied double &amp; Red Alert &amp; <code>redAlert</code><br />
 Draw pile &amp; Uncharted Sectors &amp; <code>pile</code><br />
 <br />
 Player &amp; Captain &amp; <code>PlayerId</code><br />
-Skill rating &amp; TEI &amp; <code>tei</code> (integer)<br />
+Skill rating &amp; TEI grade &amp; <code>TeiDisplay</code> (E/V/C/I/P +
+0–99)<br />
+Underlying skill &amp; OpenSkill
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>μ</mi><mo>,</mo><mi>σ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(\mu,\sigma)</annotation></semantics></math>
+&amp; <code>PlayerRating</code><br />
 Game table &amp; Sector / Fleet &amp; <code>game</code><br />
 <br />
 Easy AI &amp; Class IV (Ensign) &amp; <code>ensign</code><br />
 Medium AI &amp; Class III (Lieutenant) &amp;
 <code>lieutenant</code><br />
 Hard AI &amp; Class II (Commander) &amp; <code>commander</code><br />
-Expert (human only) &amp; Class I &amp; TEI
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>≥</mo><annotation encoding="application/x-tex">\geq</annotation></semantics></math>
-1450<br />
+Expert (human only) &amp; Class I &amp; High TEI score / low
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math><br />
 </p>
 </div>
 <p><strong>Warp factors</strong> refer to the maximum pip value in the
@@ -347,14 +361,12 @@ different search methods (expectimax, ISMCTS) provide advantages in
 different contexts: expectimax excels in 2-player points (64% win rate),
 while ISMCTS works better in 4+ player go-out (31% vs 23%
 baseline).</p></li>
-<li><p><strong>Luck vs skill across configurations</strong> — A
-19,000-game empirical study across 38 configurations reveals that skill
-expression increases with both tile set size and player count, with Warp
-12 (double-twelve) emerging as the empirically optimal choice for
-competitive rating.</p></li>
-<li><p><strong>Module balance and competitive integrity</strong> —
-Pending empirical validation of optional game mechanics and their impact
-on skill expression in competitive play.</p></li>
+<li><p><strong>Luck vs skill and module integrity</strong> — A single
+<strong>285<span>,</span>000-game</strong> matrix (570 cells) measures
+skill expression across Warp factors, fleet sizes, and 15 module
+configs. Baseline cells justify rating W12; Iota slightly raises the
+ceiling; Epsilon collapses it (Warped/party); Zeta preserves skill and
+rates on a dedicated Squad TEI track (never FFA).</p></li>
 <li><p><strong>Neural self-play agent (Class
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>)</strong>
 — We demonstrate that a pure self-play neural policy can achieve
@@ -471,10 +483,13 @@ calibration focuses on 2-player matchups. We include 3–8 player
 configurations and focus matchups (one strong player vs multiple weaker
 opponents) to validate skill expression in realistic play
 scenarios.</p></li>
-<li><p><strong>Luck vs skill empirics:</strong> The 19,000-game study
-across 38 configurations provides the first systematic measurement of
-how tile set size and player count affect skill expression in domino
-games.</p></li>
+<li><p><strong>Luck vs skill empirics:</strong> The
+285<span>,</span>000-game module matrix (Section <a
+href="#sec:module-balance" data-reference-type="ref"
+data-reference="sec:module-balance">9</a>) is the systematic measurement
+of how tile set size, player count, and optional modules affect skill
+expression — including Warped/party designation for Epsilon and
+Warp-factor board choice from baseline cells.</p></li>
 <li><p><strong>Open-source implementation:</strong> All code (rules
 engine, AI agents, calibration scripts) and data are publicly available
 for reproduction and extension.</p></li>
@@ -545,26 +560,39 @@ available after personal train started</p></li>
 <li><p><code>dropToImpulse</code>: “Uno”-style announce requirement when
 down to one tile</p></li>
 </ul>
-<p><strong>Modules</strong> (optional mechanics):</p>
+<p><strong>Modules</strong> (optional mechanics; <strong>Warped</strong>
+= exhibition only, never FFA-rated):</p>
 <ul>
 <li><p><strong>Alpha (Continuum):</strong> Special rules for 0-0 tile
 (Q-gamble mechanic)</p></li>
 <li><p><strong>Beta (Salamander Penalty):</strong> Pip penalty for
 holding double-zero at round end</p></li>
-<li><p><strong>Gamma (Sensor Grid):</strong> Tiles visible for potential
-recycling</p></li>
-<li><p><strong>Delta (Hot Potato):</strong> Hazard marker transfers on
-Neutral Zone play (+5 per pass while holding)</p></li>
+<li><p><strong>Gamma (Sensor Grid):</strong> Visible tile pool for
+potential recycling</p></li>
+<li><p><strong>Delta (Warp Drive Spool):</strong> Hazard marker
+transfers on Neutral Zone play</p></li>
+<li><p><strong>Epsilon (Drafting):</strong> Pack-and-pass deal —
+<strong>Warped / party</strong> (collapses mid-game skill)</p></li>
+<li><p><strong>Zeta (Squadrons):</strong> Team play with shared trails —
+skill-promote; rated Warp 12 writes Squad TEI only (never FFA)</p></li>
+<li><p><strong>Eta (Temporal Debt):</strong> Draw-debt tokens paid at
+round end</p></li>
 <li><p><strong>Theta (Longest Trail):</strong> Bonus for longest
-personal train with chain-draw mechanic</p></li>
+personal train</p></li>
 <li><p><strong>Iota (Double Down):</strong> Playing a double forces next
-player to draw 2 tiles</p></li>
-<li><p><strong>Kappa (Temporal Inversion):</strong> Odd rounds score
-normally, even rounds invert (highest wins)</p></li>
+player to draw 2 — <em>best skill ceiling</em></p></li>
+<li><p><strong>Kappa (Temporal Inversion):</strong> Even rounds invert
+scoring — <strong>Warped</strong> (intentionally breaks
+ordering)</p></li>
+<li><p><strong>Lambda (Wormholes):</strong> Double on Neutral Zone swaps
+trails</p></li>
+<li><p><strong>Mu / Subspace Fracture:</strong> Chicken-foot doubles
+(Own Trail / All Captains / All Doubles)</p></li>
 </ul>
 <p>All modules affect legal move generation and scoring through the same
 <code>applyAction</code> code path, ensuring AI agents see exactly the
-same game mechanics as human players.</p>
+same game mechanics as human players. Product classification (Promote vs
+Warped) is grounded in the Section 9 study.</p>
 <h2 data-number="3.4"
 id="information-structure-and-game-complexity"><span
 class="header-section-number">3.4</span> Information Structure and Game
@@ -644,9 +672,13 @@ objectives</caption>
 /4p</td>
 </tr>
 <tr>
-<td style="text-align: left;">Reference TEI spacing</td>
-<td style="text-align: left;">200 pts / tier</td>
-<td style="text-align: left;">250 pts / tier</td>
+<td style="text-align: left;">AI
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>μ</mi><annotation encoding="application/x-tex">\mu</annotation></semantics></math>
+gaps (anchors)</td>
+<td style="text-align: left;">8.5 / 8.5
+(IV<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math>III<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math>II)</td>
+<td style="text-align: left;">10.5 / 13.5 (wider to fight
+compression)</td>
 </tr>
 </tbody>
 </table>
@@ -660,15 +692,22 @@ hand connectivity matter more than pip values. A player holding three
 12-12 doubles might still win if they can chain them quickly.</p>
 <p>Figure <a href="#fig:points-vs-goout" data-reference-type="ref"
 data-reference="fig:points-vs-goout">1</a> shows empirically that these
-objectives lead to measurably different strategic landscapes, with
-go-out exhibiting compressed skill gaps and higher outcome variance.</p>
+objectives lead to measurably different strategic landscapes: go-out
+compresses implied
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi mathvariant="normal">Δ</mi><mi>μ</mi><mo stretchy="false" form="prefix">|</mo></mrow><annotation encoding="application/x-tex">|\Delta\mu|</annotation></semantics></math>
+relative to the calibrated anchors, while skill <em>ordering</em>
+survives.</p>
 <figure id="fig:points-vs-goout" data-latex-placement="htbp">
 <img src="/figures/figure10-points-vs-goout.png"
 style="width:90.0%" />
-<figcaption>Points vs go-out strategic divergence. Left: Implied ΔTEI
-from observed win rates shows go-out compression. Right: Win rate
-distributions demonstrate that go-out behaves like a stochastic race
-(ordering survives, magnitudes compress).</figcaption>
+<figcaption>Points vs go-out strategic divergence under OpenSkill. Left:
+calibrated
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi mathvariant="normal">Δ</mi><mi>μ</mi><mo stretchy="false" form="prefix">|</mo></mrow><annotation encoding="application/x-tex">|\Delta\mu|</annotation></semantics></math>
+anchors versus
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi mathvariant="normal">Δ</mi><mi>μ</mi><mo stretchy="false" form="prefix">|</mo></mrow><annotation encoding="application/x-tex">|\Delta\mu|</annotation></semantics></math>
+implied by 2<span>,</span>000-game win rates — go-out compression is
+stark. Right: weaker-side win rates show points keeps clearer tier
+separation than the go-out race.</figcaption>
 </figure>
 <h1 data-number="4" id="agent-architecture"><span
 class="header-section-number">4</span> Agent Architecture</h1>
@@ -723,93 +762,169 @@ Index)</h1>
 <figure id="fig:tei-ladder" data-latex-placement="htbp">
 <img src="/figures/figure6-tei-ladder.png"
 style="width:90.0%" />
-<figcaption>TEI reference bands and Elo win probability. Left: Class
-IV–II reference anchors by objective (v1 heuristic vs v2 Ω). Right:
-Standard Elo expected win rate curve with reference spacing markers (200
-pts for points, 250 pts for go-out).</figcaption>
+<figcaption>OpenSkill TEI ladder. Left: calibrated AI anchors as
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi><mo>±</mo><mi>σ</mi></mrow><annotation encoding="application/x-tex">\mu \pm \sigma</annotation></semantics></math>
+by objective, with diamond markers for the conservative display rating
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi><mo>−</mo><mn>3</mn><mi>σ</mi></mrow><annotation encoding="application/x-tex">\mu-3\sigma</annotation></semantics></math>.
+Right: presentation layer — letter grade from
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>
+(confidence) plus a 0–99 score from the display rating.</figcaption>
 </figure>
-<h2 data-number="5.1" id="reference-bands"><span
-class="header-section-number">5.1</span> Reference Bands</h2>
-<p>Fixed opponent TEI for unassisted matches. <strong>v1</strong> =
-heuristic Class II; <strong>v2</strong> = neural Class II
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>).
-New rated play defaults to v2; legacy crews may pin v1. Human stored TEI
-integers are <strong>not</strong> re-banded when anchors change.</p>
-<table>
-<caption>TEI reference bands by class and objective</caption>
+<h2 data-number="5.1" id="bayesian-skill-model"><span
+class="header-section-number">5.1</span> Bayesian skill model</h2>
+<p>TEI is a <strong>presentation layer</strong> over OpenSkill <span
+class="citation" data-cites="wenglin2011"></span>: each captain stores a
+Gaussian skill estimate
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>μ</mi><mo>,</mo><mi>σ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(\mu,\sigma)</annotation></semantics></math>
+per track (points / go-out), updated after ranked match outcomes.
+Defaults for new humans:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi><mo>=</mo><mn>25</mn></mrow><annotation encoding="application/x-tex">\mu=25</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>=</mo><mn>8</mn><mi>.</mi><mspace width="-0.167em"></mspace><mn>33</mn></mrow><annotation encoding="application/x-tex">\sigma=8.\!33</annotation></semantics></math>
+(OpenSkill’s
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi><mi>/</mi><mn>3</mn></mrow><annotation encoding="application/x-tex">\mu/3</annotation></semantics></math>
+prior). Matchmaking uses an ordinal
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi><mo>−</mo><mi>σ</mi></mrow><annotation encoding="application/x-tex">\mu-\sigma</annotation></semantics></math>;
+the UI never exposes raw Elo integers.</p>
+<h2 data-number="5.2" id="reference-anchors"><span
+class="header-section-number">5.2</span> Reference anchors</h2>
+<p>Rated local and online play pits humans against fixed AI opponents.
+Each AI class holds a <strong>frozen</strong>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>μ</mi><mo>,</mo><mi>σ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(\mu,\sigma)</annotation></semantics></math>
+that never updates with match outcomes:</p>
+<table id="tab:openskill-anchors">
+<caption>Calibrated OpenSkill AI anchors (Phase 1.3; 2<span>,</span>000
+games/matchup). Gaps: points
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>8.5</mn><mi>/</mi><mn>8.5</mn></mrow><annotation encoding="application/x-tex">8.5/8.5</annotation></semantics></math>;
+go-out
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>10.5</mn><mi>/</mi><mn>13.5</mn></mrow><annotation encoding="application/x-tex">10.5/13.5</annotation></semantics></math>
+(widened against racing compression).</caption>
 <thead>
 <tr>
 <th style="text-align: left;"><strong>Track</strong></th>
-<th style="text-align: center;"><strong>Class IV</strong></th>
-<th style="text-align: center;"><strong>Class III</strong></th>
-<th style="text-align: center;"><strong>Class II (v1)</strong></th>
-<th style="text-align: center;"><strong>Class II (v2
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>)</strong></th>
+<th colspan="2" style="text-align: center;"><strong>Ensign
+(IV)</strong></th>
+<th colspan="2" style="text-align: center;"><strong>Lieutenant
+(III)</strong></th>
+<th colspan="2" style="text-align: center;"><strong>Commander
+(II)</strong></th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td
+style="text-align: left;"><span>2-3</span>(lr)<span>4-5</span>(lr)<span>6-7</span></td>
+<td
+style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>μ</mi><annotation encoding="application/x-tex">\mu</annotation></semantics></math></td>
+<td
+style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math></td>
+<td
+style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>μ</mi><annotation encoding="application/x-tex">\mu</annotation></semantics></math></td>
+<td
+style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math></td>
+<td
+style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>μ</mi><annotation encoding="application/x-tex">\mu</annotation></semantics></math></td>
+<td
+style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math></td>
+</tr>
+<tr>
 <td style="text-align: left;">Points</td>
-<td
-style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1000</td>
-<td
-style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1200</td>
-<td
-style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1400</td>
-<td
-style="text-align: center;"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1520</strong></td>
+<td style="text-align: center;">18.0</td>
+<td style="text-align: center;">4.0</td>
+<td style="text-align: center;">26.5</td>
+<td style="text-align: center;">3.5</td>
+<td style="text-align: center;">35.0</td>
+<td style="text-align: center;">3.0</td>
 </tr>
 <tr>
 <td style="text-align: left;">Go-out</td>
-<td
-style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1000</td>
-<td
-style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1250</td>
-<td
-style="text-align: center;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1500</td>
-<td
-style="text-align: center;"><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1550</strong></td>
+<td style="text-align: center;">17.5</td>
+<td style="text-align: center;">4.5</td>
+<td style="text-align: center;">28.0</td>
+<td style="text-align: center;">4.0</td>
+<td style="text-align: center;">41.5</td>
+<td style="text-align: center;">3.5</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Calibration rule of thumb:</strong> set Class II REF near
-where a captain of that TEI wins
+<p><strong>v1 vs v2 Class II:</strong> product history distinguished
+heuristic Commander (v1) from neural
+Class <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>
+Commander (v2). Shipping Class II is the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>
+policy at the Commander commission; stored human
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>μ</mi><mo>,</mo><mi>σ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(\mu,\sigma)</annotation></semantics></math>
+tuples are <strong>not</strong> re-banded when the Commander
+implementation changes — only the fixed AI anchor row is.</p>
+<p><strong>Calibration rule of thumb:</strong> place Commander
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>μ</mi><annotation encoding="application/x-tex">\mu</annotation></semantics></math>
+near where a human of comparable TEI score wins
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>50%
-<strong>in the table sizes you actually rate</strong> (Warp 12 solo
-local play is mostly 2–4). Fleet-mean fair-share against legacy
-Commander is a promotion metric, not a direct Elo
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Δ</mi><annotation encoding="application/x-tex">\Delta</annotation></semantics></math>.</p>
-<h2 data-number="5.2" id="update-rule"><span
-class="header-section-number">5.2</span> Update Rule</h2>
-<p>Standard Elo expected score <span class="citation"
-data-cites="elo1978rating"></span> + K-factor schedule (40
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math>
-32
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math>
-24 by experience). Separate buckets: objective
+in the table sizes you actually rate (Warp 12 solo play is mostly 2–4).
+Fleet-mean fair-share against legacy Commander is a promotion metric,
+not a direct
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Δ</mi><mi>μ</mi></mrow><annotation encoding="application/x-tex">\Delta\mu</annotation></semantics></math>.</p>
+<h2 data-number="5.3" id="update-rule"><span
+class="header-section-number">5.3</span> Update rule</h2>
+<p>After a sector, ranks feed <code>updateFFARatings</code> /
+<code>updateTeamRatings</code> / <code>updateVsAI</code> (openskill.js
+Bayesian update). Humans move; AI anchors stay fixed. Separate tracks:
+objective
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
-AI class
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
-(human profile).</p>
-<h2 data-number="5.3" id="percentile-boards"><span
-class="header-section-number">5.3</span> Percentile Boards</h2>
-<p>Go-out raw TEI gaps compress; percentile (“Top X%”) preserves rank
-meaning.</p>
-<h2 data-number="5.4" id="federation-academy"><span
-class="header-section-number">5.4</span> Federation Academy</h2>
-<p>One-time starting TEI pick per track within class band.</p>
+(human profile). No Elo
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>K</mi><annotation encoding="application/x-tex">K</annotation></semantics></math>-factor
+schedule.</p>
+<h2 data-number="5.4" id="tei-grade-display"><span
+class="header-section-number">5.4</span> TEI Grade display</h2>
+<p>Players see a gamified string such as <code>V67</code>:</p>
+<ul>
+<li><p><strong>Letter (E/V/C/I/P)</strong> — confidence from
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>:
+Elite
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>&lt;</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">\sigma&lt;0.5</annotation></semantics></math>),
+Veteran
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&lt;</mo><mn>1.5</mn></mrow><annotation encoding="application/x-tex">&lt;1.5</annotation></semantics></math>),
+Consistent
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&lt;</mo><mn>2.5</mn></mrow><annotation encoding="application/x-tex">&lt;2.5</annotation></semantics></math>),
+Improving
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&lt;</mo><mn>4.0</mn></mrow><annotation encoding="application/x-tex">&lt;4.0</annotation></semantics></math>),
+Provisional
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>≥</mo><mn>4.0</mn></mrow><annotation encoding="application/x-tex">\geq 4.0</annotation></semantics></math>).
+Demotions use unidirectional hysteresis so a single noisy sector does
+not immediately drop the letter.</p></li>
+<li><p><strong>Score (0–99)</strong> — normalized conservative skill
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">c</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">m</mi><mi mathvariant="normal">p</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>μ</mi><mo>−</mo><mn>3</mn><mi>σ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{clamp}(\mu-3\sigma)</annotation></semantics></math>
+over a population window
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">[</mo><mo>∼</mo><mspace width="-0.167em"></mspace><mn>10</mn><mo>,</mo><mo>∼</mo><mspace width="-0.167em"></mspace><mn>50</mn><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">[\sim\!10,\sim\!50]</annotation></semantics></math>,
+preventing new-player inflation.</p></li>
+</ul>
+<p>Federation Academy commission ranks
+(Cadet<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math>Fleet
+Admiral) are a flavor map over the same grade+score; they are not a
+second rating.</p>
+<h2 data-number="5.5" id="percentile-boards"><span
+class="header-section-number">5.5</span> Percentile boards</h2>
+<p>Go-out
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi mathvariant="normal">Δ</mi><mi>μ</mi><mo stretchy="false" form="prefix">|</mo></mrow><annotation encoding="application/x-tex">|\Delta\mu|</annotation></semantics></math>
+compresses; percentile (“Top X%”) preserves rank meaning alongside the
+grade badge.</p>
+<h2 data-number="5.6" id="federation-academy"><span
+class="header-section-number">5.6</span> Federation Academy</h2>
+<p>One-time starting grade pick per track within a provisional /
+improving band.</p>
 <h1 data-number="6" id="calibration-methodology"><span
 class="header-section-number">6</span> Calibration Methodology</h1>
 <h2 data-number="6.1" id="self-play-loop"><span
 class="header-section-number">6.1</span> Self-Play Loop</h2>
 <p><code>playSelfPlayGame</code> drives full games through
 <code>applyAction</code>. Blocked-round stall guard for pile-empty
-lockups.</p>
+lockups (drafting phases are exempt — mid-draft force-ends previously
+corrupted Spacedock recycle).</p>
 <h2 data-number="6.2" id="evaluation-suites"><span
 class="header-section-number">6.2</span> Evaluation Suites</h2>
 <ol>
 <li><p><strong>Head-to-head matrix</strong> — all Class IV–II pairs,
-both objectives.</p></li>
+both objectives (OpenSkill calibration: 2<span>,</span>000
+games/matchup).</p></li>
 <li><p><strong>Symmetric seating</strong> — same-skill first-seat win
 rate
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>≈</mo><annotation encoding="application/x-tex">\approx</annotation></semantics></math>
@@ -819,6 +934,14 @@ rate
 weaker; rotate seat; table sizes 3–8 (go-out).</p></li>
 <li><p><strong>House-rule sanity</strong> — e.g. Drop to Impulse penalty
 pass (<code>calibrate:ai-tei-dti</code>).</p></li>
+<li><p><strong>Module integrity</strong> — 500 games
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+Warp
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+fleet
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+module (§<a href="#sec:module-balance" data-reference-type="ref"
+data-reference="sec:module-balance">9</a>).</p></li>
 </ol>
 <h2 data-number="6.3" id="metrics"><span
 class="header-section-number">6.3</span> Metrics</h2>
@@ -826,59 +949,75 @@ class="header-section-number">6.3</span> Metrics</h2>
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>≥</mo><annotation encoding="application/x-tex">\geq</annotation></semantics></math>
 85% games decisive). Higher-skill win rate vs ordering thresholds.
 Implied
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Δ</mi><annotation encoding="application/x-tex">\Delta</annotation></semantics></math>TEI
-from win rate:
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>400</mn><mo>×</mo><msub><mrow><mi mathvariant="normal">log</mi><mo>&#8289;</mo></mrow><mn>10</mn></msub><mo stretchy="false" form="prefix">(</mo><mi>p</mi><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">400 \times \log_{10}(p / (1-p))</annotation></semantics></math>.
-Expected win rate from reference band spacing.</p>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi mathvariant="normal">Δ</mi><mi>μ</mi><mo stretchy="false" form="prefix">|</mo></mrow><annotation encoding="application/x-tex">|\Delta\mu|</annotation></semantics></math>
+from weaker-side win rate under the OpenSkill logistic. Expected win
+rate from calibrated anchor gaps (target
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>76%
+/
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>91%
+for successive / skip tiers). Skill-indicator count (0–4) for module
+balance.</p>
 <h1 data-number="7" id="results-ai-calibration"><span
 class="header-section-number">7</span> Results: AI Calibration</h1>
-<p>See <code>calibration-log.md</code> for dated self-play and optimizer
-runs.</p>
+<p>See <code>docs/openskill-calibration-log.md</code> for dated
+OpenSkill self-play runs and <code>calibration-log.md</code> for legacy
+heuristic benches.</p>
 <figure id="fig:calibration-matrix" data-latex-placement="htbp">
 <img src="/figures/figure7-calibration-matrix.png"
 style="width:90.0%" />
-<figcaption>Calibration matrix heatmaps showing win rates between all
-Class IV/III/II pairs (200 games per matchup). Left: Points objective
-exhibits clean skill ordering. Right: Go-out objective shows
-compression, especially Class III vs II (near coin flip at
-51%).</figcaption>
+<figcaption>OpenSkill calibration heatmaps (2<span>,</span>000 games per
+matchup). Left: Points — Ensign win rates 15.7% / 9.2% vs Lieutenant /
+Commander; Lieutenant vs Commander still the softest rung (36.3%).
+Right: Go-out — extreme compression (38–44% weaker-side wins) even after
+widening
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>μ</mi><annotation encoding="application/x-tex">\mu</annotation></semantics></math>
+gaps.</figcaption>
 </figure>
-<h2 data-number="7.1" id="points-default-rules-200-gamesmatchup"><span
-class="header-section-number">7.1</span> Points (Default Rules, 200
-games/matchup)</h2>
+<h2 data-number="7.1" id="points-default-rules-2000-gamesmatchup"><span
+class="header-section-number">7.1</span> Points (Default Rules,
+2<span>,</span>000 games/matchup)</h2>
 <ul>
-<li><p>Symmetric
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>50/50
-seating.</p></li>
-<li><p>Class IV vs III
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>88%
+<li><p>Anchors: Ensign
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi><mo>=</mo><mn>18.0</mn></mrow><annotation encoding="application/x-tex">\mu{=}18.0</annotation></semantics></math>,
+Lieutenant
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>26.5</mn><annotation encoding="application/x-tex">26.5</annotation></semantics></math>,
+Commander
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>35.0</mn><annotation encoding="application/x-tex">35.0</annotation></semantics></math>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>4.0</mn><mi>/</mi><mn>3.5</mn><mi>/</mi><mn>3.0</mn></mrow><annotation encoding="application/x-tex">4.0/3.5/3.0</annotation></semantics></math>).</p></li>
+<li><p>Ensign vs Lieutenant: Ensign wins <strong>15.7%</strong>
 (expected
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>76%)
-— ordering clear, gap may exceed target.</p></li>
-<li><p>Class IV vs II
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>91.5%
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>11.5%
+at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi mathvariant="normal">Δ</mi><mi>μ</mi><mo stretchy="false" form="prefix">|</mo><mo>=</mo><mn>8.5</mn></mrow><annotation encoding="application/x-tex">|\Delta\mu|{=}8.5</annotation></semantics></math>)
+— ordering clear.</p></li>
+<li><p>Lieutenant vs Commander: Lieutenant wins <strong>36.3%</strong>
 (expected
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>91%)
-— on target.</p></li>
-<li><p>Class III vs II
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>63%
-(expected
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>76%)
-— compressed but ordered.</p></li>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>11.5%)
+— weakest separation; accepted for multiplayer domino
+compression.</p></li>
+<li><p>Ensign vs Commander: Ensign wins <strong>9.2%</strong> (expected
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1.7%)
+— overall skip-tier separation remains useful.</p></li>
 </ul>
 <h2 data-number="7.2" id="go-out"><span
 class="header-section-number">7.2</span> Go-out</h2>
 <ul>
-<li><p>Symmetric
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>46–56%.</p></li>
-<li><p>Class III vs II heads-up
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>51%
-— near coin flip at 200 games.</p></li>
-<li><p>4p focus: Class II
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>38.5%
-vs 25% random; Class III
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>27%
-vs 25%.</p></li>
+<li><p>Anchors: Ensign
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi><mo>=</mo><mn>17.5</mn></mrow><annotation encoding="application/x-tex">\mu{=}17.5</annotation></semantics></math>,
+Lieutenant
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>28.0</mn><annotation encoding="application/x-tex">28.0</annotation></semantics></math>,
+Commander
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>41.5</mn><annotation encoding="application/x-tex">41.5</annotation></semantics></math>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>4.5</mn><mi>/</mi><mn>4.0</mn><mi>/</mi><mn>3.5</mn></mrow><annotation encoding="application/x-tex">4.5/4.0/3.5</annotation></semantics></math>;
+gaps
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>10.5</mn><mi>/</mi><mn>13.5</mn></mrow><annotation encoding="application/x-tex">10.5/13.5</annotation></semantics></math>).</p></li>
+<li><p>Weaker-side win rates remain <strong>38–44%</strong> despite wide
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>μ</mi><annotation encoding="application/x-tex">\mu</annotation></semantics></math>
+gaps — racing and binary outcomes dominate.</p></li>
+<li><p>Decision: accept compression; preserve ordering; lean on
+percentile boards for human feedback.</p></li>
 </ul>
 <h2 data-number="7.3"
 id="class-i-fleet-admiral-and-class-omega-benches"><span
@@ -893,8 +1032,10 @@ style="width:95.0%" />
 I* neural residual iterations (imitation ceiling at 48–51%). Top-right:
 Fleet Admiral search backends (expectimax wins 2p, ISMCTS wins 4p).
 Bottom-left: Class Ω fair-share rises with fleet size (points
-objective). Bottom-right: Fair-share hazard — naive Elo translation
-overestimates TEI anchors vs tempered decision (1520).</figcaption>
+objective). Bottom-right: Fair-share hazard — naive Elo-style
+translation overestimates shipping anchors vs the tempered OpenSkill
+Commander
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>μ</mi><annotation encoding="application/x-tex">\mu</annotation></semantics></math>.</figcaption>
 </figure>
 <p><strong>Neural residual (MLP - Class I*):</strong></p>
 <ul>
@@ -933,9 +1074,10 @@ by slice). Overall means
 points /
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math><strong>1.14<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math></strong>
 go-out at 200g/slice.</p></li>
-<li><p><strong>Ship decision:</strong> replace Class II with greedy
+<li><p><strong>Ship decision:</strong> replace heuristic Class II with
+greedy
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>;
-temper REF_TEI to <strong>1520 / 1550</strong>; keep
+keep Commander as the commission track; hold
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>+
 and Class I* off the rated ladder.</p></li>
 <li><p><strong>Lesson:</strong> <code>fairShare</code>
@@ -943,12 +1085,12 @@ and Class I* off the rated ladder.</p></li>
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
 win rates at large
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math>
-inflate mean strength vs what heads-up TEI players feel.</p></li>
+inflate mean strength vs what heads-up TEI players feel — temper anchors
+for the rating context you ship.</p></li>
 </ul>
-<h1 data-number="8"
-id="luck-vs-skill-across-warp-factors-a-19000-game-empirical-study"><span
+<h1 data-number="8" id="sec:luck-skill-boards"><span
 class="header-section-number">8</span> Luck vs Skill Across Warp
-Factors: A 19,000-Game Empirical Study</h1>
+Factors</h1>
 <h2 data-number="8.1" id="motivation-and-configuration-matrix"><span
 class="header-section-number">8.1</span> Motivation and Configuration
 Matrix</h2>
@@ -1012,13 +1154,19 @@ bands or restrict rating to W12?</p></li>
 tradition (Mexican Train’s historical default), or does the data justify
 it?</p></li>
 </ol>
-<p>To answer these questions empirically, we conducted a comprehensive
-self-play study across <strong>38 configurations</strong> (Warp factor
+<p>To answer these questions empirically we use the <strong>baseline
+(no-module) cells</strong> of the Section <a href="#sec:module-balance"
+data-reference-type="ref" data-reference="sec:module-balance">9</a>
+campaign — the same Commander points self-play instrument over
+<strong>38 configurations</strong> (Warp factor
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
-fleet size), collecting <strong>500 games per configuration</strong> for
-a total of <strong>19,000 games</strong>:</p>
+fleet size), <strong>500 games per cell</strong>. Earlier standalone or
+single-module pilot collections (including broken Drafting runs) are
+<strong>not</strong> treated as evidence; all claims in this section
+come from that integrated matrix:</p>
 <table>
-<caption>Configuration matrix for luck vs skill analysis</caption>
+<caption>Baseline cells within the 285<span>,</span>000-game matrix (no
+modules) used for Warp-factor / fleet analysis</caption>
 <thead>
 <tr>
 <th style="text-align: left;"><strong>Warp Factor</strong></th>
@@ -1056,53 +1204,92 @@ a total of <strong>19,000 games</strong>:</p>
 <td style="text-align: left;"><strong>Total</strong></td>
 <td style="text-align: center;"></td>
 <td style="text-align: center;"><strong>38</strong></td>
-<td style="text-align: center;"><strong>19,000</strong></td>
+<td style="text-align: center;"><strong>19<span>,</span>000 (baseline
+subset)</strong></td>
 </tr>
 </tbody>
 </table>
 <p>All games used the <strong>points objective</strong> (lowest
-cumulative pip total) with Class II (heuristic Commander) self-play.
-Collection completed July 11, 2026 using parallel execution across 15
-workers (M4 Max,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>40
-minutes runtime). In subsequent references, we use compact notation:
-e.g., W12/4p denotes Warp 12 with 4 players.</p>
-<h2 data-number="8.2" id="metrics-and-composite-indices"><span
+cumulative pip total) with Class II (heuristic Commander) self-play as
+part of the July 2026 module campaign (parallel workers on M4 Max).
+Compact notation: e.g., W12/4p denotes Warp 12 with 4 players.</p>
+<h2 data-number="8.2" id="sec:luck-skill-instrument"><span
 class="header-section-number">8.2</span> Metrics and Composite
 Indices</h2>
-<p>For each game, we tracked per-turn metrics across all decision
-points:</p>
-<p><strong>Raw metrics:</strong></p>
+<p>Per-turn telemetries are collected by the engine sampler
+(<code>LuckSkillMetricsSampler</code>) and averaged per game. All §8
+tables and figures are computed from those game-level averages after
+applying the composites below — matching
+<code>tools/nn/process-luck-skill-data.py</code>, which produced
+<code>luck-skill-processed.csv</code>.</p>
+<p><strong>Raw metrics (game averages):</strong></p>
 <ul>
-<li><p><code>avgLegalMoves</code>: Mean number of legal candidate
-actions per turn</p></li>
-<li><p><code>avgHandEntropy</code>: Shannon entropy of pip distribution
-in hand (bits)</p></li>
-<li><p><code>avgNearOptimalFraction</code>: Fraction of turns where the
-AI chose a move within 5% of the top-scored candidate</p></li>
-<li><p><code>avgConstrainedTileFraction</code>: Fraction of coordinates
-that can only play on one trail</p></li>
-<li><p><code>avgValueSpread</code>: Spread between highest and lowest
-valued tiles in hand</p></li>
+<li><p><code>avgLegalMoves</code>: mean number of legal candidate
+actions per turn (decision branching).</p></li>
+<li><p><code>avgValueSpread</code>: mean difference between the highest-
+and lowest-valued legal candidates under the same heuristic scorer used
+by the seating AI (discrimination among options).</p></li>
+<li><p><code>avgNearOptimalFraction</code>: fraction of turns where the
+seated AI’s chosen action scored within 5% of the top-scored legal
+candidate (how often “good” play is distinguishable from
+noise).</p></li>
+<li><p><code>avgConstrainedTileFraction</code>: fraction of hand
+coordinates that can legally attach to only one open trail
+(forced/near-forced placement pressure).</p></li>
+<li><p><code>avgHandEntropy</code>: Shannon entropy of the pip multiset
+in hand (bits).</p></li>
+<li><p><code>avgUniqueTrains</code>: mean count of distinct trail ends
+the hand can reach (used as a raw diagnostic; not an input to the §8
+composites).</p></li>
 </ul>
-<p><strong>Composite indices</strong> (derived for interpretability):
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mtable><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><mtext mathvariant="normal">skillIndex</mtext></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><mtext mathvariant="normal">avgLegalMoves</mtext><mo>×</mo><mtext mathvariant="normal">avgNearOptimalFraction</mtext><mo>×</mo><mtext mathvariant="normal">avgUniqueTrains</mtext></mtd></mtr><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><mtext mathvariant="normal">luckIndex</mtext></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><mtext mathvariant="normal">avgConstrainedTileFraction</mtext><mo>×</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mtext mathvariant="normal">avgHandEntropy</mtext><mi>/</mi><msub><mrow><mi mathvariant="normal">log</mi><mo>&#8289;</mo></mrow><mn>2</mn></msub><mo stretchy="false" form="prefix">(</mo><mn>19</mn><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mtd></mtr><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><mtext mathvariant="normal">decisionQuality</mtext></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><mtext mathvariant="normal">avgNearOptimalFraction</mtext><mo>×</mo><mtext mathvariant="normal">avgLegalMoves</mtext><mo>×</mo><mtext mathvariant="normal">avgUniqueTrains</mtext></mtd></mtr></mtable><annotation encoding="application/x-tex">\begin{align}
-\text{skillIndex} &amp;= \text{avgLegalMoves} \times \text{avgNearOptimalFraction} \times \text{avgUniqueTrains} \\
-\text{luckIndex} &amp;= \text{avgConstrainedTileFraction} \times (1 - \text{avgHandEntropy}/\log_2(19)) \\
-\text{decisionQuality} &amp;= \text{avgNearOptimalFraction} \times \text{avgLegalMoves} \times \text{avgUniqueTrains}
+<p><strong>Instrument design (constructs
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math>
+composites).</strong> We wanted continuous summaries that rise when a
+configuration offers <em>more ways for better play to matter</em>, and
+fall when turns are forced or undifferentiated. The three raw
+ingredients of <code>skillIndex</code> map to that idea: more legal
+moves (room to choose), larger value spread (choices are not
+interchangeable), and higher near-optimal fraction (the policy can still
+identify better lines). The <code>luckIndex</code> ingredients are the
+dual: forced attachments, low decision quality (near-optimal rarely
+available), and sparse legal moves. Weights are fixed heuristics chosen
+once for interpretability — not fit to TEI outcomes — and were not
+re-tuned after looking at module rankings:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mtable><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><mtext mathvariant="normal">skillIndex</mtext></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><mn>0.4</mn><mspace width="0.167em"></mspace><mtext mathvariant="monospace">𝚊𝚟𝚐𝚅𝚊𝚕𝚞𝚎𝚂𝚙𝚛𝚎𝚊𝚍</mtext><mo>+</mo><mn>0.3</mn><mspace width="0.167em"></mspace><mtext mathvariant="monospace">𝚊𝚟𝚐𝙽𝚎𝚊𝚛𝙾𝚙𝚝𝚒𝚖𝚊𝚕𝙵𝚛𝚊𝚌𝚝𝚒𝚘𝚗</mtext><mo>+</mo><mn>0.3</mn><mspace width="0.167em"></mspace><mtext mathvariant="monospace">𝚊𝚟𝚐𝙻𝚎𝚐𝚊𝚕𝙼𝚘𝚟𝚎𝚜</mtext></mtd></mtr><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><mtext mathvariant="normal">luckIndex</mtext></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><mn>0.5</mn><mspace width="0.167em"></mspace><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mtext mathvariant="monospace">𝚊𝚟𝚐𝙽𝚎𝚊𝚛𝙾𝚙𝚝𝚒𝚖𝚊𝚕𝙵𝚛𝚊𝚌𝚝𝚒𝚘𝚗</mtext><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mn>0.3</mn><mspace width="0.167em"></mspace><mtext mathvariant="monospace">𝚊𝚟𝚐𝙲𝚘𝚗𝚜𝚝𝚛𝚊𝚒𝚗𝚎𝚍𝚃𝚒𝚕𝚎𝙵𝚛𝚊𝚌𝚝𝚒𝚘𝚗</mtext><mo>+</mo><mn>0.2</mn><mspace width="0.167em"></mspace><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mn>1</mn><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mtext mathvariant="monospace">𝚊𝚟𝚐𝙻𝚎𝚐𝚊𝚕𝙼𝚘𝚟𝚎𝚜</mtext><mo>+</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo></mtd></mtr><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><mtext mathvariant="normal">decisionQuality</mtext></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><mtext mathvariant="monospace">𝚊𝚟𝚐𝙻𝚎𝚐𝚊𝚕𝙼𝚘𝚟𝚎𝚜</mtext><mo>×</mo><mtext mathvariant="monospace">𝚊𝚟𝚐𝚅𝚊𝚕𝚞𝚎𝚂𝚙𝚛𝚎𝚊𝚍</mtext></mtd></mtr></mtable><annotation encoding="application/x-tex">\begin{align}
+\text{skillIndex}
+  &amp;= 0.4\,\texttt{avgValueSpread}
+   + 0.3\,\texttt{avgNearOptimalFraction}
+   + 0.3\,\texttt{avgLegalMoves} \\
+\text{luckIndex}
+  &amp;= 0.5\,(1 - \texttt{avgNearOptimalFraction})
+   + 0.3\,\texttt{avgConstrainedTileFraction}
+   + 0.2\,\bigl(1 / (\texttt{avgLegalMoves} + 1)\bigr) \\
+\text{decisionQuality}
+  &amp;= \texttt{avgLegalMoves} \times \texttt{avgValueSpread}
 \end{align}</annotation></semantics></math></p>
-<p><strong>Interpretation:</strong></p>
+<p><strong>Reading the composites:</strong></p>
 <ul>
-<li><p><strong>skillIndex</strong>: Captures decision complexity (legal
-moves), train diversity (strategic options), and execution quality
-(near-optimal play). Higher values indicate more opportunity for skilled
-play.</p></li>
-<li><p><strong>luckIndex</strong>: Captures constraint (forced plays)
-and hand predictability (low entropy). Higher values indicate more
-luck-driven outcomes.</p></li>
-<li><p><strong>decisionQuality</strong>: Similar to skillIndex but
-emphasizes decision-making over luck factors.</p></li>
+<li><p>Higher <code>skillIndex</code>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>⇒</mo><annotation encoding="application/x-tex">\Rightarrow</annotation></semantics></math>
+more decision branching, more score separation among candidates, and
+more near-optimal opportunities — configurations where skill can
+express.</p></li>
+<li><p>Higher <code>luckIndex</code>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>⇒</mo><annotation encoding="application/x-tex">\Rightarrow</annotation></semantics></math>
+more forced placements, weaker near-optimal signal, and fewer candidates
+— configurations where outcomes lean on draw/hand luck.</p></li>
+<li><p><code>decisionQuality</code> is a simple
+branching<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>discrimination
+diagnostic (no near-optimal term).</p></li>
 </ul>
+<p><strong>Relation to Section <a href="#sec:module-balance"
+data-reference-type="ref"
+data-reference="sec:module-balance">9</a>.</strong> Section 9 keeps the
+<em>same raw sampler</em> but ranks modules with a different secondary
+instrument: four absolute pass/fail indicators on cell-mean telemetry
+(0–4 count). §8 hypotheses use the continuous composites above; Promote
+/ Warped product calls use the §9 indicator count. Both are reported so
+board-choice and module-taxonomy questions stay separable.</p>
 <h2 data-number="8.3" id="hypotheses"><span
 class="header-section-number">8.3</span> Hypotheses</h2>
 <p>We formulated five hypotheses about the relationship between Warp
@@ -1589,19 +1776,20 @@ class="header-section-number">8.6</span> Practical Implications</h2>
 class="header-section-number">8.6.1</span> TEI Calibration Strategy</h3>
 <ol>
 <li><p><strong>Anchor TEI on W12 only.</strong> Exhibition factors
-(W9/15/18) should <em>not</em> have separate reference bands — they
-share the same Class IV–II opponents with W12 anchors.</p></li>
-<li><p><strong>Do not adjust K-factor by fleet size.</strong> The data
-show that larger fleets <em>increase</em> skill expression, not
-variance. A flat K-factor schedule (40
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math>
-32
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math>
-24 by experience) is appropriate.</p></li>
-<li><p><strong>Consider percentile boards for all objectives.</strong>
-While W12 skill gradients are smooth, the monotonic-but-noisy pattern at
-W18 (drops at 17p) suggests percentile ranks provide more stable
-feedback than raw TEI.</p></li>
+(W9/15/18) should <em>not</em> have separate AI
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>μ</mi><mo>,</mo><mi>σ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(\mu,\sigma)</annotation></semantics></math>
+rows — they share the same Class IV–II opponents with W12
+anchors.</p></li>
+<li><p><strong>Do not soften OpenSkill updates by fleet size.</strong>
+Larger fleets <em>increase</em> skill expression, not variance; Bayesian
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>
+shrinkage already captures confidence.</p></li>
+<li><p><strong>Prefer percentile boards alongside grades for
+go-out.</strong> While W12 skill gradients are smooth, the
+monotonic-but-noisy pattern at W18 (drops at 17p) suggests percentiles
+stabilize feedback when
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi mathvariant="normal">Δ</mi><mi>μ</mi><mo stretchy="false" form="prefix">|</mo></mrow><annotation encoding="application/x-tex">|\Delta\mu|</annotation></semantics></math>
+compresses.</p></li>
 </ol>
 <h3 data-number="8.6.2" id="future-exhibition-modes"><span
 class="header-section-number">8.6.2</span> Future Exhibition Modes</h3>
@@ -1623,19 +1811,444 @@ class="header-section-number">8.6.3</span> Go-Out Objective</h3>
 variance (Section 7.2), suggesting:</p>
 <ul>
 <li><p>Skill/luck ratios may differ under go-out objective (worth a
-follow-up 19K-game study).</p></li>
+follow-up module-matrix pass under go-out).</p></li>
 <li><p>W12/2–4p may remain optimal, but large-fleet go-out (8+ players)
 could show different patterns due to race dynamics.</p></li>
 </ul>
-<h1 data-number="9" id="discussion"><span
-class="header-section-number">9</span> Discussion</h1>
-<h2 data-number="9.1" id="what-calibration-teaches"><span
-class="header-section-number">9.1</span> What Calibration Teaches</h2>
+<h1 data-number="9" id="sec:module-balance"><span
+class="header-section-number">9</span> Module Balance: A
+285<span>,</span>000-Game Competitive-Integrity Study</h1>
+<p>Section <a href="#sec:luck-skill-boards" data-reference-type="ref"
+data-reference="sec:luck-skill-boards">8</a> used the
+<strong>baseline</strong> slice of this campaign to show that W12 is the
+right <em>board</em> for rating. The full matrix answers the product
+question: which <em>optional modules</em> preserve that skill signal,
+and which should be barred from TEI?</p>
+<h2 data-number="9.1" id="design-questions"><span
+class="header-section-number">9.1</span> Design questions</h2>
+<ul>
+<li><p>Does any single module collapse skill expression relative to
+baseline?</p></li>
+<li><p>Does stacking modules (“all”) destroy discrimination, or compound
+depth?</p></li>
+<li><p>Is Module Epsilon (drafting) the skill upgrade it appears to
+be?</p></li>
+<li><p>Can Module Zeta (squadrons) enter the rated pool?</p></li>
+</ul>
+<h2 data-number="9.2" id="sec:module-instrument"><span
+class="header-section-number">9.2</span> Method</h2>
+<p>We collected <strong>500 Commander self-play games</strong> on each
+of <strong>570 configuration cells</strong> — Warp factor
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">{</mo><mn>9</mn><mo>,</mo><mn>12</mn><mo>,</mo><mn>15</mn><mo>,</mo><mn>18</mn><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">\{9,12,15,18\}</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+every legal fleet size
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+15 module configs (baseline, Alpha–Mu, Official Warp 12, “all”, and
+Zeta) — for <strong>285<span>,</span>000 games</strong> under the points
+objective, using the same <code>LuckSkillMetricsSampler</code> as
+Section <a href="#sec:luck-skill-instrument" data-reference-type="ref"
+data-reference="sec:luck-skill-instrument">8.2</a>.</p>
+<p><strong>Module ranking instrument (distinct from §8
+composites).</strong> For each cell we average the raw telemetries, then
+score four absolute pass/fail indicators (implemented in
+<code>collect-luck-skill-modules.ts</code>):</p>
+<ol>
+<li><p>Legal moves / turn
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>≥</mo><mn>3.0</mn></mrow><annotation encoding="application/x-tex">\geq 3.0</annotation></semantics></math>
+— enough branching that play is not almost forced.</p></li>
+<li><p>Constrained-tile fraction
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&gt;</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">&gt; 0.5</annotation></semantics></math>
+— a majority of hand tiles have a narrow legal attachment (pressure /
+planning).</p></li>
+<li><p>Move-value spread
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>≥</mo><mn>2.0</mn></mrow><annotation encoding="application/x-tex">\geq 2.0</annotation></semantics></math>
+— heuristic scores still separate best from worst candidates.</p></li>
+<li><p>Unique pips in hand
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>≥</mo><mn>5.0</mn></mrow><annotation encoding="application/x-tex">\geq 5.0</annotation></semantics></math>
+— enough pip diversity that connectivity choices remain
+non-trivial.</p></li>
+</ol>
+<p>The integer <strong>skill-indicator count</strong>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo>∈</mo><mo stretchy="false" form="prefix">{</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>,</mo><mn>2</mn><mo>,</mo><mn>3</mn><mo>,</mo><mn>4</mn><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">S \in \{0,1,2,3,4\}</annotation></semantics></math>
+is the primary ranking key. Cell taxonomy: skill-dominant if
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo>≥</mo><mn>3</mn></mrow><annotation encoding="application/x-tex">S \geq 3</annotation></semantics></math>,
+mixed if
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo>=</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">S = 2</annotation></semantics></math>,
+luck-dominant if
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo>≤</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">S \leq 1</annotation></semantics></math>.
+Module averages of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>S</mi><annotation encoding="application/x-tex">S</annotation></semantics></math>
+drive product recommendations (Promote vs Warped), not the continuous
+<code>skillIndex</code> of Section <a href="#sec:luck-skill-boards"
+data-reference-type="ref" data-reference="sec:luck-skill-boards">8</a>.
+Thresholds were chosen as coarse absolute guards on the same constructs
+as §8 (branching, force, discrimination, hand diversity); they were
+frozen before the Promote/Warped labeling pass and were not optimized to
+separate Epsilon after the fact.</p>
+<p>Zeta requires equal squads: even fleets of at least 4 captains when
+<code>squadronSize</code>=2. Ineligible Zeta cells from earlier runs are
+excluded from Zeta-specific claims (17 eligible cells remain). The
+collector auto-omits Zeta from “all” on odd/small fleets.</p>
+<h2 data-number="9.3"
+id="results-most-modules-preserve-the-ceiling"><span
+class="header-section-number">9.3</span> Results: most modules preserve
+the ceiling</h2>
+<table id="tab:module-ranking">
+<caption>Module skill ranking from the 285<span>,</span>000-game study
+(Commander self-play, points objective, 500 games/cell). Zeta metrics
+restricted to even fleets
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>≥</mo><annotation encoding="application/x-tex">\geq</annotation></semantics></math>4.
+<em>Rec</em> is the product call: Promote = eligible for rated presets
+(Zeta gameplay included; FFA TEI still gated on a squad track); Warped =
+exhibition only (Epsilon = party luck; Kappa = intentional score
+inversion).</caption>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Module</strong></th>
+<th style="text-align: left;"><strong>Rec</strong></th>
+<th style="text-align: right;"><strong>Skill</strong></th>
+<th style="text-align: right;"><strong>Legal</strong></th>
+<th style="text-align: right;"><strong>Constr.</strong></th>
+<th style="text-align: right;"><strong>Spread</strong></th>
+<th style="text-align: right;"><strong>Pips</strong></th>
+<th style="text-align: left;"><strong>Skill/Luck</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Iota (Double Down)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">3.00</td>
+<td style="text-align: right;">2.24</td>
+<td style="text-align: right;">59%</td>
+<td style="text-align: right;">3.65</td>
+<td style="text-align: right;">8.1</td>
+<td style="text-align: left;">38/0/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">All modules</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.95</td>
+<td style="text-align: right;">2.05</td>
+<td style="text-align: right;">57%</td>
+<td style="text-align: right;">3.34</td>
+<td style="text-align: right;">8.3</td>
+<td style="text-align: left;">36/2/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Zeta (Squadrons)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.94</td>
+<td style="text-align: right;">1.86</td>
+<td style="text-align: right;">60%</td>
+<td style="text-align: right;">3.14</td>
+<td style="text-align: right;">7.5</td>
+<td style="text-align: left;">16/1/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Alpha (Continuum)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.89</td>
+<td style="text-align: right;">2.09</td>
+<td style="text-align: right;">57%</td>
+<td style="text-align: right;">3.19</td>
+<td style="text-align: right;">7.8</td>
+<td style="text-align: left;">34/4/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Beta (Salamander)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.89</td>
+<td style="text-align: right;">2.10</td>
+<td style="text-align: right;">57%</td>
+<td style="text-align: right;">3.19</td>
+<td style="text-align: right;">7.8</td>
+<td style="text-align: left;">34/4/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Delta (Spool)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.89</td>
+<td style="text-align: right;">2.09</td>
+<td style="text-align: right;">57%</td>
+<td style="text-align: right;">3.19</td>
+<td style="text-align: right;">7.7</td>
+<td style="text-align: left;">34/4/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Eta (Temporal Debt)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.89</td>
+<td style="text-align: right;">2.09</td>
+<td style="text-align: right;">57%</td>
+<td style="text-align: right;">3.19</td>
+<td style="text-align: right;">7.7</td>
+<td style="text-align: left;">34/4/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Gamma (Sensor Grid)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.89</td>
+<td style="text-align: right;">2.09</td>
+<td style="text-align: right;">57%</td>
+<td style="text-align: right;">3.19</td>
+<td style="text-align: right;">7.7</td>
+<td style="text-align: left;">34/4/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Kappa (Inversion)</td>
+<td style="text-align: left;">Warped</td>
+<td style="text-align: right;">2.89</td>
+<td style="text-align: right;">2.09</td>
+<td style="text-align: right;">57%</td>
+<td style="text-align: right;">3.19</td>
+<td style="text-align: right;">7.8</td>
+<td style="text-align: left;">34/4/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Lambda (Wormholes)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.89</td>
+<td style="text-align: right;">2.09</td>
+<td style="text-align: right;">57%</td>
+<td style="text-align: right;">3.17</td>
+<td style="text-align: right;">7.7</td>
+<td style="text-align: left;">34/4/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Baseline</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.89</td>
+<td style="text-align: right;">2.09</td>
+<td style="text-align: right;">57%</td>
+<td style="text-align: right;">3.19</td>
+<td style="text-align: right;">7.7</td>
+<td style="text-align: left;">34/4/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Theta (Longest Trail)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.89</td>
+<td style="text-align: right;">2.09</td>
+<td style="text-align: right;">57%</td>
+<td style="text-align: right;">3.19</td>
+<td style="text-align: right;">7.7</td>
+<td style="text-align: left;">34/4/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Mu (Fracture)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.87</td>
+<td style="text-align: right;">2.12</td>
+<td style="text-align: right;">55%</td>
+<td style="text-align: right;">3.25</td>
+<td style="text-align: right;">7.9</td>
+<td style="text-align: left;">33/5/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Official Warp 12</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.82</td>
+<td style="text-align: right;">2.12</td>
+<td style="text-align: right;">54%</td>
+<td style="text-align: right;">3.07</td>
+<td style="text-align: right;">7.5</td>
+<td style="text-align: left;">32/5/1</td>
+</tr>
+<tr>
+<td style="text-align: left;">Epsilon (Drafting)</td>
+<td style="text-align: left;">Warped/party</td>
+<td style="text-align: right;">1.08</td>
+<td style="text-align: right;">1.30</td>
+<td style="text-align: right;">36%</td>
+<td style="text-align: right;">2.08</td>
+<td style="text-align: right;">5.0</td>
+<td style="text-align: left;">0/11/27</td>
+</tr>
+</tbody>
+</table>
+<figure id="fig:module-ranking" data-latex-placement="htbp">
+<img src="/figures/figure11-module-skill-ranking.png"
+style="width:92.0%" />
+<figcaption>Module skill ceiling across Warp factors and fleet sizes.
+Nearly every module sits at or above the baseline Promote line (2.5).
+Epsilon is the sole collapse (Warped/party). Zeta remains high-skill
+(Promote; Squad TEI, never FFA).</figcaption>
+</figure>
+<figure id="fig:module-heatmap" data-latex-placement="htbp">
+<img src="/figures/figure12-module-warp-heatmap.png"
+style="width:78.0%" />
+<figcaption>Mean skill indicators by module and Warp factor. Epsilon is
+red across the board; the Official preset and single-module variants
+stay skill-stable, especially on W12+.</figcaption>
+</figure>
+<figure id="fig:module-profiles" data-latex-placement="htbp">
+<img src="/figures/figure14-module-metric-profiles.png"
+style="width:95.0%" />
+<figcaption>Decision-quality profiles for rating-relevant modules.
+Epsilon trails on every axis; Iota leads on legal moves, constrained
+tiles, and move-value spread.</figcaption>
+</figure>
+<p>Key observations:</p>
+<ul>
+<li><p><strong>Baseline and most single modules</strong> average
+<strong>2.89/4</strong> indicators — skill-dominant in 34/38
+cells.</p></li>
+<li><p><strong>Iota (Double Down)</strong> is the only clear skill
+<em>upgrade</em>: <strong>3.00/4</strong>, skill-dominant in
+<strong>38/38</strong> cells. On W12 it lifts move-value spread by
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>+</mi><mn>0.26</mn></mrow><annotation encoding="application/x-tex">+0.26</annotation></semantics></math>
+to
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>+</mi><mn>0.86</mn></mrow><annotation encoding="application/x-tex">+0.86</annotation></semantics></math>
+pips versus baseline depending on fleet size.</p></li>
+<li><p><strong>Official Warp 12</strong> remains competitive at
+<strong>2.82/4</strong> (one luck-leaning cell: W9/4p), justifying the
+rated preset.</p></li>
+<li><p><strong>“All modules”</strong> stress-test scores
+<strong>2.95/4</strong> when Zeta is eligible or omitted — stacking does
+<em>not</em> destroy discrimination under Commander play.</p></li>
+<li><p><strong>Zeta</strong> on eligible fleets averages
+<strong>2.94/4</strong> (16/17 skill-dominant) — shared trails keep
+pressure high.</p></li>
+</ul>
+<h2 data-number="9.4"
+id="the-drafting-paradox-epsilon-as-a-party-module"><span
+class="header-section-number">9.4</span> The drafting paradox: Epsilon
+as a party module</h2>
+<figure id="fig:epsilon-collapse" data-latex-placement="htbp">
+<img src="/figures/figure13-epsilon-collapse.png"
+style="width:95.0%" />
+<figcaption>Epsilon collapse versus baseline, Iota, and Official across
+all Warp factors. Drafting never recovers the skill ceiling that
+pack-and-pass seems to promise.</figcaption>
+</figure>
+<figure id="fig:w12-module-curves" data-latex-placement="htbp">
+<img src="/figures/figure15-w12-module-fleet-curves.png"
+style="width:90.0%" />
+<figcaption>Warp 12 fleet curves for rating-relevant modules. Epsilon is
+the unique trough at every fleet size; Iota and Official track near the
+skill ceiling.</figcaption>
+</figure>
+<p>Intuition says drafting should <em>increase</em> skill: captains
+choose their hands. Empirically, Epsilon averages
+<strong>1.08/4</strong> indicators and is luck-dominant in
+<strong>27/38</strong> cells (0/4 on every W9 fleet). Relative to
+baseline it shows:</p>
+<ul>
+<li><p>Legal moves:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>1.30
+vs
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>2.09</p></li>
+<li><p>Constrained tiles: 36% vs 57%</p></li>
+<li><p>Move-value spread: 2.08 vs 3.19</p></li>
+<li><p>Unique pips in hand: 5.0 vs 7.7</p></li>
+</ul>
+<p><strong>Interpretation:</strong> Drafting front-loads luck into the
+deal and produces more coherent personal hands. Mid-game branching then
+<em>shrinks</em>: fewer forced tiles, fewer discriminating choices,
+thinner pip diversity. Outcomes are decided earlier by who drafted the
+lucky connectors, not by who navigates the Neutral Zone. That makes
+Epsilon an excellent <strong>party / social</strong> module — the
+requisition ritual is the entertainment — and a poor competitive
+one.</p>
+<p>Figure <a href="#fig:epsilon-deficit" data-reference-type="ref"
+data-reference="fig:epsilon-deficit">16</a> maps the deficit
+cell-by-cell; Epsilon never recovers baseline skill indicators on any
+Warp/fleet cell we collected. Figure <a href="#fig:hand-pressure"
+data-reference-type="ref" data-reference="fig:hand-pressure">17</a>
+shows the same squeeze on constrained-tile fraction and unique pips —
+the two mid-game pressure gauges most diagnostic of Warped play.</p>
+<figure id="fig:epsilon-deficit" data-latex-placement="htbp">
+<img src="/figures/figure16-epsilon-deficit-heatmap.png"
+style="width:88.0%" />
+<figcaption>Epsilon skill-indicator deficit versus baseline across Warp
+factors and fleet sizes (negative
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>=</mo><annotation encoding="application/x-tex">=</annotation></semantics></math>
+worse than pack-and-pass). The collapse is wide, not a single bad
+fleet.</figcaption>
+</figure>
+<figure id="fig:hand-pressure" data-latex-placement="htbp">
+<img src="/figures/figure20-hand-pressure-bars.png"
+style="width:92.0%" />
+<figcaption>Hand-pressure bars for rating-relevant modules. Left:
+constrained-tile fraction. Right: unique pips in hand. Epsilon sits
+alone at the bottom of both axes.</figcaption>
+</figure>
+<h2 data-number="9.5" id="iota-and-outcome-mix"><span
+class="header-section-number">9.5</span> Iota and outcome mix</h2>
+<p>Iota (Double Down) is the dual product win: Figure <a
+href="#fig:iota-lift" data-reference-type="ref"
+data-reference="fig:iota-lift">18</a> shows its W12 move-value-spread
+lift versus baseline (+0.26 to +0.86 depending on fleet). Figure <a
+href="#fig:outcome-mix" data-reference-type="ref"
+data-reference="fig:outcome-mix">19</a> stacks
+skill-/mixed-/luck-dominant cell counts; Iota is all skill-dominant,
+while Epsilon is mostly luck. Figure <a href="#fig:legal-vs-spread"
+data-reference-type="ref" data-reference="fig:legal-vs-spread">20</a>
+places each cell in (legal moves, move-value spread) space — Epsilon
+clusters low; Iota/baseline/Zeta occupy the skillful cloud.</p>
+<figure id="fig:iota-lift" data-latex-placement="htbp">
+<img src="/figures/figure17-iota-spread-lift-w12.png"
+style="width:85.0%" />
+<figcaption>Iota move-value-spread lift on Warp 12 (fleet sizes 2–8).
+Double Down widens discriminating choices without collapsing
+branching.</figcaption>
+</figure>
+<figure id="fig:outcome-mix" data-latex-placement="htbp">
+<img src="/figures/figure18-module-outcome-mix.png"
+style="width:92.0%" />
+<figcaption>Skill / mixed / luck outcome mix by module (fraction of
+configuration cells). Promote modules are skill-dominated bars; Epsilon
+is mostly luck.</figcaption>
+</figure>
+<figure id="fig:legal-vs-spread" data-latex-placement="htbp">
+<img src="/figures/figure19-legal-vs-spread-scatter.png"
+style="width:88.0%" />
+<figcaption>Per-cell scatter of mean legal moves vs move-value spread
+for baseline, Iota, Official, Zeta, and Epsilon. Epsilon occupies the
+lower-left Warped pocket.</figcaption>
+</figure>
+<h2 data-number="9.6"
+id="zeta-skillful-team-play-squadron-tei-never-ffa"><span
+class="header-section-number">9.6</span> Zeta: skillful team play,
+Squadron TEI (never FFA)</h2>
+<p>Zeta is the dual of Epsilon on the skill instrument:
+<strong>2.94/4</strong> indicators on eligible fleets (16/17
+skill-dominant). Shared trails and bridge seating preserve decision
+pressure. It is <em>not</em> Warped. The product separation is
+infrastructural, not skill-based: FFA TEI stays on individual tables;
+eligible rated Warp 12 Zeta sectors write OpenSkill updates to a
+dedicated team track (<code>squadRating</code>), gated by
+<code>SQUADRONS_RATING_CALIBRATED</code> (now <code>true</code> after
+2v2 ordering calibration). Crew nights never pollute the FFA human
+ladder.</p>
+<h2 data-number="9.7" id="product-recommendations"><span
+class="header-section-number">9.7</span> Product recommendations</h2>
+<ul>
+<li><p><strong>Rated (Promote):</strong> Official Warp 12; baseline;
+Alpha–Delta, Eta, Theta, Iota, Lambda, Mu (own-trail fracture); Zeta on
+rated Warp 12 writes <strong>Squad TEI</strong> only.</p></li>
+<li><p><strong>Warped / party:</strong> Epsilon — exhibition only; label
+as luck-leaning social play.</p></li>
+<li><p><strong>Already Warped (RULES):</strong> Kappa (intentional score
+inversion).</p></li>
+<li><p><strong>Do not merge</strong> Epsilon-enabled boards into rated
+FFA TEI; keep exhibition ledgers separate when Warped modules
+run.</p></li>
+</ul>
+<h1 data-number="10" id="discussion"><span
+class="header-section-number">10</span> Discussion</h1>
+<h2 data-number="10.1" id="what-calibration-teaches"><span
+class="header-section-number">10.1</span> What Calibration Teaches</h2>
 <ul>
 <li><p><strong>Points</strong> behaves like a smooth skill ladder — good
-fit for fixed TEI spacing.</p></li>
+fit for OpenSkill
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>μ</mi><annotation encoding="application/x-tex">\mu</annotation></semantics></math>
+spacing.</p></li>
 <li><p><strong>Go-out</strong> behaves like a stochastic race — ordering
-survives, magnitudes don’t.</p></li>
+survives,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi mathvariant="normal">Δ</mi><mi>μ</mi><mo stretchy="false" form="prefix">|</mo></mrow><annotation encoding="application/x-tex">|\Delta\mu|</annotation></semantics></math>
+magnitudes don’t.</p></li>
 <li><p><strong>Table size</strong> erodes heads-up skill signal — focus
 tests essential.</p></li>
 <li><p><strong>House rules</strong> mostly reshape legality — heuristics
@@ -1649,12 +2262,14 @@ edge via explicit tree search.</p></li>
 <li><p><strong>Neural Class II can replace heuristics without a second
 lobby tier</strong> — keep
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>=</mo></mrow><annotation encoding="application/x-tex">\sigma=</annotation></semantics></math><code>commander</code>,
-update <code>rulesProfileId</code> + REF_TEI.</p></li>
+update <code>rulesProfileId</code> + Commander anchor
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>μ</mi><annotation encoding="application/x-tex">\mu</annotation></semantics></math>.</p></li>
 <li><p><strong>Fair-share
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>≠</mo><annotation encoding="application/x-tex">\neq</annotation></semantics></math>
-Elo bump</strong> — translating fleet-mean
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Δ</mi><mi>μ</mi></mrow><annotation encoding="application/x-tex">\Delta\mu</annotation></semantics></math>
+bump</strong> — translating fleet-mean
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>/Commander
-ratio with
+ratio with Elo-style
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>400</mn><msub><mrow><mi mathvariant="normal">log</mi><mo>&#8289;</mo></mrow><mn>10</mn></msub><mo stretchy="false" form="prefix">(</mo><mtext mathvariant="normal">fs</mtext><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">400 \log_{10}(\text{fs})</annotation></semantics></math>
 overstates anchors when most rated matches are 2–4p; temper for the
 rating context you ship.</p></li>
@@ -1665,8 +2280,9 @@ succeeds by targeting search visit distributions (Path B), not Commander
 picks, following principles similar to AlphaZero’s self-play
 approach <span class="citation"
 data-cites="silver2017alphazero"></span>.</p></li>
-<li><p><strong>Larger fleets increase skill, not noise</strong> — the
-19K-game study shows skill index rises with player count
+<li><p><strong>Larger fleets increase skill, not noise</strong> —
+baseline cells of the 285K-game matrix show skill index rises with
+player count
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>&gt;</mo><mn>0.84</mn></mrow><annotation encoding="application/x-tex">r &gt; 0.84</annotation></semantics></math>
 for W12/15/18), contradicting the “more players = crapshoot”
 intuition.</p></li>
@@ -1674,9 +2290,18 @@ intuition.</p></li>
 baseline skill in 2–4p range, steepest fleet size gradient
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.875</mn></mrow><annotation encoding="application/x-tex">r = 0.875</annotation></semantics></math>),
 best discriminator of player ability.</p></li>
+<li><p><strong>Drafting is a trap for competitive design</strong> —
+Module Epsilon collapses mid-game skill indicators to 1.08/4;
+choose-your-hand rituals belong in party mode (Warped).</p></li>
+<li><p><strong>Team play is skillful and rates on Squad TEI</strong> —
+Module Zeta preserves skill (2.94/4); rated crew sectors update
+<code>squadRating</code>, never FFA <code>humanRating</code>.</p></li>
+<li><p><strong>Iota is the rare module that raises the ceiling</strong>
+— Double Down is the only single module with 38/38 skill-dominant
+cells.</p></li>
 </ul>
-<h2 data-number="9.2" id="design-recommendations"><span
-class="header-section-number">9.2</span> Design Recommendations</h2>
+<h2 data-number="10.2" id="design-recommendations"><span
+class="header-section-number">10.2</span> Design Recommendations</h2>
 <ul>
 <li><p>Never merge points and go-out TEI.</p></li>
 <li><p>Show percentile on go-out boards.</p></li>
@@ -1687,29 +2312,42 @@ as a rating-affecting toggle without
 or marking unrated.</p></li>
 <li><p>Retune weights selectively (popular hosted configs), not full
 combinatorial grid.</p></li>
-<li><p>Recalibrate REF_TEI when Class II <strong>implementation</strong>
-changes; do not rewrite stored human ratings.</p></li>
+<li><p>Recalibrate Commander
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>μ</mi><annotation encoding="application/x-tex">\mu</annotation></semantics></math>
+when Class II <strong>implementation</strong> changes; do not rewrite
+stored human ratings.</p></li>
 <li><p>Prefer one strong rated tier over “Commander + Omega + Class I*”
 confusion.</p></li>
 <li><p>Anchor TEI exclusively on W12; treat W9/15/18 as exhibition using
 the same Class IV–II opponents.</p></li>
-<li><p>Do not reduce K-factor for large fleets — skill expression
-increases, not variance.</p></li>
+<li><p>Do not soften OpenSkill updates for large fleets — skill
+expression increases, not variance.</p></li>
+<li><p>Mark Epsilon <strong>Warped / party</strong> in the product;
+promote Iota and Official for rated presets; treat Zeta as skill-promote
+with live Squad TEI (never FFA).</p></li>
 </ul>
-<h2 data-number="9.3" id="limitations"><span
-class="header-section-number">9.3</span> Limitations</h2>
+<h2 data-number="10.3" id="limitations"><span
+class="header-section-number">10.3</span> Limitations</h2>
 <ul>
 <li><p>Heuristic agents, not equilibrium solvers.</p></li>
 <li><p>Calibration seed and game count sensitivity.</p></li>
 <li><p>No human champion study yet.</p></li>
-<li><p>Module combinations not exhaustively calibrated.</p></li>
-<li><p>Study used points objective only — go-out may exhibit different
-luck/skill patterns.</p></li>
+<li><p>Module study used points objective and Commander seats only —
+go-out and mixed human/AI may differ.</p></li>
+<li><p>Legacy ineligible Zeta cells exist in the dataset; filtered for
+Zeta claims.</p></li>
 <li><p>W18 non-monotonicity at 17p/18p suggests potential edge cases at
 extreme configurations.</p></li>
+<li><p>§8 continuous composites and §9 binary indicators share sampler
+hardware but are not interchangeable scales; do not treat a cell’s
+<code>skillIndex</code> and its
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mi>/</mi><mn>4</mn></mrow><annotation encoding="application/x-tex">S/4</annotation></semantics></math>
+count as the same quantity.</p></li>
+<li><p>Composite weights and indicator thresholds are fixed heuristic
+guards, not cross-validated predictors of human TEI.</p></li>
 </ul>
-<h1 data-number="10" id="conclusion"><span
-class="header-section-number">10</span> Conclusion</h1>
+<h1 data-number="11" id="conclusion"><span
+class="header-section-number">11</span> Conclusion</h1>
 <p>TEI and self-play calibration provide a <strong>practical, honest
 skill ladder</strong> for a game too messy for classical solving. Points
 and go-out should be treated as <strong>two calibration targets</strong>
@@ -1732,13 +2370,16 @@ Class II without a fourth lobby tier — but <strong>promotion benches and
 TEI anchors are different jobs</strong>: fleet fair-share can look large
 while heads-up play stays near parity; REF_TEI must follow the tables
 you rate.</p>
-<p>The <strong>19,000-game luck vs skill study</strong> (38
-configurations, 4 Warp factors, 2–18 players) reveals three key
-insights:</p>
+<p>The <strong>285<span>,</span>000-game module study</strong> (570
+cells; Section <a href="#sec:module-balance" data-reference-type="ref"
+data-reference="sec:module-balance">9</a>) is the authoritative
+skill/luck instrument. From its <strong>baseline</strong>
+Warp<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>fleet
+slice:</p>
 <ol>
 <li><p><strong>Skill expression increases with both Warp factor and
 fleet size.</strong> Contrary to conventional wisdom (“more players =
-more luck”), our data show skill index rises strongly with player count
+more luck”), skill index rises strongly with player count
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.84</mn></mrow><annotation encoding="application/x-tex">r = 0.84</annotation></semantics></math>–<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.89</mn><annotation encoding="application/x-tex">0.89</annotation></semantics></math>
 for W12/15/18). W18/18p exhibits
 1.74<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
@@ -1763,15 +2404,25 @@ moves
 across all configs). This suggests Mexican Train’s tactical depth scales
 with tile diversity, not combinatorial explosion.</p></li>
 </ol>
+<p>Across the full module matrix the product constraints are:</p>
+<ol>
+<li><p><strong>Most modules are rating-safe.</strong> Baseline, Official
+Warp 12, and the Alpha–Mu singles (except Epsilon) preserve
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>∼</mo><annotation encoding="application/x-tex">\sim</annotation></semantics></math>2.8–3.0
+skill indicators.</p></li>
+<li><p><strong>Epsilon is Warped/party.</strong> Drafting collapses
+skill to 1.08/4 — keep it social, never on TEI.</p></li>
+<li><p><strong>Zeta is skill-promote with live Squad TEI.</strong>
+Squadrons preserve skill (2.94/4); rated Warp 12 crew sectors update
+<code>squadRating</code> only.</p></li>
+</ol>
 <p>The right product move is <strong>one neural Class II, tempered
-anchors, unrated search as hard mode</strong>, not more named tiers.
-Superhuman Mexican Train remains a <strong>research program</strong>
-(belief-state search + Path A value + human validation), not required
-for an excellent commercial experience. The luck/skill data provide
-empirical grounding for design choices (W12 for rating, exhibition
-factors for variety, no K-factor adjustments for fleet size) and open
-questions for future work (go-out objective, human validation studies,
-ergodic limits at extreme configurations).</p>
+OpenSkill anchors, unrated search as hard mode</strong>, not more named
+tiers — plus a clear <strong>Promote vs Warped</strong> module taxonomy
+grounded in the skill instrument. Superhuman Mexican Train remains a
+<strong>research program</strong> (belief-state search + Path A value +
+human validation), not required for an excellent commercial
+experience.</p>
 <h1 class="unnumbered" id="acknowledgments">Acknowledgments</h1>
 <p>To Deborah, Hannah, and Don for taking me in to their family and for
 introducing me to Mexican Train Dominoes.</p>
@@ -1779,8 +2430,8 @@ introducing me to Mexican Train Dominoes.</p>
 project. All code, data, and reproduction scripts are available at <a
 href="https://github.com/digitaldefiance/warp12"
 class="uri">https://github.com/digitaldefiance/warp12</a>.</p>
-<h1 data-number="11" id="figure-list"><span
-class="header-section-number">11</span> Figure List</h1>
+<h1 data-number="12" id="figure-list"><span
+class="header-section-number">12</span> Figure List</h1>
 <p>All figures are generated from empirical data and located in
 <code>tools/nn/figures/</code>.</p>
 <ol>
@@ -1800,10 +2451,11 @@ Weak correlation
 suggests orthogonal dimensions.</p></li>
 <li><p><strong>Skill vs luck balance (Section 8)</strong> — W18/18p has
 highest skill/luck ratio (8.10) of any configuration.</p></li>
-<li><p><strong>TEI ladder visualization (Section 5)</strong> — Reference
-bands (v1 vs v2) and Elo expected win probability curves.</p></li>
-<li><p><strong>Calibration matrix heatmap (Section 7)</strong> — Win
-rates between Class IV/III/II pairs show points clarity vs go-out
+<li><p><strong>TEI ladder visualization (Section 5)</strong> — OpenSkill
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi><mo>±</mo><mi>σ</mi></mrow><annotation encoding="application/x-tex">\mu\pm\sigma</annotation></semantics></math>
+AI anchors and TEI grade presentation (E/V/C/I/P).</p></li>
+<li><p><strong>Calibration matrix heatmap (Section 7)</strong> —
+2<span>,</span>000-game win rates; points clarity vs go-out
 compression.</p></li>
 <li><p><strong>AI bench results comparison (Section 7)</strong> — Class
 I* parity, Fleet Admiral wins (expectimax 64%), Ω fair-share by fleet
@@ -1812,11 +2464,34 @@ size, fair-share hazard.</p></li>
 stack, Class I* MLP, Class Ω policy/value heads, Fleet Admiral
 routing.</p></li>
 <li><p><strong>Points vs go-out divergence (Section 3)</strong> —
-Implied ΔTEI compression and win rate distributions demonstrate
-objective differences.</p></li>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi mathvariant="normal">Δ</mi><mi>μ</mi><mo stretchy="false" form="prefix">|</mo></mrow><annotation encoding="application/x-tex">|\Delta\mu|</annotation></semantics></math>
+anchor vs implied gaps; weaker-side win rates.</p></li>
+<li><p><strong>Module skill ranking (Section 9)</strong> — 285K-game
+Promote vs Warped taxonomy; Epsilon collapse; Zeta
+skill-promote.</p></li>
+<li><p><strong>Module
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+Warp heatmap (Section 9)</strong> — Skill indicators by module and Warp
+factor.</p></li>
+<li><p><strong>Epsilon collapse panels (Section 9)</strong> — Drafting
+vs baseline/Iota/Official across W9–W18.</p></li>
+<li><p><strong>Module metric profiles (Section 9)</strong> — Legal
+moves, constrained tiles, spread, unique pips.</p></li>
+<li><p><strong>W12 module fleet curves (Section 9)</strong> —
+Rating-relevant modules across 2–8 captains.</p></li>
+<li><p><strong>Epsilon deficit heatmap (Section 9)</strong> — Cell-level
+skill-indicator deficit vs baseline.</p></li>
+<li><p><strong>Iota spread lift on W12 (Section 9)</strong> —
+Move-value-spread gain from Double Down.</p></li>
+<li><p><strong>Module outcome mix (Section 9)</strong> — Skill / mixed /
+luck cell fractions by module.</p></li>
+<li><p><strong>Legal moves vs spread scatter (Section 9)</strong> —
+Per-cell depth cloud; Epsilon Warped pocket.</p></li>
+<li><p><strong>Hand-pressure bars (Section 9)</strong> — Constrained
+tiles and unique pips for key modules.</p></li>
 </ol>
-<h1 data-number="12" id="tables"><span
-class="header-section-number">12</span> Tables</h1>
+<h1 data-number="13" id="tables"><span
+class="header-section-number">13</span> Tables</h1>
 <table id="tab:summary-stats">
 <caption>Summary Statistics by Configuration (500 games per
 cell)</caption>
@@ -2548,8 +3223,8 @@ style="color: gray">0.05</span></td>
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi>r</mi><mo stretchy="false" form="prefix">|</mo><mo>&gt;</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">|r| &gt; 0.5</annotation></semantics></math>);
 gray values indicate negligible correlation
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi>r</mi><mo stretchy="false" form="prefix">|</mo><mo>&lt;</mo><mn>0.1</mn></mrow><annotation encoding="application/x-tex">|r| &lt; 0.1</annotation></semantics></math>).</p>
-<h1 data-number="13" id="code-map"><span
-class="header-section-number">13</span> Code Map</h1>
+<h1 data-number="14" id="code-map"><span
+class="header-section-number">14</span> Code Map</h1>
 <table>
 <thead>
 <tr>
@@ -2634,10 +3309,16 @@ style="text-align: left;"><code>collect-omega-trajectories.ts</code>,
 <tr>
 <td style="text-align: left;">Human TEI update</td>
 <td
-style="text-align: left;"><code>apps/Warp12/src/firebase/stats-elo.ts</code></td>
+style="text-align: left;"><code>apps/Warp12/src/firebase/stats-service.ts</code>,
+<code>libs/engine/.../rating/</code></td>
 </tr>
 <tr>
-<td style="text-align: left;">Rules profile / anchors</td>
+<td style="text-align: left;">OpenSkill anchors / grades</td>
+<td style="text-align: left;"><code>anchors.ts</code>,
+<code>tei-grade.ts</code>, <code>update-{ffa,team,vs-ai}.ts</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Rules profile / AI tiers</td>
 <td style="text-align: left;"><code>warp12-official-v1</code> /
 <code>v2</code> in <code>rules-profile.ts</code></td>
 </tr>
@@ -2652,6 +3333,12 @@ style="text-align: left;"><code>libs/engine/src/lib/ai/luck-skill-metrics.ts</co
 style="text-align: left;"><code>tools/nn/collect-luck-skill-single-config.ts</code></td>
 </tr>
 <tr>
+<td style="text-align: left;">Module analysis</td>
+<td
+style="text-align: left;"><code>tools/nn/collect-luck-skill-modules.ts</code>,
+<code>analyze-module-results.ts</code></td>
+</tr>
+<tr>
 <td style="text-align: left;">Statistical analysis</td>
 <td
 style="text-align: left;"><code>tools/nn/process-luck-skill-data.py</code>,
@@ -2659,50 +3346,63 @@ style="text-align: left;"><code>tools/nn/process-luck-skill-data.py</code>,
 </tr>
 <tr>
 <td style="text-align: left;">Figure generation</td>
-<td
-style="text-align: left;"><code>tools/nn/create-figures.py</code></td>
+<td style="text-align: left;"><code>create-figures.py</code>,
+<code>create-paper-figures.py</code>,
+<code>create-module-figures.py</code></td>
 </tr>
 <tr>
 <td style="text-align: left;">Rules spec</td>
 <td style="text-align: left;"><code>RULES.md</code></td>
 </tr>
+<tr>
+<td style="text-align: left;">Module report</td>
+<td style="text-align: left;"><code>docs/MODULE-ANALYSIS.md</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">OpenSkill calib log</td>
+<td
+style="text-align: left;"><code>docs/openskill-calibration-log.md</code></td>
+</tr>
 </tbody>
 </table>
-<h1 data-number="14" id="reproducibility"><span
-class="header-section-number">14</span> Reproducibility</h1>
-<h2 data-number="14.1" id="self-play-calibration"><span
-class="header-section-number">14.1</span> Self-Play Calibration</h2>
+<h1 data-number="15" id="reproducibility"><span
+class="header-section-number">15</span> Reproducibility</h1>
+<h2 data-number="15.1" id="self-play-calibration"><span
+class="header-section-number">15.1</span> Self-Play Calibration</h2>
 <pre><code>yarn calibrate:ai-tei
 AI_CALIBRATION_GAMES=500 yarn calibrate:ai-tei
 yarn calibrate:ai-tei-dti
-yarn optimize:ai-weights</code></pre>
-<h2 data-number="14.2" id="fleet-admiral-benchmarks"><span
-class="header-section-number">14.2</span> Fleet Admiral Benchmarks</h2>
+yarn optimize:ai-weights
+# OpenSkill AI-anchor calibration (engine unit suite)
+yarn test:engine -- openskill-calibration</code></pre>
+<h2 data-number="15.2" id="fleet-admiral-benchmarks"><span
+class="header-section-number">15.2</span> Fleet Admiral Benchmarks</h2>
 <pre><code>yarn fleet-admiral:bench:500
 FLEET_BENCH_SEAT=b yarn fleet-admiral:bench:500
 yarn fleet-admiral:bench:go-out-4p:500
 yarn jiti tools/nn/compare-fleet-search.ts</code></pre>
-<h2 data-number="14.3" id="class-i-training"><span
-class="header-section-number">14.3</span> Class I* Training</h2>
+<h2 data-number="15.3" id="class-i-training"><span
+class="header-section-number">15.3</span> Class I* Training</h2>
 <pre><code>yarn class1-star:pipeline:deep
 yarn class1-star:pipeline:go-out
 yarn class1-star:pipeline:deepblue</code></pre>
-<h2 data-number="14.4" id="luck-vs-skill-data-collection"><span
-class="header-section-number">14.4</span> Luck vs Skill Data
-Collection</h2>
-<pre><code># Fine-grained parallel (38 workers, one per config)
-COMPREHENSIVE_GAMES=500 COMPREHENSIVE_WORKERS=15 \
-  bash tools/nn/run-comprehensive-parallel-fine.sh
+<h2 data-number="15.4" id="skillluck-and-module-matrix-285k-games"><span
+class="header-section-number">15.4</span> Skill/Luck and Module Matrix
+(285k games)</h2>
+<pre><code># Authoritative campaign (570 cells × 500 games)
+MODULE_GAMES=500 MODULE_WORKERS=12 \
+  bash tools/nn/run-module-analysis-parallel.sh
+npx tsx tools/nn/analyze-module-results.ts
 
-# Process and analyze
-python3 tools/nn/process-luck-skill-data.py
-python3 tools/nn/test-hypotheses.py
-python3 tools/nn/create-figures.py
-python3 tools/nn/create-tables.py</code></pre>
+# Warp×fleet figures/tables use the baseline (`none`) cells of that matrix
+MPLBACKEND=Agg python3 tools/nn/create-module-figures.py
+MPLBACKEND=Agg python3 tools/nn/create-paper-figures.py
+MPLBACKEND=Agg python3 tools/nn/create-figures.py
+MPLBACKEND=Agg python3 tools/nn/create-tables.py</code></pre>
 <p>All data and scripts are available in the <code>warp12-engine</code>
 package and <code>tools/nn/</code> directory.</p>
-<h1 data-number="15" id="target-venues"><span
-class="header-section-number">15</span> Target Venues</h1>
+<h1 data-number="16" id="target-venues"><span
+class="header-section-number">16</span> Target Venues</h1>
 <table>
 <thead>
 <tr>
@@ -2757,6 +3457,9 @@ Paired Comparison Experiments</em>. Applied Statistics,
 <p>Herbrich, R., Minka, T., and Graepel, T. (2006). <em>TrueSkill™: A
 Bayesian Skill Rating System</em>. Advances in Neural Information
 Processing Systems, 19:569–576.</p>
+<p>Weng, R.C., and Lin, C.-J. (2011). <em>A Bayesian Approximation
+Method for Online Ranking</em>. Journal of Machine Learning Research,
+12:267–300.</p>
 <p>Silver, D., Hubert, T., Schrittwieser, J., et al. (2018). <em>A
 General Reinforcement Learning Algorithm that Masters Chess, Shogi, and
 Go through Self-Play</em>. Science, 362(6419):1140–1144.</p>

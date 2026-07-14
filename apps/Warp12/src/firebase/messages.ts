@@ -32,6 +32,10 @@ export interface SubspaceMessage {
   readonly text?: string;
   /** DM recipient uid; absent = public all-chat. */
   readonly to?: string;
+  /** Module Zeta: 'squad' = visible only to squadronId members; absent/'table' = whole sector. */
+  readonly channel?: 'table' | 'squad';
+  /** Module Zeta: squad id the message is scoped to (present when channel === 'squad'). */
+  readonly squadronId?: string;
   readonly at: string;
 }
 
@@ -91,13 +95,17 @@ export async function sendQuickPhrase(
   });
 }
 
-/** Send a free-form text message (blocked by rules during rated active play). */
+/**
+ * Send a free-form text message (blocked by rules during rated active play on
+ * the table channel; the squad channel is always allowed — see comms-mode.ts).
+ */
 export async function sendTextMessage(
   gameId: string,
   fromUid: string,
   fromName: string,
   text: string,
-  to?: string
+  to?: string,
+  squad?: { channel: 'squad'; squadronId: string }
 ): Promise<void> {
   const payload: Record<string, unknown> = {
     from: fromUid,
@@ -108,6 +116,10 @@ export async function sendTextMessage(
   };
   if (to) {
     payload.to = to;
+  }
+  if (squad) {
+    payload.channel = squad.channel;
+    payload.squadronId = squad.squadronId;
   }
   await addDoc(messagesCol(gameId), payload);
 }

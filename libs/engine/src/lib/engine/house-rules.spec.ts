@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { applyAction } from './apply-action.js';
 import { canDeployDistressBeacon, canDrawFromUncharted } from './beacon.js';
 import { getLegalMoves } from './legal-moves.js';
-import { makeGame, makeRound, T } from './test-helpers.js';
+import { allCaptainsHaveStartedTrails, canChartOnOpponentTrail } from './house-rules.js';
+import { formSquadrons } from './squadrons.js';
+import { makeGame, makeRound, placed, T } from './test-helpers.js';
 import { resolveHouseRules } from '../types/house-rules.js';
 
 const deluxeTwo = resolveHouseRules({ roundStarterPlaysTwo: true });
@@ -1127,5 +1129,64 @@ describe('house rules', () => {
       expect(win.state.round?.allStopDeclared).toBe(false);
       expect(win.state.round?.phase).toBe('ended');
     });
+  });
+});
+
+describe('house rules — Module Zeta squads', () => {
+  const { squadrons } = formSquadrons(['a', 'b', 'c', 'd'], 2);
+
+  it('canChartOnOpponentTrail treats a squadmate\'s shared trail as own (no direct id match needed)', () => {
+    const round = makeRound(['a', 'b', 'c', 'd'], { squadrons });
+    // c is squadmates with a (shared trail keyed 'a'). Before the fix this
+    // compared trailCaptainId ('a') === actingPlayerId ('c') directly and
+    // always returned false for a non-owner squadmate.
+    expect(
+      canChartOnOpponentTrail(round, 'c', 'a', resolveHouseRules({ requireOwnTrailFirst: true }))
+    ).toBe(true);
+    // Genuinely opposing squad's trail still requires the house-rule check.
+    expect(
+      canChartOnOpponentTrail(round, 'c', 'b', resolveHouseRules({ requireOwnTrailFirst: true }))
+    ).toBe(false);
+  });
+
+  it('allCaptainsHaveStartedTrails recognizes a squad trail as started for every member sharing it', () => {
+    const base = makeRound(['a', 'b', 'c', 'd'], { squadrons });
+    // Only squad-1's trailKey ('a') has tiles — squad-2 ('b') has none yet.
+    const oneSquadStarted = {
+      ...base,
+      table: {
+        ...base.table,
+        warpTrails: {
+          ...base.table.warpTrails,
+          a: {
+            playerId: 'a',
+            tiles: [placed(T(6, 3), 0, 3)],
+            distressBeacon: { active: false },
+          },
+        },
+      },
+    };
+    // Before the fix, iterating turnOrder and indexing warpTrails[captainId]
+    // directly meant 'c' (non-owner squadmate) always read 0 tiles even
+    // though squad-1's shared trail has tiles — so this could never become
+    // true once any squad had 2+ members, regardless of actual board state.
+    expect(allCaptainsHaveStartedTrails(oneSquadStarted)).toBe(false); // squad-2 hasn't started
+
+    const bothSquadsStarted = {
+      ...oneSquadStarted,
+      table: {
+        ...oneSquadStarted.table,
+        warpTrails: {
+          ...oneSquadStarted.table.warpTrails,
+          b: {
+            playerId: 'b',
+            tiles: [placed(T(6, 4), 0, 4)],
+            distressBeacon: { active: false },
+          },
+        },
+      },
+    };
+    // Every member of both squads now reads "started" via their shared trail.
+    expect(allCaptainsHaveStartedTrails(bothSquadsStarted)).toBe(true);
   });
 });

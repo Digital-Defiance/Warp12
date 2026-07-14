@@ -3,6 +3,7 @@
   "playerCount": 7,
   "moduleConfig": "official",
   "moduleLabel": "Official Warp 12 Preset",
+  "zetaOmitted": false,
   "games": 500,
   "objective": "points",
   "summary": {
@@ -10,18 +11,18 @@
     "playerCount": 7,
     "maxPip": 15,
     "objective": "points",
-    "avgLegalMovesPerTurn": 1.9587144433150911,
-    "avgUniqueTrainsPerTurn": 0.7265424149420823,
-    "avgConstrainedTileFraction": 0.47029231425630696,
-    "avgUniquePipsInHand": 5.410727185177254,
-    "avgMaxPipCluster": 1.8570916946068348,
-    "avgHandEntropy": 2.0878525571014053,
-    "avgMoveValueSpread": 2.515096251035561,
-    "avgNearOptimalFraction": 0.8562950160890863,
+    "avgLegalMovesPerTurn": 2.1227986374251033,
+    "avgUniqueTrainsPerTurn": 0.9228643537899389,
+    "avgConstrainedTileFraction": 0.55484441675018,
+    "avgUniquePipsInHand": 7.451086374039739,
+    "avgMaxPipCluster": 2.3324544622160337,
+    "avgHandEntropy": 2.544349579639405,
+    "avgMoveValueSpread": 3.226200076147729,
+    "avgNearOptimalFraction": 0.8039355215503806,
     "avgOwnTrailPlayRate": 0,
-    "avgShieldsDownRate": 0.15918179731416174
+    "avgShieldsDownRate": 0.12366316369378401
   },
-  "skillIndicators": 2,
-  "timestamp": "2026-07-12T23:33:49.425Z",
-  "durationSeconds": 343.24
+  "skillIndicators": 3,
+  "timestamp": "2026-07-14T01:35:34.117Z",
+  "durationSeconds": 30.852
 }

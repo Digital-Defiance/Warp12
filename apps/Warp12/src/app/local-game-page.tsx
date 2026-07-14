@@ -145,6 +145,8 @@ export function LocalGamePage() {
   const [academySaving, setAcademySaving] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
   const [launching, setLaunching] = useState(false);
+  /** Host intent: TEI-rated solo (advisor hidden). Casual = advisor available. */
+  const [ratedPlay, setRatedPlay] = useState(maxPip === 12);
 
   useEffect(() => {
     if (!neuralAiSupported(maxPip)) return;
@@ -156,6 +158,12 @@ export function LocalGamePage() {
   useEffect(() => {
     if (neuralAiSupported(maxPip)) return;
     setExtendedThinkingByAi({});
+  }, [maxPip]);
+
+  useEffect(() => {
+    if (maxPip !== 12) {
+      setRatedPlay(false);
+    }
   }, [maxPip]);
 
   const applyOfficialWarp12Rules = () => {
@@ -207,7 +215,14 @@ export function LocalGamePage() {
   );
   const rated = ratedObjective(objective);
   const exhibitionSet = maxPip !== 12;
-  const teiTrack = rated && !exhibitionSet ? rated : null;
+  const hasExtendedThinking = useMemo(
+    () => configuredAiCaptains.some((ai) => ai.extendedThinking === true),
+    [configuredAiCaptains]
+  );
+  const canOfferRated =
+    !exhibitionSet && rated !== null && !hasExtendedThinking;
+  const teiTrack =
+    rated && !exhibitionSet && ratedPlay && !hasExtendedThinking ? rated : null;
   const playerTei =
     teiTrack && playerStats.ready
       ? playerStats.displayTei(matchSkill, teiTrack)
@@ -272,6 +287,7 @@ export function LocalGamePage() {
       ),
       rulesProfileId,
       maxPip,
+      rated: canOfferRated && ratedPlay,
     };
     void startSession(next, drawMatchSeed());
   };
@@ -559,6 +575,30 @@ export function LocalGamePage() {
         />
       </fieldset>
 
+      {canOfferRated && (
+        <fieldset className={styles.fieldset}>
+          <legend>TEI rating</legend>
+          <label className={styles.checkboxRow}>
+            <input
+              type="checkbox"
+              checked={ratedPlay}
+              onChange={(e) => setRatedPlay(e.target.checked)}
+            />
+            <span>
+              Rated sector — results count toward TEI. The tactical advisor is
+              unavailable during play. Uncheck for a casual game with the advisor.
+            </span>
+          </label>
+        </fieldset>
+      )}
+
+      {hasExtendedThinking && !exhibitionSet && (
+        <p className={styles.hint}>
+          Extended thinking (Ω+) makes this sector unrated — the advisor stays
+          available.
+        </p>
+      )}
+
       {teiTrack &&
         playerStats.ready &&
         playerStats.needsAcademyPlacementForObjective(teiTrack) && (
@@ -599,8 +639,9 @@ export function LocalGamePage() {
             </p>
           )}
           <p className={styles.hint}>
-            Tactical advisor use does not update TEI. Unassisted wins and losses
-            move your index toward the reference profile shown above.
+            Unassisted wins and losses move your index toward the reference
+            profile shown above. The tactical advisor is hidden while this sector
+            is rated.
           </p>
           
           {playerTei !== null && (() => {
@@ -680,12 +721,16 @@ export function LocalGamePage() {
                 <input
                   type="checkbox"
                   checked={extendedThinkingByAi[ai.id] === true}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
                     setExtendedThinkingByAi((current) => ({
                       ...current,
-                      [ai.id]: e.target.checked,
-                    }))
-                  }
+                      [ai.id]: enabled,
+                    }));
+                    if (enabled) {
+                      setRatedPlay(false);
+                    }
+                  }}
                 />
                 <span>Extended thinking (unrated)</span>
               </label>

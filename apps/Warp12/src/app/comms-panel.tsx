@@ -4,7 +4,10 @@ import type { SubspaceMessage } from '../firebase/messages.js';
 import { sendQuickPhrase, sendTextMessage } from '../firebase/messages.js';
 import { quickCommPhraseById, type QuickCommPhrase } from '../game/quick-comms.js';
 import { createMessageRateLimiter } from '../game/message-rate-limit.js';
-import type { CommsMode } from '../game/comms-mode.js';
+import {
+  resolveCommsMode,
+  type CommsChannel,
+} from '../game/comms-mode.js';
 import { QuickCommsWheel } from './quick-comms-wheel.js';
 import styles from './comms-panel.module.scss';
 
@@ -13,8 +16,14 @@ export interface CommsPanelProps {
   viewerUid: string;
   viewerName: string;
   messages: readonly SubspaceMessage[];
-  mode: CommsMode;
+  /** Sector rated + phase — the panel resolves table vs squad mode per active tab. */
+  rated: boolean;
+  phase: 'lobby' | 'active' | 'complete' | 'round-end';
   captains: readonly { id: string; displayName: string }[];
+  /** Module Zeta: the viewer's own squadron, when squads are enabled. Omit for FFA sectors. */
+  viewerSquadronId?: string;
+  /** Module Zeta: the viewer's squad display name (host-chosen or "Squad N"). */
+  viewerSquadronName?: string;
   /** Muted captain uids — their messages are hidden. */
   muted?: ReadonlySet<string>;
   onMute?: (uid: string) => void;
@@ -25,8 +34,11 @@ export function CommsPanel({
   viewerUid,
   viewerName,
   messages,
-  mode,
+  rated,
+  phase,
   captains,
+  viewerSquadronId,
+  viewerSquadronName,
   muted = new Set(),
   onMute,
 }: CommsPanelProps) {
@@ -34,10 +46,23 @@ export function CommsPanel({
   const [dmTarget, setDmTarget] = useState<string | undefined>(undefined);
   const [sending, setSending] = useState(false);
   const [throttled, setThrottled] = useState(false);
+  const [activeChannel, setActiveChannel] = useState<CommsChannel>('table');
   const scrollRef = useRef<HTMLDivElement>(null);
   const rateLimiter = useMemo(() => createMessageRateLimiter(), []);
 
-  const visibleMessages = messages.filter((msg) => !muted.has(msg.from));
+  const hasSquad = Boolean(viewerSquadronId);
+  // Never let a squad-less viewer (or a squad-less sector) get stuck on the
+  // squad tab — collapse back to table.
+  const channel: CommsChannel = hasSquad ? activeChannel : 'table';
+  const enginePhase = phase === 'round-end' ? 'active' : phase;
+  const mode = resolveCommsMode(rated, enginePhase, channel);
+
+  const channelMessages = messages.filter((msg) =>
+    channel === 'squad'
+      ? msg.channel === 'squad' && msg.squadronId === viewerSquadronId
+      : (msg.channel ?? 'table') !== 'squad'
+  );
+  const visibleMessages = channelMessages.filter((msg) => !muted.has(msg.from));
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -67,15 +92,50 @@ export function CommsPanel({
     }
     setSending(true);
     try {
-      await sendTextMessage(gameId, viewerUid, viewerName, trimmed, dmTarget);
+      await sendTextMessage(
+        gameId,
+        viewerUid,
+        viewerName,
+        trimmed,
+        channel === 'squad' ? undefined : dmTarget,
+        channel === 'squad' && viewerSquadronId
+          ? { channel: 'squad', squadronId: viewerSquadronId }
+          : undefined
+      );
       setTextInput('');
     } finally {
       setSending(false);
     }
-  }, [gameId, viewerUid, viewerName, textInput, dmTarget, sending, rateLimiter]);
+  }, [gameId, viewerUid, viewerName, textInput, dmTarget, sending, rateLimiter, channel, viewerSquadronId]);
 
   return (
     <section className={styles.panel} aria-label="Subspace comms">
+      {hasSquad && (
+        <div className={styles.channelTabs} role="tablist" aria-label="Comms channel">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={channel === 'table'}
+            className={`${styles.channelTab} ${styles.channelTabTable} ${
+              channel === 'table' ? styles.channelTabActive : ''
+            }`}
+            onClick={() => setActiveChannel('table')}
+          >
+            Table
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={channel === 'squad'}
+            className={`${styles.channelTab} ${styles.channelTabSquad} ${
+              channel === 'squad' ? styles.channelTabActive : ''
+            }`}
+            onClick={() => setActiveChannel('squad')}
+          >
+            {viewerSquadronName ?? 'Squad'}
+          </button>
+        </div>
+      )}
       <div ref={scrollRef} className={styles.log}>
         {visibleMessages.length === 0 && (
           <p className={styles.empty}>No subspace transmissions yet.</p>

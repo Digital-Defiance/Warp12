@@ -19,4 +19,13 @@ describe('resolveCommsMode', () => {
   it('allows full comms after a rated sector completes', () => {
     expect(resolveCommsMode(true, 'complete')).toBe('full');
   });
+
+  it('Module Zeta: squad channel is always full, even rated + active', () => {
+    expect(resolveCommsMode(true, 'active', 'squad')).toBe('full');
+  });
+
+  it('Module Zeta: table channel behavior is unchanged with explicit channel arg', () => {
+    expect(resolveCommsMode(true, 'active', 'table')).toBe('quick-only');
+    expect(resolveCommsMode(false, 'active', 'table')).toBe('full');
+  });
 });

@@ -135,4 +135,28 @@ describe('self-play harness', () => {
       }
     }
   });
+
+  it('completes Warp 9 Module Epsilon campaigns without losing Spacedock tiles', () => {
+    // Regression: stall guard + incomplete draft recycle dropped pickedTiles,
+    // then round 2 threw "Spacedock coordinate 8-8 is missing".
+    const seats: SelfPlaySeat[] = ['p0', 'p1'].map((id, index) => ({
+      id,
+      player: createWarpAiPlayer({
+        skill: getWarpSkillProfile('commander', 'points', 2),
+        rng: mulberry32(9000 + index),
+        objective: 'points',
+      }),
+    }));
+
+    const result = playSelfPlayGame({
+      seats,
+      seed: 42,
+      maxPip: 9,
+      modules: { drafting: true },
+      maxSteps: 30000,
+    });
+
+    expect(result.completed).toBe(true);
+    expect(result.completedRounds).toBe(10);
+  });
 });
