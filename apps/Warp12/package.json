@@ -35,7 +35,8 @@
     }
   },
   "devDependencies": {
-    "@choochmeque/tauri-windows-bundle": "^0.1.28"
+    "@choochmeque/tauri-windows-bundle": "^0.1.28",
+    "@tauri-apps/cli": "^2"
   },
   "scripts": {
     "tauri:windows:build": "tauri-windows-bundle build --arch x64,arm64 --runner yarn"
