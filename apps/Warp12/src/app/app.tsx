@@ -31,6 +31,7 @@ import { ResearchPage } from './research-page';
 import { RulesDialog } from './rules-dialog';
 import { RulesPage } from './rules-page';
 import { TeiPage } from './tei-page';
+import { ModulesPage } from './modules-page';
 import styles from './app.module.scss';
 import { Warp12Logo } from './Warp12Logo';
 import { FactorLanding } from './factor-landing';
@@ -138,6 +139,9 @@ function AppShell() {
               <Link to="/about" className={styles.navLink}>
                 About
               </Link>
+              <Link to="/modules" className={styles.navLink}>
+                Modules
+              </Link>
               {layoutTier !== 'phone' && (
                 <Link to="/research" className={styles.navLink}>
                   Research
@@ -167,6 +171,7 @@ function AppShell() {
             <Route path="/factor" element={<FactorLanding />} />
             <Route path="/harness/hub" element={<HubHarnessPage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/modules" element={<ModulesPage />} />
             <Route path="/paper" element={<PaperPage />} />
             <Route path="/paper/log" element={<PaperPage />} />
             <Route path="/research" element={<ResearchPage />} />

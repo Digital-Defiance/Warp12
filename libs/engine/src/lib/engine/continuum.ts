@@ -1,5 +1,6 @@
 import type { Captain, PlayerId } from '../types/player.js';
 import type { GameState, RoundState } from '../types/game-state.js';
+import { trailKeyFor } from './squadrons.js';
 import type {
   FlashEffect,
   FlashEffectKind,
@@ -343,7 +344,13 @@ export function trailsOpenToOthers(round: RoundState, trailPlayerId: PlayerId): 
   if (round.continuumEffects?.openAllTrails) {
     return true;
   }
-  return round.table.warpTrails[trailPlayerId]?.distressBeacon.active === true;
+  // Module Zeta: resolve to the trail's canonical key so this is correct
+  // whether the caller passes a captain id (e.g. from react adapters
+  // iterating turnOrder) or an already-resolved trailKey (engine callers,
+  // which route.playerId always is). Idempotent for non-squad games and for
+  // callers that already pass a trailKey.
+  const trailKey = trailKeyFor(round, trailPlayerId);
+  return round.table.warpTrails[trailKey]?.distressBeacon.active === true;
 }
 
 // Re-export for tests

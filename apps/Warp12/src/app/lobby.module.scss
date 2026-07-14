@@ -331,6 +331,150 @@
   gap: 0.75rem;
 }
 
+// Module Zeta: squad formation preview (lobby).
+.squadronPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  margin: 0.25rem 0;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.squadronList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.squadronRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  border-left: 3px solid transparent;
+  font-size: 0.78rem;
+}
+
+.squadronRowHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+// Illustrative "shared trail" diagram: a row of dots (one per squadmate)
+// converging on a single line, to visually reinforce that a squad plays
+// onto one shared warp trail rather than one trail each (Model C).
+.sharedTrailDiagram {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding-left: 0.1rem;
+}
+
+.sharedTrailNode {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+.sharedTrailLine {
+  flex: 0 0 1.5rem;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.5;
+}
+
+.sharedTrailLabel {
+  font-size: 0.68rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+.squadronLabel {
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.squadronNameInput {
+  font-family: var(--font-federation);
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  width: 7.5rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  border: 1px solid #334155;
+  background: rgba(2, 6, 23, 0.5);
+  color: inherit;
+
+  &::placeholder {
+    color: #64748b;
+    font-weight: 400;
+  }
+}
+
+.squadronMembers {
+  color: #cbd5e1;
+}
+
+.squadronMemberChips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.squadronMemberChip {
+  font-family: var(--font-federation);
+  font-size: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  border: 1px solid #475569;
+  background: rgba(2, 6, 23, 0.65);
+  color: #e2e8f0;
+  cursor: grab;
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.7;
+  }
+
+  &:not(:disabled):hover {
+    border-color: #94a3b8;
+  }
+}
+
+// Same palette as the in-game tails HUD (captain-tails-hud.module.scss) so a
+// squad's color is consistent from lobby through the match.
+.squadColor1 {
+  border-left-color: #5eead4;
+}
+.squadColor2 {
+  border-left-color: #fbbf24;
+}
+.squadColor3 {
+  border-left-color: #c084fc;
+}
+
+.squadronPreviewHint {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
 .linkBtn {
   font-family: var(--font-federation);
   font-size: 0.75rem;

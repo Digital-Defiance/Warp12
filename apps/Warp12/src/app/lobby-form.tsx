@@ -203,7 +203,7 @@ export function LobbyForm({
           <span>
             {exhibitionSet
               ? `Exhibition set (Warp ${maxPip}) — TEI is Warp 12 only. This sector stays unrated.`
-              : 'Rated sector — results count toward TEI. Comms are limited to quick hails during play. Uncheck for a casual game with open chat.'}
+              : 'Rated sector — results count toward TEI. Comms are limited to quick hails and the tactical advisor is hidden during play. Uncheck for a casual game with open chat and advisor.'}
           </span>
         </label>
         <label className={styles.field}>

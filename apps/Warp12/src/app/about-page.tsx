@@ -248,6 +248,8 @@ export function AboutPage() {
           </ul>
           <p className={styles.p}>
             Want the OpenSkill μ/σ story? See <Link to="/tei">How TEI works</Link>.
+            For modules, Promote vs Warped, and why Squadrons rebuilt the ladder, see{' '}
+            <Link to="/modules">Modules</Link>.
             When captains climb the board, we learn whether our officers and engine
             still feel fair. When calibration drifts, we retune — that loop is the
             point. See the living{' '}

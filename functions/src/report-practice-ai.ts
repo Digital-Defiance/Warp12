@@ -15,12 +15,11 @@ import {
   type ObjectiveRatingStats,
 } from './tei/rated-match-schema';
 import { toStoredRatingWithGrade } from './tei/rating-types';
-import { updateVsAI } from 'warp12-engine';
+import { hasWarpedModules, updateVsAI, type GameAction } from 'warp12-engine';
 import {
   replayLocalAiHumanActions,
   type SerializableLocalGameConfig,
 } from './practice-ai-replay';
-import type { GameAction } from 'warp12-engine';
 
 const db = admin.firestore();
 const MAX_MATCH_HISTORY = 60;
@@ -42,6 +41,28 @@ function appendMatchHistory(
   entry: Record<string, unknown>
 ): Record<string, unknown>[] {
   return [entry, ...(current ?? [])].slice(0, MAX_MATCH_HISTORY);
+}
+
+/** Mirrors apps/Warp12 `isRatedLocalGame` — keep in sync for server TEI gating. */
+function isTeiEligiblePracticeConfig(
+  config: SerializableLocalGameConfig
+): boolean {
+  if ((config.maxPip ?? 12) !== 12) {
+    return false;
+  }
+  if (config.rated === false) {
+    return false;
+  }
+  if (hasWarpedModules(config.modules)) {
+    return false;
+  }
+  if ((config.humanCaptains?.length ?? 1) >= 2) {
+    return false;
+  }
+  if (config.aiCaptains?.some((captain) => captain.extendedThinking === true)) {
+    return false;
+  }
+  return true;
 }
 
 export const reportPracticeAiMatch = onCall(
@@ -144,6 +165,9 @@ export const reportPracticeAiMatch = onCall(
       requireVerifiedUser(request);
     }
 
+    const teiEligible =
+      !data.advisorUsed && isTeiEligiblePracticeConfig(data.config);
+
     const ref = db.collection('playerStats').doc(uid);
     const snap = await ref.get();
     const existing = snap.exists ? snap.data()! : null;
@@ -163,7 +187,7 @@ export const reportPracticeAiMatch = onCall(
     let ratingBefore: StoredRating | null = null;
     let ratingAfter: StoredRating | null = null;
 
-    if (!data.advisorUsed) {
+    if (teiEligible) {
       const key = objectiveTeiKey(data.objective);
       const prior = objectiveRatingStats(bucket, data.objective);
       const startingRating = existing?.startingRating?.[key] as { mu: number; sigma: number } | undefined;
@@ -243,7 +267,7 @@ export const reportPracticeAiMatch = onCall(
     );
 
     return {
-      rated: !data.advisorUsed,
+      rated: teiEligible,
       won,
       ratingBefore,
       ratingAfter,

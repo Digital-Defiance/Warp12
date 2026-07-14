@@ -1,4 +1,5 @@
 import type { PlacedCoordinate, RoundState, TeiGrade } from 'warp12-engine';
+import { trailKeyFor, squadronForPlayer } from 'warp12-engine';
 import { DominoTile } from 'double-eighteen';
 import type { RefObject } from 'react';
 import { useEffect, useMemo, useRef } from 'react';
@@ -24,6 +25,8 @@ export interface TailRow {
   readonly isActive: boolean;
   readonly hasHazardMarker?: boolean;
   readonly trailLength?: number;
+  /** Module Zeta: squad id, when squads are enabled — drives row color-coding. */
+  readonly squadronId?: string;
 }
 
 export interface CaptainTailsHudProps {
@@ -61,11 +64,15 @@ export function buildTailRows(
 
   const captainRows = round.turnOrder.map((captainId) => {
     const spoke = spokeByCaptain.get(captainId);
-    const trail = round.table.warpTrails[captainId];
+    // Module Zeta: squad members share one trail keyed by trailKeyFor — never
+    // index warpTrails by the captain's own id directly, or squadmates who
+    // aren't the trail's canonical owner would show an empty/wrong trail.
+    const trail = round.table.warpTrails[trailKeyFor(round, captainId)];
     const lastTile =
       trail && trail.tiles.length > 0
         ? trail.tiles[trail.tiles.length - 1]
         : null;
+    const squadronId = squadronForPlayer(round.squadrons, captainId)?.id;
 
     return {
       rowId: captainId,
@@ -85,6 +92,7 @@ export function buildTailRows(
       isActive: captainId === activePlayerId,
       hasHazardMarker: moduleDeltaEnabled && round.hazardMarkerHolder === captainId,
       trailLength: trail?.tiles.length ?? 0,
+      ...(squadronId ? { squadronId } : {}),
     };
   });
 
@@ -287,6 +295,7 @@ export function CaptainTailsHud({
               data-active={row.isActive ? 'true' : undefined}
               data-state={row.state}
               data-hazard={row.hasHazardMarker ? 'true' : undefined}
+              data-squadron={row.squadronId}
             >
               <span className={styles.nameCell} title={nameTitle}>
                 <span className={styles.name}>

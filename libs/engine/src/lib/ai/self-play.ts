@@ -175,7 +175,12 @@ export function playSelfPlayGame(
       continue;
     }
 
-    if (round.unchartedSectors.length === 0) {
+    // Drafting holds tiles in draftState (not hands); an empty uncharted
+    // pile is normal when packs absorb the whole set — never stall-end here.
+    if (round.phase === 'drafting') {
+      stallGuard = 0;
+      lastHandTiles = totalHandTiles(round);
+    } else if (round.unchartedSectors.length === 0) {
       const tiles = totalHandTiles(round);
       stallGuard = tiles === lastHandTiles ? stallGuard + 1 : 0;
       lastHandTiles = tiles;

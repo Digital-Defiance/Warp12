@@ -3,16 +3,20 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: tei-paper.aux
 The style file: plain.bst
 I found no \bibdata command---while reading file tei-paper.aux
+Warning--I didn't find a database entry for "doubleighteen2024"
 Warning--I didn't find a database entry for "browne2012mcts"
 Warning--I didn't find a database entry for "cowling2012ismcts"
 Warning--I didn't find a database entry for "silver2017alphazero"
 Warning--I didn't find a database entry for "silver2018alphazero"
+Warning--I didn't find a database entry for "bowling2015heads"
 Warning--I didn't find a database entry for "elo1978rating"
 Warning--I didn't find a database entry for "glickman1999glicko"
 Warning--I didn't find a database entry for "herbrich2006trueskill"
+Warning--I didn't find a database entry for "wenglin2011"
+Warning--I didn't find a database entry for "frank1996determinization"
 You've used 0 entries,
             2118 wiz_defined-function locations,
-            503 strings with 4112 characters,
+            507 strings with 4180 characters,
 and the built_in function-call counts, 18 in all, are:
 = -- 0
 > -- 0

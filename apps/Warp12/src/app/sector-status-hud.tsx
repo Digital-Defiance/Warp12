@@ -3,6 +3,7 @@ import type { RefObject } from 'react';
 import { DominoTile } from 'double-eighteen';
 import { WARP_PIP_COLORS, WARP_TILE_SURFACE, type WarpTileBg } from 'warp12-theme';
 import { sectorWinnerName } from '../game/sector-outcome.js';
+import type { DoubleDownNotice } from '../game/module-feedback.js';
 import { ActiveContinuumFlashBanner, PeekedSectorBanner } from './flash-panel.js';
 import { FloatingPanelShell } from './floating-panel-shell';
 import styles from './sector-status-hud.module.scss';
@@ -45,6 +46,7 @@ export interface SectorStatusHudProps {
   longestTrailCaptains?: readonly string[];
   longestTrailLength?: number;
   hazardMarkerHolder?: string | null;
+  doubleDownNotice?: DoubleDownNotice | null;
 }
 
 export function shouldShowAiThinking(props: {
@@ -162,6 +164,7 @@ export function SectorStatusHud({
   longestTrailCaptains = [],
   longestTrailLength = 0,
   hazardMarkerHolder = null,
+  doubleDownNotice = null,
 }: SectorStatusHudProps) {
   const showAiThinking = shouldShowAiThinking({
     activePlayerIsAi,
@@ -337,6 +340,19 @@ export function SectorStatusHud({
             <dd>HIGHEST hand wins this round</dd>
           </div>
         )}
+        {game.modules.doubleDown?.enabled &&
+          doubleDownNotice &&
+          isMyTurn &&
+          handOwnerId === doubleDownNotice.targetCaptainId && (
+            <div className={`${styles.row} ${styles.doubleDown}`}>
+              <dt>Double Down</dt>
+              <dd>
+                {doubleDownNotice.drawCount === 1
+                  ? 'Active — you drew 1 from Uncharted Sectors'
+                  : `Active — you drew ${doubleDownNotice.drawCount} from Uncharted Sectors`}
+              </dd>
+            </div>
+          )}
         <ActiveContinuumFlashBanner game={game} names={names} className={styles.row} />
         <PeekedSectorBanner
           game={game}

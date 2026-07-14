@@ -1,21 +1,61 @@
+import {
+  resolveHouseRules,
+  resolveModules,
+  toModuleConfig,
+} from 'warp12-engine';
 import type {
   GameAction,
   GameState,
   FlashEffectKind,
   RoundState,
 } from 'warp12-engine';
-import { resolveHouseRules } from 'warp12-engine';
 
 import type {
   FirestoreCoordinate,
+  FirestoreDraftState,
   FirestoreGameDocument,
   FirestorePlacedCoordinate,
   FirestorePublicRound,
+  FirestoreSquadron,
   FirestoreTableDocument,
 } from './schema.js';
 import { ONLINE_MAX_PLAYERS } from './schema.js';
 
 type Coordinate = { low: number; high: number };
+
+function decodeSquadron(s: FirestoreSquadron) {
+  return {
+    id: s.id,
+    memberIds: [...s.memberIds],
+    trailKey: s.trailKey ?? s.memberIds[0] ?? s.id,
+    ...(s.name ? { name: s.name } : {}),
+  };
+}
+
+function decodeDraftState(
+  draft: FirestoreDraftState | null | undefined
+): RoundState['draftState'] {
+  if (!draft) {
+    return null;
+  }
+  return {
+    currentDrafter: draft.currentDrafter,
+    draftOrder: [...draft.draftOrder],
+    pickNumber: draft.pickNumber,
+    currentPacks: Object.fromEntries(
+      Object.entries(draft.currentPacks).map(([id, tiles]) => [
+        id,
+        tiles.map(fromFirestoreCoordinate),
+      ])
+    ),
+    pickedTiles: Object.fromEntries(
+      Object.entries(draft.pickedTiles).map(([id, tiles]) => [
+        id,
+        tiles.map(fromFirestoreCoordinate),
+      ])
+    ),
+  };
+}
 
 export function toFirestoreCoordinate(c: Coordinate): FirestoreCoordinate {
   return { low: c.low, high: c.high };
@@ -57,12 +97,17 @@ export function serializePublicGame(state: GameState): FirestoreGameDocument {
     hostId: '',
     createdAt: now,
     updatedAt: now,
-    modules: {
-      continuum: state.modules.continuum.enabled,
-      salamanderPenalty: state.modules.salamanderPenalty.enabled,
-      subspaceFracture: state.modules.subspaceFracture.enabled,
-      subspaceFractureScope: state.modules.subspaceFracture.scope,
-    },
+    modules: toModuleConfig(state.modules),
+    ...(state.squadrons
+      ? {
+          squadrons: state.squadrons.map((s) => ({
+            id: s.id,
+            memberIds: [...s.memberIds],
+            trailKey: s.trailKey,
+            ...(s.name ? { name: s.name } : {}),
+          })),
+        }
+      : {}),
     houseRules: {
       requireOwnTrailFirst: state.houseRules.requireOwnTrailFirst,
       neutralZoneAfterAllTrails: state.houseRules.neutralZoneAfterAllTrails,
@@ -86,6 +131,7 @@ export function serializePublicGame(state: GameState): FirestoreGameDocument {
       displayName: c.displayName,
       pointsScore: c.pointsScore,
       joinedAt: new Date().toISOString(),
+      ...(c.squadronId ? { squadronId: c.squadronId } : {}),
     })),
     completedRounds: state.completedRounds,
     round: state.round ? serializePublicRound(state.round) : null,
@@ -179,8 +225,49 @@ function serializePublicRound(round: RoundState): FirestorePublicRound {
     drewThisTurn: round.drewThisTurn ?? false,
     shieldChangedThisTurn: round.shieldChangedThisTurn ?? false,
     ...(round.returnedToWarp ? { returnedToWarp: true } : {}),
+    ...(round.wormholeOpened ? { wormholeOpened: true } : {}),
+    sensorGrid: (round.sensorGrid ?? []).map(toFirestoreCoordinate),
+    draftState: round.draftState
+      ? {
+          currentDrafter: round.draftState.currentDrafter,
+          draftOrder: [...round.draftState.draftOrder],
+          pickNumber: round.draftState.pickNumber,
+          currentPacks: mapCoordRecord(round.draftState.currentPacks),
+          pickedTiles: mapCoordRecord(round.draftState.pickedTiles),
+        }
+      : null,
+    ...(round.hazardMarkerHolder !== undefined
+      ? { hazardMarkerHolder: round.hazardMarkerHolder }
+      : {}),
+    ...(round.hazardMarkerPassCount !== undefined
+      ? { hazardMarkerPassCount: round.hazardMarkerPassCount }
+      : {}),
+    ...(round.debtTokens
+      ? { debtTokens: { ...round.debtTokens } }
+      : {}),
+    ...(round.squadrons
+      ? {
+          squadrons: round.squadrons.map((s) => ({
+            id: s.id,
+            memberIds: [...s.memberIds],
+            trailKey: s.trailKey,
+            ...(s.name ? { name: s.name } : {}),
+          })),
+        }
+      : {}),
     table: serializeTable(round),
   };
+}
+
+function mapCoordRecord(
+  record: Readonly<Record<string, readonly { low: number; high: number }[]>>
+): Record<string, FirestoreCoordinate[]> {
+  return Object.fromEntries(
+    Object.entries(record).map(([id, tiles]) => [
+      id,
+      tiles.map(toFirestoreCoordinate),
+    ])
+  );
 }
 
 function serializeTable(round: RoundState): FirestoreTableDocument {
@@ -230,7 +317,17 @@ export function mergeHandsIntoGame(
   doc: FirestoreGameDocument,
   handsByPlayer: Readonly<Record<string, readonly Coordinate[]>>
 ): GameState {
-  const warpTrails: RoundState['table']['warpTrails'] = {};
+  const warpTrails: Record<
+    string,
+    {
+      playerId: string;
+      tiles: ReturnType<typeof fromPlaced>[];
+      distressBeacon: {
+        active: boolean;
+        chartedOwnTrailSinceDown?: boolean;
+      };
+    }
+  > = {};
   const tableDoc = doc.round?.table;
 
   if (tableDoc) {
@@ -317,7 +414,26 @@ export function mergeHandsIntoGame(
         drewThisTurn: doc.round.drewThisTurn ?? false,
         shieldChangedThisTurn: doc.round.shieldChangedThisTurn ?? false,
         returnedToWarp: doc.round.returnedToWarp === true,
+        ...(doc.round.wormholeOpened === true ? { wormholeOpened: true } : {}),
         maxPip: doc.maxPip ?? 12,
+        sensorGrid: (doc.round.sensorGrid ?? []).map(fromFirestoreCoordinate),
+        draftState: decodeDraftState(doc.round.draftState),
+        ...(doc.round.hazardMarkerHolder !== undefined
+          ? { hazardMarkerHolder: doc.round.hazardMarkerHolder }
+          : {}),
+        ...(doc.round.hazardMarkerPassCount !== undefined
+          ? { hazardMarkerPassCount: doc.round.hazardMarkerPassCount }
+          : {}),
+        ...(doc.round.debtTokens
+          ? { debtTokens: { ...doc.round.debtTokens } }
+          : {}),
+        ...(doc.round.squadrons ?? doc.squadrons
+          ? {
+              squadrons: (doc.round.squadrons ?? doc.squadrons)!.map(
+                decodeSquadron
+              ),
+            }
+          : {}),
         table: tableDoc
           ? {
               spacedock: tableDoc.spacedock,
@@ -370,42 +486,45 @@ export function mergeHandsIntoGame(
       id: c.id,
       displayName: c.displayName,
       pointsScore: c.pointsScore,
+      ...(c.squadronId ? { squadronId: c.squadronId } : {}),
     })),
+    ...(doc.squadrons
+      ? {
+          squadrons: doc.squadrons.map(decodeSquadron),
+        }
+      : {}),
     round,
     completedRounds: doc.completedRounds,
-    modules: {
-      continuum: {
-        enabled: doc.modules.continuum,
-        activeFlash: doc.flash?.effect
-          ? {
-              invokedBy: doc.flash.invokedBy,
-              effect: {
-                kind: doc.flash.effect.kind as FlashEffectKind,
-                ...(doc.flash.effect.targetPlayerId
-                  ? { targetPlayerId: doc.flash.effect.targetPlayerId }
-                  : {}),
-                ...(doc.flash.effect.peek
-                  ? {
-                      peek: {
-                        index: doc.flash.effect.peek.index,
-                        coordinate: fromFirestoreCoordinate(
-                          doc.flash.effect.peek.coordinate
-                        ),
-                      },
-                    }
-                  : {}),
-              },
-            }
-          : null,
-      },
-      salamanderPenalty: {
-        enabled: doc.modules.salamanderPenalty,
-      },
-      subspaceFracture: {
-        enabled: doc.modules.subspaceFracture,
-        scope: doc.modules.subspaceFractureScope ?? 'own-trail',
-      },
-    },
+    modules: (() => {
+      const resolved = resolveModules(doc.modules ?? {});
+      return {
+        ...resolved,
+        continuum: {
+          enabled: resolved.continuum.enabled,
+          activeFlash: doc.flash?.effect
+            ? {
+                invokedBy: doc.flash.invokedBy,
+                effect: {
+                  kind: doc.flash.effect.kind as FlashEffectKind,
+                  ...(doc.flash.effect.targetPlayerId
+                    ? { targetPlayerId: doc.flash.effect.targetPlayerId }
+                    : {}),
+                  ...(doc.flash.effect.peek
+                    ? {
+                        peek: {
+                          index: doc.flash.effect.peek.index,
+                          coordinate: fromFirestoreCoordinate(
+                            doc.flash.effect.peek.coordinate
+                          ),
+                        },
+                      }
+                    : {}),
+                },
+              }
+            : null,
+        },
+      };
+    })(),
     objective: doc.objective,
     campaignRounds: doc.campaignRounds,
     maxPip: doc.maxPip ?? 12,

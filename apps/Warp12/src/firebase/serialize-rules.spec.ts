@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   applyAction,
   resolveHouseRules,
+  resolveModules,
+  toModuleConfig,
   type GameState,
 } from 'warp12-engine';
 
@@ -17,11 +19,11 @@ describe('serialize round rule fields', () => {
       completedRounds: 0,
       houseRules: resolveHouseRules(),
       captains: [{ id: 'a', displayName: 'A', pointsScore: 0 }],
-      modules: {
-        continuum: { enabled: false, activeFlash: null },
-        salamanderPenalty: { enabled: false },
-        subspaceFracture: { enabled: false, scope: 'own-trail' },
-      },
+      modules: resolveModules({
+        continuum: false,
+        salamanderPenalty: false,
+        subspaceFracture: false,
+      }),
       round: {
         roundNumber: 1,
         spacedockValue: 12,
@@ -92,11 +94,11 @@ describe('serialize round rule fields', () => {
         { id: 'a', displayName: 'A', pointsScore: 0 },
         { id: 'b', displayName: 'B', pointsScore: 0 },
       ],
-      modules: {
-        continuum: { enabled: false, activeFlash: null },
-        salamanderPenalty: { enabled: false },
-        subspaceFracture: { enabled: false, scope: 'own-trail' },
-      },
+      modules: resolveModules({
+        continuum: false,
+        salamanderPenalty: false,
+        subspaceFracture: false,
+      }),
       round: {
         roundNumber: 1,
         spacedockValue: 6,
@@ -204,11 +206,11 @@ describe('serialize round rule fields', () => {
         { id: 'a', displayName: 'A', pointsScore: 0 },
         { id: 'b', displayName: 'B', pointsScore: 0 },
       ],
-      modules: {
-        continuum: { enabled: false, activeFlash: null },
-        salamanderPenalty: { enabled: false },
-        subspaceFracture: { enabled: false, scope: 'own-trail' },
-      },
+      modules: resolveModules({
+        continuum: false,
+        salamanderPenalty: false,
+        subspaceFracture: false,
+      }),
       round: null,
     } satisfies GameState;
 
@@ -245,11 +247,11 @@ describe('serialize red alert passed flag', () => {
         { id: 'a', displayName: 'A', pointsScore: 0 },
         { id: 'b', displayName: 'B', pointsScore: 0 },
       ],
-      modules: {
-        continuum: { enabled: false, activeFlash: null },
-        salamanderPenalty: { enabled: false },
-        subspaceFracture: { enabled: false, scope: 'own-trail' },
-      },
+      modules: resolveModules({
+        continuum: false,
+        salamanderPenalty: false,
+        subspaceFracture: false,
+      }),
       round: {
         roundNumber: 1,
         spacedockValue: 6,
@@ -316,5 +318,194 @@ describe('serialize red alert passed flag', () => {
       { a: [], b: [] }
     );
     expect(rehydrated.round?.table.redAlert?.passed).toBe(true);
+  });
+
+  it('round-trips all GameModuleConfig flags through serialize/merge', () => {
+    const config = {
+      continuum: true,
+      salamanderPenalty: true,
+      sensorGrid: true,
+      warpDriveSpool: true,
+      drafting: true,
+      squadrons: true,
+      squadronSize: 2,
+      longestTrail: true,
+      doubleDown: true,
+      temporalDebt: true,
+      temporalInversion: true,
+      wormholes: true,
+      subspaceFracture: true,
+      subspaceFractureScope: 'all-captains' as const,
+    };
+    const state = {
+      id: 'mods',
+      phase: 'lobby',
+      objective: 'points',
+      campaignRounds: 13,
+      completedRounds: 0,
+      houseRules: resolveHouseRules(),
+      captains: [
+        { id: 'a', displayName: 'A', pointsScore: 0, squadronId: 's1' },
+        { id: 'b', displayName: 'B', pointsScore: 0, squadronId: 's1' },
+        { id: 'c', displayName: 'C', pointsScore: 0, squadronId: 's2' },
+        { id: 'd', displayName: 'D', pointsScore: 0, squadronId: 's2' },
+      ],
+      squadrons: [
+        { id: 's1', memberIds: ['a', 'b'], trailKey: 'a', name: 'Alpha' },
+        { id: 's2', memberIds: ['c', 'd'], trailKey: 'c' },
+      ],
+      modules: resolveModules(config),
+      round: null,
+    } satisfies GameState;
+
+    const doc = serializePublicGame(state);
+    expect(doc.modules).toMatchObject({
+      drafting: true,
+      squadrons: true,
+      temporalInversion: true,
+      wormholes: true,
+      doubleDown: true,
+      subspaceFractureScope: 'all-captains',
+    });
+    expect(doc.squadrons?.[0]).toMatchObject({
+      id: 's1',
+      trailKey: 'a',
+      name: 'Alpha',
+    });
+
+    const merged = mergeHandsIntoGame(doc, {});
+    expect(toModuleConfig(merged.modules)).toMatchObject({
+      drafting: true,
+      squadrons: true,
+      temporalInversion: true,
+      wormholes: true,
+      sensorGrid: true,
+      warpDriveSpool: true,
+    });
+    expect(merged.squadrons?.[0]?.trailKey).toBe('a');
+    expect(merged.captains[0]?.squadronId).toBe('s1');
+  });
+
+  it('round-trips Gamma/Delta/Epsilon/Eta/Zeta round fields', () => {
+    const state = {
+      id: 'round-mods',
+      phase: 'active',
+      objective: 'points',
+      campaignRounds: 13,
+      completedRounds: 0,
+      houseRules: resolveHouseRules(),
+      captains: [
+        { id: 'a', displayName: 'A', pointsScore: 0, squadronId: 's1' },
+        { id: 'b', displayName: 'B', pointsScore: 0, squadronId: 's1' },
+        { id: 'c', displayName: 'C', pointsScore: 0, squadronId: 's2' },
+        { id: 'd', displayName: 'D', pointsScore: 0, squadronId: 's2' },
+      ],
+      squadrons: [
+        { id: 's1', memberIds: ['a', 'b'], trailKey: 'a' },
+        { id: 's2', memberIds: ['c', 'd'], trailKey: 'c' },
+      ],
+      modules: resolveModules({
+        sensorGrid: true,
+        warpDriveSpool: true,
+        drafting: true,
+        temporalDebt: true,
+        squadrons: true,
+        squadronSize: 2,
+      }),
+      round: {
+        roundNumber: 1,
+        spacedockValue: 12,
+        phase: 'drafting',
+        activePlayerId: 'a',
+        turnOrder: ['a', 'c', 'b', 'd'],
+        hands: { a: [], b: [], c: [], d: [] },
+        unchartedSectors: [{ low: 0, high: 1 }],
+        sensorGrid: [
+          { low: 2, high: 3 },
+          { low: 4, high: 5 },
+        ],
+        draftState: {
+          currentDrafter: 'a',
+          draftOrder: ['a', 'c', 'b', 'd'],
+          pickNumber: 2,
+          currentPacks: {
+            a: [{ low: 6, high: 7 }],
+            b: [{ low: 8, high: 9 }],
+            c: [{ low: 1, high: 1 }],
+            d: [{ low: 0, high: 0 }],
+          },
+          pickedTiles: {
+            a: [{ low: 3, high: 3 }],
+            b: [],
+            c: [],
+            d: [],
+          },
+        },
+        allStopRequired: false,
+        allStopDeclared: false,
+        roundWinnerId: null,
+        continuumPendingInvoker: null,
+        continuumEffects: null,
+        continuumWagerPending: null,
+        mandatoryPlay: null,
+        pendingRoundWin: null,
+        roundBlocked: false,
+        roundStarterOpening: null,
+        dropToImpulseCallPending: null,
+        dropToImpulseCatchable: null,
+        playedThisTurn: false,
+        drewThisTurn: false,
+        wormholeOpened: true,
+        hazardMarkerHolder: 'a',
+        hazardMarkerPassCount: 2,
+        debtTokens: { a: 1, b: 0, c: 3, d: 0 },
+        squadrons: [
+          { id: 's1', memberIds: ['a', 'b'], trailKey: 'a' },
+          { id: 's2', memberIds: ['c', 'd'], trailKey: 'c' },
+        ],
+        table: {
+          spacedock: { value: 12, placedBy: 'a' },
+          warpTrails: {
+            a: {
+              playerId: 'a',
+              tiles: [],
+              distressBeacon: { active: false },
+            },
+            c: {
+              playerId: 'c',
+              tiles: [],
+              distressBeacon: { active: false },
+            },
+          },
+          neutralZone: { tiles: [] },
+          subspaceFracture: null,
+          redAlert: null,
+        },
+      },
+    } satisfies GameState;
+
+    const doc = serializePublicGame(state);
+    expect(doc.round?.sensorGrid).toEqual([
+      { low: 2, high: 3 },
+      { low: 4, high: 5 },
+    ]);
+    expect(doc.round?.draftState?.currentDrafter).toBe('a');
+    expect(doc.round?.draftState?.pickedTiles.a).toEqual([{ low: 3, high: 3 }]);
+    expect(doc.round?.hazardMarkerHolder).toBe('a');
+    expect(doc.round?.hazardMarkerPassCount).toBe(2);
+    expect(doc.round?.debtTokens).toEqual({ a: 1, b: 0, c: 3, d: 0 });
+    expect(doc.round?.wormholeOpened).toBe(true);
+    expect(doc.round?.squadrons?.[0]?.trailKey).toBe('a');
+
+    const merged = mergeHandsIntoGame(doc, {});
+    expect(merged.round?.sensorGrid).toHaveLength(2);
+    expect(merged.round?.draftState?.pickNumber).toBe(2);
+    expect(merged.round?.draftState?.currentPacks.a).toEqual([
+      { low: 6, high: 7 },
+    ]);
+    expect(merged.round?.hazardMarkerPassCount).toBe(2);
+    expect(merged.round?.debtTokens?.c).toBe(3);
+    expect(merged.round?.wormholeOpened).toBe(true);
+    expect(merged.round?.squadrons?.[1]?.trailKey).toBe('c');
   });
 });

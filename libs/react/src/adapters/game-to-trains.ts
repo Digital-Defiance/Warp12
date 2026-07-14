@@ -1,5 +1,5 @@
 import type { Coordinate, PlacedCoordinate } from 'warp12-engine';
-import { trailsOpenToOthers, type RoundState } from 'warp12-engine';
+import { trailKeyFor, trailsOpenToOthers, type RoundState } from 'warp12-engine';
 import type { TrainBranch, TrainData } from 'double-eighteen';
 import type { DominoValue } from 'double-eighteen';
 
@@ -253,9 +253,16 @@ export function gameStateToTrains(
       // Captain indices must stay below the Neutral Zone arm.
       continue;
     }
-    const trail = round.table.warpTrails[captainId];
+    // Module Zeta: squad members share one trail keyed by trailKeyFor — a
+    // squadmate who isn't the trail's canonical owner has no entry under
+    // their own id in warpTrails, so indexing by captainId directly would
+    // crash. Both squadmates' hub seats render the same (shared) trail.
+    const trailKey = trailKeyFor(round, captainId);
+    const trail = round.table.warpTrails[trailKey];
+    // fracture.trailCaptainId is stored as a route's trailKey (see engine
+    // fractureSiteForRoute), so compare against trailKey, not captainId.
     const fractureOnTrail =
-      fracture && !fracture.neutralZone && fracture.trailCaptainId === captainId
+      fracture && !fracture.neutralZone && fracture.trailCaptainId === trailKey
         ? fracture
         : null;
     const { dominoes, feet } = layoutFromTiles(

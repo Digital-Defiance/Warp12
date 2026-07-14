@@ -106,6 +106,36 @@ const PRESETS: ReadonlyArray<{
       },
     },
   },
+  {
+    name: 'points · 4 captains · Module Zeta squadrons (2×2)',
+    options: {
+      captainCount: 4,
+      objective: 'points',
+      modules: { squadrons: true, squadronSize: 2 },
+    },
+  },
+  {
+    name: 'go-out · 6 captains · Module Zeta squadrons (2×3)',
+    options: {
+      captainCount: 6,
+      objective: 'go-out',
+      modules: { squadrons: true, squadronSize: 3 },
+    },
+  },
+  {
+    name: 'points · 6 captains · Zeta squadrons + Official Warp modules',
+    options: {
+      captainCount: 6,
+      objective: 'points',
+      modules: {
+        squadrons: true,
+        squadronSize: 2,
+        continuum: true,
+        salamanderPenalty: true,
+      },
+      houseRules: { dropToImpulseCall: true, allStopCeremony: true },
+    },
+  },
 ];
 
 describe('engine fuzz — tile conservation & structural invariants', () => {
@@ -162,7 +192,7 @@ describe('engine fuzz — games terminate', () => {
         `no game completed for preset "${preset.name}"`
       ).toBeGreaterThan(0);
     }
-  });
+  }, 60000);
 });
 
 describe('collectAllRoundCoordinates', () => {

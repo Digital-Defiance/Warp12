@@ -10,7 +10,8 @@
     "build": "bash ../scripts/prepare-functions-packages.sh && tsc",
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",
-    "deploy": "firebase deploy --only functions --project warp-12"
+    "deploy": "firebase deploy --only functions --project warp-12",
+    "test": "vitest run --config vitest.config.mts"
   },
   "dependencies": {
     "double-eighteen": "file:vendor/double-eighteen",

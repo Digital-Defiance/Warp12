@@ -298,3 +298,26 @@ describe('isReplayableLocalAiMatch', () => {
     ).toBe(true);
   });
 });
+
+describe('previewLocalAiMatchReport casual sector', () => {
+  it('does not update TEI when config.rated is false', async () => {
+    const { defaultLocalGameConfig } = await import('../game/local-game-config.js');
+    const report = previewLocalAiMatchReport(
+      emptyLocalAiSkillStats(),
+      {
+        uid: 'u',
+        displayName: 'You',
+        skill: 'commander',
+        objective: 'points',
+        advisorUsed: false,
+        seed: 1,
+        config: { ...defaultLocalGameConfig('You', 4), rated: false },
+        humanActions: [],
+      },
+      true
+    );
+    expect(report.rated).toBe(false);
+    expect(report.ratingBefore).toBeNull();
+    expect(report.ratingAfter).toBeNull();
+  });
+});

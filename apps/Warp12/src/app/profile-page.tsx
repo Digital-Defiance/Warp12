@@ -23,7 +23,11 @@ import {
   getAIAnchorStored,
 } from '../firebase/stats-openskill.js';
 import { getPlayerStoredRating } from '../firebase/stats-service.js';
-import { displayHumanObjectiveTei, humanObjectiveTeiStats } from '../firebase/human-tei.js';
+import {
+  displayHumanObjectiveTei,
+  humanObjectiveTeiStats,
+  squadObjectiveTeiStats,
+} from '../firebase/human-tei.js';
 import {
   objectiveRatingStats as objectiveTeiStats,
   type MatchHistoryEntry,
@@ -31,6 +35,10 @@ import {
   type RatedObjective,
   type StoredRating,
 } from '../firebase/stats-schema.js';
+import {
+  listMySquadMatches,
+  type SquadMatchView,
+} from '../firebase/squad-matches.js';
 import { useFirebaseAuth } from '../firebase/use-firebase-auth.js';
 import { isFirebaseConfigured } from '../firebase/config.js';
 import { usePlayerStats } from '../firebase/use-player-stats.js';
@@ -183,6 +191,97 @@ function HumanTeiTable({
         </tr>
       </tbody>
     </table>
+  );
+}
+
+/** Module Zeta: squad-play rating table (parallel to HumanTeiTable). */
+function SquadTeiTable({
+  stats,
+  objective,
+  showAdvanced,
+}: {
+  stats: PlayerStatsDocument;
+  objective: RatedObjective;
+  showAdvanced?: boolean;
+}) {
+  const track = squadObjectiveTeiStats(stats, objective);
+  const rating: StoredRating | null = track.rating?.matches > 0 ? track.rating : null;
+
+  if (!rating) {
+    return null; // Hide the section entirely until the captain has a squad match.
+  }
+
+  return (
+    <table className={profileStyles.table}>
+      <thead>
+        <tr>
+          <th>Pool</th>
+          <th>Your Squad TEI</th>
+          <th>Rated squad matches</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Squad play (Module Zeta)</td>
+          <td>
+            <TeiCell rating={rating} objective={objective} showAdvanced={showAdvanced} />
+          </td>
+          <td>{rating.matches}</td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
+function formatSquadMatchLine(match: SquadMatchView): string {
+  const parts = match.squadrons.map((s) => {
+    const label = s.name ?? s.id;
+    const members = s.memberDisplayNames.join(' & ');
+    const won = match.winnerSquadIds.includes(s.id) ? '★ ' : '';
+    return `${won}${label} (${members})`;
+  });
+  const when = match.playedAt.slice(0, 10);
+  return `${when} · ${TEI_OBJECTIVE_LABEL[match.objective]} · ${parts.join(' vs ')}`;
+}
+
+function SquadMatchHistory({ uid }: { uid: string }) {
+  const [matches, setMatches] = useState<SquadMatchView[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void listMySquadMatches(uid)
+      .then((rows) => {
+        if (!cancelled) {
+          setMatches(rows);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMatches([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [uid]);
+
+  if (matches === null) {
+    return <p className={styles.hint}>Loading squad match archive…</p>;
+  }
+  if (matches.length === 0) {
+    return (
+      <p className={styles.hint}>
+        No archived squad sectors yet — rated Warp 12 Zeta finishes land here.
+      </p>
+    );
+  }
+
+  return (
+    <ul className={profileStyles.historyList}>
+      {matches.map((m) => (
+        <li key={m.gameId}>{formatSquadMatchLine(m)}</li>
+      ))}
+    </ul>
   );
 }
 
@@ -411,6 +510,22 @@ export function ProfilePage() {
               objective="points"
               showAdvanced={showAdvancedStats}
             />
+          </fieldset>
+
+          <fieldset className={styles.fieldset}>
+            <legend>Squad Play (Module Zeta)</legend>
+            <SquadTeiTable
+              stats={stats}
+              objective="go-out"
+              showAdvanced={showAdvancedStats}
+            />
+            <SquadTeiTable
+              stats={stats}
+              objective="points"
+              showAdvanced={showAdvancedStats}
+            />
+            <h3 className={profileStyles.sectionHeading}>Squad sector archive</h3>
+            <SquadMatchHistory uid={auth.user.uid} />
           </fieldset>
 
           <div className={profileStyles.trendGrid}>

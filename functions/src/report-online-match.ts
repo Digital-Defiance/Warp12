@@ -2,25 +2,48 @@ import * as admin from 'firebase-admin';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 
+import {
+  aiSkill,
+  computeOnlineRanks,
+  computeOnlineSquadRanks,
+  evaluateOnlineRatingEligibility,
+  isAiGameCaptain,
+  isSquadGame,
+  type GameCaptainDoc,
+  type GameDoc,
+  type OnlineRatingIneligibleReason,
+} from './online-match-eligibility';
+export {
+  evaluateOnlineRatingEligibility,
+  isAiGameCaptain,
+  isSquadGame,
+  computeOnlineRanks,
+  computeOnlineSquadRanks,
+  type OnlineRatingEligibility,
+  type OnlineRatingIneligibleReason,
+} from './online-match-eligibility';
 import { requireVerifiedUser } from './auth';
 import {
   getAIAnchorStored,
-  rankCompetition,
   resolveEffectivePlayerRating,
-  type AiSkillLevel,
   type RatedObjective,
   type RatedPlayer,
 } from './tei/stats-openskill';
 import {
   applyHumanRatingForPlayer,
   applyGroupRatingForPlayer,
+  applySquadRatingForPlayer,
+  buildSquadRatingTable,
   groupObjectiveRatingStats,
   groupRatedClaimId,
   humanObjectiveRatingStats,
+  squadObjectiveRatingStats,
   startingRatingForObjective,
   type PlayerStatsDocument,
+  type SquadRatedPlayer,
   type StoredRating,
 } from './tei';
+import { buildSquadMatchArchive } from './tei/squad-match-archive';
 import {
   loadCharter,
   validateCharterRatedMatch,
@@ -28,130 +51,7 @@ import {
 import type { CharterHouseRulesInput, CharterModulesInput } from './tei';
 
 const db = admin.firestore();
-const AI_ID_PREFIX = 'ai:';
-const AI_SKILL_LEVELS: readonly AiSkillLevel[] = [
-  'ensign',
-  'lieutenant',
-  'commander',
-];
 const MAX_MATCH_HISTORY = 60;
-
-/** Minimal view of the shared game document — only fields rating needs. */
-interface GameCaptainDoc {
-  id: string;
-  displayName: string;
-  pointsScore?: number;
-  isAi?: boolean;
-  skill?: string;
-  class1Star?: boolean;
-}
-
-interface GameRoundDoc {
-  roundWinnerId?: string | null;
-  handCounts?: Record<string, number>;
-}
-
-interface GameDoc {
-  id: string;
-  phase: string;
-  objective: string;
-  rated?: boolean;
-  /** Double-N max pip. Omitted = 12 (legacy). */
-  maxPip?: number;
-  campaignRounds?: number;
-  charterId?: string;
-  rulesProfileId?: string;
-  modules?: {
-    continuum: boolean;
-    salamanderPenalty: boolean;
-    subspaceFracture: boolean;
-    subspaceFractureScope: string;
-  };
-  houseRules?: Record<string, boolean | number | undefined>;
-  captains: GameCaptainDoc[];
-  round?: GameRoundDoc | null;
-}
-
-/** Outcome of the eligibility gate — a match is either rated or explained. */
-export type OnlineRatingEligibility =
-  | { rated: true }
-  | { rated: false; reason: OnlineRatingIneligibleReason };
-
-export type OnlineRatingIneligibleReason =
-  | 'casual'
-  | 'objective_not_rated'
-  | 'not_enough_humans'
-  | 'class1_star_present'
-  | 'unrated_ai'
-  | 'exhibition_set';
-
-export function isAiGameCaptain(captain: GameCaptainDoc): boolean {
-  return captain.isAi === true || captain.id.startsWith(AI_ID_PREFIX);
-}
-
-function aiSkill(captain: GameCaptainDoc): AiSkillLevel {
-  return (AI_SKILL_LEVELS as readonly string[]).includes(captain.skill ?? '')
-    ? (captain.skill as AiSkillLevel)
-    : 'lieutenant';
-}
-
-/**
- * Verify the roster is rateable under context B (humans anchored against Class
- * II–IV AI). Human verification (non-anonymous accounts) is checked separately
- * against Firebase Auth — this covers only what the game document itself tells us.
- */
-export function evaluateOnlineRatingEligibility(
-  game: Pick<GameDoc, 'objective' | 'captains' | 'rated' | 'maxPip'>
-): OnlineRatingEligibility {
-  if (game.rated === false) {
-    return { rated: false, reason: 'casual' };
-  }
-  if ((game.maxPip ?? 12) !== 12) {
-    return { rated: false, reason: 'exhibition_set' };
-  }
-  if (game.objective !== 'go-out' && game.objective !== 'points') {
-    return { rated: false, reason: 'objective_not_rated' };
-  }
-
-  const humans = game.captains.filter((c) => !isAiGameCaptain(c));
-  const ais = game.captains.filter(isAiGameCaptain);
-
-  if (humans.length < 2) {
-    return { rated: false, reason: 'not_enough_humans' };
-  }
-
-  for (const ai of ais) {
-    if (ai.class1Star === true) {
-      return { rated: false, reason: 'class1_star_present' };
-    }
-    if (ai.skill !== undefined && !AI_SKILL_LEVELS.includes(ai.skill as AiSkillLevel)) {
-      return { rated: false, reason: 'unrated_ai' };
-    }
-  }
-
-  return { rated: true };
-}
-
-/** Competition ranks across the full table (humans + AI), 1 = best. */
-export function computeOnlineRanks(game: GameDoc): Map<string, number> {
-  if (game.objective === 'go-out') {
-    const winner = game.round?.roundWinnerId ?? null;
-    const handCounts = game.round?.handCounts ?? {};
-    return rankCompetition(
-      game.captains.map((c) => ({
-        playerId: c.id,
-        // Winner sorts strictly ahead; the rest by tiles remaining (fewer = better).
-        score: c.id === winner ? -1 : handCounts[c.id] ?? Number.MAX_SAFE_INTEGER,
-      })),
-      true
-    );
-  }
-
-  return rankCompetition(
-    game.captains.map((c) => ({ playerId: c.id, score: c.pointsScore ?? 0 })),
-    true
-  );
-}
 
 async function loadStats(uid: string): Promise<PlayerStatsDocument | null> {
   const snap = await db.collection('playerStats').doc(uid).get();
@@ -187,6 +87,184 @@ async function anyCaptainUsedAdvisor(
     const data = docSnap.data() as { coachUsedThisRound?: boolean };
     return data.coachUsedThisRound === true && humanIds.has(docSnap.id);
   });
+}
+
+/**
+ * Module Zeta squad rating path. Mirrors the FFA branch in `reportOnlineMatch`
+ * (pre-match snapshot + per-player transaction + idempotency claim) but ranks
+ * *squads* via `computeOnlineSquadRanks` and updates ratings via
+ * `applySquadRatingForPlayer` (OpenSkill `updateTeamRatings`, individual
+ * per-member credit — see `apply-squad-tei.ts`).
+ */
+async function reportOnlineSquadMatch(
+  game: GameDoc,
+  gameId: string,
+  humans: readonly GameCaptainDoc[],
+  objective: RatedObjective,
+  callerUid: string
+): Promise<{
+  rated: boolean;
+  reason?: OnlineRatingIneligibleReason;
+  won?: boolean;
+  rank?: number;
+  squadId?: string;
+  ratingBefore?: StoredRating;
+  ratingAfter?: StoredRating;
+  muDelta?: number;
+  alreadyApplied?: boolean;
+}> {
+  const squadRanks = computeOnlineSquadRanks(game);
+  const squads = (game.squadrons ?? []).map((s) => ({
+    squadId: s.id,
+    memberIds: s.memberIds,
+    rank: squadRanks.get(s.id) ?? game.squadrons!.length,
+  }));
+
+  // Pre-match ratings snapshot — every human's own squad-track rating, read
+  // once so every member's delta is computed against the same before-match
+  // teammate/opponent ratings. AI squadmates (if any) use fixed anchors and
+  // are excluded from rating updates, same as the FFA path.
+  const humanIds = new Set(humans.map((h) => h.id));
+  const ratingByUid = new Map<string, StoredRating>();
+  for (const squad of squads) {
+    for (const uid of squad.memberIds) {
+      if (!humanIds.has(uid)) continue; // AI squadmate — never rated
+      const stats = await loadStats(uid);
+      const track = squadObjectiveRatingStats(stats, objective);
+      ratingByUid.set(
+        uid,
+        resolveEffectivePlayerRating(
+          track.rating,
+          track.rating.matches,
+          startingRatingForObjective(stats, objective)
+        )
+      );
+    }
+  }
+
+  const table: SquadRatedPlayer[] = buildSquadRatingTable(
+    squads.map((s) => ({
+      squadId: s.squadId,
+      memberIds: s.memberIds.filter((id) => humanIds.has(id)),
+      rank: s.rank,
+    })),
+    ratingByUid
+  );
+
+  let callerReport: {
+    rated: true;
+    won: boolean;
+    rank: number;
+    squadId: string;
+    ratingBefore: StoredRating;
+    ratingAfter: StoredRating;
+    muDelta: number;
+  } | null = null;
+
+  for (const human of humans) {
+    if (!table.some((p) => p.playerId === human.id)) {
+      continue; // human wasn't on a rated squad roster (shouldn't happen)
+    }
+    const ref = db.collection('playerStats').doc(human.id);
+
+    const applied = await db.runTransaction(async (tx) => {
+      const freshSnap = await tx.get(ref);
+      const fresh = freshSnap.exists
+        ? (freshSnap.data() as PlayerStatsDocument)
+        : null;
+      if (fresh?.squadRatedGameIds?.includes(gameId)) {
+        return null;
+      }
+
+      const result = applySquadRatingForPlayer(fresh, objective, table, human.id);
+      if (!result) {
+        return null;
+      }
+
+      const now = new Date().toISOString();
+      const base: PlayerStatsDocument = fresh ?? {
+        uid: human.id,
+        displayName: human.displayName || 'Captain',
+        matchesCompleted: 0,
+        matchesWon: 0,
+        roundsPlayed: 0,
+        roundsWon: 0,
+        totalPoints: 0,
+        updatedAt: now,
+      };
+
+      const historyEntry = {
+        playedAt: now,
+        objective,
+        opponentContext: 'squad' as const,
+        playerCount: game.captains.length,
+        finishRank: result.rank,
+        won: result.won,
+        advisorUsed: false,
+        ratingBefore: result.ratingBefore,
+        ratingAfter: result.ratingAfter,
+        muDelta: result.ratingAfter.mu - result.ratingBefore.mu,
+        squadId: result.squadId,
+      };
+      const priorHistory = (base as { matchHistory?: unknown[] }).matchHistory ?? [];
+
+      tx.set(
+        ref,
+        {
+          ...base,
+          displayName: human.displayName || base.displayName,
+          matchesCompleted: base.matchesCompleted + 1,
+          matchesWon: base.matchesWon + (result.won ? 1 : 0),
+          squadRating: result.squadRating,
+          squadRatedGameIds: [...(base.squadRatedGameIds ?? []), gameId],
+          matchHistory: [historyEntry, ...priorHistory].slice(0, MAX_MATCH_HISTORY),
+          lastPlayedAt: now,
+          updatedAt: now,
+        },
+        { merge: true }
+      );
+
+      return result;
+    });
+
+    if (applied && human.id === callerUid) {
+      callerReport = {
+        rated: true,
+        won: applied.won,
+        rank: applied.rank,
+        squadId: applied.squadId,
+        ratingBefore: applied.ratingBefore,
+        ratingAfter: applied.ratingAfter,
+        muDelta: applied.ratingAfter.mu - applied.ratingBefore.mu,
+      };
+    }
+  }
+
+  // Durable squad-vs-squad archive (idempotent on gameId).
+  const archiveRef = db.collection('squadMatches').doc(gameId);
+  const archiveSnap = await archiveRef.get();
+  if (!archiveSnap.exists && (game.squadrons?.length ?? 0) > 0) {
+    const archive = buildSquadMatchArchive({
+      gameId,
+      playedAt: new Date().toISOString(),
+      objective,
+      maxPip: game.maxPip,
+      charterId: game.charterId,
+      captains: game.captains.map((c) => ({
+        id: c.id,
+        displayName: c.displayName,
+      })),
+      squadrons: game.squadrons!.map((s) => ({
+        id: s.id,
+        memberIds: s.memberIds,
+        ...(s.name ? { name: s.name } : {}),
+      })),
+      squadRanks,
+    });
+    await archiveRef.set(archive);
+  }
+
+  return callerReport ?? { rated: true, alreadyApplied: true };
 }
 
 export const reportOnlineMatch = onCall(
@@ -274,6 +352,14 @@ export const reportOnlineMatch = onCall(
     if (await anyCaptainUsedAdvisor(gameId, humans)) {
       logger.info('reportOnlineMatch unrated', { gameId, reason: 'advisor_used' });
       return { rated: false, reason: 'advisor_used' };
+    }
+
+    // Module Zeta: team rating uses updateTeamRatings() + per-player squad
+    // ranks instead of the FFA path below. `evaluateOnlineRatingEligibility`
+    // already returned unrated above unless SQUADRONS_RATING_CALIBRATED is
+    // true, so this only runs post-calibration (5.6).
+    if (isSquadGame(game)) {
+      return reportOnlineSquadMatch(game, gameId, humans, objective, callerUid);
     }
 
     const ranks = computeOnlineRanks(game);

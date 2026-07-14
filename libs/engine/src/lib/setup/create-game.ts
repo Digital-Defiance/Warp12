@@ -16,6 +16,8 @@ import {
 import { createInitialTable } from '../table/table-state.js';
 import type { CreateGameInput, GameState, RoundState } from '../types/game-state.js';
 import type { Captain, PlayerId } from '../types/player.js';
+import type { Squadron } from '../types/squadrons.js';
+import { formSquadrons } from '../engine/squadrons.js';
 import { DEFAULT_GAME_OBJECTIVE } from '../types/objective.js';
 import { resolveModules } from '../types/modules.js';
 import { resolveHouseRules } from '../types/house-rules.js';
@@ -171,14 +173,30 @@ export function dealRoundFromDraft(input: {
   }
   pile.splice(spacedockIndex, 1);
 
-  const packSize = input.draftPackSize ?? calculatePackSize(input.captains.length, pile.length);
+  const packSize =
+    input.draftPackSize ??
+    handSizeForPlayerCount(
+      input.captains.length,
+      input.largeFleetHandSize ?? DEFAULT_LARGE_FLEET_HAND_SIZE,
+      maxPip
+    );
+  const maxPackFromPile = calculatePackSize(input.captains.length, pile.length);
+  const effectivePackSize = Math.min(packSize, maxPackFromPile);
 
   // Execute synchronous draft
   const { hands, remaining } = executeSyncDraft(
     pile,
     input.turnOrder,
-    packSize,
-    input.pickFn
+    effectivePackSize,
+    input.pickFn,
+    Math.min(
+      handSizeForPlayerCount(
+        input.captains.length,
+        input.largeFleetHandSize ?? DEFAULT_LARGE_FLEET_HAND_SIZE,
+        maxPip
+      ),
+      effectivePackSize
+    )
   );
 
   const spacedockPlacedBy =
@@ -197,7 +215,10 @@ export function dealRoundFromDraft(input: {
   };
 }
 
-export function createRoundStateFromDeal(deal: RoundDealResult): RoundState {
+export function createRoundStateFromDeal(
+  deal: RoundDealResult,
+  squadrons?: readonly Squadron[]
+): RoundState {
   return {
     roundNumber: deal.roundNumber,
     spacedockValue: deal.spacedockValue,
@@ -207,8 +228,10 @@ export function createRoundStateFromDeal(deal: RoundDealResult): RoundState {
     table: createInitialTable(
       deal.turnOrder,
       deal.spacedockValue,
-      deal.spacedockPlacedBy
+      deal.spacedockPlacedBy,
+      squadrons
     ),
+    ...(squadrons ? { squadrons } : {}),
     unchartedSectors: [...deal.unchartedSectors],
     sensorGrid: [], // Initialized when Module Gamma is enabled
     hands: { ...deal.hands },
@@ -242,7 +265,10 @@ export function createRoundStateWithDraft(input: {
   readonly turnOrder: readonly PlayerId[];
   readonly roundStarterId?: PlayerId;
   readonly maxPip?: number;
-  readonly packSize?: number; // Optional - will be calculated if omitted
+  readonly largeFleetHandSize?: LargeFleetHandSize;
+  /** Preferred pack size; capped at the warp-set hand size so drafts end cleanly. */
+  readonly packSize?: number;
+  readonly squadrons?: readonly Squadron[];
 }): RoundState {
   const maxPip = normalizeWarpFactor(input.maxPip ?? DOUBLE_TWELVE_MAX_PIPS);
   const spacedockValue = spacedockValueForRound(input.roundNumber, maxPip);
@@ -268,8 +294,20 @@ export function createRoundStateWithDraft(input: {
     input.roundStarterId ??
     roundStarterForRound(input.turnOrder, input.roundNumber);
 
-  // Calculate pack size if not provided
-  const packSize = input.packSize ?? calculatePackSize(input.turnOrder.length, pile.length);
+  // Packs must equal the deal hand size: isDraftComplete drains packs to empty,
+  // so maximizing pack size (floor(available/players)) would draft oversized hands
+  // and leave uncharted empty — which falsely tripped self-play stall guards.
+  const handSize = handSizeForPlayerCount(
+    input.turnOrder.length,
+    input.largeFleetHandSize ?? DEFAULT_LARGE_FLEET_HAND_SIZE,
+    maxPip
+  );
+  const maxPackFromPile = calculatePackSize(input.turnOrder.length, pile.length);
+  const packSize = Math.min(
+    input.packSize ?? handSize,
+    handSize,
+    maxPackFromPile
+  );
 
   // Initialize draft state
   const draftState = initializeDraftState(
@@ -297,8 +335,10 @@ export function createRoundStateWithDraft(input: {
     table: createInitialTable(
       input.turnOrder,
       spacedockValue,
-      spacedockPlacedBy
+      spacedockPlacedBy,
+      input.squadrons
     ),
+    ...(input.squadrons ? { squadrons: input.squadrons } : {}),
     unchartedSectors: remaining,
     sensorGrid: [],
     hands: emptyHands,
@@ -354,9 +394,36 @@ export function startGame(
   input: CreateGameInput,
   deal: StartGameInput
 ): GameState {
-  const lobby = createLobbyState(input);
-  const turnOrder = lobby.captains.map((c) => c.id);
-  
+  let lobby = createLobbyState(input);
+
+  // Module Zeta: form squadrons and use interleaved (bridge) seating.
+  let squadrons: readonly Squadron[] | undefined;
+  let turnOrder = lobby.captains.map((c) => c.id);
+  if (lobby.modules.squadrons.enabled) {
+    const formed = formSquadrons(
+      turnOrder,
+      lobby.modules.squadrons.squadronSize,
+      lobby.modules.squadrons.squadronNames,
+      lobby.modules.squadrons.squadronRosters
+    );
+    squadrons = formed.squadrons;
+    turnOrder = [...formed.turnOrder];
+    const squadByMember = new Map<PlayerId, string>();
+    for (const squad of squadrons) {
+      for (const memberId of squad.memberIds) {
+        squadByMember.set(memberId, squad.id);
+      }
+    }
+    lobby = {
+      ...lobby,
+      squadrons,
+      captains: lobby.captains.map((c) => ({
+        ...c,
+        squadronId: squadByMember.get(c.id),
+      })),
+    };
+  }
+
   // Module Epsilon: Drafting
   if (lobby.modules.drafting.enabled) {
     const draftRound = createRoundStateWithDraft({
@@ -366,7 +433,9 @@ export function startGame(
       turnOrder,
       roundStarterId: deal.roundStarterId,
       maxPip: lobby.maxPip,
-      // packSize omitted - will be calculated automatically to leave tiles for uncharted
+      largeFleetHandSize: lobby.houseRules.largeFleetHandSize,
+      packSize: lobby.modules.drafting.packSize,
+      squadrons,
     });
 
     let roundWithModules = draftRound;
@@ -411,7 +480,7 @@ export function startGame(
     maxPip: lobby.maxPip,
   });
 
-  const baseRound = createRoundStateFromDeal(roundDeal);
+  const baseRound = createRoundStateFromDeal(roundDeal, squadrons);
   let roundWithModules = applySensorGridToRound(baseRound, lobby.modules);
 
   // Module Delta: Initialize hazard marker with round starter
@@ -458,10 +527,14 @@ export function collectRoundCoordinatesForRecycle(
     recycled.push(...round.continuumWagerPending.options);
   }
 
-  // Module Epsilon: Collect any tiles remaining in draft packs
+  // Module Epsilon: Collect any tiles remaining in draft packs AND
+  // tiles already picked but not yet promoted to hands (incomplete draft).
   if (round.draftState) {
     for (const pack of Object.values(round.draftState.currentPacks)) {
       recycled.push(...pack);
+    }
+    for (const picked of Object.values(round.draftState.pickedTiles)) {
+      recycled.push(...picked);
     }
   }
 

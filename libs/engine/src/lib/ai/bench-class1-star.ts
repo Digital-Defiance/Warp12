@@ -159,7 +159,10 @@ export function measureClass1StarCommanderAgreement(
         continue;
       }
 
-      if (round.unchartedSectors.length === 0) {
+      if (round.phase === 'drafting') {
+        stallGuard = 0;
+        lastHandTiles = totalHandTiles(round);
+      } else if (round.unchartedSectors.length === 0) {
         const tiles = totalHandTiles(round);
         stallGuard = tiles === lastHandTiles ? stallGuard + 1 : 0;
         lastHandTiles = tiles;

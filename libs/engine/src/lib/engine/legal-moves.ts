@@ -19,6 +19,7 @@ import {
 } from '../table/table-state.js';
 import { coordinateKey } from '../types/coordinate.js';
 import { trailsOpenToOthers } from './continuum.js';
+import { sameTrailGroup, trailKeyFor } from './squadrons.js';
 import { resolveDeadRedAlert } from './dead-red-alert.js';
 import {
   canChartOnNeutralZone,
@@ -57,7 +58,11 @@ function canPlayOnTrail(
     return false;
   }
 
-  if (trailPlayerId !== actingPlayerId) {
+  // Module Zeta: `trailPlayerId` is a canonical trail key. A squadmate's trail
+  // is the acting captain's "own" trail; only genuinely opposing squads' trails
+  // require open shields.
+  const isOwnTrail = sameTrailGroup(round, actingPlayerId, trailPlayerId);
+  if (!isOwnTrail) {
     if (!trailsOpenToOthers(round, trailPlayerId)) {
       return false;
     }
@@ -77,7 +82,7 @@ function canPlayOnTrail(
 
   if (
     isUncoveredDoubleAtTrailEnd(trail) &&
-    trailPlayerId === actingPlayerId &&
+    isOwnTrail &&
     isRedAlertBlocking(round.table.redAlert, actingPlayerId)
   ) {
     return false;
@@ -240,10 +245,13 @@ export function getLegalMoves(
       continue;
     }
 
-    if (canPlayOnTrail(round, playerId, playerId, coordinate, playerId, false, houseRules)) {
+    const ownTrailKey = trailKeyFor(round, playerId);
+    if (
+      canPlayOnTrail(round, playerId, playerId, coordinate, ownTrailKey, false, houseRules)
+    ) {
       moves.push({
         coordinate,
-        route: { kind: 'warp-trail', playerId },
+        route: { kind: 'warp-trail', playerId: ownTrailKey },
       });
     }
 
@@ -258,24 +266,29 @@ export function getLegalMoves(
       continue;
     }
 
+    // Opposing squads' (or FFA captains') trails, de-duplicated by trail key so
+    // a shared squad trail is only offered once.
+    const seenTrailKeys = new Set<PlayerId>([ownTrailKey]);
     for (const captainId of round.turnOrder) {
-      if (captainId === playerId) {
+      const trailKey = trailKeyFor(round, captainId);
+      if (seenTrailKeys.has(trailKey)) {
         continue;
       }
+      seenTrailKeys.add(trailKey);
       if (
         canPlayOnTrail(
           round,
           playerId,
           playerId,
           coordinate,
-          captainId,
+          trailKey,
           false,
           houseRules
         )
       ) {
         moves.push({
           coordinate,
-          route: { kind: 'warp-trail', playerId: captainId },
+          route: { kind: 'warp-trail', playerId: trailKey },
         });
       }
     }
@@ -322,7 +335,7 @@ function routesEqual(a: ChartRoute, b: ChartRoute): boolean {
 }
 
 /**
- * Get available warp drive spool options (Module Delta).
+ * Get available warp drive spool options (Module Delta or Module Theta).
  * Returns routes where the captain can spool their drive instead of charting from hand.
  */
 export function getSpoolOptions(
@@ -331,8 +344,11 @@ export function getSpoolOptions(
   playerId: PlayerId,
   houseRules: HouseRules = DEFAULT_HOUSE_RULES
 ): import('../types/actions.js').SpoolOption[] {
-  // Module must be enabled
-  if (!state.modules.warpDriveSpool?.enabled) {
+  // Spool requires Module Delta (Hot Potato) or Module Theta (Longest Trail)
+  if (
+    !state.modules.warpDriveSpool?.enabled &&
+    !state.modules.longestTrail?.enabled
+  ) {
     return [];
   }
 
@@ -375,9 +391,10 @@ export function getSpoolOptions(
   const options: import('../types/actions.js').SpoolOption[] = [];
 
   // Own trail is always spoolable if it has an open endpoint
-  const ownTrail = round.table.warpTrails[playerId];
+  const ownTrailKey = trailKeyFor(round, playerId);
+  const ownTrail = round.table.warpTrails[ownTrailKey];
   if (ownTrail && !isUncoveredDoubleAtTrailEnd(ownTrail)) {
-    options.push({ route: { kind: 'warp-trail', playerId } });
+    options.push({ route: { kind: 'warp-trail', playerId: ownTrailKey } });
   }
 
   if (openingOwnTrailOnly) {
@@ -392,24 +409,27 @@ export function getSpoolOptions(
     }
   }
 
-  // Opponent trails are spoolable if open to others
+  // Opposing squads' trails are spoolable if open to others (de-duped by key).
+  const seenTrailKeys = new Set<PlayerId>([ownTrailKey]);
   for (const captainId of round.turnOrder) {
-    if (captainId === playerId) {
+    const trailKey = trailKeyFor(round, captainId);
+    if (seenTrailKeys.has(trailKey)) {
       continue;
     }
+    seenTrailKeys.add(trailKey);
 
-    const trail = round.table.warpTrails[captainId];
+    const trail = round.table.warpTrails[trailKey];
     if (!trail) {
       continue;
     }
 
     // Check if trail is open to others
-    if (!trailsOpenToOthers(round, captainId)) {
+    if (!trailsOpenToOthers(round, trailKey)) {
       continue;
     }
 
     // Check house rules
-    if (!canChartOnOpponentTrail(round, playerId, captainId, houseRules)) {
+    if (!canChartOnOpponentTrail(round, playerId, trailKey, houseRules)) {
       continue;
     }
 
@@ -418,7 +438,7 @@ export function getSpoolOptions(
       continue;
     }
 
-    options.push({ route: { kind: 'warp-trail', playerId: captainId } });
+    options.push({ route: { kind: 'warp-trail', playerId: trailKey } });
   }
 
   return options;

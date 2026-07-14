@@ -15,6 +15,7 @@
 
 import type { GameState, RoundState } from '../types/game-state.js';
 import { encodeCoordinate } from './encode-coordinate.js';
+import { trailKeyFor } from '../engine/squadrons.js';
 
 export interface StateEncodeContext {
   maxPip: number;
@@ -64,8 +65,12 @@ export function encodeRoundState(
 
   // Trails (variable length)
   // Format: [trailLength: 1 byte][coords...][beacon: 1 byte] for each player
+  // Module Zeta: squad members share one trail keyed by trailKeyFor — read
+  // through it so a non-owner squadmate's slot encodes their SHARED trail's
+  // real content, not an empty trail (there is no per-player entry under a
+  // non-owner's own id in warpTrails).
   for (const playerId of round.turnOrder) {
-    const trail = round.table.warpTrails[playerId];
+    const trail = round.table.warpTrails[trailKeyFor(round, playerId)];
     if (!trail) {
       buffers.push(new Uint8Array([0, 0])); // Empty trail, no beacon
       continue;

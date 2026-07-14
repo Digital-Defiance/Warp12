@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { generateCoordinateSet, shuffleCoordinates } from '../domino/coordinates.js';
-import { dealRoundFromDraft } from '../setup/create-game.js';
+import {
+  collectRoundCoordinatesForRecycle,
+  createRoundStateWithDraft,
+  dealRoundFromDraft,
+} from '../setup/create-game.js';
+import type { RoundState } from '../types/game-state.js';
 import { normalizeCoordinate } from '../types/coordinate.js';
 
 function seededRandom(seed: number): () => number {
@@ -181,6 +186,53 @@ function shuffleCoordinatesForWarpFactor(maxPip: number, rng: () => number) {
 }
 
 describe('Module Epsilon — Multi-Round Recycling (W15+)', () => {
+  it('recycles pickedTiles from an incomplete draft (stall-guard regression)', () => {
+    // Self-play stall guard used to end rounds mid-draft when uncharted was empty.
+    // Picked tiles lived only in draftState.pickedTiles (hands still empty) and were
+    // dropped from collectRoundCoordinatesForRecycle — next Spacedock then missing.
+    const coords = shuffleCoordinates(generateCoordinateSet(9), seededRandom(42));
+    const captains = [
+      { id: 'a', displayName: 'Alpha', pointsScore: 0 },
+      { id: 'b', displayName: 'Beta', pointsScore: 0 },
+    ];
+
+    const round = createRoundStateWithDraft({
+      shuffledCoordinates: coords,
+      roundNumber: 1,
+      captains,
+      turnOrder: ['a', 'b'],
+      maxPip: 9,
+    });
+
+    expect(round.phase).toBe('drafting');
+    // W9 2p hand size is 12 → packs of 12, leftover in uncharted
+    expect(round.draftState!.currentPacks['a']).toHaveLength(12);
+    expect(round.draftState!.currentPacks['b']).toHaveLength(12);
+    expect(round.unchartedSectors.length).toBe(30); // 55 - 1 spacedock - 24
+
+    // Simulate mid-draft: two picks sitting only in pickedTiles
+    const midDraft: RoundState = {
+      ...round,
+      draftState: {
+        ...round.draftState!,
+        pickedTiles: {
+          a: [round.draftState!.currentPacks['a'][0]],
+          b: [round.draftState!.currentPacks['b'][0]],
+        },
+        currentPacks: {
+          a: round.draftState!.currentPacks['a'].slice(1),
+          b: round.draftState!.currentPacks['b'].slice(1),
+        },
+      },
+    };
+
+    const recycled = collectRoundCoordinatesForRecycle(midDraft);
+    expect(recycled).toHaveLength(55);
+    const keys = new Set(recycled.map((c) => `${c.low}-${c.high}`));
+    expect(keys.has('8-8')).toBe(true);
+    expect(keys.has('9-9')).toBe(true);
+  });
+
   it('would catch missing 14-14 bug when leftover draft packs not collected', async () => {
     // This test documents the fix for: "Spacedock coordinate 14-14 is missing"
     // The bug was that leftover tiles in draft packs weren't collected for round 2

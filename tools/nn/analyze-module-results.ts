@@ -64,7 +64,7 @@ interface ModuleSummary {
   skillDominant: number; // Count of configs with 3-4 indicators
   luckDominant: number;  // Count of configs with 0-1 indicators
   mixed: number;         // Count of configs with 2 indicators
-  recommendation: 'promote' | 'neutral' | 'avoid';
+  recommendation: 'promote' | 'neutral' | 'avoid' | 'warped' | 'warped-party';
 }
 
 const moduleSummaries: ModuleSummary[] = [];
@@ -88,10 +88,16 @@ for (const [moduleConfig, configs] of byModule.entries()) {
 
   // Recommendation logic:
   // - Promote: avg >= 2.5 indicators, majority skill-dominant
-  // - Avoid: avg < 1.5 indicators, majority luck-dominant
+  // - Avoid: avg < 1.5 indicators, majority luck-dominant (generic)
   // - Neutral: otherwise
-  let recommendation: 'promote' | 'neutral' | 'avoid';
-  if (avgSkillIndicators >= 2.5 && skillDominant > luckDominant) {
+  // Product overrides: Epsilon = Warped/party; Kappa = Warped by design
+  // (score inversion). Zeta stays promote for skill; FFA TEI gating is separate.
+  let recommendation: 'promote' | 'neutral' | 'avoid' | 'warped' | 'warped-party';
+  if (moduleConfig === 'epsilon') {
+    recommendation = 'warped-party';
+  } else if (moduleConfig === 'kappa') {
+    recommendation = 'warped';
+  } else if (avgSkillIndicators >= 2.5 && skillDominant > luckDominant) {
     recommendation = 'promote';
   } else if (avgSkillIndicators < 1.5 && luckDominant > skillDominant) {
     recommendation = 'avoid';
@@ -132,7 +138,16 @@ This analysis quantifies the skill ceiling of each module configuration across a
 `;
 
 for (const s of moduleSummaries) {
-  const rec = s.recommendation === 'promote' ? '✓ Promote' : s.recommendation === 'avoid' ? '✗ Avoid' : '~ Neutral';
+  const rec =
+    s.recommendation === 'promote'
+      ? '✓ Promote'
+      : s.recommendation === 'warped-party'
+        ? '◐ Warped/party'
+        : s.recommendation === 'warped'
+          ? '◐ Warped'
+          : s.recommendation === 'avoid'
+            ? '✗ Avoid'
+            : '~ Neutral';
   md += `| ${s.moduleConfig} | ${s.moduleLabel} | ${s.totalConfigs} | ${s.avgSkillIndicators.toFixed(2)} | ${s.avgLegalMoves.toFixed(1)} | ${(s.avgConstrainedTiles * 100).toFixed(0)}% | ${s.avgMoveValueSpread.toFixed(1)} | ${s.avgUniquePips.toFixed(1)} | ${s.skillDominant}/${s.mixed}/${s.luckDominant} | ${rec} |\n`;
 }
 
@@ -164,7 +179,33 @@ for (const s of promote) {
   md += `**${s.moduleLabel}** (${s.moduleConfig})\n`;
   md += `- Average skill indicators: ${s.avgSkillIndicators.toFixed(2)}/4\n`;
   md += `- Skill-dominant in ${s.skillDominant}/${s.totalConfigs} configurations (${((s.skillDominant / s.totalConfigs) * 100).toFixed(0)}%)\n`;
-  md += `- Recommended for competitive/rated play\n\n`;
+  if (s.moduleConfig === 'zeta') {
+    md += `- Skill-promote; rated Warp 12 writes Squad TEI (squadRating) only — never FFA humanRating\n\n`;
+  } else {
+    md += `- Recommended for competitive/rated play\n\n`;
+  }
+}
+
+md += `### ◐ Warped (Exhibition Only)
+
+`;
+
+const warped = moduleSummaries.filter(
+  (s) => s.recommendation === 'warped' || s.recommendation === 'warped-party'
+);
+if (warped.length > 0) {
+  for (const s of warped) {
+    md += `**${s.moduleLabel}** (${s.moduleConfig})\n`;
+    md += `- Average skill indicators: ${s.avgSkillIndicators.toFixed(2)}/4\n`;
+    if (s.recommendation === 'warped-party') {
+      md += `- Luck-dominant in ${s.luckDominant}/${s.totalConfigs} configurations (${((s.luckDominant / s.totalConfigs) * 100).toFixed(0)}%)\n`;
+      md += `- **Warped / party**: drafting collapses mid-game skill — great social ritual, never rated\n\n`;
+    } else {
+      md += `- **Warped**: intentional score inversion / chaos — exhibition only, never rated\n\n`;
+    }
+  }
+} else {
+  md += `*None*\n\n`;
 }
 
 md += `### ✗ Avoid (Low Skill Ceiling)
@@ -180,7 +221,7 @@ if (avoid.length > 0) {
     md += `- Not recommended for competitive play (casual only)\n\n`;
   }
 } else {
-  md += `*None - all tested modules maintain acceptable skill levels*\n\n`;
+  md += `*None — luck collapses are classified as Warped/party above*\n\n`;
 }
 
 md += `### ~ Neutral (Mixed or Moderate)
@@ -223,6 +264,7 @@ md += `## Methodology
 - **Total games**: ${results.length * (results[0]?.games ?? 0)}
 - **AI skill level**: Commander (tactical baseline)
 - **Objective**: ${results[0]?.objective ?? 'N/A'}
+- **Product taxonomy**: Promote (rated-safe) · Warped/party (Epsilon) · Warped (Kappa) · Zeta skill-promote with separate FFA TEI gate
 
 Each configuration was tested across multiple fleet sizes to ensure recommendations are robust across player counts.
 
@@ -253,7 +295,14 @@ console.error('  MODULE RANKING (by skill ceiling)');
 console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
 for (const s of moduleSummaries) {
-  const icon = s.recommendation === 'promote' ? '✓' : s.recommendation === 'avoid' ? '✗' : '~';
+  const icon =
+    s.recommendation === 'promote'
+      ? '✓'
+      : s.recommendation === 'warped-party' || s.recommendation === 'warped'
+        ? '◐'
+        : s.recommendation === 'avoid'
+          ? '✗'
+          : '~';
   console.error(`${icon} ${s.moduleConfig.padEnd(10)} ${s.avgSkillIndicators.toFixed(2)}/4  ${s.moduleLabel}`);
 }
 

@@ -13,6 +13,7 @@ import {
 import type { GameState } from '../types/game-state.js';
 import type { PlayerId } from '../types/player.js';
 import type { WarpAiAction } from './actions.js';
+import { sameTrailGroup, trailKeyFor } from '../engine/squadrons.js';
 
 function redAlertTargetLabel(
   state: GameState,
@@ -28,7 +29,13 @@ function redAlertTargetLabel(
   if (redAlert.neutralZone) {
     return `${tile} on the Neutral Zone`;
   }
-  if (redAlert.trailPlayerId === playerId) {
+  // Module Zeta: redAlert.trailPlayerId is the trail's canonical key — compare
+  // via sameTrailGroup so a squadmate reads "your warp trail" for their own
+  // shared trail, not "another captain's."
+  if (
+    state.round &&
+    sameTrailGroup(state.round, playerId, redAlert.trailPlayerId)
+  ) {
     return `${tile} on your warp trail`;
   }
   const owner = names?.[redAlert.trailPlayerId] ?? 'another captain';
@@ -61,7 +68,8 @@ export function explainTurnResolution(
     houseRules.passRedAlertWithoutDraw &&
     round.table.redAlert?.passed !== true;
   const beaconActive =
-    round.table.warpTrails[playerId]?.distressBeacon.active === true;
+    round.table.warpTrails[trailKeyFor(round, playerId)]?.distressBeacon
+      .active === true;
   const fractureActive = isNavigationHaltedByFracture(
     round.table.subspaceFracture,
     round.table.redAlert
@@ -136,7 +144,8 @@ export function explainTurnResolution(
   if (legalMoves.length > 0) {
     if (houseRules.manualShieldControl) {
       const beaconActive =
-        round.table.warpTrails[playerId]?.distressBeacon.active === true;
+        round.table.warpTrails[trailKeyFor(round, playerId)]?.distressBeacon
+          .active === true;
       if (
         !beaconActive &&
         canDeployDistressBeacon(round, playerId, { houseRules })

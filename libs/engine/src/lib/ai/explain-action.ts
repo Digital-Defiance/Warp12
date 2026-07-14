@@ -23,6 +23,7 @@ import {
 import { observe } from './observation.js';
 import { getAdvisorSkillProfile } from './skill.js';
 import { explainTurnResolution } from './explain-turn-resolution.js';
+import { routeIsOwnTrail } from '../engine/squadrons.js';
 
 const H = WARP_HEURISTIC_IDS;
 
@@ -95,10 +96,7 @@ function describeHeuristicContribution(
     case H.goOutTrailPriority: {
       if (action.kind !== 'chart') return null;
       const route = action.move.route;
-      if (
-        route.kind === 'warp-trail' &&
-        route.playerId === ctx.obs.playerId
-      ) {
+      if (routeIsOwnTrail(ctx.obs.round, ctx.obs.playerId, route)) {
         return 'Extends your warp trail train before dumping leftovers.';
       }
       return null;
@@ -112,7 +110,7 @@ function describeHeuristicContribution(
       if (
         action.kind === 'chart' &&
         action.move.route.kind === 'warp-trail' &&
-        action.move.route.playerId !== ctx.obs.playerId
+        !routeIsOwnTrail(ctx.obs.round, ctx.obs.playerId, action.move.route)
       ) {
         return 'Dumps a leftover tile on an opponent warp trail.';
       }
@@ -162,7 +160,7 @@ function describeHeuristicContribution(
         return null;
       }
       const route = action.move.route;
-      if (route.kind === 'warp-trail' && route.playerId === ctx.obs.playerId) {
+      if (routeIsOwnTrail(ctx.obs.round, ctx.obs.playerId, route)) {
         return 'Charts on your own warp trail — shields stay up.';
       }
       return null;

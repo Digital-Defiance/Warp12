@@ -212,6 +212,20 @@ describe('onlineMatchRatingEligibility', () => {
     expect(onlineRatingWarning(result, [])).toMatch(/Exhibition set/i);
   });
 
+  it('rejects Warped modules; allows calibrated Module Zeta squadrons', () => {
+    const captains = [verifiedHuman('u1'), verifiedHuman('u2')];
+    expect(
+      onlineMatchRatingEligibility(captains, 'points', true, 12, {
+        drafting: true,
+      }).reason
+    ).toBe('warped_modules');
+    expect(
+      onlineMatchRatingEligibility(captains, 'points', true, 12, {
+        squadrons: true,
+      }).rated
+    ).toBe(true);
+  });
+
   it('rates verified humans anchored against Ensign–Commander AI', () => {
     const captains: FirestoreCaptain[] = [
       verifiedHuman('u1'),

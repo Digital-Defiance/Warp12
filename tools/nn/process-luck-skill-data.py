@@ -50,10 +50,12 @@ print(f"  Player counts: {sorted(df['playerCount'].unique())}")
 # Add derived composite indices
 print("\nComputing composite indices...")
 
-# Skill Index: Higher when skill matters more
+# Skill Index: Higher when skill matters more (see docs/tei-paper.tex §8)
 # - High value spread = choices matter
 # - High near-optimal fraction = skill pays off
 # - More legal moves = more decisions
+# Weights match the published paper equations; do not change without
+# regenerating §8 figures from this CSV.
 df['skillIndex'] = (
     df['avgValueSpread'] * 0.4 +
     df['avgNearOptimalFraction'] * 0.3 +
@@ -70,7 +72,7 @@ df['luckIndex'] = (
     (1 / (df['avgLegalMoves'] + 1)) * 0.2
 )
 
-# Decision Quality: Combination of complexity and strategic depth
+# Decision Quality: branching × discrimination (no near-optimal term)
 df['decisionQuality'] = df['avgLegalMoves'] * df['avgValueSpread']
 
 # Save processed data

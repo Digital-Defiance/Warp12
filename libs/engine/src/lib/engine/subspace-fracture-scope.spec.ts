@@ -215,4 +215,60 @@ describe('subspace fracture scope', () => {
       true
     );
   });
+
+  it('Module Zeta: own-trail opens fracture when a NON-owner squadmate charts the shared trail', () => {
+    // squad-1 = a,c (shared trail keyed 'a'); c charts the double on the
+    // squad's shared trail. Before the fix, subspaceFractureAppliesToDouble
+    // compared route.playerId ('a') === playerId ('c') directly and this
+    // never opened a fracture for a non-owner squadmate on their own trail.
+    const turnOrder = ['a', 'b', 'c', 'd'] as const;
+    const squadrons = [
+      { id: 'squad-1', memberIds: ['a', 'c'], trailKey: 'a' },
+      { id: 'squad-2', memberIds: ['b', 'd'], trailKey: 'b' },
+    ];
+    const state = makeGame(
+      makeRound([...turnOrder], {
+        activePlayerId: 'c',
+        squadrons,
+        hands: { a: [], b: [], c: [T(5, 5)], d: [] },
+        table: {
+          ...createInitialTable([...turnOrder], 12, 'a', squadrons),
+          warpTrails: {
+            a: {
+              playerId: 'a',
+              tiles: [placed(T(5, 12), 0, 5)],
+              distressBeacon: { active: false },
+            },
+            b: {
+              playerId: 'b',
+              tiles: [],
+              distressBeacon: { active: false },
+            },
+          },
+          subspaceFracture: null,
+          redAlert: null,
+        },
+      }),
+      {
+        modules: resolveModules({
+          subspaceFracture: true,
+          subspaceFractureScope: 'own-trail',
+          squadrons: true,
+          squadronSize: 2,
+        }),
+      }
+    );
+
+    const result = applyAction(state, {
+      type: 'CHART_COORDINATE',
+      playerId: 'c',
+      coordinate: T(5, 5),
+      route: { kind: 'warp-trail', playerId: 'a' },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.round?.table.subspaceFracture?.active).toBe(true);
+    expect(result.state.round?.table.subspaceFracture?.trailCaptainId).toBe('a');
+  });
 });

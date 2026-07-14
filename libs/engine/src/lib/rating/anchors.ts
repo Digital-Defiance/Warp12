@@ -84,6 +84,18 @@ export const INITIAL_ANCHORS: Record<
 export const ANCHORS_CALIBRATED = true;
 
 /**
+ * Module Zeta (Fleet Squadrons) team-rating calibration gate.
+ *
+ * When true, eligible online Zeta sectors write the dedicated `squadRating`
+ * OpenSkill track (never FFA `humanRating`). Calibrated 2026-07-13 via
+ * Commander/Lieutenant/Ensign 2v2 self-play (`openskill-squad-calibration.spec.ts`):
+ * points Cmdr×2 vs Lt×2 ≈ 62% (parity with FFA ≈ 64%); vs Ensign ≈ 88%.
+ * Luck/skill matrix already skill-promote (~2.94/4). Keep false only to
+ * emergency-disable squad TEI writes without removing Module Zeta play.
+ */
+export const SQUADRONS_RATING_CALIBRATED = true;
+
+/**
  * Get the calibrated AI anchor rating for a given track and skill level.
  */
 export function getAIAnchor(

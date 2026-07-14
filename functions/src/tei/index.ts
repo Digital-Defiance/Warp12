@@ -16,6 +16,7 @@ export {
   objectiveTeiKey,
   objectiveToTrackKey,
   humanObjectiveRatingStats,
+  squadObjectiveRatingStats,
   startingRatingForObjective,
   toStoredRating,
   toStoredRatingWithGrade,
@@ -28,10 +29,16 @@ export {
   type RatedMatchCertificatePlayer,
   type PlayerStatsDocument,
   type HumanRatingStats,
+  type SquadRatingStats,
   type StoredRating,
   type ObjectiveRatingStats,
 } from './rated-match-schema';
 export { buildRatingTableFromStandings, applyHumanRatingForPlayer } from './apply-human-tei';
+export {
+  buildSquadRatingTable,
+  applySquadRatingForPlayer,
+  type SquadRatedPlayer,
+} from './apply-squad-tei';
 export {
   buildCertificatePlayer,
   buildRatedMatchCertificate,

@@ -2,6 +2,7 @@ import {
   hasRedAlertPassed,
   isTrueRedAlert,
   trailsOpenToOthers,
+  trailKeyFor,
   trailOpenValue,
   neutralZoneOpenValue,
   type RedAlert,
@@ -64,11 +65,17 @@ export function buildTrailSpokeStatuses(
       continue;
     }
 
-    const trail = round.table.warpTrails[captainId];
+    // Module Zeta: read the shared squad trail via trailKeyFor — a
+    // squadmate who isn't the trail's canonical owner has no entry keyed by
+    // their own id, so this would otherwise be undefined and crash below.
+    const trailKey = trailKeyFor(round, captainId);
+    const trail = round.table.warpTrails[trailKey];
     const connectValue = trailOpenValue(trail, round.spacedockValue);
+    // redAlert.trailPlayerId is stored as the route's trailKey; compare
+    // against trailKey, not captainId, so squadmates share alert status.
     const redAlertTrail =
       round.table.redAlert?.active &&
-      round.table.redAlert.trailPlayerId === captainId;
+      round.table.redAlert.trailPlayerId === trailKey;
 
     let state: TrailAccessState = 'shields';
     if (redAlertTrail) {

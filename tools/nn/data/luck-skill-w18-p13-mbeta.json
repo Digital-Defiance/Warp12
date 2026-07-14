@@ -3,6 +3,7 @@
   "playerCount": 13,
   "moduleConfig": "beta",
   "moduleLabel": "Module Beta (Salamander Penalty)",
+  "zetaOmitted": false,
   "games": 500,
   "objective": "points",
   "summary": {
@@ -10,18 +11,18 @@
     "playerCount": 13,
     "maxPip": 18,
     "objective": "points",
-    "avgLegalMovesPerTurn": 2.3768024276099835,
-    "avgUniqueTrainsPerTurn": 1.044323107284317,
-    "avgConstrainedTileFraction": 0.6303797179609401,
-    "avgUniquePipsInHand": 7.662588766470084,
-    "avgMaxPipCluster": 2.135727063004852,
-    "avgHandEntropy": 2.6655871412559855,
-    "avgMoveValueSpread": 5.117544744672109,
-    "avgNearOptimalFraction": 0.757858558926731,
+    "avgLegalMovesPerTurn": 2.3745764275783094,
+    "avgUniqueTrainsPerTurn": 0.9130366622040866,
+    "avgConstrainedTileFraction": 0.5629569542476666,
+    "avgUniquePipsInHand": 8.083343512978365,
+    "avgMaxPipCluster": 2.208368759899365,
+    "avgHandEntropy": 2.7278190471522854,
+    "avgMoveValueSpread": 3.951565976094406,
+    "avgNearOptimalFraction": 0.8020734383503414,
     "avgOwnTrailPlayRate": 0,
-    "avgShieldsDownRate": 0.5147503893026697
+    "avgShieldsDownRate": 0.29376382085004177
   },
   "skillIndicators": 3,
-  "timestamp": "2026-07-13T00:26:43.054Z",
-  "durationSeconds": 232.952
+  "timestamp": "2026-07-14T01:53:05.932Z",
+  "durationSeconds": 63.285
 }

@@ -34,9 +34,9 @@ Mexican Train dominoes is commonly played under two incompatible victory conditi
 
 Empirical results from thousands of self-play games show that \textbf{skill ordering is stable under the points objective} (consistent rating gaps between tiers), while \textbf{go-out exhibits higher variance} and compressed skill gaps. We demonstrate that search algorithms provide different advantages depending on context: expectimax wins in 2-player points (64\% vs heuristics), while ISMCTS excels in 4+ player go-out (31\% vs 23\% baseline). 
 
-A comprehensive 19,000-game empirical study across 38 configurations (4 Warp factors $\times$ 2--18 players) reveals that \textbf{skill expression increases with both tile set size and player count}, contradicting the intuition that larger games devolve into luck. We show that Warp factor 12 (double-twelve dominoes) is the empirically optimal choice for competitive rating, exhibiting the highest sensitivity to player skill.
+A \textbf{285{,}000-game} points self-play campaign across \textbf{570 configuration cells} (4 Warp factors $\times$ every legal fleet size $\times$ 15 module configs) is our sole skill/luck instrument for board choice and module taxonomy. From the \textbf{baseline} cells alone we find that \textbf{skill expression increases with both tile set size and player count}, contradicting the intuition that larger games devolve into luck, and that Warp factor 12 is the empirically optimal choice for competitive rating. Across the full matrix, most optional modules preserve the baseline skill ceiling; \textbf{Module Iota (Double Down) slightly raises it}. \textbf{Module Epsilon (Drafting)} collapses it (1.08/4 indicators) --- counter-intuitively, choosing your hand makes outcomes \emph{more} luck-dominated mid-game --- and is therefore designated \textbf{Warped / party}. \textbf{Module Zeta (Squadrons)} also preserves skill (2.94/4); it never writes FFA TEI --- rated Warp~12 crew sectors update a dedicated \textbf{Squad TEI} track (\texttt{squadRating}) after team-track calibration (\texttt{SQUADRONS\_RATING\_CALIBRATED}), not because Zeta is luck-dominant.
 
-Finally, we report on \textbf{Class $\Omega$}, a neural self-play agent that achieves parity with heuristic baselines in small games and outperforms in large fleets, demonstrating that pure self-play can produce competitive agents without hand-crafted heuristics. All code, data, and reproduction scripts are available as open source.
+Finally, we report on \textbf{Class $\Omega$}, a neural self-play agent that achieves parity with heuristic baselines in small games and outperforms in large fleets. All code, data, and reproduction scripts are available as open source.
 \end{abstract}
 
 \section{Introduction}
@@ -76,14 +76,15 @@ Draw pile & Uncharted Sectors & \texttt{pile} \\
 \midrule
 \multicolumn{3}{@{}l}{\textit{Players and Rating}} \\
 Player & Captain & \texttt{PlayerId} \\
-Skill rating & TEI & \texttt{tei} (integer) \\
+Skill rating & TEI grade & \texttt{TeiDisplay} (E/V/C/I/P + 0--99) \\
+Underlying skill & OpenSkill $(\mu,\sigma)$ & \texttt{PlayerRating} \\
 Game table & Sector / Fleet & \texttt{game} \\
 \midrule
 \multicolumn{3}{@{}l}{\textit{AI Tiers}} \\
 Easy AI & Class IV (Ensign) & \texttt{ensign} \\
 Medium AI & Class III (Lieutenant) & \texttt{lieutenant} \\
 Hard AI & Class II (Commander) & \texttt{commander} \\
-Expert (human only) & Class I & TEI $\geq$ 1450 \\
+Expert (human only) & Class I & High TEI score / low $\sigma$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -116,9 +117,7 @@ This paper makes the following contributions:
 
 \item \textbf{Search algorithm analysis} --- We show that different search methods (expectimax, ISMCTS) provide advantages in different contexts: expectimax excels in 2-player points (64\% win rate), while ISMCTS works better in 4+ player go-out (31\% vs 23\% baseline).
 
-\item \textbf{Luck vs skill across configurations} --- A 19,000-game empirical study across 38 configurations reveals that skill expression increases with both tile set size and player count, with Warp 12 (double-twelve) emerging as the empirically optimal choice for competitive rating.
-
-\item \textbf{Module balance and competitive integrity} --- Pending empirical validation of optional game mechanics and their impact on skill expression in competitive play.
+\item \textbf{Luck vs skill and module integrity} --- A single \textbf{285{,}000-game} matrix (570 cells) measures skill expression across Warp factors, fleet sizes, and 15 module configs. Baseline cells justify rating W12; Iota slightly raises the ceiling; Epsilon collapses it (Warped/party); Zeta preserves skill and rates on a dedicated Squad TEI track (never FFA).
 
 \item \textbf{Neural self-play agent (Class $\Omega$)} --- We demonstrate that a pure self-play neural policy can achieve competitive performance (parity in small games, advantages in large fleets) without hand-crafted heuristics, and discuss the challenges of mapping training performance to appropriate rating anchors.
 
@@ -170,7 +169,7 @@ This work makes several novel contributions relative to the existing literature:
 
 \item \textbf{Multi-player self-play methodology:} Most game AI calibration focuses on 2-player matchups. We include 3--8 player configurations and focus matchups (one strong player vs multiple weaker opponents) to validate skill expression in realistic play scenarios.
 
-\item \textbf{Luck vs skill empirics:} The 19,000-game study across 38 configurations provides the first systematic measurement of how tile set size and player count affect skill expression in domino games.
+\item \textbf{Luck vs skill empirics:} The 285{,}000-game module matrix (Section~\ref{sec:module-balance}) is the systematic measurement of how tile set size, player count, and optional modules affect skill expression --- including Warped/party designation for Epsilon and Warp-factor board choice from baseline cells.
 
 \item \textbf{Open-source implementation:} All code (rules engine, AI agents, calibration scripts) and data are publicly available for reproduction and extension.
 \end{enumerate}
@@ -222,18 +221,23 @@ Beyond core rules, Mexican Train has many common variants. Warp 12 implements th
 \item \texttt{dropToImpulse}: ``Uno''-style announce requirement when down to one tile
 \end{itemize}
 
-\textbf{Modules} (optional mechanics):
+\textbf{Modules} (optional mechanics; \textbf{Warped} = exhibition only, never FFA-rated):
 \begin{itemize}
 \item \textbf{Alpha (Continuum):} Special rules for 0-0 tile (Q-gamble mechanic)
 \item \textbf{Beta (Salamander Penalty):} Pip penalty for holding double-zero at round end
-\item \textbf{Gamma (Sensor Grid):} Tiles visible for potential recycling
-\item \textbf{Delta (Hot Potato):} Hazard marker transfers on Neutral Zone play (+5 per pass while holding)
-\item \textbf{Theta (Longest Trail):} Bonus for longest personal train with chain-draw mechanic
-\item \textbf{Iota (Double Down):} Playing a double forces next player to draw 2 tiles
-\item \textbf{Kappa (Temporal Inversion):} Odd rounds score normally, even rounds invert (highest wins)
+\item \textbf{Gamma (Sensor Grid):} Visible tile pool for potential recycling
+\item \textbf{Delta (Warp Drive Spool):} Hazard marker transfers on Neutral Zone play
+\item \textbf{Epsilon (Drafting):} Pack-and-pass deal --- \textbf{Warped / party} (collapses mid-game skill)
+\item \textbf{Zeta (Squadrons):} Team play with shared trails --- skill-promote; rated Warp~12 writes Squad TEI only (never FFA)
+\item \textbf{Eta (Temporal Debt):} Draw-debt tokens paid at round end
+\item \textbf{Theta (Longest Trail):} Bonus for longest personal train
+\item \textbf{Iota (Double Down):} Playing a double forces next player to draw 2 --- \emph{best skill ceiling}
+\item \textbf{Kappa (Temporal Inversion):} Even rounds invert scoring --- \textbf{Warped} (intentionally breaks ordering)
+\item \textbf{Lambda (Wormholes):} Double on Neutral Zone swaps trails
+\item \textbf{Mu / Subspace Fracture:} Chicken-foot doubles (Own Trail / All Captains / All Doubles)
 \end{itemize}
 
-All modules affect legal move generation and scoring through the same \texttt{applyAction} code path, ensuring AI agents see exactly the same game mechanics as human players.
+All modules affect legal move generation and scoring through the same \texttt{applyAction} code path, ensuring AI agents see exactly the same game mechanics as human players. Product classification (Promote vs Warped) is grounded in the Section~9 study.
 
 \subsection{Information Structure and Game Complexity}
 
@@ -272,7 +276,7 @@ Horizon & Multi-round campaign (1--13) & Often single-round race \\
 Core skill & Pip shedding, blocking, flexibility & Tempo, connectivity, mayhem \\
 Variance & Lower & Higher \\
 Search benefit & Modest at 2p; expectimax depth 4 $\sim$64\% & Helpful at 2p; ISMCTS $\sim$31\% /4p \\
-Reference TEI spacing & 200 pts / tier & 250 pts / tier \\
+AI $\mu$ gaps (anchors) & 8.5 / 8.5 (IV$\to$III$\to$II) & 10.5 / 13.5 (wider to fight compression) \\
 \bottomrule
 \end{tabular}
 \caption{Strategic differences between points and go-out objectives}
@@ -283,12 +287,12 @@ In the \textbf{points} objective, players accumulate penalty points over 13 roun
 
 In the \textbf{go-out} objective, the first player to empty their hand wins immediately. This creates race dynamics where tempo and hand connectivity matter more than pip values. A player holding three 12-12 doubles might still win if they can chain them quickly.
 
-Figure~\ref{fig:points-vs-goout} shows empirically that these objectives lead to measurably different strategic landscapes, with go-out exhibiting compressed skill gaps and higher outcome variance.
+Figure~\ref{fig:points-vs-goout} shows empirically that these objectives lead to measurably different strategic landscapes: go-out compresses implied $|\Delta\mu|$ relative to the calibrated anchors, while skill \emph{ordering} survives.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.9\textwidth]{../tools/nn/figures/figure10-points-vs-goout.png}
-\caption{Points vs go-out strategic divergence. Left: Implied ΔTEI from observed win rates shows go-out compression. Right: Win rate distributions demonstrate that go-out behaves like a stochastic race (ordering survives, magnitudes compress).}
+\caption{Points vs go-out strategic divergence under OpenSkill. Left: calibrated $|\Delta\mu|$ anchors versus $|\Delta\mu|$ implied by 2{,}000-game win rates --- go-out compression is stark. Right: weaker-side win rates show points keeps clearer tier separation than the go-out race.}
 \label{fig:points-vs-goout}
 \end{figure}
 
@@ -318,77 +322,94 @@ Class II profile, blunder rate 0, lookahead on. Explainability: \texttt{explainW
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.9\textwidth]{../tools/nn/figures/figure6-tei-ladder.png}
-\caption{TEI reference bands and Elo win probability. Left: Class IV--II reference anchors by objective (v1 heuristic vs v2 Ω). Right: Standard Elo expected win rate curve with reference spacing markers (200 pts for points, 250 pts for go-out).}
+\caption{OpenSkill TEI ladder. Left: calibrated AI anchors as $\mu \pm \sigma$ by objective, with diamond markers for the conservative display rating $\mu-3\sigma$. Right: presentation layer --- letter grade from $\sigma$ (confidence) plus a 0--99 score from the display rating.}
 \label{fig:tei-ladder}
 \end{figure}
 
-\subsection{Reference Bands}
-Fixed opponent TEI for unassisted matches. \textbf{v1} = heuristic Class II; \textbf{v2} = neural Class II ($\Omega$). New rated play defaults to v2; legacy crews may pin v1. Human stored TEI integers are \textbf{not} re-banded when anchors change.
+\subsection{Bayesian skill model}
+TEI is a \textbf{presentation layer} over OpenSkill~\cite{wenglin2011}: each captain stores a Gaussian skill estimate $(\mu,\sigma)$ per track (points / go-out), updated after ranked match outcomes. Defaults for new humans: $\mu=25$, $\sigma=8.\!33$ (OpenSkill's $\mu/3$ prior). Matchmaking uses an ordinal $\mu-\sigma$; the UI never exposes raw Elo integers.
+
+\subsection{Reference anchors}
+Rated local and online play pits humans against fixed AI opponents. Each AI class holds a \textbf{frozen} $(\mu,\sigma)$ that never updates with match outcomes:
 
 \begin{table}[h]
 \centering
-\begin{tabular}{@{}lcccc@{}}
+\begin{tabular}{@{}lcccccc@{}}
 \toprule
-\textbf{Track} & \textbf{Class IV} & \textbf{Class III} & \textbf{Class II (v1)} & \textbf{Class II (v2 $\Omega$)} \\
+\textbf{Track} & \multicolumn{2}{c}{\textbf{Ensign (IV)}} & \multicolumn{2}{c}{\textbf{Lieutenant (III)}} & \multicolumn{2}{c}{\textbf{Commander (II)}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+ & $\mu$ & $\sigma$ & $\mu$ & $\sigma$ & $\mu$ & $\sigma$ \\
 \midrule
-Points & $\sim$1000 & $\sim$1200 & $\sim$1400 & \textbf{$\sim$1520} \\
-Go-out & $\sim$1000 & $\sim$1250 & $\sim$1500 & \textbf{$\sim$1550} \\
+Points & 18.0 & 4.0 & 26.5 & 3.5 & 35.0 & 3.0 \\
+Go-out & 17.5 & 4.5 & 28.0 & 4.0 & 41.5 & 3.5 \\
 \bottomrule
 \end{tabular}
-\caption{TEI reference bands by class and objective}
+\caption{Calibrated OpenSkill AI anchors (Phase~1.3; 2{,}000 games/matchup). Gaps: points $8.5/8.5$; go-out $10.5/13.5$ (widened against racing compression).}
+\label{tab:openskill-anchors}
 \end{table}
 
-\textbf{Calibration rule of thumb:} set Class II REF near where a captain of that TEI wins $\sim$50\% \textbf{in the table sizes you actually rate} (Warp 12 solo local play is mostly 2--4). Fleet-mean fair-share against legacy Commander is a promotion metric, not a direct Elo $\Delta$.
+\textbf{v1 vs v2 Class II:} product history distinguished heuristic Commander (v1) from neural Class~$\Omega$ Commander (v2). Shipping Class~II is the $\Omega$ policy at the Commander commission; stored human $(\mu,\sigma)$ tuples are \textbf{not} re-banded when the Commander implementation changes --- only the fixed AI anchor row is.
 
-\subsection{Update Rule}
-Standard Elo expected score~\cite{elo1978rating} + K-factor schedule (40 $\to$ 32 $\to$ 24 by experience). Separate buckets: objective $\times$ AI class $\times$ (human profile).
+\textbf{Calibration rule of thumb:} place Commander $\mu$ near where a human of comparable TEI score wins $\sim$50\% in the table sizes you actually rate (Warp~12 solo play is mostly 2--4). Fleet-mean fair-share against legacy Commander is a promotion metric, not a direct $\Delta\mu$.
 
-\subsection{Percentile Boards}
-Go-out raw TEI gaps compress; percentile (``Top X\%'') preserves rank meaning.
+\subsection{Update rule}
+After a sector, ranks feed \texttt{updateFFARatings} / \texttt{updateTeamRatings} / \texttt{updateVsAI} (openskill.js Bayesian update). Humans move; AI anchors stay fixed. Separate tracks: objective $\times$ (human profile). No Elo $K$-factor schedule.
+
+\subsection{TEI Grade display}
+Players see a gamified string such as \texttt{V67}:
+\begin{itemize}
+\item \textbf{Letter (E/V/C/I/P)} --- confidence from $\sigma$: Elite ($\sigma<0.5$), Veteran ($<1.5$), Consistent ($<2.5$), Improving ($<4.0$), Provisional ($\geq 4.0$). Demotions use unidirectional hysteresis so a single noisy sector does not immediately drop the letter.
+\item \textbf{Score (0--99)} --- normalized conservative skill $\mathrm{clamp}(\mu-3\sigma)$ over a population window $[\sim\!10,\sim\!50]$, preventing new-player inflation.
+\end{itemize}
+Federation Academy commission ranks (Cadet$\to$Fleet Admiral) are a flavor map over the same grade+score; they are not a second rating.
+
+\subsection{Percentile boards}
+Go-out $|\Delta\mu|$ compresses; percentile (``Top X\%'') preserves rank meaning alongside the grade badge.
 
 \subsection{Federation Academy}
-One-time starting TEI pick per track within class band.
+One-time starting grade pick per track within a provisional / improving band.
 
 \section{Calibration Methodology}
 
 \subsection{Self-Play Loop}
-\texttt{playSelfPlayGame} drives full games through \texttt{applyAction}. Blocked-round stall guard for pile-empty lockups.
+\texttt{playSelfPlayGame} drives full games through \texttt{applyAction}. Blocked-round stall guard for pile-empty lockups (drafting phases are exempt --- mid-draft force-ends previously corrupted Spacedock recycle).
 
 \subsection{Evaluation Suites}
 \begin{enumerate}
-\item \textbf{Head-to-head matrix} --- all Class IV--II pairs, both objectives.
+\item \textbf{Head-to-head matrix} --- all Class IV--II pairs, both objectives (OpenSkill calibration: 2{,}000 games/matchup).
 \item \textbf{Symmetric seating} --- same-skill first-seat win rate $\approx$ 50\%.
 \item \textbf{Focus matchups} --- one strong captain vs $N-1$ weaker; rotate seat; table sizes 3--8 (go-out).
 \item \textbf{House-rule sanity} --- e.g.\ Drop to Impulse penalty pass (\texttt{calibrate:ai-tei-dti}).
+\item \textbf{Module integrity} --- 500 games $\times$ Warp $\times$ fleet $\times$ module (\S\ref{sec:module-balance}).
 \end{enumerate}
 
 \subsection{Metrics}
-Completion rate ($\geq$ 85\% games decisive). Higher-skill win rate vs ordering thresholds. Implied $\Delta$TEI from win rate: $400 \times \log_{10}(p / (1-p))$. Expected win rate from reference band spacing.
+Completion rate ($\geq$ 85\% games decisive). Higher-skill win rate vs ordering thresholds. Implied $|\Delta\mu|$ from weaker-side win rate under the OpenSkill logistic. Expected win rate from calibrated anchor gaps (target $\sim$76\% / $\sim$91\% for successive / skip tiers). Skill-indicator count (0--4) for module balance.
 
 \section{Results: AI Calibration}
 
-See \texttt{calibration-log.md} for dated self-play and optimizer runs.
+See \texttt{docs/openskill-calibration-log.md} for dated OpenSkill self-play runs and \texttt{calibration-log.md} for legacy heuristic benches.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.9\textwidth]{../tools/nn/figures/figure7-calibration-matrix.png}
-\caption{Calibration matrix heatmaps showing win rates between all Class IV/III/II pairs (200 games per matchup). Left: Points objective exhibits clean skill ordering. Right: Go-out objective shows compression, especially Class III vs II (near coin flip at 51\%).}
+\caption{OpenSkill calibration heatmaps (2{,}000 games per matchup). Left: Points --- Ensign win rates 15.7\% / 9.2\% vs Lieutenant / Commander; Lieutenant vs Commander still the softest rung (36.3\%). Right: Go-out --- extreme compression (38--44\% weaker-side wins) even after widening $\mu$ gaps.}
 \label{fig:calibration-matrix}
 \end{figure}
 
-\subsection{Points (Default Rules, 200 games/matchup)}
+\subsection{Points (Default Rules, 2{,}000 games/matchup)}
 \begin{itemize}
-\item Symmetric $\sim$50/50 seating.
-\item Class IV vs III $\sim$88\% (expected $\sim$76\%) --- ordering clear, gap may exceed target.
-\item Class IV vs II $\sim$91.5\% (expected $\sim$91\%) --- on target.
-\item Class III vs II $\sim$63\% (expected $\sim$76\%) --- compressed but ordered.
+\item Anchors: Ensign $\mu{=}18.0$, Lieutenant $26.5$, Commander $35.0$ ($\sigma$ $4.0/3.5/3.0$).
+\item Ensign vs Lieutenant: Ensign wins \textbf{15.7\%} (expected $\sim$11.5\% at $|\Delta\mu|{=}8.5$) --- ordering clear.
+\item Lieutenant vs Commander: Lieutenant wins \textbf{36.3\%} (expected $\sim$11.5\%) --- weakest separation; accepted for multiplayer domino compression.
+\item Ensign vs Commander: Ensign wins \textbf{9.2\%} (expected $\sim$1.7\%) --- overall skip-tier separation remains useful.
 \end{itemize}
 
 \subsection{Go-out}
 \begin{itemize}
-\item Symmetric $\sim$46--56\%.
-\item Class III vs II heads-up $\sim$51\% --- near coin flip at 200 games.
-\item 4p focus: Class II $\sim$38.5\% vs 25\% random; Class III $\sim$27\% vs 25\%.
+\item Anchors: Ensign $\mu{=}17.5$, Lieutenant $28.0$, Commander $41.5$ ($\sigma$ $4.5/4.0/3.5$; gaps $10.5/13.5$).
+\item Weaker-side win rates remain \textbf{38--44\%} despite wide $\mu$ gaps --- racing and binary outcomes dominate.
+\item Decision: accept compression; preserve ordering; lean on percentile boards for human feedback.
 \end{itemize}
 
 \subsection{Class I*, Fleet Admiral, and Class $\Omega$ Benches}
@@ -396,7 +417,7 @@ See \texttt{calibration-log.md} for dated self-play and optimizer runs.
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.95\textwidth]{../tools/nn/figures/figure8-ai-bench-results.png}
-\caption{AI bench results across experimental tiers. Top-left: Class I* neural residual iterations (imitation ceiling at 48--51\%). Top-right: Fleet Admiral search backends (expectimax wins 2p, ISMCTS wins 4p). Bottom-left: Class Ω fair-share rises with fleet size (points objective). Bottom-right: Fair-share hazard — naive Elo translation overestimates TEI anchors vs tempered decision (1520).}
+\caption{AI bench results across experimental tiers. Top-left: Class I* neural residual iterations (imitation ceiling at 48--51\%). Top-right: Fleet Admiral search backends (expectimax wins 2p, ISMCTS wins 4p). Bottom-left: Class Ω fair-share rises with fleet size (points objective). Bottom-right: Fair-share hazard --- naive Elo-style translation overestimates shipping anchors vs the tempered OpenSkill Commander $\mu$.}
 \label{fig:ai-bench-results}
 \end{figure}
 
@@ -417,11 +438,12 @@ See \texttt{calibration-log.md} for dated self-play and optimizer runs.
 \begin{itemize}
 \item \textbf{2-Player:} Points $\sim$parity with legacy Commander; go-out seat-symmetric noise (one soft seat is not a shipping blocker).
 \item \textbf{Fleet (3--8p):} Points fair-share rises with table size (peak $\sim$1.7$\times$ at 7--8p); go-out milder ($\sim$1.0--1.5$\times$ by slice). Overall means $\sim$\textbf{1.38$\times$} points / $\sim$\textbf{1.14$\times$} go-out at 200g/slice.
-\item \textbf{Ship decision:} replace Class II with greedy $\Omega$; temper REF\_TEI to \textbf{1520 / 1550}; keep $\Omega$+ and Class I* off the rated ladder.
-\item \textbf{Lesson:} \texttt{fairShare} $\times$ $n$ win rates at large $N$ inflate mean strength vs what heads-up TEI players feel.
+\item \textbf{Ship decision:} replace heuristic Class II with greedy $\Omega$; keep Commander as the commission track; hold $\Omega$+ and Class I* off the rated ladder.
+\item \textbf{Lesson:} \texttt{fairShare} $\times$ $n$ win rates at large $N$ inflate mean strength vs what heads-up TEI players feel --- temper anchors for the rating context you ship.
 \end{itemize}
 
-\section{Luck vs Skill Across Warp Factors: A 19,000-Game Empirical Study}
+\section{Luck vs Skill Across Warp Factors}
+\label{sec:luck-skill-boards}
 
 \subsection{Motivation and Configuration Matrix}
 
@@ -450,7 +472,7 @@ Players and designers routinely ask:
 \item \textbf{Why is W12 the rated factor?} Is it merely tradition (Mexican Train's historical default), or does the data justify it?
 \end{enumerate}
 
-To answer these questions empirically, we conducted a comprehensive self-play study across \textbf{38 configurations} (Warp factor $\times$ fleet size), collecting \textbf{500 games per configuration} for a total of \textbf{19,000 games}:
+To answer these questions empirically we use the \textbf{baseline (no-module) cells} of the Section~\ref{sec:module-balance} campaign --- the same Commander points self-play instrument over \textbf{38 configurations} (Warp factor $\times$ fleet size), \textbf{500 games per cell}. Earlier standalone or single-module pilot collections (including broken Drafting runs) are \textbf{not} treated as evidence; all claims in this section come from that integrated matrix:
 
 \begin{table}[h]
 \centering
@@ -463,40 +485,54 @@ W12 & 2--8 players & 7 & 3,500 \\
 W15 & 2--12 players & 11 & 5,500 \\
 W18 & 2--18 players & 17 & 8,500 \\
 \midrule
-\textbf{Total} & & \textbf{38} & \textbf{19,000} \\
+\textbf{Total} & & \textbf{38} & \textbf{19{,}000 (baseline subset)} \\
 \bottomrule
 \end{tabular}
-\caption{Configuration matrix for luck vs skill analysis}
+\caption{Baseline cells within the 285{,}000-game matrix (no modules) used for Warp-factor / fleet analysis}
 \end{table}
 
-All games used the \textbf{points objective} (lowest cumulative pip total) with Class II (heuristic Commander) self-play. Collection completed July 11, 2026 using parallel execution across 15 workers (M4 Max, $\sim$40 minutes runtime). In subsequent references, we use compact notation: e.g., W12/4p denotes Warp 12 with 4 players.
+All games used the \textbf{points objective} (lowest cumulative pip total) with Class II (heuristic Commander) self-play as part of the July 2026 module campaign (parallel workers on M4 Max). Compact notation: e.g., W12/4p denotes Warp 12 with 4 players.
 
 \subsection{Metrics and Composite Indices}
+\label{sec:luck-skill-instrument}
 
-For each game, we tracked per-turn metrics across all decision points:
+Per-turn telemetries are collected by the engine sampler (\texttt{LuckSkillMetricsSampler}) and averaged per game. All §8 tables and figures are computed from those game-level averages after applying the composites below --- matching \texttt{tools/nn/process-luck-skill-data.py}, which produced \texttt{luck-skill-processed.csv}.
 
-\textbf{Raw metrics:}
+\textbf{Raw metrics (game averages):}
 \begin{itemize}
-\item \texttt{avgLegalMoves}: Mean number of legal candidate actions per turn
-\item \texttt{avgHandEntropy}: Shannon entropy of pip distribution in hand (bits)
-\item \texttt{avgNearOptimalFraction}: Fraction of turns where the AI chose a move within 5\% of the top-scored candidate
-\item \texttt{avgConstrainedTileFraction}: Fraction of coordinates that can only play on one trail
-\item \texttt{avgValueSpread}: Spread between highest and lowest valued tiles in hand
+\item \texttt{avgLegalMoves}: mean number of legal candidate actions per turn (decision branching).
+\item \texttt{avgValueSpread}: mean difference between the highest- and lowest-valued legal candidates under the same heuristic scorer used by the seating AI (discrimination among options).
+\item \texttt{avgNearOptimalFraction}: fraction of turns where the seated AI's chosen action scored within 5\% of the top-scored legal candidate (how often ``good'' play is distinguishable from noise).
+\item \texttt{avgConstrainedTileFraction}: fraction of hand coordinates that can legally attach to only one open trail (forced/near-forced placement pressure).
+\item \texttt{avgHandEntropy}: Shannon entropy of the pip multiset in hand (bits).
+\item \texttt{avgUniqueTrains}: mean count of distinct trail ends the hand can reach (used as a raw diagnostic; not an input to the §8 composites).
 \end{itemize}
 
-\textbf{Composite indices} (derived for interpretability):
+\textbf{Instrument design (constructs $\to$ composites).}
+We wanted continuous summaries that rise when a configuration offers \emph{more ways for better play to matter}, and fall when turns are forced or undifferentiated. The three raw ingredients of \texttt{skillIndex} map to that idea: more legal moves (room to choose), larger value spread (choices are not interchangeable), and higher near-optimal fraction (the policy can still identify better lines). The \texttt{luckIndex} ingredients are the dual: forced attachments, low decision quality (near-optimal rarely available), and sparse legal moves. Weights are fixed heuristics chosen once for interpretability --- not fit to TEI outcomes --- and were not re-tuned after looking at module rankings:
+
 \begin{align}
-\text{skillIndex} &= \text{avgLegalMoves} \times \text{avgNearOptimalFraction} \times \text{avgUniqueTrains} \\
-\text{luckIndex} &= \text{avgConstrainedTileFraction} \times (1 - \text{avgHandEntropy}/\log_2(19)) \\
-\text{decisionQuality} &= \text{avgNearOptimalFraction} \times \text{avgLegalMoves} \times \text{avgUniqueTrains}
+\text{skillIndex}
+  &= 0.4\,\texttt{avgValueSpread}
+   + 0.3\,\texttt{avgNearOptimalFraction}
+   + 0.3\,\texttt{avgLegalMoves} \\
+\text{luckIndex}
+  &= 0.5\,(1 - \texttt{avgNearOptimalFraction})
+   + 0.3\,\texttt{avgConstrainedTileFraction}
+   + 0.2\,\bigl(1 / (\texttt{avgLegalMoves} + 1)\bigr) \\
+\text{decisionQuality}
+  &= \texttt{avgLegalMoves} \times \texttt{avgValueSpread}
 \end{align}
 
-\textbf{Interpretation:}
+\textbf{Reading the composites:}
 \begin{itemize}
-\item \textbf{skillIndex}: Captures decision complexity (legal moves), train diversity (strategic options), and execution quality (near-optimal play). Higher values indicate more opportunity for skilled play.
-\item \textbf{luckIndex}: Captures constraint (forced plays) and hand predictability (low entropy). Higher values indicate more luck-driven outcomes.
-\item \textbf{decisionQuality}: Similar to skillIndex but emphasizes decision-making over luck factors.
+\item Higher \texttt{skillIndex} $\Rightarrow$ more decision branching, more score separation among candidates, and more near-optimal opportunities --- configurations where skill can express.
+\item Higher \texttt{luckIndex} $\Rightarrow$ more forced placements, weaker near-optimal signal, and fewer candidates --- configurations where outcomes lean on draw/hand luck.
+\item \texttt{decisionQuality} is a simple branching$\times$discrimination diagnostic (no near-optimal term).
 \end{itemize}
+
+\textbf{Relation to Section~\ref{sec:module-balance}.}
+Section~9 keeps the \emph{same raw sampler} but ranks modules with a different secondary instrument: four absolute pass/fail indicators on cell-mean telemetry (0--4 count). §8 hypotheses use the continuous composites above; Promote / Warped product calls use the §9 indicator count. Both are reported so board-choice and module-taxonomy questions stay separable.
 
 \subsection{Hypotheses}
 
@@ -728,9 +764,9 @@ Despite large variations in Warp factor and fleet size, \texttt{avgLegalMoves} r
 \subsubsection{TEI Calibration Strategy}
 
 \begin{enumerate}
-\item \textbf{Anchor TEI on W12 only.} Exhibition factors (W9/15/18) should \textit{not} have separate reference bands --- they share the same Class IV--II opponents with W12 anchors.
-\item \textbf{Do not adjust K-factor by fleet size.} The data show that larger fleets \textit{increase} skill expression, not variance. A flat K-factor schedule (40 $\to$ 32 $\to$ 24 by experience) is appropriate.
-\item \textbf{Consider percentile boards for all objectives.} While W12 skill gradients are smooth, the monotonic-but-noisy pattern at W18 (drops at 17p) suggests percentile ranks provide more stable feedback than raw TEI.
+\item \textbf{Anchor TEI on W12 only.} Exhibition factors (W9/15/18) should \textit{not} have separate AI $(\mu,\sigma)$ rows --- they share the same Class IV--II opponents with W12 anchors.
+\item \textbf{Do not soften OpenSkill updates by fleet size.} Larger fleets \textit{increase} skill expression, not variance; Bayesian $\sigma$ shrinkage already captures confidence.
+\item \textbf{Prefer percentile boards alongside grades for go-out.} While W12 skill gradients are smooth, the monotonic-but-noisy pattern at W18 (drops at 17p) suggests percentiles stabilize feedback when $|\Delta\mu|$ compresses.
 \end{enumerate}
 
 \subsubsection{Future Exhibition Modes}
@@ -745,25 +781,169 @@ Despite large variations in Warp factor and fleet size, \texttt{avgLegalMoves} r
 
 This study used \textbf{points only}. Go-out exhibits higher variance (Section 7.2), suggesting:
 \begin{itemize}
-\item Skill/luck ratios may differ under go-out objective (worth a follow-up 19K-game study).
+\item Skill/luck ratios may differ under go-out objective (worth a follow-up module-matrix pass under go-out).
 \item W12/2--4p may remain optimal, but large-fleet go-out (8+ players) could show different patterns due to race dynamics.
+\end{itemize}
+
+\section{Module Balance: A 285{,}000-Game Competitive-Integrity Study}
+\label{sec:module-balance}
+
+Section~\ref{sec:luck-skill-boards} used the \textbf{baseline} slice of this campaign to show that W12 is the right \emph{board} for rating. The full matrix answers the product question: which \emph{optional modules} preserve that skill signal, and which should be barred from TEI?
+
+\subsection{Design questions}
+\begin{itemize}
+\item Does any single module collapse skill expression relative to baseline?
+\item Does stacking modules (``all'') destroy discrimination, or compound depth?
+\item Is Module Epsilon (drafting) the skill upgrade it appears to be?
+\item Can Module Zeta (squadrons) enter the rated pool?
+\end{itemize}
+
+\subsection{Method}
+\label{sec:module-instrument}
+
+We collected \textbf{500 Commander self-play games} on each of \textbf{570 configuration cells} --- Warp factor $\{9,12,15,18\}$ $\times$ every legal fleet size $\times$ 15 module configs (baseline, Alpha--Mu, Official Warp 12, ``all'', and Zeta) --- for \textbf{285{,}000 games} under the points objective, using the same \texttt{LuckSkillMetricsSampler} as Section~\ref{sec:luck-skill-instrument}.
+
+\textbf{Module ranking instrument (distinct from §8 composites).}
+For each cell we average the raw telemetries, then score four absolute pass/fail indicators (implemented in \texttt{collect-luck-skill-modules.ts}):
+
+\begin{enumerate}
+\item Legal moves / turn $\geq 3.0$ --- enough branching that play is not almost forced.
+\item Constrained-tile fraction $> 0.5$ --- a majority of hand tiles have a narrow legal attachment (pressure / planning).
+\item Move-value spread $\geq 2.0$ --- heuristic scores still separate best from worst candidates.
+\item Unique pips in hand $\geq 5.0$ --- enough pip diversity that connectivity choices remain non-trivial.
+\end{enumerate}
+
+The integer \textbf{skill-indicator count} $S \in \{0,1,2,3,4\}$ is the primary ranking key. Cell taxonomy: skill-dominant if $S \geq 3$, mixed if $S = 2$, luck-dominant if $S \leq 1$. Module averages of $S$ drive product recommendations (Promote vs Warped), not the continuous \texttt{skillIndex} of Section~\ref{sec:luck-skill-boards}. Thresholds were chosen as coarse absolute guards on the same constructs as §8 (branching, force, discrimination, hand diversity); they were frozen before the Promote/Warped labeling pass and were not optimized to separate Epsilon after the fact.
+
+Zeta requires equal squads: even fleets of at least 4 captains when \texttt{squadronSize}=2. Ineligible Zeta cells from earlier runs are excluded from Zeta-specific claims (17 eligible cells remain). The collector auto-omits Zeta from ``all'' on odd/small fleets.
+
+\subsection{Results: most modules preserve the ceiling}
+\input{../tools/nn/tables/table4-module-ranking.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{../tools/nn/figures/figure11-module-skill-ranking.png}
+\caption{Module skill ceiling across Warp factors and fleet sizes. Nearly every module sits at or above the baseline Promote line (2.5). Epsilon is the sole collapse (Warped/party). Zeta remains high-skill (Promote; Squad TEI, never FFA).}
+\label{fig:module-ranking}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.78\textwidth]{../tools/nn/figures/figure12-module-warp-heatmap.png}
+\caption{Mean skill indicators by module and Warp factor. Epsilon is red across the board; the Official preset and single-module variants stay skill-stable, especially on W12+.}
+\label{fig:module-heatmap}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{../tools/nn/figures/figure14-module-metric-profiles.png}
+\caption{Decision-quality profiles for rating-relevant modules. Epsilon trails on every axis; Iota leads on legal moves, constrained tiles, and move-value spread.}
+\label{fig:module-profiles}
+\end{figure}
+
+Key observations:
+\begin{itemize}
+\item \textbf{Baseline and most single modules} average \textbf{2.89/4} indicators --- skill-dominant in 34/38 cells.
+\item \textbf{Iota (Double Down)} is the only clear skill \emph{upgrade}: \textbf{3.00/4}, skill-dominant in \textbf{38/38} cells. On W12 it lifts move-value spread by $+0.26$ to $+0.86$ pips versus baseline depending on fleet size.
+\item \textbf{Official Warp 12} remains competitive at \textbf{2.82/4} (one luck-leaning cell: W9/4p), justifying the rated preset.
+\item \textbf{``All modules''} stress-test scores \textbf{2.95/4} when Zeta is eligible or omitted --- stacking does \emph{not} destroy discrimination under Commander play.
+\item \textbf{Zeta} on eligible fleets averages \textbf{2.94/4} (16/17 skill-dominant) --- shared trails keep pressure high.
+\end{itemize}
+
+\subsection{The drafting paradox: Epsilon as a party module}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{../tools/nn/figures/figure13-epsilon-collapse.png}
+\caption{Epsilon collapse versus baseline, Iota, and Official across all Warp factors. Drafting never recovers the skill ceiling that pack-and-pass seems to promise.}
+\label{fig:epsilon-collapse}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\textwidth]{../tools/nn/figures/figure15-w12-module-fleet-curves.png}
+\caption{Warp 12 fleet curves for rating-relevant modules. Epsilon is the unique trough at every fleet size; Iota and Official track near the skill ceiling.}
+\label{fig:w12-module-curves}
+\end{figure}
+
+Intuition says drafting should \emph{increase} skill: captains choose their hands. Empirically, Epsilon averages \textbf{1.08/4} indicators and is luck-dominant in \textbf{27/38} cells (0/4 on every W9 fleet). Relative to baseline it shows:
+\begin{itemize}
+\item Legal moves: $\sim$1.30 vs $\sim$2.09
+\item Constrained tiles: 36\% vs 57\%
+\item Move-value spread: 2.08 vs 3.19
+\item Unique pips in hand: 5.0 vs 7.7
+\end{itemize}
+
+\textbf{Interpretation:} Drafting front-loads luck into the deal and produces more coherent personal hands. Mid-game branching then \emph{shrinks}: fewer forced tiles, fewer discriminating choices, thinner pip diversity. Outcomes are decided earlier by who drafted the lucky connectors, not by who navigates the Neutral Zone. That makes Epsilon an excellent \textbf{party / social} module --- the requisition ritual is the entertainment --- and a poor competitive one.
+
+Figure~\ref{fig:epsilon-deficit} maps the deficit cell-by-cell; Epsilon never recovers baseline skill indicators on any Warp/fleet cell we collected. Figure~\ref{fig:hand-pressure} shows the same squeeze on constrained-tile fraction and unique pips --- the two mid-game pressure gauges most diagnostic of Warped play.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.88\textwidth]{../tools/nn/figures/figure16-epsilon-deficit-heatmap.png}
+\caption{Epsilon skill-indicator deficit versus baseline across Warp factors and fleet sizes (negative $=$ worse than pack-and-pass). The collapse is wide, not a single bad fleet.}
+\label{fig:epsilon-deficit}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{../tools/nn/figures/figure20-hand-pressure-bars.png}
+\caption{Hand-pressure bars for rating-relevant modules. Left: constrained-tile fraction. Right: unique pips in hand. Epsilon sits alone at the bottom of both axes.}
+\label{fig:hand-pressure}
+\end{figure}
+
+\subsection{Iota and outcome mix}
+Iota (Double Down) is the dual product win: Figure~\ref{fig:iota-lift} shows its W12 move-value-spread lift versus baseline (+0.26 to +0.86 depending on fleet). Figure~\ref{fig:outcome-mix} stacks skill-/mixed-/luck-dominant cell counts; Iota is all skill-dominant, while Epsilon is mostly luck. Figure~\ref{fig:legal-vs-spread} places each cell in (legal moves, move-value spread) space --- Epsilon clusters low; Iota/baseline/Zeta occupy the skillful cloud.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\textwidth]{../tools/nn/figures/figure17-iota-spread-lift-w12.png}
+\caption{Iota move-value-spread lift on Warp~12 (fleet sizes 2--8). Double Down widens discriminating choices without collapsing branching.}
+\label{fig:iota-lift}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{../tools/nn/figures/figure18-module-outcome-mix.png}
+\caption{Skill / mixed / luck outcome mix by module (fraction of configuration cells). Promote modules are skill-dominated bars; Epsilon is mostly luck.}
+\label{fig:outcome-mix}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.88\textwidth]{../tools/nn/figures/figure19-legal-vs-spread-scatter.png}
+\caption{Per-cell scatter of mean legal moves vs move-value spread for baseline, Iota, Official, Zeta, and Epsilon. Epsilon occupies the lower-left Warped pocket.}
+\label{fig:legal-vs-spread}
+\end{figure}
+
+\subsection{Zeta: skillful team play, Squadron TEI (never FFA)}
+Zeta is the dual of Epsilon on the skill instrument: \textbf{2.94/4} indicators on eligible fleets (16/17 skill-dominant). Shared trails and bridge seating preserve decision pressure. It is \emph{not} Warped. The product separation is infrastructural, not skill-based: FFA TEI stays on individual tables; eligible rated Warp~12 Zeta sectors write OpenSkill updates to a dedicated team track (\texttt{squadRating}), gated by \texttt{SQUADRONS\_RATING\_CALIBRATED} (now \texttt{true} after 2v2 ordering calibration). Crew nights never pollute the FFA human ladder.
+
+\subsection{Product recommendations}
+\begin{itemize}
+\item \textbf{Rated (Promote):} Official Warp 12; baseline; Alpha--Delta, Eta, Theta, Iota, Lambda, Mu (own-trail fracture); Zeta on rated Warp~12 writes \textbf{Squad TEI} only.
+\item \textbf{Warped / party:} Epsilon --- exhibition only; label as luck-leaning social play.
+\item \textbf{Already Warped (RULES):} Kappa (intentional score inversion).
+\item \textbf{Do not merge} Epsilon-enabled boards into rated FFA TEI; keep exhibition ledgers separate when Warped modules run.
 \end{itemize}
 
 \section{Discussion}
 
 \subsection{What Calibration Teaches}
 \begin{itemize}
-\item \textbf{Points} behaves like a smooth skill ladder --- good fit for fixed TEI spacing.
-\item \textbf{Go-out} behaves like a stochastic race --- ordering survives, magnitudes don't.
+\item \textbf{Points} behaves like a smooth skill ladder --- good fit for OpenSkill $\mu$ spacing.
+\item \textbf{Go-out} behaves like a stochastic race --- ordering survives, $|\Delta\mu|$ magnitudes don't.
 \item \textbf{Table size} erodes heads-up skill signal --- focus tests essential.
 \item \textbf{House rules} mostly reshape legality --- heuristics gated at runtime suffice for DTI.
 \item \textbf{Commander heuristics are a ceiling in 2p points} --- ISMCTS~\cite{cowling2012ismcts} parity is confirmation, not failure; expectimax extracts the residual edge via explicit tree search.
 \item \textbf{Search value is mode-dependent} --- expectimax for 2p, ISMCTS for multi-player chaos.
-\item \textbf{Neural Class II can replace heuristics without a second lobby tier} --- keep $\sigma=$\texttt{commander}, update \texttt{rulesProfileId} + REF\_TEI.
-\item \textbf{Fair-share $\neq$ Elo bump} --- translating fleet-mean $\Omega$/Commander ratio with $400 \log_{10}(\text{fs})$ overstates anchors when most rated matches are 2--4p; temper for the rating context you ship.
+\item \textbf{Neural Class II can replace heuristics without a second lobby tier} --- keep $\sigma=$\texttt{commander}, update \texttt{rulesProfileId} + Commander anchor $\mu$.
+\item \textbf{Fair-share $\neq$ $\Delta\mu$ bump} --- translating fleet-mean $\Omega$/Commander ratio with Elo-style $400 \log_{10}(\text{fs})$ overstates anchors when most rated matches are 2--4p; temper for the rating context you ship.
 \item \textbf{Imitation nets (Class I*) plateau at the teacher;} $\Omega$ succeeds by targeting search visit distributions (Path B), not Commander picks, following principles similar to AlphaZero's self-play approach~\cite{silver2017alphazero}.
-\item \textbf{Larger fleets increase skill, not noise} --- the 19K-game study shows skill index rises with player count ($r > 0.84$ for W12/15/18), contradicting the ``more players = crapshoot'' intuition.
+\item \textbf{Larger fleets increase skill, not noise} --- baseline cells of the 285K-game matrix show skill index rises with player count ($r > 0.84$ for W12/15/18), contradicting the ``more players = crapshoot'' intuition.
 \item \textbf{W12 is empirically optimal for TEI} --- highest baseline skill in 2--4p range, steepest fleet size gradient ($r = 0.875$), best discriminator of player ability.
+\item \textbf{Drafting is a trap for competitive design} --- Module Epsilon collapses mid-game skill indicators to 1.08/4; choose-your-hand rituals belong in party mode (Warped).
+\item \textbf{Team play is skillful and rates on Squad TEI} --- Module Zeta preserves skill (2.94/4); rated crew sectors update \texttt{squadRating}, never FFA \texttt{humanRating}.
+\item \textbf{Iota is the rare module that raises the ceiling} --- Double Down is the only single module with 38/38 skill-dominant cells.
 \end{itemize}
 
 \subsection{Design Recommendations}
@@ -772,10 +952,11 @@ This study used \textbf{points only}. Go-out exhibits higher variance (Section 7
 \item Show percentile on go-out boards.
 \item Don't expose lookahead / $\Omega$+ as a rating-affecting toggle without $\Delta_{\text{search}}$ or marking unrated.
 \item Retune weights selectively (popular hosted configs), not full combinatorial grid.
-\item Recalibrate REF\_TEI when Class II \textbf{implementation} changes; do not rewrite stored human ratings.
+\item Recalibrate Commander $\mu$ when Class II \textbf{implementation} changes; do not rewrite stored human ratings.
 \item Prefer one strong rated tier over ``Commander + Omega + Class I*'' confusion.
 \item Anchor TEI exclusively on W12; treat W9/15/18 as exhibition using the same Class IV--II opponents.
-\item Do not reduce K-factor for large fleets --- skill expression increases, not variance.
+\item Do not soften OpenSkill updates for large fleets --- skill expression increases, not variance.
+\item Mark Epsilon \textbf{Warped / party} in the product; promote Iota and Official for rated presets; treat Zeta as skill-promote with live Squad TEI (never FFA).
 \end{itemize}
 
 \subsection{Limitations}
@@ -783,26 +964,36 @@ This study used \textbf{points only}. Go-out exhibits higher variance (Section 7
 \item Heuristic agents, not equilibrium solvers.
 \item Calibration seed and game count sensitivity.
 \item No human champion study yet.
-\item Module combinations not exhaustively calibrated.
-\item Study used points objective only --- go-out may exhibit different luck/skill patterns.
+\item Module study used points objective and Commander seats only --- go-out and mixed human/AI may differ.
+\item Legacy ineligible Zeta cells exist in the dataset; filtered for Zeta claims.
 \item W18 non-monotonicity at 17p/18p suggests potential edge cases at extreme configurations.
+\item §8 continuous composites and §9 binary indicators share sampler hardware but are not interchangeable scales; do not treat a cell's \texttt{skillIndex} and its $S/4$ count as the same quantity.
+\item Composite weights and indicator thresholds are fixed heuristic guards, not cross-validated predictors of human TEI.
 \end{itemize}
 
 \section{Conclusion}
 
 TEI and self-play calibration provide a \textbf{practical, honest skill ladder} for a game too messy for classical solving. Points and go-out should be treated as \textbf{two calibration targets} on one engine. \textbf{Class I*} and Fleet Admiral benches show that \textbf{no single algorithm wins every mode}: Commander heuristics are near-optimal in 2p points (ISMCTS~\cite{cowling2012ismcts} $\sim$51\%), expectimax extracts a $\sim$64\% edge there via explicit tree search, and ISMCTS outperforms greedy seats in 4p go-out ($\sim$31\% vs $\sim$23\%). \textbf{Class $\Omega$} shows that a pure self-play net can \textbf{replace} heuristic Class II without a fourth lobby tier --- but \textbf{promotion benches and TEI anchors are different jobs}: fleet fair-share can look large while heads-up play stays near parity; REF\_TEI must follow the tables you rate.
 
-The \textbf{19,000-game luck vs skill study} (38 configurations, 4 Warp factors, 2--18 players) reveals three key insights:
+The \textbf{285{,}000-game module study} (570 cells; Section~\ref{sec:module-balance}) is the authoritative skill/luck instrument. From its \textbf{baseline} Warp$\times$fleet slice:
 
 \begin{enumerate}
-\item \textbf{Skill expression increases with both Warp factor and fleet size.} Contrary to conventional wisdom (``more players = more luck''), our data show skill index rises strongly with player count ($r = 0.84$--$0.89$ for W12/15/18). W18/18p exhibits 1.74$\times$ the skill of W18/2p, with only 1.21$\times$ the luck --- the \textit{highest} skill/luck ratio of any configuration tested.
+\item \textbf{Skill expression increases with both Warp factor and fleet size.} Contrary to conventional wisdom (``more players = more luck''), skill index rises strongly with player count ($r = 0.84$--$0.89$ for W12/15/18). W18/18p exhibits 1.74$\times$ the skill of W18/2p, with only 1.21$\times$ the luck --- the \textit{highest} skill/luck ratio of any configuration tested.
 
 \item \textbf{W12 is the empirically optimal rated factor.} W12 exhibits the highest baseline skill in the 2--4 player range (where most rated play occurs) and the steepest fleet size gradient ($r = 0.875$), making it the best discriminator of player ability. This justifies restricting TEI rating to W12 while offering W9/15/18 as exhibition modes.
 
 \item \textbf{Hand entropy increases with Warp factor, but decision complexity stays constant.} Larger tile sets create more diverse hands (W9: 2.09 bits $\to$ W18: 2.66 bits entropy) but do not increase branching factor (mean legal moves $\sim$1.8--2.2 across all configs). This suggests Mexican Train's tactical depth scales with tile diversity, not combinatorial explosion.
 \end{enumerate}
 
-The right product move is \textbf{one neural Class II, tempered anchors, unrated search as hard mode}, not more named tiers. Superhuman Mexican Train remains a \textbf{research program} (belief-state search + Path A value + human validation), not required for an excellent commercial experience. The luck/skill data provide empirical grounding for design choices (W12 for rating, exhibition factors for variety, no K-factor adjustments for fleet size) and open questions for future work (go-out objective, human validation studies, ergodic limits at extreme configurations).
+Across the full module matrix the product constraints are:
+
+\begin{enumerate}
+\item \textbf{Most modules are rating-safe.} Baseline, Official Warp 12, and the Alpha--Mu singles (except Epsilon) preserve $\sim$2.8--3.0 skill indicators.
+\item \textbf{Epsilon is Warped/party.} Drafting collapses skill to 1.08/4 --- keep it social, never on TEI.
+\item \textbf{Zeta is skill-promote with live Squad TEI.} Squadrons preserve skill (2.94/4); rated Warp~12 crew sectors update \texttt{squadRating} only.
+\end{enumerate}
+
+The right product move is \textbf{one neural Class II, tempered OpenSkill anchors, unrated search as hard mode}, not more named tiers --- plus a clear \textbf{Promote vs Warped} module taxonomy grounded in the skill instrument. Superhuman Mexican Train remains a \textbf{research program} (belief-state search + Path A value + human validation), not required for an excellent commercial experience.
 
 \section*{Acknowledgments}
 
@@ -824,11 +1015,21 @@ All figures are generated from empirical data and located in \texttt{tools/nn/fi
 \item \textbf{Decision complexity heatmap (Section 8)} --- Constant branching factor ($\sim$2 moves/turn) across all configurations.
 \item \textbf{Hand entropy vs near-optimal play (Section 8)} --- Weak correlation ($r = 0.009$) suggests orthogonal dimensions.
 \item \textbf{Skill vs luck balance (Section 8)} --- W18/18p has highest skill/luck ratio (8.10) of any configuration.
-\item \textbf{TEI ladder visualization (Section 5)} --- Reference bands (v1 vs v2) and Elo expected win probability curves.
-\item \textbf{Calibration matrix heatmap (Section 7)} --- Win rates between Class IV/III/II pairs show points clarity vs go-out compression.
+\item \textbf{TEI ladder visualization (Section 5)} --- OpenSkill $\mu\pm\sigma$ AI anchors and TEI grade presentation (E/V/C/I/P).
+\item \textbf{Calibration matrix heatmap (Section 7)} --- 2{,}000-game win rates; points clarity vs go-out compression.
 \item \textbf{AI bench results comparison (Section 7)} --- Class I* parity, Fleet Admiral wins (expectimax 64\%), Ω fair-share by fleet size, fair-share hazard.
 \item \textbf{Architecture diagrams (Section 4)} --- Policy stack, Class I* MLP, Class Ω policy/value heads, Fleet Admiral routing.
-\item \textbf{Points vs go-out divergence (Section 3)} --- Implied ΔTEI compression and win rate distributions demonstrate objective differences.
+\item \textbf{Points vs go-out divergence (Section 3)} --- $|\Delta\mu|$ anchor vs implied gaps; weaker-side win rates.
+\item \textbf{Module skill ranking (Section 9)} --- 285K-game Promote vs Warped taxonomy; Epsilon collapse; Zeta skill-promote.
+\item \textbf{Module $\times$ Warp heatmap (Section 9)} --- Skill indicators by module and Warp factor.
+\item \textbf{Epsilon collapse panels (Section 9)} --- Drafting vs baseline/Iota/Official across W9--W18.
+\item \textbf{Module metric profiles (Section 9)} --- Legal moves, constrained tiles, spread, unique pips.
+\item \textbf{W12 module fleet curves (Section 9)} --- Rating-relevant modules across 2--8 captains.
+\item \textbf{Epsilon deficit heatmap (Section 9)} --- Cell-level skill-indicator deficit vs baseline.
+\item \textbf{Iota spread lift on W12 (Section 9)} --- Move-value-spread gain from Double Down.
+\item \textbf{Module outcome mix (Section 9)} --- Skill / mixed / luck cell fractions by module.
+\item \textbf{Legal moves vs spread scatter (Section 9)} --- Per-cell depth cloud; Epsilon Warped pocket.
+\item \textbf{Hand-pressure bars (Section 9)} --- Constrained tiles and unique pips for key modules.
 \end{enumerate}
 
 \section{Tables}
@@ -837,6 +1038,7 @@ All figures are generated from empirical data and located in \texttt{tools/nn/fi
 \input{../tools/nn/tables/table1-summary-stats.tex}
 \input{../tools/nn/tables/table2-hypothesis-tests.tex}
 \input{../tools/nn/tables/table3-correlation-matrix.tex}
+% table4-module-ranking.tex is included in Section 9 body
 
 \section{Code Map}
 
@@ -860,13 +1062,17 @@ Class I* features & \texttt{libs/engine/src/lib/ai/feature-encoder.ts} \\
 Class I* training & \texttt{tools/nn/} (\texttt{collect}, \texttt{train.py}, \texttt{bench}) \\
 Class $\Omega$ agent / search & \texttt{libs/engine/src/lib/ai/omega-agent.ts}, \texttt{omega-search-agent.ts} \\
 $\Omega$ collect / bench & \texttt{collect-omega-trajectories.ts}, \texttt{bench-omega.ts} \\
-Human TEI update & \texttt{apps/Warp12/src/firebase/stats-elo.ts} \\
-Rules profile / anchors & \texttt{warp12-official-v1} / \texttt{v2} in \texttt{rules-profile.ts} \\
+Human TEI update & \texttt{apps/Warp12/src/firebase/stats-service.ts}, \texttt{libs/engine/.../rating/} \\
+OpenSkill anchors / grades & \texttt{anchors.ts}, \texttt{tei-grade.ts}, \texttt{update-\{ffa,team,vs-ai\}.ts} \\
+Rules profile / AI tiers & \texttt{warp12-official-v1} / \texttt{v2} in \texttt{rules-profile.ts} \\
 Luck/skill metrics & \texttt{libs/engine/src/lib/ai/luck-skill-metrics.ts} \\
 Luck/skill collection & \texttt{tools/nn/collect-luck-skill-single-config.ts} \\
+Module analysis & \texttt{tools/nn/collect-luck-skill-modules.ts}, \texttt{analyze-module-results.ts} \\
 Statistical analysis & \texttt{tools/nn/process-luck-skill-data.py}, \texttt{test-hypotheses.py} \\
-Figure generation & \texttt{tools/nn/create-figures.py} \\
+Figure generation & \texttt{create-figures.py}, \texttt{create-paper-figures.py}, \texttt{create-module-figures.py} \\
 Rules spec & \texttt{RULES.md} \\
+Module report & \texttt{docs/MODULE-ANALYSIS.md} \\
+OpenSkill calib log & \texttt{docs/openskill-calibration-log.md} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -879,6 +1085,8 @@ yarn calibrate:ai-tei
 AI_CALIBRATION_GAMES=500 yarn calibrate:ai-tei
 yarn calibrate:ai-tei-dti
 yarn optimize:ai-weights
+# OpenSkill AI-anchor calibration (engine unit suite)
+yarn test:engine -- openskill-calibration
 \end{verbatim}
 
 \subsection{Fleet Admiral Benchmarks}
@@ -896,17 +1104,18 @@ yarn class1-star:pipeline:go-out
 yarn class1-star:pipeline:deepblue
 \end{verbatim}
 
-\subsection{Luck vs Skill Data Collection}
+\subsection{Skill/Luck and Module Matrix (285k games)}
 \begin{verbatim}
-# Fine-grained parallel (38 workers, one per config)
-COMPREHENSIVE_GAMES=500 COMPREHENSIVE_WORKERS=15 \
-  bash tools/nn/run-comprehensive-parallel-fine.sh
+# Authoritative campaign (570 cells × 500 games)
+MODULE_GAMES=500 MODULE_WORKERS=12 \
+  bash tools/nn/run-module-analysis-parallel.sh
+npx tsx tools/nn/analyze-module-results.ts
 
-# Process and analyze
-python3 tools/nn/process-luck-skill-data.py
-python3 tools/nn/test-hypotheses.py
-python3 tools/nn/create-figures.py
-python3 tools/nn/create-tables.py
+# Warp×fleet figures/tables use the baseline (`none`) cells of that matrix
+MPLBACKEND=Agg python3 tools/nn/create-module-figures.py
+MPLBACKEND=Agg python3 tools/nn/create-paper-figures.py
+MPLBACKEND=Agg python3 tools/nn/create-figures.py
+MPLBACKEND=Agg python3 tools/nn/create-tables.py
 \end{verbatim}
 
 All data and scripts are available in the \texttt{warp12-engine} package and \texttt{tools/nn/} directory.
@@ -981,6 +1190,11 @@ Applied Statistics, 48(3):377--394.
 Herbrich, R., Minka, T., and Graepel, T. (2006).
 \textit{TrueSkill™: A Bayesian Skill Rating System}.
 Advances in Neural Information Processing Systems, 19:569--576.
+
+\bibitem{wenglin2011}
+Weng, R.C., and Lin, C.-J. (2011).
+\textit{A Bayesian Approximation Method for Online Ranking}.
+Journal of Machine Learning Research, 12:267--300.
 
 \bibitem{silver2018alphazero}
 Silver, D., Hubert, T., Schrittwieser, J., et al. (2018).

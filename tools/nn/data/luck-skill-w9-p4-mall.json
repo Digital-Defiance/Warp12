@@ -3,6 +3,7 @@
   "playerCount": 4,
   "moduleConfig": "all",
   "moduleLabel": "All Modules (stress test)",
+  "zetaOmitted": false,
   "games": 500,
   "objective": "points",
   "summary": {
@@ -10,18 +11,18 @@
     "playerCount": 4,
     "maxPip": 9,
     "objective": "points",
-    "avgLegalMovesPerTurn": 1.9315585691004156,
-    "avgUniqueTrainsPerTurn": 0.8978518346257635,
-    "avgConstrainedTileFraction": 0.5629230057952966,
-    "avgUniquePipsInHand": 5.438182344201849,
-    "avgMaxPipCluster": 2.3519673675075747,
-    "avgHandEntropy": 2.1182620152734577,
-    "avgMoveValueSpread": 1.9723973259538383,
-    "avgNearOptimalFraction": 0.8155019170412006,
+    "avgLegalMovesPerTurn": 1.6345177132769795,
+    "avgUniqueTrainsPerTurn": 0.8523462217616217,
+    "avgConstrainedTileFraction": 0.5807782463189421,
+    "avgUniquePipsInHand": 5.593547298643461,
+    "avgMaxPipCluster": 2.3646696436979204,
+    "avgHandEntropy": 2.1722013282877723,
+    "avgMoveValueSpread": 1.582221909399793,
+    "avgNearOptimalFraction": 0.8387686713304765,
     "avgOwnTrailPlayRate": 0,
-    "avgShieldsDownRate": 0.2492727715413399
+    "avgShieldsDownRate": 0.04241250458538769
   },
   "skillIndicators": 2,
-  "timestamp": "2026-07-12T23:05:28.380Z",
-  "durationSeconds": 54.544
+  "timestamp": "2026-07-14T01:28:53.559Z",
+  "durationSeconds": 6.358
 }

@@ -6,6 +6,7 @@ import {
   DEFAULT_GAME_OBJECTIVE,
   GAME_OBJECTIVE_LABELS,
   defaultCampaignRounds,
+  hasWarpedModules,
   type GameObjective,
 } from 'warp12-engine';
 
@@ -41,6 +42,7 @@ import {
   isLargeFleetHandSizeChoiceVisible,
 } from './deal-hand-size-hint';
 import { SubspaceFractureOptions } from './subspace-fracture-options';
+import { SquadronFormationPreview } from './squadron-formation-preview';
 import { Warp12RulesPreset } from './warp12-rules-preset';
 import { isAiCaptain } from '../game/ai-captain.js';
 import {
@@ -355,7 +357,8 @@ export function OnlineLobbyPage() {
             lobby.captains,
             objective,
             lobby.rated ?? true,
-            lobby.maxPip ?? 12
+            lobby.maxPip ?? 12,
+            lobby.modules
           );
           if (eligibility.rated) {
             return (
@@ -422,14 +425,24 @@ export function OnlineLobbyPage() {
           <label className={styles.checkboxRow}>
             <input
               type="checkbox"
-              checked={(lobby.maxPip ?? 12) === 12 && (lobby.rated ?? true)}
-              disabled={busy || (lobby.maxPip ?? 12) !== 12}
+              checked={
+                (lobby.maxPip ?? 12) === 12 &&
+                (lobby.rated ?? true) &&
+                !hasWarpedModules(lobby.modules)
+              }
+              disabled={
+                busy ||
+                (lobby.maxPip ?? 12) !== 12 ||
+                hasWarpedModules(lobby.modules)
+              }
               onChange={(e) => void saveSettings({ rated: e.target.checked })}
             />
             <span>
-              {(lobby.maxPip ?? 12) === 12
-                ? 'Rated sector — count results toward TEI (quick-hail comms only during play). Uncheck for a casual game with open chat.'
-                : `Exhibition set (Warp ${lobby.maxPip}) — TEI is Warp 12 only. This sector stays unrated.`}
+              {hasWarpedModules(lobby.modules)
+                ? 'Warped module aboard — exhibition only (TEI stays off).'
+                : (lobby.maxPip ?? 12) === 12
+                  ? 'Rated sector — count results toward TEI (quick-hail comms only; tactical advisor hidden). Uncheck for a casual game with open chat and advisor.'
+                  : `Exhibition set (Warp ${lobby.maxPip}) — TEI is Warp 12 only. This sector stays unrated.`}
             </span>
           </label>
         )}
@@ -632,6 +645,38 @@ export function OnlineLobbyPage() {
             <label className={styles.checkboxRow}>
               <input
                 type="checkbox"
+                checked={lobby.modules.temporalDebt ?? false}
+                disabled={busy || charterLocked}
+                onChange={(e) =>
+                  void saveSettings({
+                    modules: {
+                      ...lobby.modules,
+                      temporalDebt: e.target.checked,
+                    },
+                  })
+                }
+              />
+              <span>Module Eta — Temporal Debt</span>
+            </label>
+            <label className={styles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={lobby.modules.drafting ?? false}
+                disabled={busy || charterLocked}
+                onChange={(e) =>
+                  void saveSettings({
+                    modules: {
+                      ...lobby.modules,
+                      drafting: e.target.checked,
+                    },
+                  })
+                }
+              />
+              <span>Module Epsilon — Tactical Requisition (Drafting / Warped)</span>
+            </label>
+            <label className={styles.checkboxRow}>
+              <input
+                type="checkbox"
                 checked={lobby.modules.temporalInversion ?? false}
                 disabled={busy || charterLocked}
                 onChange={(e) =>
@@ -645,6 +690,66 @@ export function OnlineLobbyPage() {
               />
               <span>Module Kappa — Temporal Inversion (Warped/Exhibition)</span>
             </label>
+            <label className={styles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={lobby.modules.wormholes ?? false}
+                disabled={busy || charterLocked}
+                onChange={(e) =>
+                  void saveSettings({
+                    modules: {
+                      ...lobby.modules,
+                      wormholes: e.target.checked,
+                    },
+                  })
+                }
+              />
+              <span>Module Lambda — Wormholes (Warped/Exhibition)</span>
+            </label>
+            <label className={styles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={lobby.modules.squadrons ?? false}
+                disabled={busy || charterLocked}
+                onChange={(e) =>
+                  void saveSettings({
+                    modules: {
+                      ...lobby.modules,
+                      squadrons: e.target.checked,
+                    },
+                  })
+                }
+              />
+              <span>Module Zeta — Fleet Squadrons (team play)</span>
+            </label>
+            {lobby.modules.squadrons && (
+              <SquadronFormationPreview
+                captains={lobby.captains}
+                squadronSize={lobby.modules.squadronSize ?? 2}
+                squadronNames={lobby.modules.squadronNames}
+                squadronRosters={lobby.modules.squadronRosters}
+                disabled={busy}
+                onSquadronSizeChange={(squadronSize) =>
+                  void saveSettings({
+                    modules: {
+                      ...lobby.modules,
+                      squadronSize,
+                      squadronRosters: undefined,
+                    },
+                  })
+                }
+                onSquadronNamesChange={(squadronNames) =>
+                  void saveSettings({
+                    modules: { ...lobby.modules, squadronNames },
+                  })
+                }
+                onSquadronRostersChange={(squadronRosters) =>
+                  void saveSettings({
+                    modules: { ...lobby.modules, squadronRosters },
+                  })
+                }
+              />
+            )}
             <DoubleZeroScoreField
               value={lobby.houseRules?.doubleZeroScore}
               disabled={busy || charterLocked}

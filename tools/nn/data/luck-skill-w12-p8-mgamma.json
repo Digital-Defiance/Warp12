@@ -3,6 +3,7 @@
   "playerCount": 8,
   "moduleConfig": "gamma",
   "moduleLabel": "Module Gamma (Sensor Grid)",
+  "zetaOmitted": false,
   "games": 500,
   "objective": "points",
   "summary": {
@@ -10,18 +11,18 @@
     "playerCount": 8,
     "maxPip": 12,
     "objective": "points",
-    "avgLegalMovesPerTurn": 2.5632336157066926,
-    "avgUniqueTrainsPerTurn": 1.18050805032298,
-    "avgConstrainedTileFraction": 0.6713693296935733,
-    "avgUniquePipsInHand": 7.192154366661467,
-    "avgMaxPipCluster": 2.589960143180777,
-    "avgHandEntropy": 2.5113829550124307,
-    "avgMoveValueSpread": 4.142973474435828,
-    "avgNearOptimalFraction": 0.7040541397098525,
+    "avgLegalMovesPerTurn": 2.5114006868411476,
+    "avgUniqueTrainsPerTurn": 1.1210849339743492,
+    "avgConstrainedTileFraction": 0.5933498446336211,
+    "avgUniquePipsInHand": 7.413127979875249,
+    "avgMaxPipCluster": 2.592101970298874,
+    "avgHandEntropy": 2.557955231000095,
+    "avgMoveValueSpread": 3.6393915875580096,
+    "avgNearOptimalFraction": 0.7308974079482671,
     "avgOwnTrailPlayRate": 0,
-    "avgShieldsDownRate": 0.3599109662546206
+    "avgShieldsDownRate": 0.13426273728792196
   },
   "skillIndicators": 3,
-  "timestamp": "2026-07-12T23:15:49.098Z",
-  "durationSeconds": 142.038
+  "timestamp": "2026-07-14T01:31:17.954Z",
+  "durationSeconds": 18.45
 }

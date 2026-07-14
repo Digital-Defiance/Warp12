@@ -3,6 +3,7 @@
   "playerCount": 10,
   "moduleConfig": "zeta",
   "moduleLabel": "Module Zeta (Squadrons)",
+  "zetaOmitted": false,
   "games": 500,
   "objective": "points",
   "summary": {
@@ -10,18 +11,18 @@
     "playerCount": 10,
     "maxPip": 18,
     "objective": "points",
-    "avgLegalMovesPerTurn": 2.2309744279084045,
-    "avgUniqueTrainsPerTurn": 1.018383257393358,
-    "avgConstrainedTileFraction": 0.6331482593077793,
-    "avgUniquePipsInHand": 7.9023847332403845,
-    "avgMaxPipCluster": 2.2212554174270016,
-    "avgHandEntropy": 2.684872367217955,
-    "avgMoveValueSpread": 4.791656728930097,
-    "avgNearOptimalFraction": 0.7712533959664877,
+    "avgLegalMovesPerTurn": 1.7947324580740283,
+    "avgUniqueTrainsPerTurn": 0.921707859609999,
+    "avgConstrainedTileFraction": 0.5968551173789589,
+    "avgUniquePipsInHand": 7.793374002407246,
+    "avgMaxPipCluster": 2.1894902288017946,
+    "avgHandEntropy": 2.662074361732918,
+    "avgMoveValueSpread": 3.4500317611996993,
+    "avgNearOptimalFraction": 0.8263170065361344,
     "avgOwnTrailPlayRate": 0,
-    "avgShieldsDownRate": 0.4239011670446574
+    "avgShieldsDownRate": 0.05722511927136561
   },
   "skillIndicators": 3,
-  "timestamp": "2026-07-13T00:18:33.135Z",
-  "durationSeconds": 268.557
+  "timestamp": "2026-07-14T01:50:25.181Z",
+  "durationSeconds": 61.626
 }

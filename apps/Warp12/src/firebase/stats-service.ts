@@ -43,6 +43,7 @@ import {
 } from './match-history.js';
 
 import type { CaptainGender } from '../game/captain-profile.js';
+import { isRatedLocalGame } from '../game/local-game-config.js';
 import {
   emptyLocalAiSkillStats,
   objectiveRatingStats as objectiveTeiStats,
@@ -139,6 +140,8 @@ export interface OnlineHumanSelfReport {
   charterRatingAfter?: StoredRating | null;
   charterMuDelta?: number | null;
   charterSigmaDelta?: number | null;
+  /** Module Zeta: squad id, present when this was a squad-rated match. */
+  squadId?: string;
   /** When unrated, the server's reason code (e.g. `advisor_used`). */
   reason?: string;
   // Legacy fields for backward compatibility (deprecated)
@@ -165,6 +168,8 @@ interface OnlineMatchCallableResult {
   charterRatingAfter?: StoredRating | null;
   charterMuDelta?: number | null;
   charterSigmaDelta?: number | null;
+  /** Module Zeta: squad id, present when this was a squad-rated match. */
+  squadId?: string;
   // Legacy fields (deprecated)
   teiBefore?: number | null;
   teiAfter?: number | null;
@@ -225,11 +230,12 @@ export function previewLocalAiMatchReport(
   won: boolean,
   startingRating?: { mu: number; sigma: number }
 ): LocalAiMatchReport {
-  if (input.advisorUsed) {
+  const teiEligible = !input.advisorUsed && isRatedLocalGame(input.config);
+  if (!teiEligible) {
     return {
       rated: false,
       won,
-      advisorUsed: true,
+      advisorUsed: input.advisorUsed,
       objective: input.objective,
       skill: input.skill,
       ratingBefore: null,
@@ -538,6 +544,7 @@ export async function reportOnlineMatch(
           charterSigmaDelta: result.charterSigmaDelta ?? null,
         }
       : {}),
+    ...(result.squadId ? { squadId: result.squadId } : {}),
   };
 }
 

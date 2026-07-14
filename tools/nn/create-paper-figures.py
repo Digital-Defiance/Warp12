@@ -26,62 +26,133 @@ output_dir = 'tools/nn/figures/'
 
 print("Generating additional paper figures...")
 
-# ============================================================================
-# Figure 6: TEI Ladder Visualization
-# ============================================================================
-print("  Figure 6: TEI ladder visualization...")
+CREAM = "#F7F3EA"
+NAVY = "#0B1F33"
+TEAL = "#1C6E8C"
+AMBER = "#D4A017"
+CORAL = "#C23B22"
+MOSS = "#3D6B4F"
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+# ============================================================================
+# Figure 6: OpenSkill TEI Ladder (μ ± σ)
+# ============================================================================
+print("  Figure 6: OpenSkill TEI ladder visualization...")
 
-# Left: Reference bands
-classes = ['Class IV\n(Ensign)', 'Class III\n(Lieutenant)', 'Class II v1\n(Commander)', 'Class II v2\n(Ω)']
-points_tei = [1000, 1200, 1400, 1520]
-goout_tei = [1000, 1250, 1500, 1550]
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12.5, 5.4))
+fig.patch.set_facecolor(CREAM)
+for ax in (ax1, ax2):
+    ax.set_facecolor(CREAM)
+
+# Calibrated anchors from libs/engine/.../anchors.ts
+classes = ["Ensign\n(Class IV)", "Lieutenant\n(Class III)", "Commander\n(Class II)"]
+points_mu = np.array([18.0, 26.5, 35.0])
+points_sigma = np.array([4.0, 3.5, 3.0])
+goout_mu = np.array([17.5, 28.0, 41.5])
+goout_sigma = np.array([4.5, 4.0, 3.5])
+# Display rating = μ - 3σ (floored at 0)
+points_display = np.maximum(0, points_mu - 3 * points_sigma)
+goout_display = np.maximum(0, goout_mu - 3 * goout_sigma)
 
 x_pos = np.arange(len(classes))
-width = 0.35
+width = 0.36
 
-bars1 = ax1.bar(x_pos - width/2, points_tei, width, label='Points', color='steelblue', alpha=0.8)
-bars2 = ax1.bar(x_pos + width/2, goout_tei, width, label='Go-out', color='coral', alpha=0.8)
-
-ax1.set_xlabel('AI Class')
-ax1.set_ylabel('TEI Rating')
-ax1.set_title('TEI Reference Bands by Objective')
+bars1 = ax1.bar(
+    x_pos - width / 2,
+    points_mu,
+    width,
+    yerr=points_sigma,
+    capsize=5,
+    label="Points μ ± σ",
+    color=TEAL,
+    ecolor=NAVY,
+    alpha=0.9,
+    edgecolor=NAVY,
+    linewidth=0.5,
+)
+bars2 = ax1.bar(
+    x_pos + width / 2,
+    goout_mu,
+    width,
+    yerr=goout_sigma,
+    capsize=5,
+    label="Go-out μ ± σ",
+    color=CORAL,
+    ecolor=NAVY,
+    alpha=0.85,
+    edgecolor=NAVY,
+    linewidth=0.5,
+)
+ax1.scatter(
+    x_pos - width / 2,
+    points_display,
+    marker="D",
+    s=45,
+    color=AMBER,
+    zorder=5,
+    label="Display (μ−3σ)",
+)
+ax1.scatter(x_pos + width / 2, goout_display, marker="D", s=45, color=AMBER, zorder=5)
+ax1.set_ylabel("OpenSkill μ (skill mean)")
+ax1.set_title("Calibrated AI anchors (μ ± σ)")
 ax1.set_xticks(x_pos)
 ax1.set_xticklabels(classes)
-ax1.legend()
-ax1.grid(axis='y', alpha=0.3)
+ax1.legend(loc="upper left", fontsize=8)
+ax1.grid(axis="y", alpha=0.3)
+ax1.set_ylim(0, 50)
 
-# Add value labels on bars
-for bars in [bars1, bars2]:
-    for bar in bars:
-        height = bar.get_height()
-        ax1.text(bar.get_x() + bar.get_width()/2., height,
-                f'{int(height)}',
-                ha='center', va='bottom', fontsize=8)
+for i, (pm, pd, gm, gd) in enumerate(
+    zip(points_mu, points_display, goout_mu, goout_display)
+):
+    ax1.text(i - width / 2, pm + points_sigma[i] + 0.8, f"μ={pm:.1f}", ha="center", fontsize=7)
+    ax1.text(i + width / 2, gm + goout_sigma[i] + 0.8, f"μ={gm:.1f}", ha="center", fontsize=7)
 
-# Right: Expected win probability curves (standard rating model)
-tei_diff = np.linspace(-400, 400, 100)
-expected_win_rate = 1 / (1 + 10**(-tei_diff/400))
+# Right: grade letter from σ + score from display rating
+grades = ["P / I", "I / C", "C / V"]
+ax2.barh(
+    np.arange(3),
+    [points_sigma[2], points_sigma[1], points_sigma[0]][::-1],
+    color=[MOSS, TEAL, CORAL][::-1],
+    edgecolor=NAVY,
+    height=0.55,
+)
+# Actually clearer: show TEI Grade mapping as text panels
+ax2.clear()
+ax2.set_facecolor(CREAM)
+ax2.axis("off")
+ax2.set_xlim(0, 10)
+ax2.set_ylim(0, 10)
+ax2.set_title("TEI Grade presentation layer", pad=12)
 
-ax2.plot(tei_diff, expected_win_rate, 'b-', linewidth=2)
-ax2.axhline(y=0.5, color='gray', linestyle='--', alpha=0.5, label='50% (parity)')
-ax2.axvline(x=0, color='gray', linestyle='--', alpha=0.5)
+grade_rows = [
+    ("E", "σ < 0.5", "Elite"),
+    ("V", "σ < 1.5", "Veteran"),
+    ("C", "σ < 2.5", "Consistent"),
+    ("I", "σ < 4.0", "Improving"),
+    ("P", "σ ≥ 4.0", "Provisional"),
+]
+for i, (letter, thresh, name) in enumerate(grade_rows):
+    y = 8.5 - i * 1.35
+    ax2.add_patch(
+        plt.Rectangle((0.4, y - 0.45), 1.2, 0.9, facecolor=TEAL if i < 3 else CORAL, alpha=0.85, edgecolor=NAVY)
+    )
+    ax2.text(1.0, y, letter, ha="center", va="center", fontsize=16, fontweight="bold", color="white")
+    ax2.text(2.0, y, f"{name}  ·  {thresh}", ha="left", va="center", fontsize=10, color=NAVY)
 
-# Mark reference spacings (display rating deltas, not raw μ)
-ax2.axvline(x=200, color='steelblue', linestyle=':', alpha=0.7, label='Typical tier spacing')
-ax2.axvline(x=250, color='coral', linestyle=':', alpha=0.7, label='Go-out spacing')
-
-ax2.set_xlabel('Rating Difference (Player - Opponent)')
-ax2.set_ylabel('Expected Win Rate')
-ax2.set_title('Rating Win Probability Curve')
-ax2.set_xlim(-400, 400)
-ax2.set_ylim(0, 1)
-ax2.legend()
-ax2.grid(alpha=0.3)
+ax2.text(
+    5.0,
+    1.2,
+    "Display format: letter + 0–99 score\n"
+    "Score ∝ clamp(μ − 3σ) over [10, 50]\n"
+    "Example: Commander μ=35, σ=3 → display≈26 → mid/high score",
+    ha="left",
+    va="center",
+    fontsize=9,
+    color=NAVY,
+    bbox=dict(boxstyle="round,pad=0.4", facecolor="white", edgecolor=NAVY, alpha=0.9),
+)
 
 plt.tight_layout()
-plt.savefig(f'{output_dir}figure6-tei-ladder.png', bbox_inches='tight', dpi=150)
+plt.savefig(f"{output_dir}figure6-tei-ladder.png", bbox_inches="tight", dpi=180, facecolor=CREAM)
 plt.close()
 print(f"    ✓ Saved figure6-tei-ladder.png")
 
@@ -91,62 +162,58 @@ print(f"    ✓ Saved figure6-tei-ladder.png")
 print("  Figure 7: Calibration matrix heatmap...")
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+fig.patch.set_facecolor(CREAM)
+for ax in (ax1, ax2):
+    ax.set_facecolor(CREAM)
 
-# Mock data based on Section 7 results
-classes_short = ['IV', 'III', 'II']
+classes_short = ["IV", "III", "II"]
 
-# Points: higher-skill win rates (200 games)
-points_matrix = np.array([
-    [0.50, 0.88, 0.915],  # Class IV vs all
-    [0.12, 0.50, 0.63],   # Class III vs all
-    [0.085, 0.37, 0.50]   # Class II vs all
-])
+# From openskill-calibration-log.md (2,000 games) — row=player, col=opponent win rate
+# Points: EvsL=15.7%, EvsC=9.2%, LvsC=36.3% (weaker viewpoint)
+# Matrix of P(row beats col):
+points_matrix = np.array(
+    [
+        [0.50, 0.157, 0.092],  # IV vs IV/III/II
+        [0.843, 0.50, 0.363],  # III
+        [0.908, 0.637, 0.50],  # II
+    ]
+)
+goout_matrix = np.array(
+    [
+        [0.50, 0.430, 0.384],
+        [0.570, 0.50, 0.441],
+        [0.616, 0.559, 0.50],
+    ]
+)
 
-# Go-out: more compressed (200 games)
-goout_matrix = np.array([
-    [0.50, 0.75, 0.85],   # Class IV vs all
-    [0.25, 0.50, 0.51],   # Class III vs all (near coin flip vs II)
-    [0.15, 0.49, 0.50]    # Class II vs all
-])
-
-# Plot points
-im1 = ax1.imshow(points_matrix, cmap='RdYlGn', vmin=0, vmax=1, aspect='auto')
-ax1.set_xticks(np.arange(len(classes_short)))
-ax1.set_yticks(np.arange(len(classes_short)))
+im1 = ax1.imshow(points_matrix, cmap="RdYlGn", vmin=0.3, vmax=0.95, aspect="auto")
+ax1.set_xticks(np.arange(3))
+ax1.set_yticks(np.arange(3))
 ax1.set_xticklabels(classes_short)
 ax1.set_yticklabels(classes_short)
-ax1.set_xlabel('Opponent Class')
-ax1.set_ylabel('Player Class')
-ax1.set_title('Points: Win Rates (200 games)')
+ax1.set_xlabel("Opponent Class")
+ax1.set_ylabel("Player Class")
+ax1.set_title("Points: win rates (2,000 games)")
+for i in range(3):
+    for j in range(3):
+        ax1.text(j, i, f"{points_matrix[i, j]:.2f}", ha="center", va="center", color="black", fontsize=10)
+plt.colorbar(im1, ax=ax1, label="Win rate", fraction=0.046)
 
-# Annotate cells
-for i in range(len(classes_short)):
-    for j in range(len(classes_short)):
-        text = ax1.text(j, i, f'{points_matrix[i, j]:.2f}',
-                       ha="center", va="center", color="black", fontsize=10)
-
-plt.colorbar(im1, ax=ax1, label='Win Rate')
-
-# Plot go-out
-im2 = ax2.imshow(goout_matrix, cmap='RdYlGn', vmin=0, vmax=1, aspect='auto')
-ax2.set_xticks(np.arange(len(classes_short)))
-ax2.set_yticks(np.arange(len(classes_short)))
+im2 = ax2.imshow(goout_matrix, cmap="RdYlGn", vmin=0.3, vmax=0.95, aspect="auto")
+ax2.set_xticks(np.arange(3))
+ax2.set_yticks(np.arange(3))
 ax2.set_xticklabels(classes_short)
 ax2.set_yticklabels(classes_short)
-ax2.set_xlabel('Opponent Class')
-ax2.set_ylabel('Player Class')
-ax2.set_title('Go-out: Win Rates (compressed)')
-
-# Annotate cells
-for i in range(len(classes_short)):
-    for j in range(len(classes_short)):
-        text = ax2.text(j, i, f'{goout_matrix[i, j]:.2f}',
-                       ha="center", va="center", color="black", fontsize=10)
-
-plt.colorbar(im2, ax=ax2, label='Win Rate')
+ax2.set_xlabel("Opponent Class")
+ax2.set_ylabel("Player Class")
+ax2.set_title("Go-out: compressed win rates (2,000 games)")
+for i in range(3):
+    for j in range(3):
+        ax2.text(j, i, f"{goout_matrix[i, j]:.2f}", ha="center", va="center", color="black", fontsize=10)
+plt.colorbar(im2, ax=ax2, label="Win rate", fraction=0.046)
 
 plt.tight_layout()
-plt.savefig(f'{output_dir}figure7-calibration-matrix.png', bbox_inches='tight', dpi=150)
+plt.savefig(f"{output_dir}figure7-calibration-matrix.png", bbox_inches="tight", dpi=180, facecolor=CREAM)
 plt.close()
 print(f"    ✓ Saved figure7-calibration-matrix.png")
 
@@ -364,71 +431,66 @@ print(f"    ✓ Saved figure9-architectures.png")
 # ============================================================================
 print("  Figure 10: Points vs Go-out strategic divergence...")
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13.5, 5.6))
+fig.patch.set_facecolor(CREAM)
+for ax in (ax1, ax2):
+    ax.set_facecolor(CREAM)
 
-# Left: Implied ΔTEI comparison
+# Left: Actual vs implied μ gaps from openskill-calibration-log.md
 ax = ax1
-matchups = ['IV vs III', 'IV vs II', 'III vs II']
-expected_delta = [200, 400, 200]  # Target spacing
-points_observed = [250, 420, 150]  # Mock based on win rates in Section 7
-goout_observed = [180, 320, 20]    # Compressed
+matchups = ["Ensign vs\nLieutenant", "Lieutenant vs\nCommander", "Ensign vs\nCommander"]
+# Anchored |Δμ|
+points_actual = [8.5, 8.5, 17.0]
+points_implied = [7.0, 2.3, 9.5]  # from observed win rates
+goout_actual = [10.5, 13.5, 24.0]
+goout_implied = [1.2, 1.0, 2.0]
 
 x = np.arange(len(matchups))
-width = 0.25
-
-bars1 = ax.bar(x - width, expected_delta, width, label='Expected ΔTEI', color='gray', alpha=0.6)
-bars2 = ax.bar(x, points_observed, width, label='Points (observed)', color='steelblue', alpha=0.8)
-bars3 = ax.bar(x + width, goout_observed, width, label='Go-out (observed)', color='coral', alpha=0.8)
-
-ax.set_ylabel('Implied ΔTEI (rating points)')
-ax.set_xlabel('Matchup')
-ax.set_title('Points vs Go-out: Implied TEI Gaps')
+width = 0.2
+ax.bar(x - 1.5 * width, points_actual, width, label="Points |Δμ| anchor", color=TEAL, alpha=0.9)
+ax.bar(x - 0.5 * width, points_implied, width, label="Points |Δμ| implied", color=TEAL, alpha=0.45)
+ax.bar(x + 0.5 * width, goout_actual, width, label="Go-out |Δμ| anchor", color=CORAL, alpha=0.9)
+ax.bar(x + 1.5 * width, goout_implied, width, label="Go-out |Δμ| implied", color=CORAL, alpha=0.45)
+ax.set_ylabel("|Δμ| (OpenSkill skill gap)")
+ax.set_title("Anchor gaps vs gaps implied by win rates")
 ax.set_xticks(x)
 ax.set_xticklabels(matchups)
-ax.legend()
-ax.grid(axis='y', alpha=0.3)
+ax.legend(fontsize=7.5, loc="upper left")
+ax.grid(axis="y", alpha=0.3)
 
-# Right: Win rate distributions
+# Right: win rates (stronger beats weaker)
 ax = ax2
-win_rates_points = np.array([0.88, 0.915, 0.63])  # From Section 7
-win_rates_goout = np.array([0.75, 0.85, 0.51])    # Compressed
-
-scenarios = ['Strong\nvs Weak', 'Strong\nvs Very Weak', 'Medium\nvs Weak']
+scenarios = ["III beats IV", "II beats III", "II beats IV"]
+points_wr = [0.843, 0.637, 0.908]
+goout_wr = [0.570, 0.559, 0.616]
 x2 = np.arange(len(scenarios))
-
-bars1 = ax.bar(x2 - width/2, win_rates_points, width, label='Points', color='steelblue', alpha=0.8)
-bars2 = ax.bar(x2 + width/2, win_rates_goout, width, label='Go-out', color='coral', alpha=0.8)
-
-ax.axhline(y=0.5, color='gray', linestyle='--', alpha=0.5, label='Parity (50%)')
-ax.set_ylabel('Win Rate')
-ax.set_xlabel('Skill Gap')
-ax.set_title('Win Rate Compression: Points vs Go-out')
+w = 0.35
+ax.bar(x2 - w / 2, points_wr, w, label="Points", color=TEAL, alpha=0.9)
+ax.bar(x2 + w / 2, goout_wr, w, label="Go-out", color=CORAL, alpha=0.9)
+ax.axhline(0.5, color="gray", linestyle="--", alpha=0.5)
+ax.set_ylabel("Win rate (higher-skill captain)")
+ax.set_title("Skill ordering preserved; go-out compressed")
 ax.set_xticks(x2)
 ax.set_xticklabels(scenarios)
 ax.set_ylim(0, 1)
 ax.legend()
-ax.grid(axis='y', alpha=0.3)
-
-# Add annotations
-for i, (p, g) in enumerate(zip(win_rates_points, win_rates_goout)):
-    ax.text(i - width/2, p + 0.02, f'{p:.2f}', ha='center', va='bottom', fontsize=8)
-    ax.text(i + width/2, g + 0.02, f'{g:.2f}', ha='center', va='bottom', fontsize=8)
+ax.grid(axis="y", alpha=0.3)
+for i, (p, g) in enumerate(zip(points_wr, goout_wr)):
+    ax.text(i - w / 2, p + 0.02, f"{p:.0%}", ha="center", fontsize=8)
+    ax.text(i + w / 2, g + 0.02, f"{g:.0%}", ha="center", fontsize=8)
 
 plt.tight_layout()
-plt.savefig(f'{output_dir}figure10-points-vs-goout.png', bbox_inches='tight', dpi=150)
+plt.savefig(f"{output_dir}figure10-points-vs-goout.png", bbox_inches="tight", dpi=180, facecolor=CREAM)
 plt.close()
 print(f"    ✓ Saved figure10-points-vs-goout.png")
 
 print()
-print("="*70)
+print("=" * 70)
 print("ALL ADDITIONAL FIGURES GENERATED")
-print("="*70)
-print("  • figure6-tei-ladder.png (TEI reference bands + rating curves)")
-print("  • figure7-calibration-matrix.png (Win rate heatmaps)")
+print("=" * 70)
+print("  • figure6-tei-ladder.png (OpenSkill μ±σ anchors + TEI grades)")
+print("  • figure7-calibration-matrix.png (2k-game win rate heatmaps)")
 print("  • figure8-ai-bench-results.png (Class I*/Admiral/Ω performance)")
 print("  • figure9-architectures.png (Policy stack + neural architectures)")
-print("  • figure10-points-vs-goout.png (Strategic divergence)")
-print("="*70)
-print()
-print("Total figures: 10 (5 from Section 8 + 5 additional)")
-print("Rating system: OpenSkill (Bayesian μ ± σ)")
+print("  • figure10-points-vs-goout.png (Δμ compression)")
+print("=" * 70)

@@ -24,6 +24,7 @@ const POINTS_PRESETS: Record<
       H.dropToImpulseDeclare,
       H.dropToImpulseCatch,
       H.dropToImpulseForget,
+      H.squadCoordination,
     ]),
     weights: {
       [H.preferChart]: 1,
@@ -31,6 +32,8 @@ const POINTS_PRESETS: Record<
       [H.dropToImpulseDeclare]: 0.35,
       [H.dropToImpulseCatch]: 1,
       [H.dropToImpulseForget]: 0.8,
+      // Module Zeta: low coordination — Ensign barely favors the squad trail.
+      [H.squadCoordination]: 0.2,
     },
   },
   lieutenant: {
@@ -43,6 +46,7 @@ const POINTS_PRESETS: Record<
       H.coverRelief,
       H.dropToImpulseDeclare,
       H.dropToImpulseCatch,
+      H.squadCoordination,
     ]),
     weights: {
       [H.preferChart]: 1,
@@ -52,6 +56,8 @@ const POINTS_PRESETS: Record<
       [H.coverRelief]: 1,
       [H.dropToImpulseDeclare]: 1.2,
       [H.dropToImpulseCatch]: 1.5,
+      // Module Zeta: medium coordination.
+      [H.squadCoordination]: 0.5,
     },
   },
   commander: {
@@ -69,6 +75,7 @@ const POINTS_PRESETS: Record<
       H.continuum,
       H.dropToImpulseDeclare,
       H.dropToImpulseCatch,
+      H.squadCoordination,
     ]),
     weights: {
       [H.preferChart]: 1,
@@ -83,6 +90,8 @@ const POINTS_PRESETS: Record<
       [H.continuum]: 1.5,
       [H.dropToImpulseDeclare]: 1.5,
       [H.dropToImpulseCatch]: 2,
+      // Module Zeta: high coordination — Commander actively favors the squad trail.
+      [H.squadCoordination]: 0.8,
     },
   },
 };
@@ -102,6 +111,7 @@ const GO_OUT_PRESETS: Record<
       H.dropToImpulseDeclare,
       H.dropToImpulseCatch,
       H.dropToImpulseForget,
+      H.squadCoordination,
     ]),
     weights: {
       [H.preferChart]: 1,
@@ -109,6 +119,8 @@ const GO_OUT_PRESETS: Record<
       [H.dropToImpulseDeclare]: 0.25,
       [H.dropToImpulseCatch]: 0.6,
       [H.dropToImpulseForget]: 0.5,
+      // Module Zeta: low coordination — Ensign barely favors the squad trail.
+      [H.squadCoordination]: 0.2,
     },
     goOutTuning: {
       drawReluctanceHandSize: 6,
@@ -135,6 +147,7 @@ const GO_OUT_PRESETS: Record<
       H.redAlertSafe,
       H.dropToImpulseDeclare,
       H.dropToImpulseCatch,
+      H.squadCoordination,
     ]),
     weights: {
       [H.preferChart]: 1,
@@ -153,6 +166,8 @@ const GO_OUT_PRESETS: Record<
       [H.redAlertSafe]: 1,
       [H.dropToImpulseDeclare]: 1,
       [H.dropToImpulseCatch]: 1.2,
+      // Module Zeta: medium coordination.
+      [H.squadCoordination]: 0.5,
     },
   },
   commander: {
@@ -178,6 +193,7 @@ const GO_OUT_PRESETS: Record<
       H.coverRelief,
       H.dropToImpulseDeclare,
       H.dropToImpulseCatch,
+      H.squadCoordination,
     ]),
     weights: {
       [H.preferChart]: 1,
@@ -197,6 +213,8 @@ const GO_OUT_PRESETS: Record<
       [H.coverRelief]: 0.6,
       [H.dropToImpulseDeclare]: 1.2,
       [H.dropToImpulseCatch]: 1.5,
+      // Module Zeta: high coordination — Commander actively favors the squad trail.
+      [H.squadCoordination]: 0.8,
     },
     goOutTuning: {
       blockLeaderHandSize: 3,

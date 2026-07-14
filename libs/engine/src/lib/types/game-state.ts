@@ -117,6 +117,12 @@ export interface RoundState {
    * Each draw from uncharted accumulates +1 debt. Pay costPerToken at round end.
    */
   readonly debtTokens?: Readonly<Record<PlayerId, number>>;
+  /**
+   * Module Zeta (Squadrons): squad rosters for this round. Present only when
+   * the squadrons module is enabled. Drives shared-trail / shared-beacon
+   * resolution via `trailKeyFor` (see engine/squadrons.ts). Absent = FFA.
+   */
+  readonly squadrons?: readonly import('./squadrons.js').Squadron[];
 }
 
 export interface GameState {
@@ -137,6 +143,11 @@ export interface GameState {
    * double-twelve fixtures (treated as 12).
    */
   readonly maxPip?: number;
+  /**
+   * Module Zeta (Squadrons): squad rosters for the sector. Present only when
+   * the squadrons module is enabled.
+   */
+  readonly squadrons?: readonly import('./squadrons.js').Squadron[];
 }
 
 export interface CreateGameInput {

@@ -152,6 +152,7 @@ export function TeiPage() {
           </p>
           <div className={styles.links}>
             <Link to="/profile">Profile &amp; Advanced toggle</Link>
+            <Link to="/modules">Modules · Promote vs Warped</Link>
             <Link to="/rules">Manual § VIII — Leaderboard / TEI</Link>
             <Link to="/research">Research paper (PDF)</Link>
             <Link to="/paper">Calibration log</Link>

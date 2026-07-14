@@ -1,4 +1,5 @@
 import type { RoundState } from 'warp12-engine';
+import { trailKeyFor } from 'warp12-engine';
 import {
   computeTrainTree,
   flattenSegments,
@@ -47,9 +48,12 @@ export function detectNewChart(
     (prevFracture?.stabilizers.length ?? 0) < nextFracture.stabilizers.length
   ) {
     for (const captainId of next.turnOrder) {
-      const trail = next.table.warpTrails[captainId];
+      // Module Zeta: read the shared squad trail via trailKeyFor — a
+      // squadmate who isn't the trail's canonical owner has no entry keyed
+      // by their own id, which would otherwise crash on trail.tiles below.
+      const trail = next.table.warpTrails[trailKeyFor(next, captainId)];
       if (
-        trail.tiles.some((tile) => tile.index === nextFracture.anchor.index)
+        trail?.tiles.some((tile) => tile.index === nextFracture.anchor.index)
       ) {
         return { kind: 'fracture-stabilizer', trailPlayerId: captainId };
       }
@@ -62,13 +66,27 @@ export function detectNewChart(
     return { kind: 'neutral-zone', tileIndex: nextNeutral - 1 };
   }
 
+  // Module Zeta: compare by the shared trail's canonical key, not raw
+  // captainId — a non-owner squadmate has no entry under their own id (always
+  // 0,0), so raw-id comparison would misattribute every shared-trail chart to
+  // the trailKey owner's seat and pan the camera to the wrong hub position.
+  // We still report the trailKey owner as `captainId` (detectNewChart can't
+  // see which squadmate actually acted from a snapshot diff alone) — the pan
+  // target is at least a real, consistent seat for that squad rather than
+  // silently missing the change.
+  const seenTrailKeys = new Set<string>();
   for (const captainId of next.turnOrder) {
-    const prevLen = previous.table.warpTrails[captainId]?.tiles.length ?? 0;
-    const nextLen = next.table.warpTrails[captainId]?.tiles.length ?? 0;
+    const trailKey = trailKeyFor(next, captainId);
+    if (seenTrailKeys.has(trailKey)) {
+      continue;
+    }
+    seenTrailKeys.add(trailKey);
+    const prevLen = previous.table.warpTrails[trailKey]?.tiles.length ?? 0;
+    const nextLen = next.table.warpTrails[trailKey]?.tiles.length ?? 0;
     if (nextLen > prevLen) {
       return {
         kind: 'warp-trail',
-        captainId,
+        captainId: trailKey,
         tileIndex: nextLen - 1,
       };
     }

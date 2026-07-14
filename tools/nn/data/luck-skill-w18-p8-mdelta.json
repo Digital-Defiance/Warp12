@@ -3,6 +3,7 @@
   "playerCount": 8,
   "moduleConfig": "delta",
   "moduleLabel": "Module Delta (Warp Drive Spool)",
+  "zetaOmitted": false,
   "games": 500,
   "objective": "points",
   "summary": {
@@ -10,18 +11,18 @@
     "playerCount": 8,
     "maxPip": 18,
     "objective": "points",
-    "avgLegalMovesPerTurn": 2.1170416656614623,
-    "avgUniqueTrainsPerTurn": 0.9863332216411486,
-    "avgConstrainedTileFraction": 0.6297673768216974,
-    "avgUniquePipsInHand": 8.057926184571485,
-    "avgMaxPipCluster": 2.2890886504055756,
-    "avgHandEntropy": 2.690821305460481,
-    "avgMoveValueSpread": 4.496636131440095,
-    "avgNearOptimalFraction": 0.7830884946744356,
+    "avgLegalMovesPerTurn": 2.0325496211081338,
+    "avgUniqueTrainsPerTurn": 0.90856888042326,
+    "avgConstrainedTileFraction": 0.5755518078566834,
+    "avgUniquePipsInHand": 8.303174952397772,
+    "avgMaxPipCluster": 2.318415830538683,
+    "avgHandEntropy": 2.726474389894329,
+    "avgMoveValueSpread": 3.758460069796982,
+    "avgNearOptimalFraction": 0.8094655760698415,
     "avgOwnTrailPlayRate": 0,
-    "avgShieldsDownRate": 0.33949202310481835
+    "avgShieldsDownRate": 0.1569144179521833
   },
   "skillIndicators": 3,
-  "timestamp": "2026-07-13T00:10:24.415Z",
-  "durationSeconds": 241.721
+  "timestamp": "2026-07-14T01:47:03.073Z",
+  "durationSeconds": 36.15
 }

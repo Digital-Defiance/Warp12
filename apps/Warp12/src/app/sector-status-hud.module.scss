@@ -78,6 +78,19 @@
   border-left: 3px solid var(--warp-danger);
 }
 
+.doubleDown {
+  dt,
+  dd {
+    color: var(--warp-accent-warm, #fb923c);
+    font-weight: 700;
+  }
+
+  background: rgba(251, 146, 60, 0.1);
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  border-left: 3px solid var(--warp-accent-warm, #fb923c);
+}
+
 .sensorGrid {
   dt {
     color: var(--warp-accent, #38bdf8);

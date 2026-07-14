@@ -1,11 +1,11 @@
-# TEI Specification (Tactical Efficiency Index)
+# TEI Specification (Tactical Effectiveness Index)
 
 **Status:** Normative — interoperable definition for Warp 12 and third-party multi-trail / Interstellar Dominoes platforms  
 **Reference implementation:**
 
 | Layer | Path |
 |-------|------|
-| Engine (math + grades) | `libs/engine/src/lib/rating/` (`openskill-adapter`, `anchors`, `tei-grade`, `tei-rank`, `update-ffa`, `update-vs-ai`) |
+| Engine (math + grades) | `libs/engine/src/lib/rating/` (`openskill-adapter`, `anchors`, `tei-grade`, `tei-rank`, `update-ffa`, `update-team`, `update-vs-ai`) |
 | Client storage / solo report | `apps/Warp12/src/firebase/stats-openskill.ts`, `stats-service.ts`, `rating-types.ts` |
 | Cloud Functions | `functions/src/tei/`, `report-practice-ai.ts`, `report-online-match.ts`, `set-academy-placement.ts` |
 
@@ -175,8 +175,9 @@ A match `M` is **TEI-eligible** for captain `p` on track `T` iff all hold:
 | **E5 Minimum field** | At least two captains finished the campaign |
 | **E6 Opponents** | Every AI seat is Ensign / Lieutenant / Commander. **Class I\*** (or equivalent search exhibition) → whole match ineligible |
 | **E7 Online integrity** | Online: `rated = true`; verified (non-anonymous) accounts for rated seats; hail-only free-form during live rated play (`RULES` §IX) |
+| **E8 Modules** | No **Warped** house modules (e.g.\ Module Epsilon drafting, Module Kappa score inversion — `RULES` §VI). **Module Zeta (Squadrons):** rated when `SQUADRONS_RATING_CALIBRATED` — writes **squadRating** only (§6.5), never FFA `humanRating` |
 
-**Ineligible:** advisor-assisted, sandbox/debug, aborted, casual/unrated, nonstandard house profiles (implementation-defined), Class I\* / Ω+ as rated opponents.
+**Ineligible:** advisor-assisted, sandbox/debug, aborted, casual/unrated, nonstandard house profiles (implementation-defined), Class I\* / Ω+ as rated opponents, Warped modules, squadron sectors while the squad-rating gate is off.
 
 ---
 
@@ -249,7 +250,22 @@ Build one FFA list of humans (live ratings) and AI (anchors). Run `rate` on the 
 
 Reference: `updateMixedTable(...)` / `reportOnlineMatch`.
 
-### 6.5 Initial rating and Academy seed
+### 6.5 Team / squadron updates (Module Zeta)
+
+OpenSkill natively rates **teams of multiple captains**. Engine API:
+
+```
+teams = [ { members: [{ id, rating }, …], rank }, … ]
+updated = updateTeamRatings(teams)  // Map<playerId, PlayerRating>
+```
+
+Each squad is one OpenSkill team; individual μ/σ still move (per-seat credit within the team). Convenience: `updateTwoTeamMatch(teamA, teamB, teamAWon)`.
+
+**Shipping gate:** `SQUADRONS_RATING_CALIBRATED` in `anchors.ts` is **`true`** (2026-07-13). Eligible Zeta sectors write OpenSkill updates to **`squadRating`** via `updateTeamRatings` / `apply-squad-tei`. While the flag is false, Cloud Functions MUST NOT apply squadron TEI — play stays exhibition. Calibration: points 2v2 Cmdr vs Lt ≈62% (FFA parity), Cmdr vs Ensign ≈88%; luck/skill matrix ~2.94/4 skill-promote.
+
+Until then, FFA human-pool and solo vs-AI remain the only rating paths.
+
+### 6.6 Initial rating and Academy seed
 
 Before first rated match in a bucket (`matches = 0`):
 
@@ -462,10 +478,11 @@ Exact μΔ depends on priors and the pinned `openskill` version; golden vectors 
 | Spec section | Warp 12 module |
 |--------------|----------------|
 | §6.1–6.4 | `libs/engine/.../openskill-adapter.ts`, `update-ffa.ts`, `update-vs-ai.ts` |
+| §6.5 Teams / Zeta gate | `update-team.ts`, `anchors.ts` (`SQUADRONS_RATING_CALIBRATED`), `functions/.../apply-squad-tei.ts` |
+| §6.6 Academy | `functions/src/set-academy-placement.ts` |
 | §7.1 | `libs/engine/.../anchors.ts` |
 | §7.2 | `libs/engine/.../tei-grade.ts` |
 | §7.3 | `libs/engine/.../tei-rank.ts` |
-| §6.5 Academy | `functions/src/set-academy-placement.ts` |
 | Solo report | `functions/src/report-practice-ai.ts` |
 | Online report | `functions/src/report-online-match.ts` |
 | Storage types | `apps/Warp12/src/firebase/rating-types.ts`, `functions/src/tei/rating-types.ts` |
@@ -473,4 +490,4 @@ Exact μΔ depends on priors and the pinned `openskill` version; golden vectors 
 
 ---
 
-*Digital Defiance / Warp 12 — research context: [tei-paper-outline.md](./tei-paper-outline.md), calibration notes under `docs/`. Player explainer: app route `/tei`.*
+*Digital Defiance / Warp 12 — research paper: [`tei-paper.tex`](./tei-paper.tex) / [`tei-paper.pdf`](./tei-paper.pdf); calibration notes under `docs/`. Player explainer: app route `/tei`.*

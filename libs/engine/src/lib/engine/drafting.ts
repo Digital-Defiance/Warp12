@@ -156,13 +156,15 @@ export function collectRemainingTiles(state: DraftState): Coordinate[] {
  * @param playerOrder - Draft/turn order
  * @param packSize - Tiles per pack (should be >= desired hand size)
  * @param pickFn - Function that picks a tile from a pack for each player
+ * @param desiredHandSize - Tiles each captain keeps (defaults to packSize when omitted)
  * @returns Final hands and remaining uncharted tiles
  */
 export function executeSyncDraft(
   availableTiles: readonly Coordinate[],
   playerOrder: readonly PlayerId[],
   packSize: number,
-  pickFn: (playerId: PlayerId, pack: readonly Coordinate[]) => Coordinate
+  pickFn: (playerId: PlayerId, pack: readonly Coordinate[]) => Coordinate,
+  desiredHandSize?: number
 ): {
   hands: Readonly<Record<PlayerId, readonly Coordinate[]>>;
   remaining: Coordinate[];
@@ -185,12 +187,10 @@ export function executeSyncDraft(
   const tilesInPacks = packSize * playerOrder.length;
   const leftoverTiles = tiles.slice(tilesInPacks);
   
-  // Calculate desired hand size based on player count
-  const playerCount = playerOrder.length;
-  const desiredHandSize = playerCount <= 4 ? 15 : playerCount <= 6 ? 12 : 10;
+  const targetHandSize = desiredHandSize ?? packSize;
   
   // Execute picks until each player has desired hand size
-  for (let round = 0; round < desiredHandSize; round++) {
+  for (let round = 0; round < targetHandSize; round++) {
     // Each player picks one tile in this round
     for (const playerId of playerOrder) {
       const pack = currentPacks[playerId];

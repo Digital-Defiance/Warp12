@@ -189,7 +189,10 @@ export function collectAdvisorTrajectoriesToSink(
         continue;
       }
 
-      if (round.unchartedSectors.length === 0) {
+      if (round.phase === 'drafting') {
+        stallGuard = 0;
+        lastHandTiles = totalHandTiles(state);
+      } else if (round.unchartedSectors.length === 0) {
         const tiles = totalHandTiles(state);
         stallGuard = tiles === lastHandTiles ? stallGuard + 1 : 0;
         lastHandTiles = tiles;

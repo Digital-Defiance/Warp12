@@ -23,13 +23,16 @@ import {
 } from '../types/house-rules.js';
 import type { RoundState } from '../types/game-state.js';
 import type { PlayerId } from '../types/player.js';
+import { trailKeyFor } from './squadrons.js';
 
-/** Captain has charted at least one coordinate on their own warp trail. */
+/** Captain has charted at least one coordinate on their own (squad) warp trail. */
 export function hasEstablishedWarpTrail(
   round: RoundState,
   playerId: PlayerId
 ): boolean {
-  return (round.table.warpTrails[playerId]?.tiles.length ?? 0) > 0;
+  return (
+    (round.table.warpTrails[trailKeyFor(round, playerId)]?.tiles.length ?? 0) > 0
+  );
 }
 
 function resolutionBlockedByQ(round: RoundState, playerId: PlayerId): boolean {
@@ -105,7 +108,10 @@ export function canDeployDistressBeacon(
   if (resolutionBlockedByQ(round, playerId)) {
     return false;
   }
-  if (round.table.warpTrails[playerId]?.distressBeacon.active === true) {
+  if (
+    round.table.warpTrails[trailKeyFor(round, playerId)]?.distressBeacon.active ===
+    true
+  ) {
     return false;
   }
   if (isRedAlertBlocking(round.table.redAlert, playerId)) {
@@ -175,7 +181,10 @@ export function canPassTurn(
   if (isRedAlertBlocking(round.table.redAlert, playerId)) {
     return false;
   }
-  if (round.table.warpTrails[playerId]?.distressBeacon.active !== true) {
+  if (
+    round.table.warpTrails[trailKeyFor(round, playerId)]?.distressBeacon.active !==
+    true
+  ) {
     return false;
   }
   if (options?.afterDraw) {
@@ -228,7 +237,8 @@ export function canRaiseShieldsByCharting(
   if (houseRules.manualShieldControl) {
     return false;
   }
-  if (round.table.warpTrails[playerId]?.distressBeacon.active !== true) {
+  const trailKey = trailKeyFor(round, playerId);
+  if (round.table.warpTrails[trailKey]?.distressBeacon.active !== true) {
     return false;
   }
   const legalMoves = getLegalMoves(round, playerId, houseRules);
@@ -237,7 +247,7 @@ export function canRaiseShieldsByCharting(
   }
   return legalMoves.some(
     (move) =>
-      move.route.kind === 'warp-trail' && move.route.playerId === playerId
+      move.route.kind === 'warp-trail' && move.route.playerId === trailKey
   );
 }
 
@@ -263,7 +273,8 @@ export function canRaiseShieldsManually(
   if (resolutionBlockedByQ(round, playerId)) {
     return false;
   }
-  const beacon = round.table.warpTrails[playerId]?.distressBeacon;
+  const beacon =
+    round.table.warpTrails[trailKeyFor(round, playerId)]?.distressBeacon;
   if (beacon?.active !== true) {
     return false;
   }
