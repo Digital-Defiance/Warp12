@@ -229,8 +229,8 @@ Down) slightly raises it</strong>. <strong>Module Epsilon
 counter-intuitively, choosing your hand makes outcomes <em>more</em>
 luck-dominated mid-game — and is therefore designated <strong>Warped /
 party</strong>. <strong>Module Zeta (Squadrons)</strong> also preserves
-skill (2.94/4); it never writes FFA TEI — rated Warp 12 crew sectors
-update a dedicated <strong>Squad TEI</strong> track
+skill (2.94/4); it never writes free-for-all (FFA) TEI — rated Warp 12
+crew sectors update a dedicated <strong>Squad TEI</strong> track
 (<code>squadRating</code>) after team-track calibration
 (<code>SQUADRONS_RATING_CALIBRATED</code>), not because Zeta is
 luck-dominant.</p>
@@ -366,7 +366,8 @@ baseline).</p></li>
 skill expression across Warp factors, fleet sizes, and 15 module
 configs. Baseline cells justify rating W12; Iota slightly raises the
 ceiling; Epsilon collapses it (Warped/party); Zeta preserves skill and
-rates on a dedicated Squad TEI track (never FFA).</p></li>
+rates on a dedicated Squad TEI track (never free-for-all /
+FFA).</p></li>
 <li><p><strong>Neural self-play agent (Class
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>)</strong>
 — We demonstrate that a pure self-play neural policy can achieve
@@ -561,7 +562,7 @@ available after personal train started</p></li>
 down to one tile</p></li>
 </ul>
 <p><strong>Modules</strong> (optional mechanics; <strong>Warped</strong>
-= exhibition only, never FFA-rated):</p>
+= exhibition only, never free-for-all rated):</p>
 <ul>
 <li><p><strong>Alpha (Continuum):</strong> Special rules for 0-0 tile
 (Q-gamble mechanic)</p></li>
@@ -785,6 +786,13 @@ Defaults for new humans:
 prior). Matchmaking uses an ordinal
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi><mo>−</mo><mi>σ</mi></mrow><annotation encoding="application/x-tex">\mu-\sigma</annotation></semantics></math>;
 the UI never exposes raw Elo integers.</p>
+<p><strong>FFA</strong> means <strong>free-for-all</strong>: every
+captain is an individual competitor in the OpenSkill update (solo vs AI
+or online human-pool tables). Those outcomes write the per-captain FFA
+ladder stored as <code>humanRating</code>. <strong>Squad TEI</strong> is
+the opposite track — Module Zeta crews rate as teams via
+<code>updateTeamRatings</code> into <code>squadRating</code> and never
+update FFA <code>humanRating</code>.</p>
 <h2 data-number="5.2" id="reference-anchors"><span
 class="header-section-number">5.2</span> Reference anchors</h2>
 <p>Rated local and online play pits humans against fixed AI opponents.
@@ -865,12 +873,12 @@ not a direct
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Δ</mi><mi>μ</mi></mrow><annotation encoding="application/x-tex">\Delta\mu</annotation></semantics></math>.</p>
 <h2 data-number="5.3" id="update-rule"><span
 class="header-section-number">5.3</span> Update rule</h2>
-<p>After a sector, ranks feed <code>updateFFARatings</code> /
-<code>updateTeamRatings</code> / <code>updateVsAI</code> (openskill.js
-Bayesian update). Humans move; AI anchors stay fixed. Separate tracks:
-objective
+<p>After a sector, ranks feed <code>updateFFARatings</code>
+(free-for-all individual tables), <code>updateTeamRatings</code> (Zeta
+squads), or <code>updateVsAI</code> (openskill.js Bayesian update).
+Humans move; AI anchors stay fixed. Separate tracks: objective
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
-(human profile). No Elo
+(human profile / FFA vs squad). No Elo
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>K</mi><annotation encoding="application/x-tex">K</annotation></semantics></math>-factor
 schedule.</p>
 <h2 data-number="5.4" id="tei-grade-display"><span
@@ -1899,9 +1907,9 @@ the ceiling</h2>
 restricted to even fleets
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>≥</mo><annotation encoding="application/x-tex">\geq</annotation></semantics></math>4.
 <em>Rec</em> is the product call: Promote = eligible for rated presets
-(Zeta gameplay included; FFA TEI still gated on a squad track); Warped =
-exhibition only (Epsilon = party luck; Kappa = intentional score
-inversion).</caption>
+(Zeta gameplay included; Squad TEI on rated Warp 12, never free-for-all
+<code>humanRating</code>); Warped = exhibition only (Epsilon = party
+luck; Kappa = intentional score inversion).</caption>
 <thead>
 <tr>
 <th style="text-align: left;"><strong>Module</strong></th>
@@ -2216,9 +2224,9 @@ Squadron TEI (never FFA)</h2>
 <strong>2.94/4</strong> indicators on eligible fleets (16/17
 skill-dominant). Shared trails and bridge seating preserve decision
 pressure. It is <em>not</em> Warped. The product separation is
-infrastructural, not skill-based: FFA TEI stays on individual tables;
-eligible rated Warp 12 Zeta sectors write OpenSkill updates to a
-dedicated team track (<code>squadRating</code>), gated by
+infrastructural, not skill-based: free-for-all (FFA) TEI stays on
+individual tables; eligible rated Warp 12 Zeta sectors write OpenSkill
+updates to a dedicated team track (<code>squadRating</code>), gated by
 <code>SQUADRONS_RATING_CALIBRATED</code> (now <code>true</code> after
 2v2 ordering calibration). Crew nights never pollute the FFA human
 ladder.</p>

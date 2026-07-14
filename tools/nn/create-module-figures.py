@@ -402,8 +402,9 @@ def write_latex_table(stats: dict[str, dict]) -> None:
         "(Commander self-play, points objective, 500 games/cell). "
         "Zeta metrics restricted to even fleets $\\geq$4. "
         "\\emph{Rec} is the product call: Promote = eligible for rated "
-        "presets (Zeta gameplay included; FFA TEI still gated on a "
-        "squad track); Warped = exhibition only (Epsilon = party luck; "
+        "presets (Zeta gameplay included; Squad TEI on rated Warp~12, "
+        "never free-for-all \\texttt{humanRating}); Warped = exhibition "
+        "only (Epsilon = party luck; "
         "Kappa = intentional score inversion).}",
         "\\label{tab:module-ranking}",
         "\\begin{tabular}{@{}llrrrrrl@{}}",

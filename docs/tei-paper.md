@@ -122,7 +122,7 @@ This paper makes the following contributions:
     fleet sizes, and 15 module configs. Baseline cells justify rating
     W12; Iota slightly raises the ceiling; Epsilon collapses it
     (Warped/party); Zeta preserves skill and rates on a dedicated Squad
-    TEI track (never FFA).
+    TEI track (never free-for-all / FFA).
 
 6.  **Neural self-play agent (Class $`\Omega`$)** — We demonstrate that
     a pure self-play neural policy can achieve competitive performance
@@ -319,7 +319,7 @@ variants:
   tile
 
 **Modules** (optional mechanics; **Warped** = exhibition only, never
-FFA-rated):
+free-for-all rated):
 
 - **Alpha (Continuum):** Special rules for 0-0 tile (Q-gamble mechanic)
 
@@ -497,6 +497,13 @@ updated after ranked match outcomes. Defaults for new humans:
 $`\mu=25`$, $`\sigma=8.\!33`$ (OpenSkill’s $`\mu/3`$ prior). Matchmaking
 uses an ordinal $`\mu-\sigma`$; the UI never exposes raw Elo integers.
 
+**FFA** means **free-for-all**: every captain is an individual
+competitor in the OpenSkill update (solo vs AI or online human-pool
+tables). Those outcomes write the per-captain FFA ladder stored as
+`humanRating`. **Squad TEI** is the opposite track — Module Zeta crews
+rate as teams via `updateTeamRatings` into `squadRating` and never
+update FFA `humanRating`.
+
 ## Reference anchors
 
 Rated local and online play pits humans against fixed AI opponents. Each
@@ -571,9 +578,10 @@ $`\Delta\mu`$.
 
 ## Update rule
 
-After a sector, ranks feed `updateFFARatings` / `updateTeamRatings` /
-`updateVsAI` (openskill.js Bayesian update). Humans move; AI anchors
-stay fixed. Separate tracks: objective $`\times`$ (human profile). No
+After a sector, ranks feed `updateFFARatings` (free-for-all individual
+tables), `updateTeamRatings` (Zeta squads), or `updateVsAI`
+(openskill.js Bayesian update). Humans move; AI anchors stay fixed.
+Separate tracks: objective $`\times`$ (human profile / FFA vs squad). No
 Elo $`K`$-factor schedule.
 
 ## TEI Grade display
@@ -1252,9 +1260,9 @@ auto-omits Zeta from “all” on odd/small fleets.
 Module skill ranking from the 285,000-game study (Commander self-play,
 points objective, 500 games/cell). Zeta metrics restricted to even
 fleets $`\geq`$<!-- -->4. *Rec* is the product call: Promote = eligible
-for rated presets (Zeta gameplay included; FFA TEI still gated on a
-squad track); Warped = exhibition only (Epsilon = party luck; Kappa =
-intentional score inversion). {#tab:module-ranking}
+for rated presets (Zeta gameplay included; Squad TEI on rated Warp 12,
+never free-for-all `humanRating`); Warped = exhibition only (Epsilon =
+party luck; Kappa = intentional score inversion). {#tab:module-ranking}
 
 <figure id="fig:module-ranking" data-latex-placement="htbp">
 <img src="../tools/nn/figures/figure11-module-skill-ranking.png"
@@ -1410,11 +1418,12 @@ lower-left Warped pocket.</figcaption>
 Zeta is the dual of Epsilon on the skill instrument: **2.94/4**
 indicators on eligible fleets (16/17 skill-dominant). Shared trails and
 bridge seating preserve decision pressure. It is *not* Warped. The
-product separation is infrastructural, not skill-based: FFA TEI stays on
-individual tables; eligible rated Warp 12 Zeta sectors write OpenSkill
-updates to a dedicated team track (`squadRating`), gated by
-`SQUADRONS_RATING_CALIBRATED` (now `true` after 2v2 ordering
-calibration). Crew nights never pollute the FFA human ladder.
+product separation is infrastructural, not skill-based: free-for-all
+(FFA) TEI stays on individual tables; eligible rated Warp 12 Zeta
+sectors write OpenSkill updates to a dedicated team track
+(`squadRating`), gated by `SQUADRONS_RATING_CALIBRATED` (now `true`
+after 2v2 ordering calibration). Crew nights never pollute the FFA human
+ladder.
 
 ## Product recommendations
 
