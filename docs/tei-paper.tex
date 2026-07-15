@@ -303,7 +303,7 @@ Figure~\ref{fig:points-vs-goout} shows empirically that these objectives lead to
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.95\textwidth]{../tools/nn/figures/figure9-architectures.png}
-\caption{Agent architecture overview. Top: Heuristic policy stack (candidate generation through action selection). Middle-left: Class I* residual MLP adds learned correction to heuristics. Middle-right: Class Ω standalone policy/value heads (no heuristics). Bottom: Fleet Admiral multi-engine routing by player count.}
+\caption{Agent architecture overview. Top: Heuristic policy stack (candidate generation through action selection). Middle-left: Class I* residual MLP adds learned correction to heuristics. Middle-right: Class $\Omega$ standalone policy/value heads (no heuristics). Bottom: Fleet Admiral multi-engine routing by player count.}
 \label{fig:architectures}
 \end{figure}
 
@@ -421,7 +421,7 @@ See \texttt{docs/openskill-calibration-log.md} for dated OpenSkill self-play run
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.95\textwidth]{../tools/nn/figures/figure8-ai-bench-results.png}
-\caption{AI bench results across experimental tiers. Top-left: Class I* neural residual iterations (imitation ceiling at 48--51\%). Top-right: Fleet Admiral search backends (expectimax wins 2p, ISMCTS wins 4p). Bottom-left: Class Ω fair-share rises with fleet size (points objective). Bottom-right: Fair-share hazard --- naive Elo-style translation overestimates shipping anchors vs the tempered OpenSkill Commander $\mu$.}
+\caption{AI bench results across experimental tiers. Top-left: Class I* neural residual iterations (imitation ceiling at 48--51\%). Top-right: Fleet Admiral search backends (expectimax wins 2p, ISMCTS wins 4p). Bottom-left: Class $\Omega$ fair-share rises with fleet size (points objective). Bottom-right: Fair-share hazard --- naive Elo-style translation overestimates shipping anchors vs the tempered OpenSkill Commander $\mu$.}
 \label{fig:ai-bench-results}
 \end{figure}
 
