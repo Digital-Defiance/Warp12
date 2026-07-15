@@ -1,8 +1,13 @@
 # warp12-theme
 
-**Federation-styled domino themes for Warp** — visual theming presets for [DoubleEighteen](https://www.npmjs.com/package/double-eighteen) across all Warp factors.
+[![npm](https://img.shields.io/npm/v/warp12-theme.svg)](https://www.npmjs.com/package/warp12-theme)
+[![downloads](https://img.shields.io/npm/dm/warp12-theme.svg)](https://www.npmjs.com/package/warp12-theme)
+[![types](https://img.shields.io/npm/types/warp12-theme.svg)](https://www.npmjs.com/package/warp12-theme)
+[![license](https://img.shields.io/npm/l/warp12-theme.svg)](./LICENSE)
 
-Published on npm as **`warp12-theme`**.
+**Federation-styled domino themes for Warp** — visual theming presets for [`double-eighteen`](https://www.npmjs.com/package/double-eighteen) dominoes across all Warp factors.
+
+**▶ Play:** [warp.iwdf.org](https://warp.iwdf.org) — the IWDF front door for every Warp factor (also marketed as [warp12.app](https://warp12.app)).
 
 ## About Warp
 
@@ -10,7 +15,7 @@ Published on npm as **`warp12-theme`**.
 
 ## Features
 
-- **`createWarpDominoTheme`** — generates DoubleEighteen-compatible theme configs with federation styling
+- **`createWarpDominoTheme`** — generates [`double-eighteen`](https://www.npmjs.com/package/double-eighteen)-compatible theme configs with federation styling
 - **`WARP_PIP_COLORS`** — canonical Warp color palette for pip values 0–18
 - **Pre-built theme presets** — ready-to-use configurations for all Warp factors
 - **Customizable** — extend base themes with your own variants
@@ -21,14 +26,30 @@ Published on npm as **`warp12-theme`**.
 npm install warp12-theme double-eighteen
 ```
 
+Themes feed the [`double-eighteen-react`](https://www.npmjs.com/package/double-eighteen-react) renderer. **[▶ Live demo](https://digital-defiance.github.io/double-eighteen-react/)**
+
 ## Usage
 
 ```ts
 import { createWarpDominoTheme, WARP_PIP_COLORS } from 'warp12-theme';
 ```
 
+## The Warp / double-N ecosystem
+
+| Package | Role |
+|---|---|
+| **[warp12-engine](https://www.npmjs.com/package/warp12-engine)** | Rules, state machine, AI & advisor (headless) |
+| **[warp12-react](https://www.npmjs.com/package/warp12-react)** | React adapters, hooks & tactical coach |
+| **warp12-theme** | Federation domino themes — you are here |
+| **[double-eighteen](https://www.npmjs.com/package/double-eighteen)** | Headless domino core — geometry, presets, AI primitives |
+| **[double-eighteen-react](https://www.npmjs.com/package/double-eighteen-react)** | Domino React components · [live demo](https://digital-defiance.github.io/double-eighteen-react/) |
+
 ## Build
 
 ```bash
 yarn build:theme
 ```
+
+## License
+
+[MIT](./LICENSE) © Digital Defiance

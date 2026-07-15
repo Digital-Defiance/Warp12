@@ -1,8 +1,13 @@
 # warp12-react
 
-**React adapters for Warp** — `RoundState` to DoubleEighteen trains, tactical advisor, hand layout, and UI utilities for multi-trail Interstellar Dominoes.
+[![npm](https://img.shields.io/npm/v/warp12-react.svg)](https://www.npmjs.com/package/warp12-react)
+[![downloads](https://img.shields.io/npm/dm/warp12-react.svg)](https://www.npmjs.com/package/warp12-react)
+[![types](https://img.shields.io/npm/types/warp12-react.svg)](https://www.npmjs.com/package/warp12-react)
+[![license](https://img.shields.io/npm/l/warp12-react.svg)](./LICENSE)
 
-Published on npm as **`warp12-react`**.
+**React adapters for Warp** — engine `RoundState` to train layouts, tactical advisor, hand layout, and UI utilities for multi-trail Interstellar Dominoes.
+
+**▶ Play:** [warp.iwdf.org](https://warp.iwdf.org) — the IWDF front door for every Warp factor (also marketed as [warp12.app](https://warp12.app)).
 
 ## About Warp
 
@@ -10,7 +15,7 @@ Published on npm as **`warp12-react`**.
 
 ## Features
 
-- **`gameStateToTrains`** — converts engine `RoundState` to visual train layouts for DoubleEighteen rendering
+- **`gameStateToTrains`** — converts engine `RoundState` to visual train layouts for rendering
 - **`getCoachSuggestion`** — tactical advisor integration with human-readable move explanations
 - **`useHandLayout`** — React hook for optimal hand tile arrangement
 - **State management utilities** — Context providers and hooks for game state synchronization
@@ -18,8 +23,10 @@ Published on npm as **`warp12-react`**.
 ## Install
 
 ```bash
-npm install warp12-react warp12-engine double-eighteen react react-dom
+npm install warp12-react warp12-engine double-eighteen react
 ```
+
+To draw the board, add **[double-eighteen-react](https://www.npmjs.com/package/double-eighteen-react)** (plus `react-dom`) — the React components that render everything [`double-eighteen`](https://www.npmjs.com/package/double-eighteen) computes. **[▶ Live demo](https://digital-defiance.github.io/double-eighteen-react/)**
 
 ## Usage
 
@@ -27,9 +34,23 @@ npm install warp12-react warp12-engine double-eighteen react react-dom
 import { gameStateToTrains, getCoachSuggestion, useHandLayout } from 'warp12-react';
 ```
 
+## The Warp / double-N ecosystem
+
+| Package | Role |
+|---|---|
+| **[warp12-engine](https://www.npmjs.com/package/warp12-engine)** | Rules, state machine, AI & advisor (headless) |
+| **warp12-react** | React adapters, hooks & tactical coach — you are here |
+| **[warp12-theme](https://www.npmjs.com/package/warp12-theme)** | Federation domino themes |
+| **[double-eighteen](https://www.npmjs.com/package/double-eighteen)** | Headless domino core — geometry, presets, AI primitives |
+| **[double-eighteen-react](https://www.npmjs.com/package/double-eighteen-react)** | Domino React components · [live demo](https://digital-defiance.github.io/double-eighteen-react/) |
+
 ## Build
 
 ```bash
 yarn build:react
 yarn test:react
 ```
+
+## License
+
+[MIT](./LICENSE) © Digital Defiance
