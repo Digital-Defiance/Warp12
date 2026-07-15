@@ -24,6 +24,10 @@ export default defineConfig(() => ({
         import.meta.dirname,
         '../../vendor/double-eighteen/dist/index.js'
       ),
+      'double-eighteen-react': path.resolve(
+        import.meta.dirname,
+        '../../vendor/double-eighteen-react/src/index.ts'
+      ),
       'warp12-engine': path.resolve(
         import.meta.dirname,
         '../../libs/engine/src/index.ts'

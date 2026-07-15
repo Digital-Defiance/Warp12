@@ -1,4 +1,4 @@
-import { DominoTile } from 'double-eighteen';
+import { DominoTile } from 'double-eighteen-react';
 import type { Coordinate, DraftState } from 'warp12-engine';
 import { WARP_PIP_COLORS, WARP_TILE_SURFACE, type WarpTileBg } from 'warp12-theme';
 import styles from './draft-phase.module.scss';
