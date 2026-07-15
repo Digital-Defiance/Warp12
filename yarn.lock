@@ -9137,17 +9137,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tokenizer/inflate@npm:^0.2.6":
-  version: 0.2.7
-  resolution: "@tokenizer/inflate@npm:0.2.7"
-  dependencies:
-    debug: "npm:^4.4.0"
-    fflate: "npm:^0.8.2"
-    token-types: "npm:^6.0.0"
-  checksum: 10c0/75bd0c510810dfd62be9d963216b5852cde021e1f8aab43b37662bc6aa75e65fd7277fcab7d463186b55cee36a5b61129916161bdb2a7d18064016156c7daf4f
-  languageName: node
-  linkType: hard
-
 "@tokenizer/inflate@npm:^0.4.1":
   version: 0.4.1
   resolution: "@tokenizer/inflate@npm:0.4.1"
@@ -15439,26 +15428,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"file-type@npm:^10.10.0":
-  version: 10.11.0
-  resolution: "file-type@npm:10.11.0"
-  checksum: 10c0/2d6280d84f2499878ebdf8236a6e83b3c747f08b91d84cf99785afe3c9ac52775e52dcec15a4141cc24eb3006f274eb46dc7d13395920a1763d936c6d6e8afde
-  languageName: node
-  linkType: hard
-
-"file-type@npm:^20.5.0":
-  version: 20.5.0
-  resolution: "file-type@npm:20.5.0"
-  dependencies:
-    "@tokenizer/inflate": "npm:^0.2.6"
-    strtok3: "npm:^10.2.0"
-    token-types: "npm:^6.0.0"
-    uint8array-extras: "npm:^1.4.0"
-  checksum: 10c0/9b13d7e4eca79752008f036712a42df78393f05b88b9013c5754b04d3eb90b051cb692836a04acf7d2c696cb9f28077ddf8ebd6830175807f14fddf837d63be3
-  languageName: node
-  linkType: hard
-
-"file-type@npm:^21.3.0, file-type@npm:^21.3.4":
+"file-type@npm:21.3.4, file-type@npm:^21.3.0, file-type@npm:^21.3.4":
   version: 21.3.4
   resolution: "file-type@npm:21.3.4"
   dependencies:
@@ -15467,6 +15437,13 @@ __metadata:
     token-types: "npm:^6.1.1"
     uint8array-extras: "npm:^1.4.0"
   checksum: 10c0/6f15e7538c5d73f9308d2e897365d253a6647a6751bb1b0d85c78aebc02b8976afb7c6c9b3759687a064b1b3d60246e5504746b8f11e38b0d5a1b339087e00d2
+  languageName: node
+  linkType: hard
+
+"file-type@npm:^10.10.0":
+  version: 10.11.0
+  resolution: "file-type@npm:10.11.0"
+  checksum: 10c0/2d6280d84f2499878ebdf8236a6e83b3c747f08b91d84cf99785afe3c9ac52775e52dcec15a4141cc24eb3006f274eb46dc7d13395920a1763d936c6d6e8afde
   languageName: node
   linkType: hard
 
@@ -24922,7 +24899,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"strtok3@npm:^10.2.0, strtok3@npm:^10.3.4":
+"strtok3@npm:^10.3.4":
   version: 10.3.5
   resolution: "strtok3@npm:10.3.5"
   dependencies:
@@ -25469,7 +25446,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"token-types@npm:^6.0.0, token-types@npm:^6.1.1":
+"token-types@npm:^6.1.1":
   version: 6.1.2
   resolution: "token-types@npm:6.1.2"
   dependencies:
