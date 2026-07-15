@@ -1,8 +1,13 @@
 # warp12-engine
 
+[![npm](https://img.shields.io/npm/v/warp12-engine.svg)](https://www.npmjs.com/package/warp12-engine)
+[![downloads](https://img.shields.io/npm/dm/warp12-engine.svg)](https://www.npmjs.com/package/warp12-engine)
+[![types](https://img.shields.io/npm/types/warp12-engine.svg)](https://www.npmjs.com/package/warp12-engine)
+[![license](https://img.shields.io/npm/l/warp12-engine.svg)](./LICENSE)
+
 **Warp game engine** — deterministic rules, state machine, Warp AI, and advisor explanations for multi-trail Interstellar Dominoes.
 
-Published on npm as **`warp12-engine`**.
+**▶ Play:** [warp.iwdf.org](https://warp.iwdf.org) — the IWDF front door for every Warp factor (also marketed as [warp12.app](https://warp12.app)).
 
 ## About Warp
 
@@ -18,10 +23,10 @@ This engine powers all variants with:
 ## Warp AI
 
 - **`createWarpAiPlayer`** — offline captains using heuristic scoring (skill tiers control blunders and move sharpness).
-- **Lookahead** — optional forward search through the real rules engine with sampled hidden hands; does **not** peek at opponent tiles ([RULES.md §VII](../../RULES.md#vii-ai-officers--tactical-advisor-digital)).
+- **Lookahead** — optional forward search through the real rules engine with sampled hidden hands; does **not** peek at opponent tiles ([RULES §VII](https://github.com/Digital-Defiance/Warp12/blob/main/RULES.md#vii-ai-officers--tactical-advisor-digital)).
 - **Class I★ neural policy** — experimental neural tier using ONNX models trained via self-play.
 - **`explainWarpAiAction` / `explainTurnResolution`** — human-readable rationale for coach UI and debugging.
-- **Self-play** — `libs/engine/src/lib/ai/self-play.spec.ts` regression-tests full games and lookahead vs greedy matchups.
+- **Self-play** — regression-tests full games and lookahead-vs-greedy matchups.
 
 ## Install
 
@@ -29,12 +34,28 @@ This engine powers all variants with:
 npm install warp12-engine double-eighteen
 ```
 
+The engine is **headless** — no React required. [`double-eighteen`](https://www.npmjs.com/package/double-eighteen) is a peer dependency providing the domino core (geometry, presets, AI primitives).
+
 ## Usage
 
 ```ts
-import { startGame, applyAction, getLegalMoves, explainWarpAiAction } from 'warp12-engine';
-import { createDemoGame } from 'warp12-engine';
+import {
+  startGame,
+  applyAction,
+  getLegalMoves,
+  explainWarpAiAction,
+} from 'warp12-engine';
 ```
+
+## The Warp / double-N ecosystem
+
+| Package | Role |
+|---|---|
+| **warp12-engine** | Rules, state machine, AI & advisor (headless) — you are here |
+| **[warp12-react](https://www.npmjs.com/package/warp12-react)** | React adapters, hooks & tactical coach |
+| **[warp12-theme](https://www.npmjs.com/package/warp12-theme)** | Federation domino themes |
+| **[double-eighteen](https://www.npmjs.com/package/double-eighteen)** | Headless domino core — geometry, presets, AI primitives |
+| **[double-eighteen-react](https://www.npmjs.com/package/double-eighteen-react)** | Domino React components · [live demo](https://digital-defiance.github.io/double-eighteen-react/) |
 
 ## Build
 
@@ -42,3 +63,7 @@ import { createDemoGame } from 'warp12-engine';
 yarn build:engine
 yarn test:engine
 ```
+
+## License
+
+[MIT](./LICENSE) © Digital Defiance

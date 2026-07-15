@@ -1,6 +1,6 @@
 {
   "name": "warp12-react",
-  "version": "0.4.25",
+  "version": "0.4.26",
   "description": "React adapters for Warp — state to trains, tactical coach, and hand layout for multi-trail Interstellar Dominoes (Warp 9/12/15/18)",
   "homepage": "https://warp.iwdf.org",
   "license": "MIT",
@@ -21,7 +21,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "keywords": [
     "warp",
@@ -47,9 +48,9 @@
     "prepublishOnly": "cd ../.. && yarn build:react && yarn test:react"
   },
   "peerDependencies": {
-    "double-eighteen": ">=0.3.3",
+    "double-eighteen": ">=0.4.0",
     "react": ">=18.0.0",
-    "warp12-engine": ">=0.4.25"
+    "warp12-engine": ">=0.4.26"
   },
   "devDependencies": {
     "double-eighteen": "workspace:*",

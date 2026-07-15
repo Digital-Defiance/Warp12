@@ -1,6 +1,6 @@
 {
   "name": "warp12-engine",
-  "version": "0.4.25",
+  "version": "0.4.26",
   "description": "Warp game engine — rules, state machine, and AI for multi-trail Interstellar Dominoes across Warp factors 9/12/15/18 (double-N sets). Warp 12 is the only IWDF-rated variant.",
   "homepage": "https://warp.iwdf.org",
   "license": "MIT",
@@ -27,7 +27,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "keywords": [
     "warp",
@@ -56,7 +57,7 @@
     "prepublishOnly": "cd ../.. && yarn build:engine && yarn test:engine"
   },
   "peerDependencies": {
-    "double-eighteen": ">=0.3.3"
+    "double-eighteen": ">=0.4.0"
   },
   "devDependencies": {
     "double-eighteen": "workspace:*"
