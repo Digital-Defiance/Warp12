@@ -45,7 +45,7 @@ import {
   formatSpoolFeedback,
   type DoubleDownNotice,
 } from '../game/module-feedback.js';
-import { DominoHub, DominoTile, DominoThemeProvider } from 'double-eighteen';
+import { DominoHub, DominoTile, DominoThemeProvider } from 'double-eighteen-react';
 import {
   coachActionKind,
   coachChartMove,
@@ -3495,8 +3495,6 @@ export function BridgeTable({
               maxPips={maxPip}
               trains={trains}
               layoutStyle={layoutStyle}
-              tableWidth={TABLE_WIDTH}
-              tableHeight={TABLE_HEIGHT}
               pipColors={WARP_PIP_COLORS}
             />
             </>

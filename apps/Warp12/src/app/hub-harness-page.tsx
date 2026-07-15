@@ -6,7 +6,7 @@ import {
   type FC,
 } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { DominoHub, DominoThemeProvider } from 'double-eighteen';
+import { DominoHub, DominoThemeProvider } from 'double-eighteen-react';
 import { WARP_PIP_COLORS, createWarpDominoTheme } from 'warp12-theme';
 import { WARP_FACTORS, type WarpFactor, isWarpFactor } from 'warp12-engine';
 
@@ -225,8 +225,6 @@ export const HubHarnessPage: FC = () => {
                 maxPips={maxPip}
                 trains={trains}
                 layoutStyle={layoutStyle}
-                tableWidth={geometry.tableWidth}
-                tableHeight={geometry.tableHeight}
                 pipColors={WARP_PIP_COLORS}
               />
             </div>

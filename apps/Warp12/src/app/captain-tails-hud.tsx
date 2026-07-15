@@ -1,6 +1,6 @@
 import type { PlacedCoordinate, RoundState, TeiGrade } from 'warp12-engine';
 import { trailKeyFor, squadronForPlayer } from 'warp12-engine';
-import { DominoTile } from 'double-eighteen';
+import { DominoTile } from 'double-eighteen-react';
 import type { RefObject } from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 

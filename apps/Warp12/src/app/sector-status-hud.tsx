@@ -1,6 +1,6 @@
 import { GAME_OBJECTIVE_LABELS, formatCampaignRoundProgress, type Coordinate, type GameState, type RoundState } from 'warp12-engine';
 import type { RefObject } from 'react';
-import { DominoTile } from 'double-eighteen';
+import { DominoTile } from 'double-eighteen-react';
 import { WARP_PIP_COLORS, WARP_TILE_SURFACE, type WarpTileBg } from 'warp12-theme';
 import { sectorWinnerName } from '../game/sector-outcome.js';
 import type { DoubleDownNotice } from '../game/module-feedback.js';
