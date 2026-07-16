@@ -152,6 +152,128 @@
   }
 }
 
+// Saved-setups (preset) bar — dark, high-tech controls tuned to match the
+// rest of the lobby form (custom-chevron selects, no native white chrome).
+.presetRow {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+  margin-bottom: 0.55rem;
+}
+
+.presetSelect,
+.presetInput {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  font-family: var(--font-federation);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #050816;
+  color: #e2e8f0;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &::placeholder {
+    color: #64748b;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: #475569;
+  }
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.presetSelect {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2rem;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%2394a3b8' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 0.85rem;
+}
+
+.presetSave,
+.presetDelete {
+  flex: 0 0 auto;
+  font-family: var(--font-federation);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0 1.1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
+  }
+}
+
+.presetSave {
+  min-width: 5.5rem;
+  border: 1px solid #38bdf8;
+  background: rgba(56, 189, 248, 0.14);
+  color: #e2e8f0;
+
+  &:hover:not(:disabled) {
+    background: rgba(56, 189, 248, 0.24);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.18);
+  }
+
+  &:active:not(:disabled) {
+    background: rgba(56, 189, 248, 0.16);
+    box-shadow: none;
+  }
+}
+
+.presetDelete {
+  border: 1px solid transparent;
+  background: transparent;
+  color: #94a3b8;
+
+  &:hover:not(:disabled) {
+    color: #fca5a5;
+    border-color: rgba(248, 113, 113, 0.5);
+    background: rgba(248, 113, 113, 0.08);
+  }
+}
+
+.presetHint {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-federation);
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: #64748b;
+}
+
 .presetButton {
   width: 100%;
   font-family: var(--font-federation);
@@ -294,6 +416,52 @@
   input {
     accent-color: #38bdf8;
   }
+}
+
+.checkboxRowDisabled {
+  color: #64748b;
+  cursor: not-allowed;
+
+  input {
+    cursor: not-allowed;
+  }
+}
+
+.onlineOnlyBadge {
+  display: inline-block;
+  padding: 0.12rem 0.5rem;
+  border: 1px solid #38bdf8;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #38bdf8;
+  text-decoration: none;
+  cursor: pointer;
+  vertical-align: middle;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover {
+    background: rgba(56, 189, 248, 0.18);
+    color: #7dd3fc;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
+  }
+}
+
+.moduleHint {
+  margin: -0.25rem 0 0.65rem 1.75rem;
+  font-family: var(--font-federation);
+  font-size: 0.74rem;
+  color: #64748b;
 }
 
 .houseRulesSubOption {

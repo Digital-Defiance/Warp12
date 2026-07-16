@@ -1,6 +1,8 @@
 import type { WarpPipPreset, WarpTileBg } from 'warp12-theme';
 
 export type CaptainTailsDisplay = 'number' | 'domino';
+/** Tails-panel coordinate readout: full `X:Y`, tail (open) value only, or hidden. */
+export type CaptainTailsCoordinate = 'full' | 'tail' | 'off';
 export type TrailLayoutStyle = 'offset' | 'linear';
 
 export interface TableOptionsPrefs {
@@ -12,6 +14,9 @@ export interface TableOptionsPrefs {
   autoFollowAction: boolean;
   captainTailsHud: boolean;
   captainTailsDisplay: CaptainTailsDisplay;
+  captainTailsCoordinate: CaptainTailsCoordinate;
+  /** Show the per-trail tile-count badge in the Fleet Status panel. */
+  captainTailsTrailLength: boolean;
   turnBeepsEnabled: boolean;
   /** Loop TNG bridge ambience under table SFX. */
   bridgeSoundsEnabled: boolean;
@@ -32,6 +37,8 @@ export const DEFAULT_TABLE_OPTIONS: TableOptionsPrefs = {
   autoFollowAction: false,
   captainTailsHud: false,
   captainTailsDisplay: 'number',
+  captainTailsCoordinate: 'full',
+  captainTailsTrailLength: true,
   turnBeepsEnabled: false,
   bridgeSoundsEnabled: true,
   advisorIncludeAllCaptains: false,
@@ -99,6 +106,16 @@ function sanitizePartial(raw: unknown): Partial<TableOptionsPrefs> {
   }
   if (value.captainTailsDisplay === 'number' || value.captainTailsDisplay === 'domino') {
     next.captainTailsDisplay = value.captainTailsDisplay;
+  }
+  if (
+    value.captainTailsCoordinate === 'full' ||
+    value.captainTailsCoordinate === 'tail' ||
+    value.captainTailsCoordinate === 'off'
+  ) {
+    next.captainTailsCoordinate = value.captainTailsCoordinate;
+  }
+  if (typeof value.captainTailsTrailLength === 'boolean') {
+    next.captainTailsTrailLength = value.captainTailsTrailLength;
   }
   if (typeof value.turnBeepsEnabled === 'boolean') {
     next.turnBeepsEnabled = value.turnBeepsEnabled;

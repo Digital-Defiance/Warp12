@@ -37,13 +37,8 @@ import {
   storeMatch,
   listAllMatches,
   getMatchesByGameId,
-  type StoredMatch,
 } from './match-log-db.js';
-import type {
-  Firestore,
-  DocumentReference,
-  QueryConstraint,
-} from 'firebase/firestore';
+import type { Firestore } from 'firebase/firestore';
 import {
   collection,
   doc,
@@ -51,7 +46,6 @@ import {
   getDoc,
   getDocs,
   query,
-  where,
   orderBy,
   limit,
   Timestamp,

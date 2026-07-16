@@ -35,8 +35,6 @@ export function resolveHelmControls(input: {
     handOwnerId,
     isMyTurn,
     houseRules,
-    dropToImpulsePending,
-    legalMovesCount,
     gameState,
   } = input;
 

@@ -45,5 +45,5 @@ export function roundEndHeadline(
         : 'the highest hand takes the round';
     return `Inverted round — going out backfires on ${wentOut}. ${takes}.`;
   }
-  return `${wentOut} charts the final coordinate — round ${round.roundNumber} complete.`;
+  return `${wentOut} charts the final coordinate.`;
 }

@@ -30,5 +30,8 @@ export const warpPalette = {
   text: '#e2e8f0',
   textMuted: '#94a3b8',
   accent: '#38bdf8',
+  // Warm amber counterpart to the cyan accent — used for --warp-accent-warm
+  // across the HUD/table SCSS (which already fall back to this exact value).
+  accentWarm: '#fbbf24',
   danger: '#f87171',
 } as const;

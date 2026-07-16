@@ -16,7 +16,10 @@ export interface FloatingPanelShellProps {
   bounds?: FloatingPanelBounds;
   title: string;
   titleAdornment?: ReactNode;
+  /** Initial width (px). When resizableWidth, a persisted width overrides this. */
   width?: number;
+  /** Enable a horizontal drag handle that resizes + persists the panel width. */
+  resizableWidth?: boolean;
   accent?: 'cyan' | 'amber';
   panelClassName?: string;
   children: ReactNode;
@@ -30,6 +33,7 @@ export function FloatingPanelShell({
   title,
   titleAdornment,
   width = 300,
+  resizableWidth = false,
   accent = 'cyan',
   panelClassName,
   children,
@@ -38,12 +42,17 @@ export function FloatingPanelShell({
     panelRef,
     anchor,
     style,
+    width: storedWidth,
+    resizeEdge,
     dragging,
     touchPrimary,
     headerHandlers,
     panelHandlers,
     resizeHandlers,
+    widthResizeHandlers,
   } = useFloatingPanel(containerRef, storageKey, defaultAnchor, bounds);
+
+  const hasCustomWidth = resizableWidth && storedWidth != null;
 
   const panel = (
     <div
@@ -56,8 +65,10 @@ export function FloatingPanelShell({
       data-touch-drag={touchPrimary ? 'true' : undefined}
       style={{
         ...style,
-        width: `min(${width}px, calc(100vw - 24px))`,
-        maxWidth: width,
+        width: hasCustomWidth
+          ? `min(${storedWidth}px, calc(100vw - 24px))`
+          : `min(${width}px, calc(100vw - 24px))`,
+        maxWidth: hasCustomWidth ? 'calc(100vw - 24px)' : width,
       }}
       {...panelHandlers}
     >
@@ -75,6 +86,18 @@ export function FloatingPanelShell({
       <div className={shellStyles.body} data-floating-panel-body>
         {children}
       </div>
+      {resizableWidth && (
+        <div
+          className={shellStyles.widthResizeHandle}
+          data-edge={resizeEdge}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={`Resize ${title} panel width`}
+          title="Drag to resize width"
+          data-no-panel-drag
+          {...widthResizeHandlers}
+        />
+      )}
       <div
         className={shellStyles.resizeHandle}
         role="separator"

@@ -21,6 +21,12 @@ import {
 } from './deal-hand-size-hint';
 import { SubspaceFractureOptions } from './subspace-fracture-options';
 import { Warp12RulesPreset } from './warp12-rules-preset';
+import { SetupPresetsBar } from './setup-presets-bar';
+import {
+  createLobbyOptionsToPreset,
+  presetToCreateLobbyOptions,
+  type WarpSetupPreset,
+} from '../game/setup-presets.js';
 import styles from './lobby.module.scss';
 
 interface LobbyProps {
@@ -92,6 +98,20 @@ export function LobbyForm({
       })
     );
 
+  const applyPreset = (preset: WarpSetupPreset) => {
+    const applied = presetToCreateLobbyOptions(preset, maxPip, createOptions);
+    onCreateOptionsChange({
+      ...applied,
+      maxPlayers: clampOnlineMaxPlayers(
+        applied.maxPlayers ?? fleetCeiling,
+        fleetCeiling
+      ),
+    });
+    if (preset.callSign) {
+      onDisplayNameChange(preset.callSign);
+    }
+  };
+
   return (
     <section className={`${styles.lobby} ${styles.lobbyWide}`}>
       <h2 className={styles.title}>Fleet muster</h2>
@@ -118,6 +138,15 @@ export function LobbyForm({
           placeholder="Captain name"
         />
       </label>
+
+      <SetupPresetsBar
+        setupType="online"
+        getCurrentPreset={() =>
+          createLobbyOptionsToPreset(createOptions, { callSign: displayName })
+        }
+        onApply={applyPreset}
+        disabled={busy || charterLocked}
+      />
 
       {myCharters.length > 0 && (
         <label className={styles.field}>

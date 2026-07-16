@@ -13,7 +13,11 @@ export async function tryLockPortraitOrientation(): Promise<void> {
   if (typeof screen === 'undefined') {
     return;
   }
-  const orientation = screen.orientation;
+  // ScreenOrientation.lock() is standard but missing from the DOM lib types in
+  // this TS target; cast to reach it (guarded below for unsupported webviews).
+  const orientation = screen.orientation as ScreenOrientation & {
+    lock?: (orientation: string) => Promise<void>;
+  };
   if (!orientation || typeof orientation.lock !== 'function') {
     return;
   }

@@ -15,7 +15,11 @@ export const TEI_OBJECTIVE_LABEL: Record<GameObjective, string> = {
 };
 
 export function formatCampaignPoints(total: number): string {
-  return `${total} point${total === 1 ? '' : 's'}`;
+  // The lowest score shown is zero; a captain's raw total can dip slightly
+  // negative (Module Theta / Longest Trail bonus), which is retained only to
+  // break otherwise-tied standings — never displayed as a negative number.
+  const shown = Math.max(0, total);
+  return `${shown} point${shown === 1 ? '' : 's'}`;
 }
 
 export function formatRoundPointsDelta(points: number): string {

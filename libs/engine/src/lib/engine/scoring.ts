@@ -1,6 +1,7 @@
 import {
   coordinatePipValue,
 } from '../types/coordinate.js';
+import type { Coordinate } from '../types/coordinate.js';
 import type { ActionResult, GameAction } from '../types/actions.js';
 import {
   DEFAULT_CAMPAIGN_ROUNDS,
@@ -159,6 +160,58 @@ export function computeRoundPointDeltas(
   }));
 }
 
+/** One itemized contribution to a captain's round campaign delta. */
+export type RoundPointLineKind =
+  | 'tile' // a domino still in hand
+  | 'wentOut' // charted out — no pips counted
+  | 'longestTrail' // Module Theta bonus (negative)
+  | 'hazardMarker' // Module Delta hazard-marker pass penalty
+  | 'temporalDebt' // Module Eta debt tokens
+  | 'salamanderSwapIn' // Module Sigma swap — penalty received from the holder
+  | 'inversionBaseline'; // Module Kappa — inverted-round top-hand baseline
+
+export interface RoundPointLine {
+  readonly kind: RoundPointLineKind;
+  /** Short human-readable label (federation-neutral). */
+  readonly label: string;
+  /** Signed contribution to the round delta (can be negative, e.g. Theta). */
+  readonly points: number;
+  /** The held domino for `kind: 'tile'` lines, so callers can render it. */
+  readonly tile?: Coordinate;
+  /** Optional qualifier, e.g. "Double blank" or "Highest double ×2 (Salamander)". */
+  readonly note?: string;
+}
+
+/** A captain's fully itemized round campaign delta (pre Module Zeta rollup). */
+export interface RoundPointBreakdown {
+  readonly playerId: PlayerId;
+  /** Matches the per-captain value from {@link computeRoundPointDeltas}. */
+  readonly total: number;
+  /** This captain emptied their hand (charted out). */
+  readonly wentOut: boolean;
+  /** Scored 0 for the go-out (individually or as a Module Zeta squad). */
+  readonly isWinner: boolean;
+  /** Scored under Module Kappa inversion (even points round). */
+  readonly inverted: boolean;
+  readonly lines: readonly RoundPointLine[];
+}
+
+/**
+ * Itemized "receipt" for each captain's round campaign delta — the same numbers
+ * {@link computeRoundPointDeltas} produces, broken down into per-tile and
+ * per-module contributions so the UI can explain how a score came to be.
+ */
+export function explainRoundPoints(
+  state: GameState,
+  round: RoundState
+): readonly RoundPointBreakdown[] {
+  return buildRoundBreakdowns(state, round);
+}
+
+function tileLabel(tile: Coordinate): string {
+  return `${tile.high}-${tile.low}`;
+}
+
 /**
  * Semantic summary of who "won" an ended round versus who emptied their hand.
  *
@@ -289,25 +342,50 @@ function tallyRoundCaptainPenalties(
   state: GameState,
   round: RoundState
 ): readonly { captain: (typeof state.captains)[number]; penalty: number }[] {
+  const byId = new Map(
+    state.captains.map((captain) => [captain.id, captain] as const)
+  );
+  // Single source of truth: the itemized breakdown's total is the campaign delta.
+  return buildRoundBreakdowns(state, round).map((breakdown) => ({
+    captain: byId.get(breakdown.playerId)!,
+    penalty: breakdown.total,
+  }));
+}
+
+/**
+ * Itemized per-captain penalty computation. This is the authoritative scoring
+ * math — {@link tallyRoundCaptainPenalties} sums each captain's lines, and
+ * {@link explainRoundPoints} surfaces the lines to the UI, so the receipt can
+ * never disagree with the score.
+ */
+function buildRoundBreakdowns(
+  state: GameState,
+  round: RoundState
+): readonly RoundPointBreakdown[] {
   const salamander = state.modules.salamanderPenalty.enabled;
   const doubleZeroScore = state.houseRules.doubleZeroScore;
   const maxPip = state.maxPip ?? DOUBLE_TWELVE_MAX_PIPS;
   const salamanderSwap =
     salamander && round.continuumEffects?.salamanderSwap === true;
   const salamanderValue = salamanderPenaltyTileValue(maxPip);
+  // Effective Salamander charge: enabled AND past round 1 (matches penaltyForHand).
+  const salamanderActive =
+    salamander && salamanderPenaltyApplies(round.roundNumber);
   const warpDriveSpoolEnabled = state.modules.warpDriveSpool?.enabled ?? false;
   const longestTrailEnabled = state.modules.longestTrail?.enabled ?? false;
   const longestTrailBonus = state.modules.longestTrail?.bonus ?? -3;
-  const temporalInversionEnabled = state.modules.temporalInversion?.enabled ?? false;
-  
+  const temporalInversionEnabled =
+    state.modules.temporalInversion?.enabled ?? false;
+
   // Module Kappa: Temporal Inversion - even rounds invert scoring
-  const isInvertedRound = temporalInversionEnabled && round.roundNumber % 2 === 0;
+  const isInvertedRound =
+    temporalInversionEnabled && round.roundNumber % 2 === 0;
 
   let swapHolder: string | null = null;
   let swapTarget: string | null = null;
 
   // Determine longest trail winners (Module Theta)
-  const longestTrailWinners = longestTrailEnabled 
+  const longestTrailWinners = longestTrailEnabled
     ? new Set(determineLongestTrailWinners(round))
     : new Set<PlayerId>();
 
@@ -332,9 +410,7 @@ function tallyRoundCaptainPenalties(
 
   // Only waive the holder's tile when the penalty actually transfers.
   const swapTransfers =
-    swapHolder != null &&
-    swapTarget != null &&
-    swapTarget !== swapHolder;
+    swapHolder != null && swapTarget != null && swapTarget !== swapHolder;
 
   // Module Zeta: the winning squad is the squad of the captain who went out.
   const squadrons = round.squadrons;
@@ -344,93 +420,190 @@ function tallyRoundCaptainPenalties(
         null
       : null;
 
+  // Positive hand-pip term for a captain (mirrors the per-tile scoring below),
+  // used only to find the round's highest hand for the Kappa spread baseline.
+  const handPipTerm = (
+    captainId: PlayerId,
+    hand: readonly Coordinate[]
+  ): number => {
+    const holderWaives = swapTransfers && captainId === swapHolder;
+    let sum = 0;
+    for (const tile of hand) {
+      if (isHighestDouble(tile, maxPip)) {
+        if (holderWaives) {
+          continue;
+        }
+        sum += salamanderActive ? salamanderValue : coordinatePipValue(tile);
+      } else if (tile.low === 0 && tile.high === 0) {
+        sum += doubleZeroScore;
+      } else {
+        sum += coordinatePipValue(tile);
+      }
+    }
+    if (swapTransfers && captainId === swapTarget) {
+      sum += salamanderValue;
+    }
+    return sum;
+  };
+
+  // Module Kappa spread: on an inverted round every captain starts at the round's
+  // highest hand, then each tile they kept subtracts its pips — so the biggest
+  // hand nets 0 (wins the round) and going out (kept nothing) eats the full
+  // baseline. Proportional to the actual hands: no flat 2N×13 cliff, no negative
+  // ledger, and the swing stays on the same scale as a normal round.
+  const topHand = isInvertedRound
+    ? state.captains.reduce(
+        (max, captain) =>
+          Math.max(max, handPipTerm(captain.id, round.hands[captain.id] ?? [])),
+        0
+      )
+    : 0;
+
   return state.captains.map((captain) => {
     const hand = round.hands[captain.id] ?? [];
+    const chartedOut =
+      !round.roundBlocked && captain.id === round.roundWinnerId;
     // In squad play the whole winning squad scores the go-out (0); otherwise the
     // individual round winner scores 0.
     const isWinner = squadrons
       ? winningSquadId != null && captain.squadronId === winningSquadId
-      : !round.roundBlocked && captain.id === round.roundWinnerId;
-    
-    let penalty = 0;
-    
+      : chartedOut;
+
+    const lines: RoundPointLine[] = [];
+    const holderWaives = swapTransfers && captain.id === swapHolder;
+    // Inverted rounds: held tiles subtract from the top-hand baseline (+1 → −1).
+    const tileSign = isInvertedRound ? -1 : 1;
+
     if (isInvertedRound) {
-      // Even rounds: HIGHEST hand wins, going out is bad
-      // Winner = person with highest hand penalty (or who went out = gets max penalty)
-      if (isWinner) {
-        // Going out in an inverted round = you wanted to KEEP tiles, so max penalty
-        penalty = maxPip * 2 * 13; // Max possible hand (all tiles)
-      } else {
-        // Non-winners score their actual hand (higher = better in inverted scoring)
-        penalty = -penaltyForHand(
-          hand,
-          salamander,
-          round.roundNumber,
-          doubleZeroScore,
-          maxPip,
-          { swapHolder: swapTransfers && captain.id === swapHolder }
-        );
-        
-        if (
-          swapTransfers &&
-          captain.id === swapTarget
-        ) {
-          penalty -= salamanderValue;
-        }
-      }
-    } else {
-      // Odd rounds: Normal scoring (lowest hand wins)
-      if (isWinner) {
-        // Winner doesn't score hand penalty, but can still get other adjustments
-        // (hazard marker, longest trail)
-        penalty = 0;
-      } else {
-        penalty = penaltyForHand(
-          hand,
-          salamander,
-          round.roundNumber,
-          doubleZeroScore,
-          maxPip,
-          { swapHolder: swapTransfers && captain.id === swapHolder }
-        );
-        
-        if (
-          swapTransfers &&
-          captain.id === swapTarget
-        ) {
-          penalty += salamanderValue;
-        }
-      }
-    }
-    
-    // Module Delta: Hazard marker pass penalty (applies in both normal and inverted)
-    if (warpDriveSpoolEnabled && 
-        captain.id === round.hazardMarkerHolder &&
-        round.hazardMarkerPassCount && 
-        round.hazardMarkerPassCount > 0) {
-      penalty += HAZARD_MARKER_PASS_PENALTY * round.hazardMarkerPassCount;
-    }
-    
-    // Module Theta: Longest trail bonus (applies in both normal and inverted).
-    if (longestTrailEnabled && longestTrailWinners.has(captain.id)) {
-      penalty += longestTrailBonus; // Negative value = bonus
-    }
-    
-    // Module Eta: Temporal debt penalty (applies in both normal and inverted)
-    if (state.modules.temporalDebt?.enabled && round.debtTokens) {
-      const debt = round.debtTokens[captain.id] ?? 0;
-      const costPerToken = state.modules.temporalDebt.costPerToken;
-      penalty += debt * costPerToken;
+      lines.push({
+        kind: 'inversionBaseline',
+        label: 'Inverted round — top-hand baseline',
+        points: topHand,
+        note: `top hand ${topHand}`,
+      });
     }
 
-    // Normal scoring (points campaign, non-Kappa): round deltas never go below 0.
-    // Only Theta currently injects a negative term; hazard/debt/salamander/hand are ≥0.
-    // Temporal Inversion intentionally uses negative round deltas — do not floor those.
-    if (!isInvertedRound) {
-      penalty = Math.max(0, penalty);
+    if (!isInvertedRound && isWinner) {
+      lines.push({
+        kind: 'wentOut',
+        label: chartedOut
+          ? 'Charted out — no pips counted'
+          : 'Squad charted out — no pips counted',
+        points: 0,
+      });
+    } else {
+      // Enumerate held tiles. Normal rounds add pips; inverted rounds subtract
+      // them from the baseline above (holding the biggest hand is best). The
+      // go-out captain's hand is empty here, so on an inverted round they simply
+      // keep the full baseline — the proportional "worst outcome".
+      for (const tile of hand) {
+        if (isHighestDouble(tile, maxPip)) {
+          if (holderWaives) {
+            // Salamander swap: the holder's highest double moves to the target.
+            lines.push({
+              kind: 'tile',
+              label: tileLabel(tile),
+              points: 0,
+              tile,
+              note: 'Highest double — transferred (Salamander swap)',
+            });
+          } else if (salamanderActive) {
+            lines.push({
+              kind: 'tile',
+              label: tileLabel(tile),
+              points: tileSign * salamanderValue,
+              tile,
+              note: 'Highest double ×2 (Salamander)',
+            });
+          } else {
+            lines.push({
+              kind: 'tile',
+              label: tileLabel(tile),
+              points: tileSign * coordinatePipValue(tile),
+              tile,
+              note: 'Highest double',
+            });
+          }
+        } else if (tile.low === 0 && tile.high === 0) {
+          lines.push({
+            kind: 'tile',
+            label: tileLabel(tile),
+            points: tileSign * doubleZeroScore,
+            tile,
+            note: 'Double blank',
+          });
+        } else {
+          lines.push({
+            kind: 'tile',
+            label: tileLabel(tile),
+            points: tileSign * coordinatePipValue(tile),
+            tile,
+          });
+        }
+      }
+
+      if (swapTransfers && captain.id === swapTarget) {
+        lines.push({
+          kind: 'salamanderSwapIn',
+          label: 'Salamander swap — received highest double',
+          points: tileSign * salamanderValue,
+        });
+      }
     }
-    
-    return { captain, penalty };
+
+    // Module Delta: Hazard marker pass penalty (winners and non-winners alike).
+    if (
+      warpDriveSpoolEnabled &&
+      captain.id === round.hazardMarkerHolder &&
+      round.hazardMarkerPassCount &&
+      round.hazardMarkerPassCount > 0
+    ) {
+      const passes = round.hazardMarkerPassCount;
+      lines.push({
+        kind: 'hazardMarker',
+        label: 'Hazard marker passes',
+        points: HAZARD_MARKER_PASS_PENALTY * passes,
+        note: `${passes} pass${passes === 1 ? '' : 'es'} × ${HAZARD_MARKER_PASS_PENALTY}`,
+      });
+    }
+
+    // Module Theta: Longest trail bonus (negative value = bonus).
+    if (longestTrailEnabled && longestTrailWinners.has(captain.id)) {
+      lines.push({
+        kind: 'longestTrail',
+        label: 'Longest trail bonus',
+        points: longestTrailBonus,
+      });
+    }
+
+    // Module Eta: Temporal debt penalty.
+    if (state.modules.temporalDebt?.enabled && round.debtTokens) {
+      const debt = round.debtTokens[captain.id] ?? 0;
+      if (debt !== 0) {
+        const costPerToken = state.modules.temporalDebt.costPerToken;
+        lines.push({
+          kind: 'temporalDebt',
+          label: 'Temporal debt',
+          points: debt * costPerToken,
+          note: `${debt} token${debt === 1 ? '' : 's'} × ${costPerToken}`,
+        });
+      }
+    }
+
+    // No floor. The only term that can dip below zero is the Module Theta
+    // (Longest Trail) −3 bonus; it's kept raw so it can break otherwise-tied
+    // standings ("−3 vs 0"). Scoreboards clamp the *display* to zero
+    // (formatCampaignPoints / formatPointsScoreLine) — ranking uses the raw value.
+    const total = lines.reduce((sum, line) => sum + line.points, 0);
+
+    return {
+      playerId: captain.id,
+      total,
+      wentOut: chartedOut,
+      isWinner,
+      inverted: isInvertedRound,
+      lines,
+    };
   });
 }
 

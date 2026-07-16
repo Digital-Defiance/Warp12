@@ -2,7 +2,6 @@ import {
   formatAiOfficerTacticalClass,
   getTeiRank,
   getTeiRankFromFormatted,
-  parseTeiFormatted,
 } from 'warp12-engine';
 
 import type { FirestoreCaptain } from '../firebase/schema.js';

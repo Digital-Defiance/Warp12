@@ -94,7 +94,6 @@ export class BinaryMatchLog {
   private config: BinaryMatchLogConfig;
   private actions: GameAction[] = [];
   private snapshots: BinaryStateSnapshot[] = [];
-  private currentRound = 1;
 
   constructor(config: BinaryMatchLogConfig) {
     this.config = config;
@@ -132,8 +131,6 @@ export class BinaryMatchLog {
       byteSize: encoded.length,
       timestamp: Date.now(),
     });
-
-    this.currentRound = round.roundNumber + 1;
   }
 
   /**
@@ -195,7 +192,6 @@ export class BinaryMatchLog {
   clear(): void {
     this.actions = [];
     this.snapshots = [];
-    this.currentRound = 1;
   }
 
   /**

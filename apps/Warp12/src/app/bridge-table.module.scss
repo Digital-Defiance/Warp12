@@ -444,6 +444,16 @@
   }
 }
 
+// EXPERIMENT (easy revert): give the hand tiles the same slight round as the
+// board tiles. Board tiles are 60x120 with a 10px radius (~17% of the short
+// side); hand tiles are 36x72, so ~6px matches that proportion. `!important`
+// beats DominoTile's inline border-radius. Set to 0px for square, or delete
+// this block to restore the default 10px rounding. Later this can be gated
+// behind a "rounded tiles in panels" pref via a wrapper data-attribute.
+.handTile [data-testid='domino-tile'] {
+  border-radius: 6px !important;
+}
+
 .routePicker {
   display: flex;
   flex-wrap: wrap;
@@ -554,7 +564,7 @@
 .roundEndEyebrow {
   margin: 0 0 0.35rem;
   font-family: var(--font-federation);
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--warp-accent, #38bdf8);
@@ -577,14 +587,262 @@
   color: var(--warp-text-muted, #94a3b8);
 }
 
-.roundEndPoints {
-  list-style: none;
-  margin: 0 0 1.25rem;
-  padding: 0;
+.roundEndTable {
+  // Shrink-to-fit table centered as a block (the card is text-align: center,
+  // which doesn't center block-level tables, so margin auto does it).
+  margin: 0 auto 1.25rem;
+  border-collapse: collapse;
   font-family: var(--font-federation);
   font-size: 0.82rem;
   line-height: 1.6;
   color: var(--warp-text, #e2e8f0);
+
+  th {
+    font-weight: 400;
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--warp-text-muted, #94a3b8);
+    text-align: center;
+    padding: 0 0.6rem 0.3rem;
+    border-bottom: 1px solid rgba(56, 189, 248, 0.25);
+  }
+
+  td {
+    padding: 0.12rem 0.6rem;
+    vertical-align: middle;
+  }
+}
+
+// Marker gutter: trophies/hand sit centered in a column to the left of every
+// captain name (so they line up left of even the longest name).
+.roundEndMarker {
+  text-align: center;
+  white-space: nowrap;
+
+  span + span {
+    margin-left: 0.15rem;
+  }
+}
+
+// Campaign standings rank gutter (number, or a trophy for the winner).
+.roundEndRank {
+  text-align: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--warp-text-muted, #94a3b8);
+}
+
+// Highlight the winning captain's row in the campaign standings.
+.roundEndTable tr[data-winner='true'] {
+  color: var(--warp-accent, #38bdf8);
+
+  .roundEndRank {
+    color: inherit;
+  }
+}
+
+.roundEndCaptain {
+  text-align: left;
+}
+
+.roundEndPointsCell {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+// Clickable points → opens the per-captain score breakdown ("receipt").
+.pointsButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0 auto;
+  padding: 0.05rem 0.3rem;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover,
+  &:focus-visible {
+    background: rgba(56, 189, 248, 0.14);
+    color: var(--warp-accent, #38bdf8);
+    outline: none;
+  }
+}
+
+.pointsCaret {
+  font-size: 0.58rem;
+  opacity: 0.7;
+}
+
+.roundEndDetailRow td {
+  padding: 0 0.4rem 0.55rem;
+}
+
+.receipt {
+  max-width: 300px;
+  margin: 0 auto;
+  padding: 0.5rem 0.6rem;
+  text-align: left;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  background: rgba(8, 14, 30, 0.6);
+  font-size: 0.76rem;
+  line-height: 1.4;
+  color: var(--warp-text, #e2e8f0);
+}
+
+.receiptSummary {
+  margin: 0 0 0.45rem;
+  font-size: 0.74rem;
+  color: var(--warp-text-muted, #94a3b8);
+}
+
+.receiptTiles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0 0 0.45rem;
+  padding: 0;
+  list-style: none;
+}
+
+.receiptTile {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.receiptTileArt {
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+// Match the slight round of the board/hand tiles (receipt tiles are 18x36, so
+// ~3px ≈ the board's 10px-on-60px proportion). `!important` beats DominoTile's
+// inline border-radius.
+.receiptTileArt [data-testid='domino-tile'] {
+  border-radius: 3px !important;
+}
+
+.receiptTileLabel {
+  flex: 1;
+  min-width: 0;
+  color: var(--warp-text-muted, #cbd5e1);
+}
+
+.receiptTilePts {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.receiptMods {
+  margin: 0 0 0.45rem;
+  padding: 0.35rem 0 0;
+  list-style: none;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+// Campaign by-round breakdown list (no top divider — it leads the receipt).
+.receiptRounds {
+  margin: 0 0 0.45rem;
+  padding: 0;
+  list-style: none;
+}
+
+.receiptMod {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.08rem 0;
+}
+
+.receiptModLabel {
+  color: var(--warp-text-muted, #cbd5e1);
+}
+
+.receiptModNote {
+  color: var(--warp-text-muted, #94a3b8);
+}
+
+// The federation display font lacks U+00D7 (×), so notes like "1 token × 2"
+// dropped the sign entirely. Draw the multiplier in a font that has the glyph
+// and tint it with the HUD accent so the "per-unit" math reads clearly.
+.receiptTimes {
+  margin: 0 0.3em;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--warp-accent, #38bdf8);
+  font-weight: 600;
+}
+
+.receiptModPts {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+// Portal-rendered hover/focus tooltip for a receipt row. Rendered to
+// document.body (fixed) so it escapes the round-end panel's overflow clipping;
+// the native `title` attribute is unreliable in the Tauri webviews.
+.receiptTip {
+  position: fixed;
+  z-index: 2000;
+  transform: translate(-50%, 0);
+  max-width: 17rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 6px;
+  pointer-events: none;
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.66rem;
+  line-height: 1.35;
+  color: var(--warp-text, #e2e8f0);
+  background: rgba(15, 23, 42, 0.97);
+  border: 1px solid var(--warp-panel-border, #334155);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+
+  &[data-above='true'] {
+    transform: translate(-50%, -100%);
+  }
+}
+
+.receiptMod:focus-visible {
+  outline: 1px solid var(--warp-accent, #38bdf8);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+// Visually hidden but exposed to assistive tech — carries tooltip text so screen
+// readers announce it via aria-describedby while the visual bubble stays decorative.
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.receiptTotal {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(56, 189, 248, 0.3);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.receiptFloor {
+  margin: 0.4rem 0 0;
+  font-size: 0.66rem;
+  color: var(--warp-text-muted, #94a3b8);
 }
 
 .roundEndBtn {

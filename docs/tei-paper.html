@@ -5,7 +5,7 @@
   <meta name="generator" content="pandoc 3.10" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <meta name="author" content="Digital Defiance https://github.com/digitaldefiance/warp12" />
-  <meta name="dcterms.date" content="2026-07-14" />
+  <meta name="dcterms.date" content="2026-07-15" />
   <title>Self-Play Calibration of Heuristic Agents for Mexican Train Under Competing Objectives</title>
   <style>
     /* Default styles provided by pandoc.
@@ -193,7 +193,7 @@
 Train Under Competing Objectives</h1>
 <p class="author">Digital Defiance<br />
 <code>https://github.com/digitaldefiance/warp12</code></p>
-<p class="date">2026-07-14</p>
+<p class="date">2026-07-15</p>
 <div class="abstract">
 <div class="abstract-title">Abstract</div>
 <p>Mexican Train dominoes is commonly played under two incompatible
@@ -723,7 +723,8 @@ style="width:95.0%" />
 <figcaption>Agent architecture overview. Top: Heuristic policy stack
 (candidate generation through action selection). Middle-left: Class I*
 residual MLP adds learned correction to heuristics. Middle-right: Class
-Ω standalone policy/value heads (no heuristics). Bottom: Fleet Admiral
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>
+standalone policy/value heads (no heuristics). Bottom: Fleet Admiral
 multi-engine routing by player count.</figcaption>
 </figure>
 <h2 data-number="4.1" id="policy-stack"><span
@@ -1050,10 +1051,11 @@ style="width:95.0%" />
 <figcaption>AI bench results across experimental tiers. Top-left: Class
 I* neural residual iterations (imitation ceiling at 48–51%). Top-right:
 Fleet Admiral search backends (expectimax wins 2p, ISMCTS wins 4p).
-Bottom-left: Class Ω fair-share rises with fleet size (points
-objective). Bottom-right: Fair-share hazard — naive Elo-style
-translation overestimates shipping anchors vs the tempered OpenSkill
-Commander
+Bottom-left: Class
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>
+fair-share rises with fleet size (points objective). Bottom-right:
+Fair-share hazard — naive Elo-style translation overestimates shipping
+anchors vs the tempered OpenSkill Commander
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>μ</mi><annotation encoding="application/x-tex">\mu</annotation></semantics></math>.</figcaption>
 </figure>
 <p><strong>Neural residual (MLP - Class I*):</strong></p>
@@ -2480,11 +2482,13 @@ AI anchors and TEI grade presentation (E/V/C/I/P).</p></li>
 2<span>,</span>000-game win rates; points clarity vs go-out
 compression.</p></li>
 <li><p><strong>AI bench results comparison (Section 7)</strong> — Class
-I* parity, Fleet Admiral wins (expectimax 64%), Ω fair-share by fleet
-size, fair-share hazard.</p></li>
+I* parity, Fleet Admiral wins (expectimax 64%),
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>
+fair-share by fleet size, fair-share hazard.</p></li>
 <li><p><strong>Architecture diagrams (Section 4)</strong> — Policy
-stack, Class I* MLP, Class Ω policy/value heads, Fleet Admiral
-routing.</p></li>
+stack, Class I* MLP, Class
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>
+policy/value heads, Fleet Admiral routing.</p></li>
 <li><p><strong>Points vs go-out divergence (Section 3)</strong> —
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi mathvariant="normal">Δ</mi><mi>μ</mi><mo stretchy="false" form="prefix">|</mo></mrow><annotation encoding="application/x-tex">|\Delta\mu|</annotation></semantics></math>
 anchor vs implied gaps; weaker-side win rates.</p></li>

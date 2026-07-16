@@ -864,9 +864,9 @@ Warp 12 <strong>12-12 → 48</strong>, Warp 18 <strong>18-18 →
 round score to their running cumulative total. Lower is better. If
 <strong>Module Kappa (Temporal Inversion)</strong> is on and this is an
 <strong>even</strong> round, do <strong>not</strong> use this normal
-write-up — use the inverted tally in Section VI (negate hands; going out
-is a large positive dump). The campaign still ends on lowest cumulative
-total.</p></li>
+write-up — use the inverted tally in Section VI (spread off the round’s
+top hand; going out takes the full baseline). The campaign still ends on
+lowest cumulative total.</p></li>
 <li><p><strong>Advance the round.</strong> Step Spacedock down one
 double (<code>12-12 → 11-11 → … → 0-0</code>), re-deal, and play the
 next round. There are <strong>13 rounds</strong> in a full points
@@ -890,11 +890,14 @@ sector immediately.</p>
 </div>
 <h2 id="vi-optional-directives-and-variants">VI. Optional directives and
 variants</h2>
-<p>Warp has designed several Modules (currently 12, Alpha through Zeta)
-that add optional gameplay mechanics. We have taken extensive measures
-to keep rated play unaffected: a skill/luck quantifier and over 171,000
-game combinations across module configurations, checking for strange
-outcomes or behaviors. Some modules are marked <strong>Warped</strong> —
+<p>Warp has designed several Modules (currently 11, Alpha through
+Lambda) that add optional gameplay mechanics. (<strong>Subspace
+Fracture</strong> — the chicken-foot protocol on doubles — is part of
+<strong>core</strong> multi-trail play, not a Module; it is documented
+as a separate directive below.) We have taken extensive measures to keep
+rated play unaffected: a skill/luck quantifier and over 171,000 game
+combinations across module configurations, checking for strange outcomes
+or behaviors. Some modules are marked <strong>Warped</strong> —
 intentional chaos that throws the game on its head, leans into luck, or
 can give an edge to lesser competitors. Those are exhibition-only and
 never rated.</p>
@@ -1407,61 +1410,72 @@ below.</p></li>
 </ul>
 <p><strong>Even-round tally (tabletop):</strong> Count hands the same
 way as Section IV (pip totals, double-blank setting, Salamander if on).
-Then write the <strong>campaign adjustment</strong> as follows — do
-<strong>not</strong> award “0 for going out” on these rounds.</p>
+Find the <strong>top hand</strong> — the largest hand pip total any
+captain still holds this round. Then write each captain’s
+<strong>campaign adjustment</strong> as a <em>spread</em> off that top
+hand — do <strong>not</strong> award “0 for going out” on these
+rounds.</p>
 <ol>
-<li><p><strong>Who emptied their hand</strong> (went out) takes a large
-positive dump — you wanted to <em>keep</em> tiles, not empty. For
-Warp <span class="math inline">\(N\)</span>, use <span
-class="math inline">\(2N\times 13\)</span> (Warp 12 <span
-class="math inline">\(\rightarrow\)</span> <strong>312</strong>; Warp 18
-<span class="math inline">\(\rightarrow\)</span> <strong>468</strong>).
-Add that amount to their campaign total.</p></li>
-<li><p><strong>Everyone else</strong> takes the
-<strong>negation</strong> of their hand total: subtract the hand from
-the campaign (a hand of 40 becomes <strong><span
-class="math inline">\(-40\)</span></strong>). Holding more pips improves
-your standing; a thin hand hurts.</p></li>
+<li><p><strong>Baseline = top hand.</strong> Every captain starts the
+round at that number.</p></li>
+<li><p><strong>Subtract your own hand.</strong> The captain holding the
+top hand nets <strong>0</strong> — they win the round. A thinner hand
+nets the difference (top hand minus theirs). Whoever <strong>emptied
+their hand</strong> (went out) kept nothing, so they take the
+<strong>full baseline</strong> — the worst outcome, since on an inverted
+round you wanted to <em>keep</em> tiles, not shed them.</p></li>
 <li><p>Apply any other enabled Module add-ons from this section (Hazard
 pass penalties, Longest Trail <span class="math inline">\(-3\)</span>,
 Temporal Debt, and so on) <strong>after</strong> that hand term, same as
-the app. Longest Trail still cannot push a <em>normal</em> (odd-round)
-total below 0; on inverted rounds the ledger is already allowed to go
-negative by design.</p></li>
+the app.</p></li>
 <li><p>The sector winner at the end is still whoever has the
 <strong>lowest cumulative</strong> score — Kappa never switches the
 campaign to “highest wins.”</p></li>
 </ol>
-<p><strong>Why the signs look backwards:</strong> On an even round, a
-fat hand must <em>help</em> you under a lowest-total campaign. Negating
-the hand does that on paper: <span class="math inline">\(-40\)</span>
-beats <span class="math inline">\(-10\)</span>, and both beat a go-out’s
-<span class="math inline">\(+312\)</span>. Offline, just keep a running
-total column and add / subtract the even-round adjustment as written;
-you do not need a second ranking system.</p>
+<p><strong>Scoring floor and ties (both round types):</strong> The
+lowest score a captain can <em>show</em> is <strong>zero</strong>. The
+only term that can dip a round below zero is the Longest Trail bonus
+(<span class="math inline">\(-3\)</span>); that sub-zero amount is
+<strong>kept</strong> so it can break an otherwise-tied campaign (a true
+<span class="math inline">\(-3\)</span> edges a <span
+class="math inline">\(0\)</span>), but it is never <em>displayed</em> as
+a negative — scoreboards clamp the shown total to zero and use the raw
+value only to rank level totals.</p>
+<p><strong>Why the top hand wins:</strong> On an even round a fat hand
+should <em>help</em> you under a lowest-total campaign, and the spread
+does exactly that: the biggest hand contributes 0, thinner hands
+contribute the gap, and an empty hand (a go-out) contributes the most.
+Unlike the old fixed dump, the swing scales with the actual hands — one
+bad even round no longer dwarfs an entire campaign. Offline, just keep a
+running total column and add each captain’s spread as written.</p>
 <p><strong>Worked example (Warp 12, even round, three
 captains).</strong> Before the round: Armstrong 20, Lovell 25, Earhart
-30. Earhart goes out; Armstrong holds 40 pips; Lovell holds 12.</p>
+30. Earhart goes out; Armstrong holds 40 pips; Lovell holds 12. The
+<strong>top hand is 40</strong> (Armstrong).</p>
 <ul>
-<li><p>Earhart (went out): <strong><span
-class="math inline">\(+312\)</span></strong> <span
+<li><p>Armstrong (40 in hand): <span
+class="math inline">\(40-40=\)</span> <strong><span
+class="math inline">\(+0\)</span></strong> <span
 class="math inline">\(\rightarrow\)</span> campaign <span
-class="math inline">\(30+312=\textbf{342}\)</span>.</p></li>
-<li><p>Armstrong (40 in hand): <strong><span
-class="math inline">\(-40\)</span></strong> <span
+class="math inline">\(20+0=\textbf{20}\)</span> — wins the round with
+the fattest hand.</p></li>
+<li><p>Lovell (12 in hand): <span class="math inline">\(40-12=\)</span>
+<strong><span class="math inline">\(+28\)</span></strong> <span
 class="math inline">\(\rightarrow\)</span> campaign <span
-class="math inline">\(20-40=\textbf{$-20$}\)</span>.</p></li>
-<li><p>Lovell (12 in hand): <strong><span
-class="math inline">\(-12\)</span></strong> <span
+class="math inline">\(25+28=\textbf{53}\)</span>.</p></li>
+<li><p>Earhart (went out): <span class="math inline">\(40-0=\)</span>
+<strong><span class="math inline">\(+40\)</span></strong> <span
 class="math inline">\(\rightarrow\)</span> campaign <span
-class="math inline">\(25-12=\textbf{13}\)</span>.</p></li>
+class="math inline">\(30+40=\textbf{70}\)</span>.</p></li>
 </ul>
-<p>Armstrong now leads the campaign despite going deep into negatives;
-Earhart is crushed for emptying out when tiles were the prize.</p>
-<p><strong>Tactical Impact:</strong> Going out in even rounds is
-catastrophic. Medium hands become optimal. AI struggles to adapt.
-Lower-skilled players win ~65% of the time (35.6% higher-skill win rate
-in calibration — intentionally inverts skill ordering).</p>
+<p>Armstrong leads the campaign for holding the most; Earhart is
+penalized for emptying out when tiles were the prize — but by a
+proportional 40, not a flat 312.</p>
+<p><strong>Tactical Impact:</strong> Going out in even rounds is the
+worst outcome (you take the full top-hand baseline). Medium-to-large
+hands become optimal. AI struggles to adapt. Lower-skilled players win
+~65% of the time (35.6% higher-skill win rate in calibration —
+intentionally inverts skill ordering).</p>
 <p><strong>Status:</strong> Exhibition/Warped mode
 only—<strong>intentionally breaks skill ordering</strong> for casual
 chaos play. Never rated (TEI does not use these scores).</p>
@@ -2077,6 +2091,21 @@ tends to go down</p></li>
 <li><p><strong>Play more rated matches</strong> → confidence tends to
 rise, which often lifts the conservative score as well</p></li>
 </ul>
+<p><strong>Placement, not margin.</strong> Ratings track <em>where</em>
+you finish, not <em>by how much</em>. When a match is scored, the final
+standings are collapsed to finishing places (1st, 2nd, 3rd…) and your
+rating moves on those places alone: every captain you finish ahead of
+nudges you up, every one who finishes ahead of you nudges you down, each
+weighted by how strong that opponent was. The size of the point gap
+never enters the math — losing a points campaign by 3 and losing it by
+300 move your TEI by <strong>exactly the same amount</strong>, and a
+blowout win counts no more than a one-point squeaker. (Tie on the
+cumulative total and you split the place, a half-step each.) So a single
+ugly round — say a Module Kappa inversion or a fat go-out penalty that
+dumps a big number on you — only costs rating if it actually drops you
+<em>past</em> another captain; if you still finish in the same place,
+your TEI is unchanged. Chase <strong>finishing order</strong>, not a
+pretty scoreline.</p>
 <p><strong>Two ways to improve your TEI:</strong></p>
 <ol>
 <li><p><strong>Play more rated matches</strong> so confidence tightens

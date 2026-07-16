@@ -1,13 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  applyAction,
+  Fragment,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { createPortal } from 'react-dom';
+import {
   buildAdvisorReport,
   canRaiseShieldsByCharting,
   canRaiseShieldsManually,
   captainNameMap,
   createDemoGame,
   formatViolation,
-  formatRoundPointsDelta,
   getLegalMoves,
   handPoints,
   countActiveDistressBeacons,
@@ -33,8 +41,11 @@ import {
   longestTrailBonusActions,
   temporalDebtPenaltyActions,
   computeRoundPointDeltas,
+  explainRoundPoints,
   summarizeRoundOutcome,
   EMPTY_Q_ROUND_EFFECTS,
+  type RoundPointBreakdown,
+  type RoundPointLine,
 } from 'warp12-engine';
 import { resolveHelmControls } from '../game/helm-controls.js';
 import { roundEndHeadline, roundEndTitle } from './round-end-summary.js';
@@ -173,6 +184,10 @@ import {
 import { isNetworkAvailable } from '../game/offline-match-queue.js';
 import { CampaignCompleteOverlay } from './campaign-complete-overlay.js';
 import {
+  deriveCampaignPointsHistory,
+  type CampaignRoundPoints,
+} from './campaign-points-history.js';
+import {
   createWarpDominoTheme,
   WARP_PIP_COLORS,
   WARP_TILE_SURFACE,
@@ -236,7 +251,9 @@ function formatPointsScoreLine(
     maxPip: number;
   }
 ): string {
-  const campaign = `${campaignScore} campaign`;
+  // Lowest displayed score is zero; the raw total can dip negative (Longest
+  // Trail tiebreak credit) but that's only used for ranking, never shown.
+  const campaign = `${Math.max(0, campaignScore)} campaign`;
   if (
     !round ||
     !canShowInHandPenalty(captainId, options.handOwnerId) ||
@@ -279,6 +296,357 @@ function roundPenaltyAdds(
       name: namesById.get(entry.playerId) ?? entry.playerId,
       points: entry.points,
     }));
+}
+
+function formatSignedPoints(points: number): string {
+  return `${points < 0 ? '−' : '+'}${Math.abs(points)}`;
+}
+
+/**
+ * Render a module note, drawing its "× N" multiplier as its own accented glyph.
+ * The receipt inherits the federation display font, which has no U+00D7, so a
+ * plain `×` in the note string renders as invisible tofu ("1 token  2"). We
+ * split it out and paint our own coloured × in a font that actually has it.
+ */
+function ReceiptNote({ note }: { note: string }) {
+  const parts = note.split(/\s*\u00d7\s*/);
+  if (parts.length < 2) {
+    return <>{note}</>;
+  }
+  return (
+    <>
+      {parts.map((part, index) => (
+        <Fragment key={index}>
+          {index > 0 && (
+            <span className={styles.receiptTimes} aria-label="times">
+              ×
+            </span>
+          )}
+          {part}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+/**
+ * Plain-language explanation for a scored module line, shown on hover so the
+ * "why" behind each adjustment is discoverable without cluttering the receipt.
+ * Values (bonus size, cost/token, pass count) already live in the row's note.
+ */
+function roundPointLineTooltip(
+  kind: RoundPointLine['kind']
+): string | undefined {
+  switch (kind) {
+    case 'inversionBaseline':
+      return 'Temporal Inversion (Module Kappa): on an inverted round the highest hand wins. Everyone starts at the round\u2019s top hand (shown here), then each tile you kept subtracts its pips — so the biggest hand nets zero and going out (you kept nothing) takes the full baseline.';
+    case 'longestTrail':
+      return 'Longest Trail (Module Theta): the captain(s) with the longest personal warp trail this round earn this pip bonus. Ties share it.';
+    case 'temporalDebt':
+      return 'Temporal Debt (Module Eta): debt tokens accrued during the round are charged at the shown cost per token when the round is scored.';
+    case 'hazardMarker':
+      return 'Hazard Marker (Module Delta): passing your turn while holding the hazard marker adds a pip penalty for each pass this round.';
+    case 'salamanderSwapIn':
+      return "Salamander (Module Sigma): the round's highest double was swapped to you, so you take its pip value as a penalty.";
+    default:
+      return undefined;
+  }
+}
+
+interface ReceiptTipAnchor {
+  x: number;
+  y: number;
+  above: boolean;
+}
+
+/**
+ * Shared hover/focus tooltip state. Positions off the triggering event's
+ * `currentTarget` (element-agnostic) and closes on Escape so the tip stays
+ * dismissable per WCAG 1.4.13 (Content on Hover or Focus).
+ */
+function usePortalTip() {
+  const [tip, setTip] = useState<ReceiptTipAnchor | null>(null);
+  const openTip = useCallback((event: { currentTarget: Element }) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const above = rect.top > 96;
+    setTip({
+      x: rect.left + rect.width / 2,
+      y: above ? rect.top - 6 : rect.bottom + 6,
+      above,
+    });
+  }, []);
+  const closeTip = useCallback(() => setTip(null), []);
+  useEffect(() => {
+    if (!tip) {
+      return;
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setTip(null);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [tip]);
+  return { tip, openTip, closeTip };
+}
+
+/**
+ * The floating tooltip bubble itself. Portaled to `document.body` (fixed
+ * position) so it escapes the round-end panel's overflow clipping, and marked
+ * `aria-hidden` because the accessible text is carried on the anchor
+ * (aria-label / aria-describedby) — this keeps it purely visual for sighted
+ * pointer/keyboard users without double-announcing to screen readers.
+ */
+function PortalTipBubble({
+  text,
+  tip,
+}: {
+  text: string;
+  tip: ReceiptTipAnchor | null;
+}) {
+  if (!tip || typeof document === 'undefined') {
+    return null;
+  }
+  return createPortal(
+    <span
+      aria-hidden
+      className={styles.receiptTip}
+      data-above={tip.above ? 'true' : undefined}
+      style={{ left: tip.x, top: tip.y }}
+    >
+      {text}
+    </span>,
+    document.body
+  );
+}
+
+/**
+ * Icon/marker anchor (e.g. 🏆 winner, ✋ emptied hand) with a portal tooltip.
+ * The `text` doubles as the accessible name via role="img" + aria-label, so
+ * screen readers announce it and the visual tip is a mouse/keyboard nicety.
+ */
+function PortalTip({
+  text,
+  className,
+  children,
+}: {
+  text: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  const { tip, openTip, closeTip } = usePortalTip();
+  return (
+    <span
+      className={className}
+      role="img"
+      aria-label={text}
+      tabIndex={0}
+      onPointerEnter={openTip}
+      onPointerLeave={closeTip}
+      onFocus={openTip}
+      onBlur={closeTip}
+    >
+      {children}
+      <PortalTipBubble text={text} tip={tip} />
+    </span>
+  );
+}
+
+/**
+ * One module-adjustment row in the receipt, with a portal-rendered hover/focus
+ * tooltip explaining the rule. The row keeps its visible label as its accessible
+ * name and links the rule text via `aria-describedby` (a visually-hidden span),
+ * so screen readers get both. Native `title` is avoided (unreliable in the Tauri
+ * webviews) and a CSS tooltip would be clipped by the panel's overflow.
+ */
+function ReceiptModRow({
+  label,
+  note,
+  points,
+  tooltip,
+}: {
+  label: string;
+  note?: string;
+  points: number;
+  tooltip?: string;
+}) {
+  const tipId = useId();
+  const { tip, openTip, closeTip } = usePortalTip();
+
+  const interactive = tooltip
+    ? {
+        onPointerEnter: openTip,
+        onPointerLeave: closeTip,
+        onFocus: openTip,
+        onBlur: closeTip,
+        tabIndex: 0,
+        'aria-describedby': tipId,
+      }
+    : {};
+
+  return (
+    <li className={styles.receiptMod} {...interactive}>
+      <span className={styles.receiptModLabel}>
+        {label}
+        {note && (
+          <span className={styles.receiptModNote}>
+            {' · '}
+            <ReceiptNote note={note} />
+          </span>
+        )}
+      </span>
+      <span className={styles.receiptModPts}>{formatSignedPoints(points)}</span>
+      {tooltip && (
+        <>
+          <span id={tipId} className={styles.srOnly}>
+            {tooltip}
+          </span>
+          <PortalTipBubble text={tooltip} tip={tip} />
+        </>
+      )}
+    </li>
+  );
+}
+
+/**
+ * The "+N ▾" points cell that toggles the score-breakdown receipt. Keeps the
+ * points value as its accessible name and describes the toggle affordance via a
+ * portal tooltip + visually-hidden `aria-describedby` text.
+ */
+function ScoreBreakdownButton({
+  pointsLabel,
+  isExpanded,
+  detailId,
+  onToggle,
+}: {
+  pointsLabel: string;
+  isExpanded: boolean;
+  detailId: string;
+  onToggle: () => void;
+}) {
+  const tipId = useId();
+  const { tip, openTip, closeTip } = usePortalTip();
+  const hint = isExpanded ? 'Hide score breakdown' : 'Show score breakdown';
+  return (
+    <button
+      type="button"
+      className={styles.pointsButton}
+      aria-expanded={isExpanded}
+      aria-controls={detailId}
+      aria-describedby={tipId}
+      onClick={onToggle}
+      onPointerEnter={openTip}
+      onPointerLeave={closeTip}
+      onFocus={openTip}
+      onBlur={closeTip}
+    >
+      <span>{pointsLabel}</span>
+      <span className={styles.pointsCaret} aria-hidden>
+        {isExpanded ? '▶️' : '🔽'}
+      </span>
+      <span id={tipId} className={styles.srOnly}>
+        {hint}
+      </span>
+      <PortalTipBubble text={hint} tip={tip} />
+    </button>
+  );
+}
+
+/**
+ * "Why did I score that?" receipt: the held dominoes (as mini tiles) plus every
+ * module adjustment that bumped a captain's round delta. Driven entirely by the
+ * engine's {@link explainRoundPoints}, so it always matches the shown total.
+ */
+function RoundPointReceipt({
+  breakdown,
+  maxPip,
+  tileSurface,
+}: {
+  breakdown: RoundPointBreakdown;
+  maxPip: number;
+  tileSurface: { fill: string; border: string };
+}) {
+  const tileLines = breakdown.lines.filter(
+    (
+      line
+    ): line is RoundPointLine & { tile: NonNullable<RoundPointLine['tile']> } =>
+      line.kind === 'tile' && line.tile != null
+  );
+  // "Charted out — no pips counted" is a 0-point caption (normal-round go-out).
+  const summaryLine = breakdown.lines.find((line) => line.kind === 'wentOut');
+  // Kappa's inverted-round top-hand baseline: a real +points line that heads the
+  // receipt, since the held tiles below subtract from it.
+  const baselineLine = breakdown.lines.find(
+    (line) => line.kind === 'inversionBaseline'
+  );
+  const moduleLines = breakdown.lines.filter(
+    (line) =>
+      line.kind !== 'tile' &&
+      line.kind !== 'wentOut' &&
+      line.kind !== 'inversionBaseline'
+  );
+
+  return (
+    <div className={styles.receipt}>
+      {summaryLine && (
+        <p className={styles.receiptSummary}>{summaryLine.label}</p>
+      )}
+      {baselineLine && (
+        <ul className={styles.receiptMods}>
+          <ReceiptModRow
+            label={baselineLine.label}
+            note={baselineLine.note}
+            points={baselineLine.points}
+            tooltip={roundPointLineTooltip(baselineLine.kind)}
+          />
+        </ul>
+      )}
+      {tileLines.length > 0 && (
+        <ul className={styles.receiptTiles}>
+          {tileLines.map((line, index) => (
+            <li key={index} className={styles.receiptTile}>
+              <span className={styles.receiptTileArt} aria-hidden>
+                <DominoTile
+                  maxPips={maxPip}
+                  value1={line.tile.high}
+                  value2={line.tile.low}
+                  width={18}
+                  height={36}
+                  backgroundColor={tileSurface.fill}
+                  borderColor={tileSurface.border}
+                  pipColors={WARP_PIP_COLORS}
+                />
+              </span>
+              <span className={styles.receiptTileLabel}>
+                {line.note ?? `${line.tile.high} + ${line.tile.low}`}
+              </span>
+              <span className={styles.receiptTilePts}>
+                {formatSignedPoints(line.points)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {moduleLines.length > 0 && (
+        <ul className={styles.receiptMods}>
+          {moduleLines.map((line, index) => (
+            <ReceiptModRow
+              key={index}
+              label={line.label}
+              note={line.note}
+              points={line.points}
+              tooltip={roundPointLineTooltip(line.kind)}
+            />
+          ))}
+        </ul>
+      )}
+      <div className={styles.receiptTotal}>
+        <span>Round total</span>
+        <span>{formatSignedPoints(breakdown.total)}</span>
+      </div>
+    </div>
+  );
 }
 
 export interface BridgeTableProps {
@@ -429,6 +797,9 @@ export function BridgeTable({
   const [matchReportNotice, setMatchReportNotice] = useState<string | null>(null);
   const [campaignPerformance, setCampaignPerformance] =
     useState<AdvisorPerformanceSummary | null>(null);
+  const [campaignPointsHistory, setCampaignPointsHistory] = useState<
+    CampaignRoundPoints[]
+  >([]);
   const [campaignRoundCount, setCampaignRoundCount] = useState(0);
   const campaignAdvisorReviewsRef = useRef<AdvisorMoveReview[]>([]);
   const campaignRoundSnapshotsRef = useRef<
@@ -513,6 +884,7 @@ export function BridgeTable({
     campaignRoundSnapshotsRef.current = [];
     lastScoredRoundRef.current = null;
     setCampaignPerformance(null);
+    setCampaignPointsHistory([]);
     setMatchReport(null);
     setMatchReportPending(false);
     setMatchReportNotice(null);
@@ -742,6 +1114,8 @@ export function BridgeTable({
     autoFollowAction,
     captainTailsHud,
     captainTailsDisplay,
+    captainTailsCoordinate,
+    captainTailsTrailLength,
     turnBeepsEnabled,
     bridgeSoundsEnabled,
     advisorIncludeAllCaptains,
@@ -2652,6 +3026,7 @@ export function BridgeTable({
     if (roundEndReviewKeyRef.current !== key) {
       roundEndReviewKeyRef.current = key;
       setRoundEndSummaryOpen(true);
+      setExpandedBreakdownId(null);
     }
   }, [
     roundAwaitingScore,
@@ -2694,8 +3069,35 @@ export function BridgeTable({
         name: namesById.get(entry.playerId) ?? entry.playerId,
         points: entry.points,
       }));
-    return [...adds, ...extras];
+    const winnerIds = new Set(roundOutcome.roundWinnerIds);
+    // Standard leaderboard order: winner(s) on top, then best-to-worst. Pinning
+    // winners first matters for inverted (Kappa) rounds, where the winner can
+    // actually hold the most points; low points = better in golf-style scoring.
+    return [...adds, ...extras].sort((a, b) => {
+      const aWin = winnerIds.has(a.id) ? 0 : 1;
+      const bWin = winnerIds.has(b.id) ? 0 : 1;
+      if (aWin !== bWin) {
+        return aWin - bWin;
+      }
+      return a.points - b.points;
+    });
   }, [game, round, roundAwaitingScore, roundOutcome]);
+
+  // Itemized "why did I score that?" receipt for each captain, keyed by id.
+  const roundPointBreakdowns = useMemo(() => {
+    if (!round || !roundAwaitingScore || game.objective !== 'points') {
+      return new Map<string, RoundPointBreakdown>();
+    }
+    return new Map(
+      explainRoundPoints(game, round).map(
+        (breakdown) => [breakdown.playerId, breakdown] as const
+      )
+    );
+  }, [game, round, roundAwaitingScore]);
+
+  const [expandedBreakdownId, setExpandedBreakdownId] = useState<string | null>(
+    null
+  );
 
   const scoreCurrentRound = useCallback(() => {
     if (!round || !roundAwaitingScore) {
@@ -2744,6 +3146,12 @@ export function BridgeTable({
     if (game.phase === 'complete') {
       setCampaignPerformance(
         summarizeAdvisorPerformance(campaignAdvisorReviewsRef.current)
+      );
+      setCampaignPointsHistory(
+        deriveCampaignPointsHistory(
+          campaignRoundSnapshotsRef.current,
+          gameRef.current
+        )
       );
       setCampaignCompleteOpen(true);
     }
@@ -3281,6 +3689,14 @@ export function BridgeTable({
           onCaptainTailsDisplayChange={(next) =>
             patchTablePrefs({ captainTailsDisplay: next })
           }
+          captainTailsCoordinate={captainTailsCoordinate}
+          onCaptainTailsCoordinateChange={(next) =>
+            patchTablePrefs({ captainTailsCoordinate: next })
+          }
+          captainTailsTrailLength={captainTailsTrailLength}
+          onCaptainTailsTrailLengthChange={(next) =>
+            patchTablePrefs({ captainTailsTrailLength: next })
+          }
           bridgeSoundsEnabled={bridgeSoundsEnabled}
           onBridgeSoundsEnabledChange={(next) =>
             patchTablePrefs({ bridgeSoundsEnabled: next })
@@ -3407,7 +3823,7 @@ export function BridgeTable({
             reasons={coachSuggestion.reasons}
             names={names}
             suggestionFormat={{
-              allStopEcho: round.continuumEffects?.allStopEcho === true,
+              allStopEcho: round?.continuumEffects?.allStopEcho === true,
             }}
             busy={coachBusy}
             pinned={teachingMode}
@@ -3421,7 +3837,7 @@ export function BridgeTable({
             round={round}
             trailSpokes={trailSpokes}
             activePlayerId={activePlayerId}
-            display={captainTailsDisplay}
+            coordinate={captainTailsCoordinate}
             tacticalClassAbbrevByCaptain={captainTacticalClassAbbrevById}
             tacticalClassLabelByCaptain={captainTacticalClassLabelById}
           />
@@ -3434,6 +3850,8 @@ export function BridgeTable({
             trailSpokes={trailSpokes}
             activePlayerId={activePlayerId}
             display={captainTailsDisplay}
+            coordinate={captainTailsCoordinate}
+            showTrailLength={captainTailsTrailLength}
             tileBg={tileBg}
             tacticalClassAbbrevByCaptain={captainTacticalClassAbbrevById}
             tacticalClassLabelByCaptain={captainTacticalClassLabelById}
@@ -3516,33 +3934,80 @@ export function BridgeTable({
               <p className={styles.roundEndBody}>
                 {roundEndHeadline(game, round, names)}
               </p>
-              {game.objective === 'points' && (
-                <ul className={styles.roundEndPoints}>
-                  {roundPenaltySummary.map((entry) => {
-                    const wonRound =
-                      roundOutcome?.roundWinnerIds.includes(entry.id) ?? false;
-                    const wentOut = roundOutcome?.wentOutId === entry.id;
-                    return (
-                      <li key={entry.id}>
-                        {wonRound && (
-                          <span aria-label="Round winner" title="Round winner">
-                            🏆{' '}
-                          </span>
-                        )}
-                        {wentOut && (
-                          <span aria-label="Emptied hand" title="Emptied hand">
-                            ✋{' '}
-                          </span>
-                        )}
-                        {entry.name}: {formatRoundPointsDelta(entry.points)}
-                      </li>
-                    );
-                  })}
-                  {roundPenaltySummary.length === 0 && (
-                    <li>No points held this round.</li>
-                  )}
-                </ul>
-              )}
+              {game.objective === 'points' &&
+                (roundPenaltySummary.length === 0 ? (
+                  <p className={styles.roundEndBody}>
+                    No points held this round.
+                  </p>
+                ) : (
+                  <table className={styles.roundEndTable}>
+                    <thead>
+                      <tr>
+                        <th aria-label="Round markers" />
+                        <th scope="col" className={styles.roundEndCaptain}>
+                          Captain
+                        </th>
+                        <th scope="col">Points</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {roundPenaltySummary.map((entry) => {
+                        const wonRound =
+                          roundOutcome?.roundWinnerIds.includes(entry.id) ??
+                          false;
+                        const wentOut = roundOutcome?.wentOutId === entry.id;
+                        const pointsLabel = formatSignedPoints(entry.points);
+                        const breakdown = roundPointBreakdowns.get(entry.id);
+                        const isExpanded = expandedBreakdownId === entry.id;
+                        const detailId = `round-breakdown-${entry.id}`;
+                        return (
+                          <Fragment key={entry.id}>
+                            <tr data-expanded={isExpanded}>
+                              <td className={styles.roundEndMarker}>
+                                {wonRound && (
+                                  <PortalTip text="Round winner">🏆</PortalTip>
+                                )}
+                                {wentOut && (
+                                  <PortalTip text="Emptied hand">✋</PortalTip>
+                                )}
+                              </td>
+                              <td className={styles.roundEndCaptain}>
+                                {entry.name}
+                              </td>
+                              <td className={styles.roundEndPointsCell}>
+                                {breakdown ? (
+                                  <ScoreBreakdownButton
+                                    pointsLabel={pointsLabel}
+                                    isExpanded={isExpanded}
+                                    detailId={detailId}
+                                    onToggle={() =>
+                                      setExpandedBreakdownId(
+                                        isExpanded ? null : entry.id
+                                      )
+                                    }
+                                  />
+                                ) : (
+                                  pointsLabel
+                                )}
+                              </td>
+                            </tr>
+                            {breakdown && isExpanded && (
+                              <tr className={styles.roundEndDetailRow}>
+                                <td colSpan={3} id={detailId}>
+                                  <RoundPointReceipt
+                                    breakdown={breakdown}
+                                    maxPip={maxPip}
+                                    tileSurface={tileSurface}
+                                  />
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                ))}
               <RoundImageActions
                 className={styles.roundEndShareActions}
                 systemShareAvailable={systemShareAvailable}
@@ -3692,6 +4157,7 @@ export function BridgeTable({
           matchReportPending={matchReportPending}
           matchReportNotice={matchReportNotice}
           ratedMatchCheckInUrl={ratedMatchCheckInUrl()}
+          pointsHistory={campaignPointsHistory}
           performance={campaignPerformance}
           canDownloadAdvisorReport={campaignRoundCount > 0}
           onDownloadAdvisorReport={downloadCampaignAdvisorReport}

@@ -1,4 +1,4 @@
-import type { GameObjective, WarpSkillLevel } from 'warp12-engine';
+import type { WarpSkillLevel } from 'warp12-engine';
 
 import type { CaptainGender } from '../game/captain-profile.js';
 import type {
@@ -10,7 +10,6 @@ import type {
 import {
   emptyObjectiveRatingStats,
   objectiveToTrackKey,
-  toStoredRating,
 } from './rating-types.js';
 
 export type AiSkillLevel = WarpSkillLevel;

@@ -26,6 +26,7 @@ interface DragOrigin {
 }
 
 const MIN_PANEL_HEIGHT = 140;
+const MIN_PANEL_WIDTH = 200;
 const EDGE_MARGIN = 12;
 /** Movement before a body touch becomes a panel drag (vs native scroll). */
 const BODY_DRAG_THRESHOLD_PX = 10;
@@ -47,6 +48,10 @@ const DRAG_EXEMPT_SELECTOR = [
 
 function heightStorageKey(storageKey: string): string {
   return `${storageKey}:height`;
+}
+
+function widthStorageKey(storageKey: string): string {
+  return `${storageKey}:width`;
 }
 
 function readStoredPosition(storageKey: string): StoredPosition | null {
@@ -100,6 +105,31 @@ function writeStoredHeight(storageKey: string, height: number | null): void {
       return;
     }
     localStorage.setItem(heightStorageKey(storageKey), String(Math.round(height)));
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
+function readStoredWidth(storageKey: string): number | null {
+  try {
+    const raw = localStorage.getItem(widthStorageKey(storageKey));
+    if (!raw) {
+      return null;
+    }
+    const parsed = Number.parseInt(raw, 10);
+    return Number.isFinite(parsed) && parsed >= MIN_PANEL_WIDTH ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredWidth(storageKey: string, width: number | null): void {
+  try {
+    if (width == null) {
+      localStorage.removeItem(widthStorageKey(storageKey));
+      return;
+    }
+    localStorage.setItem(widthStorageKey(storageKey), String(Math.round(width)));
   } catch {
     // ignore quota / private mode
   }
@@ -182,6 +212,12 @@ export function useFloatingPanel(
     startHeight: number;
     top: number;
   } | null>(null);
+  const widthResizeRef = useRef<{
+    fixedLeft: number;
+    startWidth: number;
+    startPointerX: number;
+    top: number;
+  } | null>(null);
   const [position, setPosition] = useState<StoredPosition | null>(() =>
     readStoredPosition(storageKey)
   );
@@ -190,6 +226,9 @@ export function useFloatingPanel(
   );
   const [height, setHeight] = useState<number | null>(() =>
     readStoredHeight(storageKey)
+  );
+  const [width, setWidth] = useState<number | null>(() =>
+    readStoredWidth(storageKey)
   );
   const [dragging, setDragging] = useState(false);
   const [touchPrimary, setTouchPrimary] = useState(() => isTouchPrimaryDevice());
@@ -221,6 +260,27 @@ export function useFloatingPanel(
     (next: number) =>
       Math.min(maxPanelHeight(), Math.max(MIN_PANEL_HEIGHT, Math.round(next))),
     [maxPanelHeight]
+  );
+
+  const maxPanelWidth = useCallback(() => {
+    if (bounds === 'viewport') {
+      const inset = readSafeAreaInsets();
+      return Math.max(
+        MIN_PANEL_WIDTH,
+        viewportSize().width - EDGE_MARGIN * 2 - inset.left - inset.right
+      );
+    }
+    const container = containerRef.current;
+    if (!container) {
+      return Math.max(MIN_PANEL_WIDTH, viewportSize().width - EDGE_MARGIN * 2);
+    }
+    return Math.max(MIN_PANEL_WIDTH, container.clientWidth - EDGE_MARGIN * 2);
+  }, [bounds, containerRef]);
+
+  const clampWidth = useCallback(
+    (next: number) =>
+      Math.min(maxPanelWidth(), Math.max(MIN_PANEL_WIDTH, Math.round(next))),
+    [maxPanelWidth]
   );
 
   const clampPosition = useCallback(
@@ -451,6 +511,62 @@ export function useFloatingPanel(
     []
   );
 
+  const onWidthResizePointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (event.button !== 0) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      const panel = panelRef.current;
+      if (!panel) {
+        return;
+      }
+      // Pin to a fixed left/top so width grows to the right (the grip edge)
+      // instead of the panel's CSS right-anchor pushing the left edge out.
+      pinToCurrentPosition();
+      const rect = panel.getBoundingClientRect();
+      const startWidth = clampWidth(width ?? rect.width);
+      setWidth(startWidth);
+      widthResizeRef.current = {
+        fixedLeft: rect.left,
+        startWidth,
+        startPointerX: event.clientX,
+        top: rect.top,
+      };
+      event.currentTarget.setPointerCapture(event.pointerId);
+    },
+    [clampWidth, pinToCurrentPosition, width]
+  );
+
+  const onWidthResizePointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const resize = widthResizeRef.current;
+      if (!resize) {
+        return;
+      }
+      const inset = readSafeAreaInsets();
+      // Left edge stays fixed; the right edge (grip) follows the pointer. Delta
+      // from the grab point keeps the width steady on grab (no snap).
+      const delta = event.clientX - resize.startPointerX;
+      const maxRight = viewportSize().width - inset.right - EDGE_MARGIN;
+      const maxWidth = Math.max(MIN_PANEL_WIDTH, maxRight - resize.fixedLeft);
+      const next = Math.min(clampWidth(resize.startWidth + delta), maxWidth);
+      setWidth(next);
+    },
+    [clampWidth]
+  );
+
+  const onWidthResizePointerUp = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      widthResizeRef.current = null;
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    },
+    []
+  );
+
   useEffect(() => {
     if (useDefaultAnchor || !position) {
       writeStoredPosition(storageKey, null);
@@ -464,6 +580,10 @@ export function useFloatingPanel(
   }, [height, storageKey]);
 
   useEffect(() => {
+    writeStoredWidth(storageKey, width);
+  }, [width, storageKey]);
+
+  useEffect(() => {
     const reclamp = () => {
       setPosition((current) => {
         if (!current) {
@@ -472,6 +592,7 @@ export function useFloatingPanel(
         return clampPosition(current.x, current.y);
       });
       setHeight((current) => (current == null ? current : clampHeight(current)));
+      setWidth((current) => (current == null ? current : clampWidth(current)));
     };
 
     // Push legacy y=0 (under the status bar) out of the system gesture zone.
@@ -495,7 +616,7 @@ export function useFloatingPanel(
       cancelAnimationFrame(frame);
       containerObserver.disconnect();
     };
-  }, [bounds, clampHeight, clampPosition, containerRef]);
+  }, [bounds, clampHeight, clampWidth, clampPosition, containerRef]);
 
   const anchor = useDefaultAnchor ? defaultAnchor : 'custom';
   const style: CSSProperties = {
@@ -522,6 +643,9 @@ export function useFloatingPanel(
     style,
     bounds,
     height,
+    width,
+    // Grip lives on the right edge, which follows the pointer (left edge fixed).
+    resizeEdge: 'right' as const,
     dragging,
     touchPrimary,
     headerHandlers: {
@@ -539,6 +663,12 @@ export function useFloatingPanel(
       onPointerMove: onResizePointerMove,
       onPointerUp: onResizePointerUp,
       onPointerCancel: onResizePointerUp,
+    },
+    widthResizeHandlers: {
+      onPointerDown: onWidthResizePointerDown,
+      onPointerMove: onWidthResizePointerMove,
+      onPointerUp: onWidthResizePointerUp,
+      onPointerCancel: onWidthResizePointerUp,
     },
   };
 }

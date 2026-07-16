@@ -1,19 +1,11 @@
 import { SciContent } from 'latex-content-renderer';
 import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
 
 import styles from './rules-view.module.scss';
 
 interface RulesLatexProps {
   source: string;
 }
-
-const INTERNAL_DOC_ROUTES: Record<string, string> = {
-  './calibration-log.md': '/paper/log',
-  'calibration-log.md': '/paper/log',
-  './tei-paper-outline.md': '/paper',
-  'tei-paper-outline.md': '/paper',
-};
 
 export function RulesLatex({ source }: RulesLatexProps) {
   const processedSource = useMemo(() => {
@@ -24,47 +16,10 @@ export function RulesLatex({ source }: RulesLatexProps) {
 
   return (
     <article className={styles.markdown}>
-      <SciContent
-        content={processedSource}
-        className={styles.latexContent}
-        linkResolver={(href) => {
-          const internal = INTERNAL_DOC_ROUTES[href];
-          if (internal) {
-            return internal;
-          }
-          if (href?.startsWith('/')) {
-            return href;
-          }
-          return href;
-        }}
-        LinkComponent={({ href, children }) => {
-          const internal = INTERNAL_DOC_ROUTES[href || ''];
-          if (internal) {
-            return (
-              <Link to={internal} className={styles.link}>
-                {children}
-              </Link>
-            );
-          }
-          if (href?.startsWith('/')) {
-            return (
-              <Link to={href} className={styles.link}>
-                {children}
-              </Link>
-            );
-          }
-          return (
-            <a
-              href={href}
-              className={styles.link}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {children}
-            </a>
-          );
-        }}
-      />
+      {/* latex-content-renderer@1.1.3 exposes no link-customization hooks, so
+          internal doc cross-links render as plain anchors from the processed
+          HTML. Reintroduce a LinkComponent here if the library gains one. */}
+      <SciContent content={processedSource} className={styles.latexContent} />
     </article>
   );
 }

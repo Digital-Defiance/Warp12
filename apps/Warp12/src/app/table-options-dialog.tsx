@@ -11,7 +11,10 @@ import type {
   ShareRoundDelivery,
   ShareRoundImageMode,
 } from '../game/share-round.js';
-import type { CaptainTailsDisplay } from './table-view-prefs';
+import type {
+  CaptainTailsCoordinate,
+  CaptainTailsDisplay,
+} from './table-view-prefs';
 import { RoundImageActions } from './round-image-actions';
 import { forceReloadPage } from './force-reload';
 import styles from './rules-view.module.scss';
@@ -43,6 +46,10 @@ export interface TableOptionsDialogProps {
   onCaptainTailsHudChange: (next: boolean) => void;
   captainTailsDisplay: CaptainTailsDisplay;
   onCaptainTailsDisplayChange: (next: CaptainTailsDisplay) => void;
+  captainTailsCoordinate: CaptainTailsCoordinate;
+  onCaptainTailsCoordinateChange: (next: CaptainTailsCoordinate) => void;
+  captainTailsTrailLength: boolean;
+  onCaptainTailsTrailLengthChange: (next: boolean) => void;
   bridgeSoundsEnabled: boolean;
   onBridgeSoundsEnabledChange: (next: boolean) => void;
   turnBeepsEnabled: boolean;
@@ -83,6 +90,10 @@ export function TableOptionsDialog({
   onCaptainTailsHudChange,
   captainTailsDisplay,
   onCaptainTailsDisplayChange,
+  captainTailsCoordinate,
+  onCaptainTailsCoordinateChange,
+  captainTailsTrailLength,
+  onCaptainTailsTrailLengthChange,
   bridgeSoundsEnabled,
   onBridgeSoundsEnabledChange,
   turnBeepsEnabled,
@@ -224,7 +235,7 @@ export function TableOptionsDialog({
                   onCaptainTailsHudChange(event.target.checked)
                 }
               />
-              <span>Tails panel</span>
+              <span>Fleet Status panel</span>
             </label>
             <div className={optionStyles.row}>
               <button
@@ -246,12 +257,54 @@ export function TableOptionsDialog({
                 Domino tile
               </button>
             </div>
+            <div className={optionStyles.row}>
+              {(
+                [
+                  ['full', 'X:Y'],
+                  ['tail', 'Tail only'],
+                  ['off', 'Off'],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={optionStyles.optionBtn}
+                  disabled={!captainTailsHud}
+                  data-active={captainTailsCoordinate === value}
+                  onClick={() => onCaptainTailsCoordinateChange(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <p className={optionStyles.hint}>
               {captainTailsHud
-                ? captainTailsDisplay === 'domino'
-                  ? 'Floating panel — mini tile and coordinate for each captain and Neutral zone.'
-                  : 'Floating panel — tail coordinate for each captain and Neutral zone (e.g. 6:12, 6:6).'
+                ? captainTailsCoordinate === 'off'
+                  ? captainTailsDisplay === 'domino'
+                    ? 'Coordinate readout hidden — mini tile only, freeing panel width.'
+                    : 'Coordinate readout hidden — captains and Neutral zone by name only.'
+                  : captainTailsCoordinate === 'tail'
+                    ? 'Coordinate readout shows only the open tail value in play (e.g. 6).'
+                    : captainTailsDisplay === 'domino'
+                      ? 'Floating panel — mini tile and coordinate for each captain and Neutral zone.'
+                      : 'Floating panel — tail coordinate for each captain and Neutral zone (e.g. 6:12, 6:6).'
                 : 'Turn on for a draggable panel listing each trail tail at a glance.'}
+            </p>
+            <label className={optionStyles.checkboxRow}>
+              <input
+                type="checkbox"
+                disabled={!captainTailsHud}
+                checked={captainTailsTrailLength}
+                onChange={(event) =>
+                  onCaptainTailsTrailLengthChange(event.target.checked)
+                }
+              />
+              <span>Trail length</span>
+            </label>
+            <p className={optionStyles.hint}>
+              {captainTailsTrailLength
+                ? 'Shows a tile-count badge per trail — handy for longest-trail play.'
+                : 'Turn on to badge each trail with its current tile count.'}
             </p>
           </section>
 

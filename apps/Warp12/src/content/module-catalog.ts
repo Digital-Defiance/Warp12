@@ -1,7 +1,8 @@
 /**
  * Curated module catalog for `/modules` — operate steps + 285k-game skill study.
  * Stats from `tools/nn/data/module-analysis-summary.json` (2026-07-14).
- * Normative detail: RULES.md §VI (this page is a briefing, not a substitute).
+ * Normative detail: RULES.tex §VI (this page is a briefing, not a substitute).
+ * Eleven lettered Modules (Alpha–Lambda); Subspace Fracture is core, not a Module.
  */
 
 export type ModuleTaxonomy =
@@ -259,9 +260,9 @@ export const MODULE_CATALOG: readonly ModuleStatRow[] = [
     ],
   },
   {
-    id: 'mu',
+    id: 'subspace-fracture',
     label: 'Subspace Fracture',
-    greek: 'Mu',
+    greek: '—',
     taxonomy: 'promote',
     avgSkill: 2.87,
     skillDominant: 33,
@@ -272,8 +273,9 @@ export const MODULE_CATALOG: readonly ModuleStatRow[] = [
     constrainedPct: 55,
     spread: 3.2,
     uniquePips: 7.9,
-    gist: 'Optional chicken-foot on doubles — choose scope in lobby.',
+    gist: 'Core chicken-foot on doubles (not a Module) — choose scope in lobby.',
     operate: [
+      'Part of core multi-trail play, carried over as an opt-in lobby toggle — not one of the eleven lettered Modules.',
       'Pick scope: Own Trail / All Captains / All Doubles before launch.',
       'Covered doubles open fracture stabilizers that must be filled before navigation continues.',
       'Off in Official Warp — turn on only when the table wants chicken-foot complexity.',
@@ -317,7 +319,7 @@ export const MODULE_CATALOG: readonly ModuleStatRow[] = [
     gist: 'Even rounds invert — highest hand wins; going out is catastrophic.',
     operate: [
       'Odd rounds: normal tally (low hand / go-out → 0; lowest campaign wins).',
-      'Even rounds: same campaign ledger — holders subtract hand pips; going out adds 2×maxPip×13 (Warp 12 → +312).',
+      'Even rounds: highest hand wins — everyone starts at the round’s top hand and subtracts their own; the biggest hand nets 0, going out takes the full baseline.',
       'Warped by design — exhibition only; never TEI.',
     ],
   },

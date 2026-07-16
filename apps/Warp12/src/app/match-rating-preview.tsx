@@ -7,7 +7,7 @@
  * rating changes before the match.
  */
 
-import { previewTeiChange, type TeiDisplay } from 'warp12-engine';
+import { previewTeiChange, type TeiDisplay, type TeiGrade } from 'warp12-engine';
 import type { StoredRating, RatedObjective } from '../firebase/stats-schema.js';
 import styles from './match-rating-preview.module.scss';
 
@@ -42,8 +42,10 @@ export function MatchRatingPreview({
   objective,
   compact = false,
 }: MatchRatingPreviewProps) {
-  const winPreview = previewTeiChange(currentRating, currentGrade, true);
-  const losePreview = previewTeiChange(currentRating, currentGrade, false);
+  // The prop is a loose display string; the engine wants the grade letter union.
+  const grade = currentGrade as TeiGrade | undefined;
+  const winPreview = previewTeiChange(currentRating, grade, true);
+  const losePreview = previewTeiChange(currentRating, grade, false);
 
   if (compact) {
     return (

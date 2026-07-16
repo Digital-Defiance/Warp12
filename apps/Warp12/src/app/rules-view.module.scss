@@ -213,6 +213,10 @@
   box-sizing: border-box;
 }
 
+.rulesPageWide {
+  max-width: min(1100px, 100%);
+}
+
 .rulesPageHeader {
   display: flex;
   align-items: center;
@@ -247,6 +251,110 @@
   background: rgba(15, 23, 42, 0.9);
   border: 1px solid #334155;
   border-radius: 10px;
+}
+
+.manualViewer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.manualToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.viewToggle {
+  display: inline-flex;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #050816;
+}
+
+.viewToggleBtn,
+.viewToggleActive {
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.45rem 0.9rem;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: #94a3b8;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+
+  &:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: -2px;
+  }
+}
+
+.viewToggleBtn:hover {
+  color: #e2e8f0;
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.viewToggleActive {
+  color: #e2e8f0;
+  background: rgba(56, 189, 248, 0.2);
+}
+
+.manualDownload {
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #38bdf8;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.pdfEmbed,
+.pdfEmbedDialog {
+  display: block;
+  width: 100%;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: #0b1220;
+}
+
+.pdfEmbed {
+  height: calc(100vh - 220px);
+  min-height: 640px;
+}
+
+.pdfEmbedDialog {
+  height: calc(100vh - 260px);
+  min-height: 480px;
+}
+
+.pdfFallback {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  padding: 2rem;
+  border-radius: 4px;
+  color: #fbbf24;
+  text-align: center;
+
+  a {
+    color: #38bdf8;
+    text-decoration: underline;
+  }
+}
+
+.manualHtmlPane {
+  min-width: 0;
 }
 
 :global(.shell[data-layout-tier='phone']) {

@@ -7,6 +7,7 @@ import {
   longestTrailBonusActions,
   temporalDebtPenaltyActions,
   computeRoundPointDeltas,
+  explainRoundPoints,
   summarizeRoundOutcome,
 } from './scoring.js';
 import { endBlockedRound } from './round-resolution.js';
@@ -733,11 +734,97 @@ describe('computeRoundPointDeltas', () => {
   });
 });
 
-describe('longestTrailBonusActions floor', () => {
-  it('floors the round total at 0 when bonus would go negative', () => {
+describe('explainRoundPoints', () => {
+  const sumLines = (lines: readonly { points: number }[]) =>
+    lines.reduce((total, line) => total + line.points, 0);
+
+  it('itemizes a non-winner hand into per-tile lines', () => {
+    const round = makeRound(['a', 'b'], {
+      phase: 'ended',
+      roundWinnerId: 'a',
+      hands: { a: [], b: [T(5, 6), T(0, 0), T(2, 3)] },
+    });
+    const state = makeGame(round, {
+      captains: [
+        { id: 'a', displayName: 'Alpha', pointsScore: 0 },
+        { id: 'b', displayName: 'Beta', pointsScore: 0 },
+      ],
+    });
+
+    const breakdowns = explainRoundPoints(state, round);
+    const alpha = breakdowns.find((b) => b.playerId === 'a');
+    const beta = breakdowns.find((b) => b.playerId === 'b');
+
+    // Winner: charted out, no pips.
+    expect(alpha?.isWinner).toBe(true);
+    expect(alpha?.wentOut).toBe(true);
+    expect(alpha?.total).toBe(0);
+    expect(alpha?.lines).toEqual([
+      { kind: 'wentOut', label: 'Charted out — no pips counted', points: 0 },
+    ]);
+
+    // Non-winner: one line per tile (double blank scored at 50).
+    expect(beta?.total).toBe(11 + 50 + 5);
+    expect(beta?.lines.map((line) => line.kind)).toEqual(['tile', 'tile', 'tile']);
+    const blankLine = beta?.lines.find((line) => line.note === 'Double blank');
+    expect(blankLine?.points).toBe(50);
+    expect(blankLine?.tile).toEqual({ low: 0, high: 0 });
+  });
+
+  it('always agrees with computeRoundPointDeltas across module mixes', () => {
+    const scenarios = [
+      resolveModules({}),
+      resolveModules({ salamanderPenalty: true }),
+      resolveModules({ longestTrail: true }),
+      resolveModules({ warpDriveSpool: true }),
+      resolveModules({ temporalDebt: true, temporalDebtCost: 2 }),
+      resolveModules({ temporalInversion: true }),
+    ];
+
+    for (const modules of scenarios) {
+      for (const roundNumber of [1, 2, 3]) {
+        const round = makeRound(['a', 'b', 'c'], {
+          roundNumber,
+          phase: 'ended',
+          roundWinnerId: 'a',
+          hands: {
+            a: [],
+            b: [T(5, 6), T(0, 0), T(12, 12)],
+            c: [T(2, 3), T(9, 9)],
+          },
+          debtTokens: { a: 0, b: 4, c: 2 },
+          hazardMarkerHolder: 'c',
+          hazardMarkerPassCount: 2,
+        });
+        const state = makeGame(round, {
+          captains: [
+            { id: 'a', displayName: 'Alpha', pointsScore: 0 },
+            { id: 'b', displayName: 'Beta', pointsScore: 0 },
+            { id: 'c', displayName: 'Gamma', pointsScore: 0 },
+          ],
+          modules,
+        });
+
+        const deltas = computeRoundPointDeltas(state, round);
+        const breakdowns = explainRoundPoints(state, round);
+        for (const delta of deltas) {
+          const breakdown = breakdowns.find((b) => b.playerId === delta.playerId);
+          expect(breakdown).toBeDefined();
+          expect(breakdown?.total).toBe(delta.points);
+          // Breakdowns are never floored — a captain's lines always sum exactly
+          // to their delta (scoreboards clamp the display, not the math).
+          expect(sumLines(breakdown?.lines ?? [])).toBe(delta.points);
+        }
+      }
+    }
+  });
+});
+
+describe('longestTrailBonusActions tiebreak (no floor)', () => {
+  it('lets the Longest Trail bonus pull a round below zero (tiebreak credit)', () => {
     const base = makeRound(['a', 'b'], { spacedockValue: 12 });
-    // a goes out (0 hand) but also has longest trail — stay at 0, not −3.
-    // b has only 2 pips without longest trail.
+    // a goes out (0 hand) AND has the longest trail → 0 − 3 = −3 (kept, not
+    // floored) so it can edge a rival who is flat at 0. b has 2 pips, no bonus.
     const short = makeRound(['a', 'b'], {
       spacedockValue: 12,
       phase: 'ended',
@@ -768,10 +855,11 @@ describe('longestTrailBonusActions floor', () => {
     const aOnly = scoreRound(withFloor, short, () => 0.5);
     expect(aOnly.ok).toBe(true);
     if (!aOnly.ok) return;
-    expect(aOnly.state.captains.find((c) => c.id === 'a')!.pointsScore).toBe(0);
+    // a: went out (0) + longest trail −3 = −3 (raw). b: 2 pips, no bonus.
+    expect(aOnly.state.captains.find((c) => c.id === 'a')!.pointsScore).toBe(-3);
     expect(aOnly.state.captains.find((c) => c.id === 'b')!.pointsScore).toBe(2);
 
-    // Give b the longer trail so −3 would make 2−3 = −1 without a floor.
+    // Give b the longer trail so −3 makes 2 − 3 = −1 (kept, not floored to 0).
     const bLong = makeRound(['a', 'b'], {
       ...short,
       table: {
@@ -802,7 +890,7 @@ describe('longestTrailBonusActions floor', () => {
     );
     expect(floored.ok).toBe(true);
     if (!floored.ok) return;
-    expect(floored.state.captains.find((c) => c.id === 'b')!.pointsScore).toBe(0);
+    expect(floored.state.captains.find((c) => c.id === 'b')!.pointsScore).toBe(-1);
   });
 });
 
@@ -812,9 +900,9 @@ describe('normal round score floor (points campaign)', () => {
     return after - before;
   }
 
-  it('only Theta injects a negative term — floor keeps normals ≥ 0', () => {
-    // Sources reviewed: hand ≥0, salamander ≥0, hazard ≥0, debt ≥0, Theta −3.
-    // Kappa inverted rounds intentionally go negative and are excluded from the floor.
+  it('combines hand, hazard, debt, and Longest Trail into one delta', () => {
+    // Term signs: hand ≥0, salamander ≥0, hazard ≥0, debt ≥0, Theta −3. Only
+    // Longest Trail is negative; here it nets positive so nothing dips below 0.
     const base = makeRound(['a', 'b'], { spacedockValue: 12 });
     const round = makeRound(['a', 'b'], {
       spacedockValue: 12,
@@ -856,17 +944,17 @@ describe('normal round score floor (points campaign)', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
-    for (const captain of result.state.captains) {
-      expect(captain.pointsScore).toBeGreaterThanOrEqual(0);
-    }
-
     // a: go-out 0 + hazard +5 + trail −3 + debt +2 = 4
     expect(
       roundDelta(0, result.state.captains.find((c) => c.id === 'a')!.pointsScore)
     ).toBe(4);
+    // b: 1 pip held, no modules.
+    expect(
+      roundDelta(0, result.state.captains.find((c) => c.id === 'b')!.pointsScore)
+    ).toBe(1);
   });
 
-  it('Temporal Inversion even rounds keep intentional negative deltas', () => {
+  it('Temporal Inversion spreads relative to the top hand (no cliff, no negatives)', () => {
     const round = makeRound(['a', 'b'], {
       roundNumber: 2,
       phase: 'ended',
@@ -882,10 +970,44 @@ describe('normal round score floor (points campaign)', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
-    // Non-winner keeps tiles → negative delta under Kappa
-    expect(result.state.captains.find((c) => c.id === 'b')!.pointsScore).toBeLessThan(
-      0
-    );
+    const a = result.state.captains.find((c) => c.id === 'a')!;
+    const b = result.state.captains.find((c) => c.id === 'b')!;
+    // Top hand is b's 5:5 = 10. b wins the inverted round (baseline 10 − 10 = 0).
+    // a went out (kept nothing) so a eats the full baseline (10) — proportional,
+    // never a flat 2N×13 dump, and never negative.
+    expect(b.pointsScore).toBe(0);
+    expect(a.pointsScore).toBe(10);
+  });
+
+  it('inverted go-out no longer costs a flat 2N×13 dump', () => {
+    // Three captains hold modest hands; the biggest is c's 3:3 = 6.
+    const round = makeRound(['a', 'b', 'c'], {
+      roundNumber: 2,
+      phase: 'ended',
+      roundWinnerId: 'a',
+      hands: { a: [], b: [T(1, 2)], c: [T(3, 3)] },
+    });
+    const state = makeGame(round, {
+      campaignRounds: 1,
+      captains: [
+        { id: 'a', displayName: 'A', pointsScore: 0 },
+        { id: 'b', displayName: 'B', pointsScore: 0 },
+        { id: 'c', displayName: 'C', pointsScore: 0 },
+      ],
+      modules: resolveModules({ temporalInversion: true }),
+    });
+
+    const result = scoreRound(state, round, () => 0.5);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const score = (id: string) =>
+      result.state.captains.find((c) => c.id === id)!.pointsScore;
+    // top hand = 6 (c). a (went out) = 6, b = 6 − 3 = 3, c = 0. Old model would
+    // have dumped 2×12×13 = 312 on a — now it's just the top-hand baseline.
+    expect(score('c')).toBe(0);
+    expect(score('b')).toBe(3);
+    expect(score('a')).toBe(6);
   });
 });
 

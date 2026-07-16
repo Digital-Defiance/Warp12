@@ -160,6 +160,53 @@
   }
 }
 
+.widthResizeHandle {
+  position: absolute;
+  top: 0;
+  // Stop above the bottom (height) resize strip so the corners don't fight.
+  bottom: 12px;
+  width: 12px;
+  z-index: 3;
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
+  display: grid;
+  place-items: center;
+
+  &[data-edge='left'] {
+    left: 0;
+  }
+
+  &[data-edge='right'] {
+    right: 0;
+  }
+
+  &::after {
+    content: '';
+    width: 3px;
+    height: 2.25rem;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.4);
+  }
+
+  &:hover::after,
+  &:focus-visible::after {
+    background: rgba(56, 189, 248, 0.75);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(56, 189, 248, 0.55);
+    outline-offset: -2px;
+  }
+}
+
+.panel[data-accent='amber'] .widthResizeHandle {
+  &:hover::after,
+  &:focus-visible::after {
+    background: rgba(251, 191, 36, 0.75);
+  }
+}
+
 .advisorBadge {
   display: grid;
   place-items: center;

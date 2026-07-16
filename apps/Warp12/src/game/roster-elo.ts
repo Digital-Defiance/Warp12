@@ -4,7 +4,7 @@ import {
 } from 'warp12-engine';
 import type { GameLogRosterEntry } from 'warp12-react';
 
-import { opponentTeiForObjective, opponentTeiGradeForObjective } from '../firebase/stats-openskill.js';
+import { opponentTeiGradeForObjective } from '../firebase/stats-openskill.js';
 import type { RatedObjective } from '../firebase/stats-schema.js';
 import type { FirestoreCaptain } from '../firebase/schema.js';
 import { isAiCaptain } from './ai-captain.js';

@@ -38,6 +38,7 @@ import { Warp12Logo } from './Warp12Logo';
 import { FactorLanding } from './factor-landing';
 import { HubHarnessPage } from './hub-harness-page';
 import { getWarpFactor } from './warp-factor';
+import { LiveAnnouncerProvider } from '../a11y/live-announcer';
 
 const warpFactor = getWarpFactor();
 
@@ -199,17 +200,19 @@ function AppShell() {
 
 export function App() {
   return (
-    <LayoutTierProvider>
-      <GameAudioProvider>
-        <BridgeFocusProvider>
-          <BridgeHeaderActionsProvider>
-            <BridgeHeaderStatusProvider>
-              <AppShell />
-            </BridgeHeaderStatusProvider>
-          </BridgeHeaderActionsProvider>
-        </BridgeFocusProvider>
-      </GameAudioProvider>
-    </LayoutTierProvider>
+    <LiveAnnouncerProvider>
+      <LayoutTierProvider>
+        <GameAudioProvider>
+          <BridgeFocusProvider>
+            <BridgeHeaderActionsProvider>
+              <BridgeHeaderStatusProvider>
+                <AppShell />
+              </BridgeHeaderStatusProvider>
+            </BridgeHeaderActionsProvider>
+          </BridgeFocusProvider>
+        </GameAudioProvider>
+      </LayoutTierProvider>
+    </LiveAnnouncerProvider>
   );
 }
 
