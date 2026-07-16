@@ -1,13 +1,23 @@
 /// <reference types='vitest' />
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import * as path from 'path';
+
+const bridgePkg = JSON.parse(
+  readFileSync(new URL('./package.json', import.meta.url), 'utf8')
+) as { version?: string };
 
 const tauriBuild = Boolean(process.env.TAURI_ENV_PLATFORM);
 
 export default defineConfig(() => ({
   root: import.meta.dirname,
   base: tauriBuild ? './' : '/',
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(
+      bridgePkg.version ?? 'dev'
+    ),
+  },
   // Expose the Tauri CLI's build-time env (e.g. TAURI_ENV_PLATFORM) to the client
   // bundle so runtime platform checks (isTauriMobile) work. Without this only
   // VITE_-prefixed vars reach import.meta.env, and every Tauri check reads undefined.

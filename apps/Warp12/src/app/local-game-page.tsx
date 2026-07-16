@@ -50,13 +50,13 @@ import {
   WARP12_OFFICIAL_OBJECTIVE,
 } from '../game/warp12-preset.js';
 import {
+  applyAiTierOverrides,
   buildAiCaptains,
   clampLocalPlayerCount,
   maxPlayersForFactor,
   minPlayersForFactor,
   neuralAiSupported,
   soloHumanCaptain,
-  type AiCaptainConfig,
   type LocalGameConfig,
 } from '../game/local-game-config.js';
 import { drawMatchSeed } from '../game/match-seed.js';
@@ -76,22 +76,6 @@ interface LocalLaunchSession {
   readonly config: LocalGameConfig;
   readonly seed: number;
   readonly roster: ReadonlyMap<string, WarpAiPlayer>;
-}
-
-function applyAiTierOverrides(
-  aiCaptains: readonly AiCaptainConfig[],
-  tiers: Record<string, AiOfficerTier>,
-  extendedThinking: Record<string, boolean>,
-  allowNeural: boolean
-): AiCaptainConfig[] {
-  return aiCaptains.map((ai) => {
-    const tier = tiers[ai.id] ?? ai.skill;
-    const thinking =
-      allowNeural && tier === 'commander'
-        ? extendedThinking[ai.id] === true
-        : false;
-    return { ...ai, skill: tier, omega: false, extendedThinking: thinking };
-  });
 }
 
 function ratedObjective(objective: GameObjective): RatedObjective | null {
@@ -761,6 +745,7 @@ export function LocalGamePage() {
                 <input
                   type="checkbox"
                   checked={extendedThinkingByAi[ai.id] === true}
+                  aria-label={`${ai.displayName}: extended thinking (makes sector unrated)`}
                   onChange={(e) => {
                     const enabled = e.target.checked;
                     setExtendedThinkingByAi((current) => ({

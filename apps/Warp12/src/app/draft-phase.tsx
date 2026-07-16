@@ -10,6 +10,9 @@ export interface DraftPhaseProps {
   tileBg: WarpTileBg;
   maxPip: number;
   onPickTile: (coordinate: Coordinate) => void;
+  /** Abort the draft / leave the sector (e.g. return to setup). */
+  onAbort?: () => void;
+  abortLabel?: string;
 }
 
 export function DraftPhase({
@@ -19,6 +22,8 @@ export function DraftPhase({
   tileBg,
   maxPip,
   onPickTile,
+  onAbort,
+  abortLabel = 'Return to setup',
 }: DraftPhaseProps) {
   const myPack = draftState.currentPacks[myId] || [];
   const myPicked = draftState.pickedTiles[myId] || [];
@@ -157,6 +162,15 @@ export function DraftPhase({
           Select coordinates strategically — versatile pips give you more options
           throughout the sector.
         </p>
+        {onAbort && (
+          <button
+            type="button"
+            className={styles.abortBtn}
+            onClick={onAbort}
+          >
+            {abortLabel}
+          </button>
+        )}
       </div>
     </div>
   );

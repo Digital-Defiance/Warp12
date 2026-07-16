@@ -184,7 +184,10 @@
     "deploy:hosting:bridge": "yarn build:all && firebase deploy --only hosting:bridge --project warp-12",
     "deploy:hosting:leaderboard": "yarn build:leaderboard && firebase deploy --only hosting:leaderboard --project warp-12",
     "deploy:hosting": "node scripts/check-firebase-fn-rewrites.mjs && yarn build:all:hosting && firebase deploy --only hosting --project warp-12",
-    "deploy:firebase": "yarn build:all:hosting && yarn workspace @warp12/functions build && firebase deploy --only firestore,hosting --project warp-12 && /usr/bin/env bash scripts/deploy-functions.sh"
+    "deploy:firebase": "yarn build:all:hosting && yarn workspace @warp12/functions build && firebase deploy --only firestore,hosting --project warp-12 && /usr/bin/env bash scripts/deploy-functions.sh",
+    "auth:all": "firebase login --reauth && gcloud auth login && gcloud config set project warp-12 && npm login",
+    "release:build": "swift build --package-path vendor/warp12-release-head -c release",
+    "release:run": "swift run --package-path vendor/warp12-release-head -c release"
   },
   "dependencies": {
     "@swc-node/register": "^1.11.1",

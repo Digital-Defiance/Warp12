@@ -220,12 +220,14 @@ import { TableOptionsDialog } from './table-options-dialog';
 import { SectorSettingsDialog } from './sector-settings-dialog';
 import {
   readTableOptions,
+  resolveSectorStatusHud,
   writeTableOptions,
 } from './table-view-prefs';
 import { ConfirmDialog } from './confirm-dialog';
 import { HostLeaveSectorDialog } from './host-leave-sector-dialog';
 import { RoundImageActions } from './round-image-actions';
 import { SectorStatusHud } from './sector-status-hud';
+import { SectorStatusHolo } from './sector-status-holo';
 import { SensorGridHud } from './sensor-grid-hud';
 import { GameLogTicker } from './game-log-ticker';
 import { GameLogDialog } from './game-log-dialog';
@@ -1126,6 +1128,11 @@ export function BridgeTable({
     bridgeSoundsEnabled,
     advisorIncludeAllCaptains,
   } = tablePrefs;
+
+  const showSectorStatusHud = resolveSectorStatusHud(
+    tablePrefs,
+    compactLayout
+  );
 
   const patchTablePrefs = useCallback(
     (patch: Partial<typeof tablePrefs>) => {
@@ -3525,37 +3532,47 @@ export function BridgeTable({
         type="button"
         className={styles.handSortBtn}
         onClick={() => applySort('pips-desc')}
+        aria-label="Sort heaviest first"
+        title="Sort by total pips, heaviest first"
       >
-        Heaviest
+        {compactLayout ? 'Heavy' : 'Heaviest'}
       </button>
       <button
         type="button"
         className={styles.handSortBtn}
         onClick={() => applySort('pips-asc')}
+        aria-label="Sort lightest first"
+        title="Sort by total pips, lightest first"
       >
-        Lightest
+        {compactLayout ? 'Light' : 'Lightest'}
       </button>
       <button
         type="button"
         className={styles.handSortBtn}
         onClick={() => applySort('low-first')}
+        aria-label="Sort by low pip"
+        title="Sort by the lower end of each tile (0s, then 1s, …)"
       >
-        Low pip
+        {compactLayout ? 'Low' : 'Low pip'}
       </button>
       <button
         type="button"
         className={styles.handSortBtn}
         onClick={() => applySort('doubles-first')}
+        aria-label="Sort doubles first"
+        title="Doubles first, then by total pips"
       >
-        Doubles
+        {compactLayout ? 'Double' : 'Doubles'}
       </button>
       <button
         type="button"
         className={styles.handSortBtn}
         onClick={() => applySort('best-train', trainConnectValue)}
         disabled={trainConnectValue === undefined}
+        aria-label="Sort best for your train"
+        title="Tiles that play on your open trail first"
       >
-        Best train
+        Best Train
       </button>
     </>
   );
@@ -3583,6 +3600,14 @@ export function BridgeTable({
             };
             void dispatch(action);
           }}
+          onAbort={
+            onLeaveSetup
+              ? handleLeaveSetup
+              : onLeave
+                ? handleLeaveBridge
+                : undefined
+          }
+          abortLabel={onLeaveSetup ? 'Return to setup' : 'Leave bridge'}
         />
       ) : (
         <>
@@ -3744,87 +3769,6 @@ export function BridgeTable({
           </div>
         </div>
 
-        <SectorSettingsDialog
-          open={settingsOpen}
-          onClose={() => setSettingsOpen(false)}
-          game={game}
-        />
-
-        <TableOptionsDialog
-          open={optionsOpen}
-          onClose={() => setOptionsOpen(false)}
-          layoutStyle={layoutStyle}
-          onLayoutStyleChange={(next) => patchTablePrefs({ layoutStyle: next })}
-          tileBg={tileBg}
-          onTileBgChange={(next) => patchTablePrefs({ tileBg: next })}
-          holographicTiles={holographicTiles}
-          onHolographicTilesChange={(next) =>
-            patchTablePrefs({ holographicTiles: next })
-          }
-          pipPreset={pipPreset}
-          onPipPresetChange={(next) => patchTablePrefs({ pipPreset: next })}
-          teachingMode={teachingMode}
-          onTeachingModeChange={(next) => patchTablePrefs({ teachingMode: next })}
-          advisorAvailable={!advisorSuppressedForRated}
-          advisorNeuralAvailable={neuralAdvisorOk}
-          autoFollowAction={autoFollowAction}
-          onAutoFollowActionChange={(next) =>
-            patchTablePrefs({ autoFollowAction: next })
-          }
-          sectorStatusHud={sectorStatusHud}
-          onSectorStatusHudChange={(next) =>
-            patchTablePrefs({ sectorStatusHud: next })
-          }
-          captainTailsHud={captainTailsHud}
-          onCaptainTailsHudChange={(next) =>
-            patchTablePrefs({ captainTailsHud: next })
-          }
-          captainTailsDisplay={captainTailsDisplay}
-          onCaptainTailsDisplayChange={(next) =>
-            patchTablePrefs({ captainTailsDisplay: next })
-          }
-          captainTailsCoordinate={captainTailsCoordinate}
-          onCaptainTailsCoordinateChange={(next) =>
-            patchTablePrefs({ captainTailsCoordinate: next })
-          }
-          captainTailsTrailLength={captainTailsTrailLength}
-          onCaptainTailsTrailLengthChange={(next) =>
-            patchTablePrefs({ captainTailsTrailLength: next })
-          }
-          bridgeSoundsEnabled={bridgeSoundsEnabled}
-          onBridgeSoundsEnabledChange={(next) =>
-            patchTablePrefs({ bridgeSoundsEnabled: next })
-          }
-          turnBeepsEnabled={turnBeepsEnabled}
-          onTurnBeepsEnabledChange={(next) =>
-            patchTablePrefs({ turnBeepsEnabled: next })
-          }
-          showDebugExport={showDebugExport}
-          debugExportBusy={debugBusy}
-          onExportDebug={handleExportDebug}
-          showShareRound={canShareRound}
-          systemShareAvailable={systemShareAvailable}
-          roundImageBusy={roundImageBusy}
-          onRoundImage={handleRoundImage}
-          onOpenRoundLog={canShareRound ? handleOpenRoundLog : undefined}
-          onDownloadRoundLogJson={
-            canShareRound ? handleDownloadRoundLogJson : undefined
-          }
-          roundLogBusy={roundLogDownloadBusy}
-        />
-
-        <ConfirmDialog
-          open={rematchConfirmOpen}
-          title="Start rematch?"
-          titleId="warp12-rematch-confirm-title"
-          message="The current sector will be discarded and a new game will be dealt with the same settings."
-          confirmLabel="Start rematch"
-          cancelLabel="Keep playing"
-          confirmTone="danger"
-          onConfirm={confirmRematch}
-          onClose={() => setRematchConfirmOpen(false)}
-        />
-
         <ConfirmDialog
           open={pendingRoundImageShare !== null}
           title="Share board image"
@@ -3834,18 +3778,6 @@ export function BridgeTable({
           cancelLabel="Cancel"
           onConfirm={() => void confirmPendingRoundImageShare()}
           onClose={() => setPendingRoundImageShare(null)}
-        />
-
-        <ConfirmDialog
-          open={setupConfirmOpen}
-          title="Return to setup?"
-          titleId="warp12-setup-confirm-title"
-          message="You will leave the current sector and any progress in this game will be lost."
-          confirmLabel="Return to setup"
-          cancelLabel="Keep playing"
-          confirmTone="danger"
-          onConfirm={confirmLeaveSetup}
-          onClose={() => setSetupConfirmOpen(false)}
         />
 
         <ConfirmDialog
@@ -3860,85 +3792,160 @@ export function BridgeTable({
           onClose={cancelAdvisorEngage}
         />
 
-        <HostLeaveSectorDialog
-          open={leaveConfirmOpen}
-          onClose={() => setLeaveConfirmOpen(false)}
-          onReturnToWaitingRoom={confirmReturnToWaitingRoom}
-          onDissolveSector={confirmDissolveSector}
-        />
-
         <div className={styles.topRightHud}>
           <ContinuumOrb game={game} names={names} />
         </div>
 
-        {sectorStatusHud ? (
-          <SectorStatusHud
-            containerRef={bridgeSurfaceRef}
-            game={game}
-            round={round}
-            names={names}
-            activePlayerId={activePlayerId}
-            handOwnerId={handOwnerId}
-            viewerId={handOwnerId}
-            isMyTurn={isMyTurn}
-            activePlayerIsAi={activePlayerIsAi}
-            isOnline={isOnline}
-            isOnlineHost={isOnlineHost}
-            syncPending={syncPending}
-            roundAwaitingScore={roundAwaitingScore}
-            roundEndSummaryOpen={roundEndSummaryOpen}
-            lastMessage={lastMessage}
-            spacedockValue={round?.spacedockValue ?? 12}
-            unchartedCount={round?.unchartedSectors.length ?? 0}
-            sensorGrid={round?.sensorGrid ?? []}
-            tileBg={tileBg}
-            maxPip={maxPip}
-            onSensorSweep={
-              isMyTurn
-                ? (coordinate) =>
-                    void dispatch({
-                      type: 'SENSOR_SWEEP',
-                      playerId: handOwnerId,
-                      coordinate,
-                    })
-                : undefined
-            }
-            beaconCount={beaconCount}
-            openTrailNames={openTrailNames}
-            shieldsDown={shieldsDown}
-            canRaiseShields={canRaiseShields}
-            manualShieldControl={game.houseRules.manualShieldControl}
-            fractureActive={Boolean(fracture?.active)}
-            fractureStabilizers={fracture?.stabilizers.length ?? 0}
-            redAlertActive={sectorRedAlertRow != null}
-            redAlertLabel={sectorRedAlertRow?.label ?? ''}
-            redAlertSummary={sectorRedAlertRow?.summary ?? ''}
-            redAlertTone={sectorRedAlertRow?.tone ?? 'alert'}
-            longestTrailCaptains={longestTrailData.captains}
-            longestTrailLength={longestTrailData.length}
-            hazardMarkerHolder={hazardMarkerHolder}
-            doubleDownNotice={doubleDownNotice}
-            compact={compactLayout}
-          />
-        ) : (
-          <SensorGridHud
-            containerRef={bridgeSurfaceRef}
-            sensorGrid={round?.sensorGrid ?? []}
-            tileBg={tileBg}
-            maxPip={maxPip}
-            compact={compactLayout}
-            onSensorSweep={
-              isMyTurn
-                ? (coordinate) =>
-                    void dispatch({
-                      type: 'SENSOR_SWEEP',
-                      playerId: handOwnerId,
-                      coordinate,
-                    })
-                : undefined
-            }
-          />
-        )}
+        {(() => {
+          const sensorGrid = round?.sensorGrid ?? [];
+          const onSensorSweep = isMyTurn
+            ? (coordinate: Coordinate) =>
+                void dispatch({
+                  type: 'SENSOR_SWEEP',
+                  playerId: handOwnerId,
+                  coordinate,
+                })
+            : undefined;
+          const continuumModalOpen =
+            round?.continuumPendingInvoker === handOwnerId ||
+            Boolean(round?.continuumWagerPending);
+          // Full-screen / modal chrome — hide floating HUDs so they don't
+          // sit beside (or under) the dialog and steal focus.
+          const bridgeModalOpen =
+            optionsOpen ||
+            settingsOpen ||
+            gameLogDialogOpen ||
+            advisorReportDialogOpen ||
+            rematchConfirmOpen ||
+            leaveConfirmOpen ||
+            setupConfirmOpen ||
+            advisorConfirmOpen ||
+            pendingRoundImageShare !== null ||
+            showSpoolPicker ||
+            continuumModalOpen ||
+            (roundAwaitingScore && roundEndSummaryOpen) ||
+            (game.phase === 'complete' && campaignCompleteOpen);
+          const showSectorHud = showSectorStatusHud && !bridgeModalOpen;
+          const showFleetHud = captainTailsHud && Boolean(round) && !bridgeModalOpen;
+          const showSensorPanel =
+            sensorGrid.length > 0 &&
+            !bridgeModalOpen &&
+            (compactLayout || !showSectorStatusHud);
+
+          return (
+            <>
+              {showSectorHud &&
+                (compactLayout ? (
+                  <SectorStatusHolo
+                    containerRef={bridgeSurfaceRef}
+                    game={game}
+                    round={round}
+                    names={names}
+                    activePlayerId={activePlayerId}
+                    handOwnerId={handOwnerId}
+                    isMyTurn={isMyTurn}
+                    activePlayerIsAi={activePlayerIsAi}
+                    isOnline={isOnline}
+                    isOnlineHost={isOnlineHost}
+                    syncPending={syncPending}
+                    roundAwaitingScore={roundAwaitingScore}
+                    roundEndSummaryOpen={roundEndSummaryOpen}
+                    lastMessage={lastMessage}
+                    spacedockValue={round?.spacedockValue ?? 12}
+                    unchartedCount={round?.unchartedSectors.length ?? 0}
+                    beaconCount={beaconCount}
+                    openTrailNames={openTrailNames}
+                    redAlertActive={sectorRedAlertRow != null}
+                    redAlertLabel={sectorRedAlertRow?.label ?? ''}
+                    redAlertSummary={sectorRedAlertRow?.summary ?? ''}
+                    redAlertTone={sectorRedAlertRow?.tone ?? 'alert'}
+                    longestTrailCaptains={longestTrailData.captains}
+                    longestTrailLength={longestTrailData.length}
+                    hazardMarkerHolder={hazardMarkerHolder}
+                  />
+                ) : (
+                  <SectorStatusHud
+                    containerRef={bridgeSurfaceRef}
+                    game={game}
+                    round={round}
+                    names={names}
+                    activePlayerId={activePlayerId}
+                    handOwnerId={handOwnerId}
+                    viewerId={handOwnerId}
+                    isMyTurn={isMyTurn}
+                    activePlayerIsAi={activePlayerIsAi}
+                    isOnline={isOnline}
+                    isOnlineHost={isOnlineHost}
+                    syncPending={syncPending}
+                    roundAwaitingScore={roundAwaitingScore}
+                    roundEndSummaryOpen={roundEndSummaryOpen}
+                    lastMessage={lastMessage}
+                    spacedockValue={round?.spacedockValue ?? 12}
+                    unchartedCount={round?.unchartedSectors.length ?? 0}
+                    sensorGrid={sensorGrid}
+                    tileBg={tileBg}
+                    maxPip={maxPip}
+                    onSensorSweep={onSensorSweep}
+                    beaconCount={beaconCount}
+                    openTrailNames={openTrailNames}
+                    shieldsDown={shieldsDown}
+                    canRaiseShields={canRaiseShields}
+                    manualShieldControl={game.houseRules.manualShieldControl}
+                    fractureActive={Boolean(fracture?.active)}
+                    fractureStabilizers={fracture?.stabilizers.length ?? 0}
+                    redAlertActive={sectorRedAlertRow != null}
+                    redAlertLabel={sectorRedAlertRow?.label ?? ''}
+                    redAlertSummary={sectorRedAlertRow?.summary ?? ''}
+                    redAlertTone={sectorRedAlertRow?.tone ?? 'alert'}
+                    longestTrailCaptains={longestTrailData.captains}
+                    longestTrailLength={longestTrailData.length}
+                    hazardMarkerHolder={hazardMarkerHolder}
+                    doubleDownNotice={doubleDownNotice}
+                  />
+                ))}
+              {showSensorPanel && (
+                <SensorGridHud
+                  containerRef={bridgeSurfaceRef}
+                  sensorGrid={sensorGrid}
+                  tileBg={tileBg}
+                  maxPip={maxPip}
+                  compact={compactLayout}
+                  onSensorSweep={onSensorSweep}
+                />
+              )}
+              {showFleetHud &&
+                round &&
+                (compactLayout ? (
+                  <EdgeTailRail
+                    round={round}
+                    trailSpokes={trailSpokes}
+                    activePlayerId={activePlayerId}
+                    coordinate={captainTailsCoordinate}
+                    tacticalClassAbbrevByCaptain={captainTacticalClassAbbrevById}
+                    tacticalClassLabelByCaptain={captainTacticalClassLabelById}
+                  />
+                ) : (
+                  <CaptainTailsHud
+                    containerRef={bridgeSurfaceRef}
+                    round={round}
+                    trailSpokes={trailSpokes}
+                    activePlayerId={activePlayerId}
+                    display={captainTailsDisplay}
+                    coordinate={captainTailsCoordinate}
+                    showTrailLength={captainTailsTrailLength}
+                    tileBg={tileBg}
+                    tacticalClassAbbrevByCaptain={captainTacticalClassAbbrevById}
+                    tacticalClassLabelByCaptain={captainTacticalClassLabelById}
+                    teiGradeByCaptain={teiGradeByCaptain}
+                    maxPip={maxPip}
+                    moduleDeltaEnabled={
+                      game.modules.warpDriveSpool?.enabled ?? false
+                    }
+                  />
+                ))}
+            </>
+          );
+        })()}
 
         {coachSuggestion && !advisorSuppressedForRated && (
           <FloatingCoachPanel
@@ -3953,35 +3960,6 @@ export function BridgeTable({
             pinned={teachingMode}
             onApply={applyCoachHighlight}
             onDismiss={() => setCoachSuggestion(null)}
-          />
-        )}
-
-        {captainTailsHud && round && compactLayout && (
-          <EdgeTailRail
-            round={round}
-            trailSpokes={trailSpokes}
-            activePlayerId={activePlayerId}
-            coordinate={captainTailsCoordinate}
-            tacticalClassAbbrevByCaptain={captainTacticalClassAbbrevById}
-            tacticalClassLabelByCaptain={captainTacticalClassLabelById}
-          />
-        )}
-
-        {captainTailsHud && round && !compactLayout && (
-          <CaptainTailsHud
-            containerRef={bridgeSurfaceRef}
-            round={round}
-            trailSpokes={trailSpokes}
-            activePlayerId={activePlayerId}
-            display={captainTailsDisplay}
-            coordinate={captainTailsCoordinate}
-            showTrailLength={captainTailsTrailLength}
-            tileBg={tileBg}
-            tacticalClassAbbrevByCaptain={captainTacticalClassAbbrevById}
-            tacticalClassLabelByCaptain={captainTacticalClassLabelById}
-            teiGradeByCaptain={teiGradeByCaptain}
-            maxPip={maxPip}
-            moduleDeltaEnabled={game.modules.warpDriveSpool?.enabled ?? false}
           />
         )}
 
@@ -4664,6 +4642,109 @@ export function BridgeTable({
       </section>
       </>
       )}
+
+      {/* Header actions (Setup / Options / Rules / Rematch / Leave) must stay
+          reachable during Module Epsilon drafting — that UI replaces the bridge. */}
+      <SectorSettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        game={game}
+      />
+
+      <TableOptionsDialog
+        open={optionsOpen}
+        onClose={() => setOptionsOpen(false)}
+        layoutStyle={layoutStyle}
+        onLayoutStyleChange={(next) => patchTablePrefs({ layoutStyle: next })}
+        tileBg={tileBg}
+        onTileBgChange={(next) => patchTablePrefs({ tileBg: next })}
+        holographicTiles={holographicTiles}
+        onHolographicTilesChange={(next) =>
+          patchTablePrefs({ holographicTiles: next })
+        }
+        pipPreset={pipPreset}
+        onPipPresetChange={(next) => patchTablePrefs({ pipPreset: next })}
+        teachingMode={teachingMode}
+        onTeachingModeChange={(next) => patchTablePrefs({ teachingMode: next })}
+        advisorAvailable={!advisorSuppressedForRated}
+        advisorNeuralAvailable={neuralAdvisorOk}
+        autoFollowAction={autoFollowAction}
+        onAutoFollowActionChange={(next) =>
+          patchTablePrefs({ autoFollowAction: next })
+        }
+        sectorStatusHud={showSectorStatusHud}
+        onSectorStatusHudChange={(next) =>
+          patchTablePrefs({ sectorStatusHud: next })
+        }
+        captainTailsHud={captainTailsHud}
+        onCaptainTailsHudChange={(next) =>
+          patchTablePrefs({ captainTailsHud: next })
+        }
+        captainTailsDisplay={captainTailsDisplay}
+        onCaptainTailsDisplayChange={(next) =>
+          patchTablePrefs({ captainTailsDisplay: next })
+        }
+        captainTailsCoordinate={captainTailsCoordinate}
+        onCaptainTailsCoordinateChange={(next) =>
+          patchTablePrefs({ captainTailsCoordinate: next })
+        }
+        captainTailsTrailLength={captainTailsTrailLength}
+        onCaptainTailsTrailLengthChange={(next) =>
+          patchTablePrefs({ captainTailsTrailLength: next })
+        }
+        compactLayout={compactLayout}
+        bridgeSoundsEnabled={bridgeSoundsEnabled}
+        onBridgeSoundsEnabledChange={(next) =>
+          patchTablePrefs({ bridgeSoundsEnabled: next })
+        }
+        turnBeepsEnabled={turnBeepsEnabled}
+        onTurnBeepsEnabledChange={(next) =>
+          patchTablePrefs({ turnBeepsEnabled: next })
+        }
+        showDebugExport={showDebugExport}
+        debugExportBusy={debugBusy}
+        onExportDebug={handleExportDebug}
+        showShareRound={canShareRound}
+        systemShareAvailable={systemShareAvailable}
+        roundImageBusy={roundImageBusy}
+        onRoundImage={handleRoundImage}
+        onOpenRoundLog={canShareRound ? handleOpenRoundLog : undefined}
+        onDownloadRoundLogJson={
+          canShareRound ? handleDownloadRoundLogJson : undefined
+        }
+        roundLogBusy={roundLogDownloadBusy}
+      />
+
+      <ConfirmDialog
+        open={rematchConfirmOpen}
+        title="Start rematch?"
+        titleId="warp12-rematch-confirm-title"
+        message="The current sector will be discarded and a new game will be dealt with the same settings."
+        confirmLabel="Start rematch"
+        cancelLabel="Keep playing"
+        confirmTone="danger"
+        onConfirm={confirmRematch}
+        onClose={() => setRematchConfirmOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={setupConfirmOpen}
+        title="Return to setup?"
+        titleId="warp12-setup-confirm-title"
+        message="You will leave the current sector and any progress in this game will be lost."
+        confirmLabel="Return to setup"
+        cancelLabel="Keep playing"
+        confirmTone="danger"
+        onConfirm={confirmLeaveSetup}
+        onClose={() => setSetupConfirmOpen(false)}
+      />
+
+      <HostLeaveSectorDialog
+        open={leaveConfirmOpen}
+        onClose={() => setLeaveConfirmOpen(false)}
+        onReturnToWaitingRoom={confirmReturnToWaitingRoom}
+        onDissolveSector={confirmDissolveSector}
+      />
 
       <PortraitLockOverlay
         active={portraitSummaryNudge}

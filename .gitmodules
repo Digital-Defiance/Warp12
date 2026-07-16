@@ -7,3 +7,6 @@
 [submodule "vendor/double-eighteen-react"]
 	path = vendor/double-eighteen-react
 	url = https://github.com/Digital-Defiance/double-eighteen-react.git
+[submodule "vendor/warp12-release-head"]
+	path = vendor/warp12-release-head
+	url = https://github.com/Digital-Defiance/Warp12-release-head.git

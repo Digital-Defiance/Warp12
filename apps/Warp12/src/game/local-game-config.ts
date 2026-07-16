@@ -252,6 +252,23 @@ export function buildAiCaptains(
   }));
 }
 
+/** Apply lobby tier / Ω+ picks onto the default officer roster. */
+export function applyAiTierOverrides(
+  aiCaptains: readonly AiCaptainConfig[],
+  tiers: Readonly<Record<string, WarpSkillLevel>>,
+  extendedThinking: Readonly<Record<string, boolean>>,
+  allowNeural: boolean
+): AiCaptainConfig[] {
+  return aiCaptains.map((ai) => {
+    const tier = tiers[ai.id] ?? ai.skill;
+    const thinking =
+      allowNeural && tier === 'commander'
+        ? extendedThinking[ai.id] === true
+        : false;
+    return { ...ai, skill: tier, omega: false, extendedThinking: thinking };
+  });
+}
+
 export function defaultLocalGameConfig(
   humanName: string,
   playerCount = 4,

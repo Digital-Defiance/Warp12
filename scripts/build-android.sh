@@ -7,9 +7,8 @@
 #
 # First-time setup:
 #   1. Android Studio / SDK + NDK (Tauri will prompt to install NDK if missing)
-#   2. Create upload keystore (one-time):
-#        keytool -genkey -v -keystore apps/Warp12/src-tauri/Warp_12_upload.jks \
-#          -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#   2. Create upload keystore (one-time), e.g.:
+#        keytool -genkey -v -keystore apps/Warp12/src-tauri/Warp_12_upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
 #   3. Save keystore at apps/Warp12/src-tauri/Warp_12_upload.jks (gitignored)
 #   4. Run this script — it writes gen/android/keystore.properties (also gitignored)
 

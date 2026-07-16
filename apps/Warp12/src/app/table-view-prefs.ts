@@ -37,8 +37,9 @@ export const DEFAULT_TABLE_OPTIONS: TableOptionsPrefs = {
   pipPreset: 'classic',
   teachingMode: false,
   autoFollowAction: false,
-  // On by default — desktop always had Sector Status; phone can turn it off.
-  // Module Gamma still surfaces a Sensor Grid panel when this is off.
+  // Desktop default on. Phone uses resolveSectorStatusHud() → off until toggled
+  // (opaque panel was too heavy; hologram is opt-in). Module Gamma still gets
+  // its own Sensor Grid panel either way.
   sectorStatusHud: true,
   captainTailsHud: false,
   captainTailsDisplay: 'number',
@@ -165,6 +166,37 @@ export function writeTableOptions(patch: Partial<TableOptionsPrefs>): void {
   } catch {
     // ignore quota / private mode
   }
+}
+
+/** True when the captain has explicitly saved a Sector Status preference. */
+export function hasExplicitSectorStatusHudPref(): boolean {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return false;
+    }
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return typeof parsed.sectorStatusHud === 'boolean';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Desktop defaults Sector Status on; phone defaults it off until the captain
+ * toggles it (opaque panel was too heavy on mobile — hologram is opt-in).
+ */
+export function resolveSectorStatusHud(
+  prefs: TableOptionsPrefs,
+  compact: boolean
+): boolean {
+  if (!compact) {
+    return prefs.sectorStatusHud;
+  }
+  if (hasExplicitSectorStatusHudPref()) {
+    return prefs.sectorStatusHud;
+  }
+  return false;
 }
 
 /** @deprecated Use {@link readTableOptions}. */
