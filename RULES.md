@@ -227,9 +227,10 @@ does **one** of the following:
     rules below.
 
 3.  **Deploy a Distress Beacon** — after drawing your one coordinate and
-    still being unable to chart, your marker goes down and your turn
-    ends. (With **Manual shield control**, Section VI, you may also
-    lower shields voluntarily during your turn.)
+    still being unable to chart, your shields go down, distress beacon
+    goes up, and your turn ends. (With **Manual shield control**,
+    Section VI, you may also lower shields voluntarily during your
+    turn.)
 
 4.  **Pass** only when their Distress Beacon is already active, they
     still cannot chart, and Uncharted Sectors are empty.
@@ -275,8 +276,9 @@ draw** one coordinate.
 
 - If it cannot be played, you deploy your **Distress Beacon** (shields
   down) and your turn ends. You draw **one** coordinate per turn — you
-  do not keep drawing, and the marker goes down after that single failed
-  draw regardless of how many coordinates remain in Uncharted Sectors.
+  do not keep drawing, and the distress beacon goes up and shields go
+  down after that single failed draw regardless of how many coordinates
+  remain in Uncharted Sectors.
 
 ### Distress Beacon (train marker)
 
