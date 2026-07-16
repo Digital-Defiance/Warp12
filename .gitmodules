@@ -10,3 +10,6 @@
 [submodule "vendor/warp12-release-head"]
 	path = vendor/warp12-release-head
 	url = https://github.com/Digital-Defiance/Warp12-release-head.git
+[submodule "vendor/Warp-Admin-Extension"]
+	path = vendor/Warp-Admin-Extension
+	url = https://github.com/Digital-Defiance/Warp-Admin-Extension.git
