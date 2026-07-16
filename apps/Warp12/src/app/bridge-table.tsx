@@ -101,6 +101,7 @@ import {
   type TrailAccessState,
 } from 'warp12-react';
 import { downloadDebugExport } from '../game/debug-export.js';
+import { deliverBlob } from '../game/deliver-file.js';
 import {
   buildRoundLogFilename,
   downloadRoundLog,
@@ -108,8 +109,11 @@ import {
 } from '../game/save-round-log.js';
 import {
   canUseSystemShare,
+  deliverPendingRoundImage,
   deliverRoundImage,
   formatPointsStatLines,
+  RoundImageShareGestureError,
+  type PendingRoundImageShare,
   type ShareRoundDelivery,
   type ShareRoundImageMode,
   type ShareRoundMetadata,
@@ -222,6 +226,7 @@ import { ConfirmDialog } from './confirm-dialog';
 import { HostLeaveSectorDialog } from './host-leave-sector-dialog';
 import { RoundImageActions } from './round-image-actions';
 import { SectorStatusHud } from './sector-status-hud';
+import { SensorGridHud } from './sensor-grid-hud';
 import { GameLogTicker } from './game-log-ticker';
 import { GameLogDialog } from './game-log-dialog';
 import { AdvisorReportDialog } from './advisor-report-dialog.js';
@@ -1112,6 +1117,7 @@ export function BridgeTable({
     pipPreset,
     teachingMode,
     autoFollowAction,
+    sectorStatusHud,
     captainTailsHud,
     captainTailsDisplay,
     captainTailsCoordinate,
@@ -1147,6 +1153,8 @@ export function BridgeTable({
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [gameLogDialogOpen, setGameLogDialogOpen] = useState(false);
+  const [pendingRoundImageShare, setPendingRoundImageShare] =
+    useState<PendingRoundImageShare | null>(null);
   const [logMode, setLogMode] = useState<LogVisibilityMode>(() =>
     compactLayout ? 'off' : 'all'
   );
@@ -2456,7 +2464,7 @@ export function BridgeTable({
   const exportLocalDebug = async () => {
     setLocalExportBusy(true);
     try {
-      downloadDebugExport({
+      const result = await downloadDebugExport({
         exportedAt: new Date().toISOString(),
         mode: 'local',
         sectorCode: 'local',
@@ -2468,6 +2476,18 @@ export function BridgeTable({
         },
         notes: ['Local simulation — full hands included in gameState.'],
       });
+      if (result === 'copied') {
+        setLastMessage('Debug log copied to clipboard');
+      } else if (result === 'shared') {
+        setLastMessage('Debug log ready in the share sheet');
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return;
+      }
+      setLastMessage(
+        err instanceof Error ? err.message : 'Could not export the debug log'
+      );
     } finally {
       setLocalExportBusy(false);
     }
@@ -2787,27 +2807,51 @@ export function BridgeTable({
     );
   }, [isOnline, names, round, sectorCode]);
 
-  const handleDownloadRoundLog = useCallback(() => {
+  const handleDownloadRoundLog = useCallback(async () => {
     const payload = buildCurrentRoundLogExport();
     if (!payload) {
       return;
     }
     setRoundLogDownloadBusy(true);
     try {
-      downloadRoundLog(payload);
+      const result = await downloadRoundLog(payload);
+      if (result === 'copied') {
+        setLastMessage('Round log copied to clipboard');
+      } else if (result === 'shared') {
+        setLastMessage('Round log ready in the share sheet');
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return;
+      }
+      setLastMessage(
+        err instanceof Error ? err.message : 'Could not export the round log'
+      );
     } finally {
       setRoundLogDownloadBusy(false);
     }
   }, [buildCurrentRoundLogExport]);
 
-  const handleDownloadRoundLogJson = useCallback(() => {
+  const handleDownloadRoundLogJson = useCallback(async () => {
     const payload = buildCurrentRoundLogExport();
     if (!payload) {
       return;
     }
     setRoundLogDownloadBusy(true);
     try {
-      downloadRoundLogJson(payload);
+      const result = await downloadRoundLogJson(payload);
+      if (result === 'copied') {
+        setLastMessage('Round log JSON copied to clipboard');
+      } else if (result === 'shared') {
+        setLastMessage('Round log JSON ready in the share sheet');
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return;
+      }
+      setLastMessage(
+        err instanceof Error ? err.message : 'Could not export the round log JSON'
+      );
     } finally {
       setRoundLogDownloadBusy(false);
     }
@@ -2879,19 +2923,35 @@ export function BridgeTable({
   );
 
   const downloadCampaignAdvisorReport = useCallback(
-    (includeAllCaptains: boolean) => {
+    async (includeAllCaptains: boolean) => {
       const rounds = buildCampaignAdvisorReports(includeAllCaptains);
       const text = campaignAdvisorPlainText(rounds, names, {
         includeAllCaptains,
         opponentLabel: advisorOpponentLabel,
       });
-      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = `warp12-campaign-advisor-${sectorCode ?? 'local'}.txt`;
-      anchor.click();
-      URL.revokeObjectURL(url);
+      const filename = `warp12-campaign-advisor-${sectorCode ?? 'local'}.txt`;
+      try {
+        const result = await deliverBlob({
+          blob: new Blob([text], { type: 'text/plain;charset=utf-8' }),
+          filename,
+          title: 'Warp 12 · Campaign advisor report',
+          text,
+        });
+        if (result === 'copied') {
+          setLastMessage('Campaign advisor report copied to clipboard');
+        } else if (result === 'shared') {
+          setLastMessage('Campaign advisor report ready in the share sheet');
+        }
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          return;
+        }
+        setLastMessage(
+          err instanceof Error
+            ? err.message
+            : 'Could not export the campaign advisor report'
+        );
+      }
     },
     [buildCampaignAdvisorReports, names, sectorCode, advisorOpponentLabel]
   );
@@ -3010,12 +3070,42 @@ export function BridgeTable({
           mode,
           delivery,
         });
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          return;
+        }
+        if (err instanceof RoundImageShareGestureError) {
+          setPendingRoundImageShare(err.pending);
+          setLastMessage('Image ready — tap Share now to open the sheet');
+          return;
+        }
+        setLastMessage(
+          err instanceof Error ? err.message : 'Could not share the board image'
+        );
       } finally {
         setRoundImageBusy(null);
       }
     },
     [shareRoundMetadata]
   );
+
+  const confirmPendingRoundImageShare = useCallback(async () => {
+    if (!pendingRoundImageShare) {
+      return;
+    }
+    const pending = pendingRoundImageShare;
+    setPendingRoundImageShare(null);
+    try {
+      await deliverPendingRoundImage(pending);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return;
+      }
+      setLastMessage(
+        err instanceof Error ? err.message : 'Could not share the board image'
+      );
+    }
+  }, [pendingRoundImageShare]);
 
   useEffect(() => {
     if (!roundAwaitingScore || !round) {
@@ -3681,6 +3771,10 @@ export function BridgeTable({
           onAutoFollowActionChange={(next) =>
             patchTablePrefs({ autoFollowAction: next })
           }
+          sectorStatusHud={sectorStatusHud}
+          onSectorStatusHudChange={(next) =>
+            patchTablePrefs({ sectorStatusHud: next })
+          }
           captainTailsHud={captainTailsHud}
           onCaptainTailsHudChange={(next) =>
             patchTablePrefs({ captainTailsHud: next })
@@ -3732,6 +3826,17 @@ export function BridgeTable({
         />
 
         <ConfirmDialog
+          open={pendingRoundImageShare !== null}
+          title="Share board image"
+          titleId="warp12-share-image-confirm-title"
+          message="The board image is ready. Tap Share now to open the system share sheet (Save Image, Mail, Files…)."
+          confirmLabel="Share now"
+          cancelLabel="Cancel"
+          onConfirm={() => void confirmPendingRoundImageShare()}
+          onClose={() => setPendingRoundImageShare(null)}
+        />
+
+        <ConfirmDialog
           open={setupConfirmOpen}
           title="Return to setup?"
           titleId="warp12-setup-confirm-title"
@@ -3766,54 +3871,73 @@ export function BridgeTable({
           <ContinuumOrb game={game} names={names} />
         </div>
 
-        {!compactLayout && (
-        <SectorStatusHud
-          containerRef={bridgeSurfaceRef}
-          game={game}
-          round={round}
-          names={names}
-          activePlayerId={activePlayerId}
-          handOwnerId={handOwnerId}
-          viewerId={handOwnerId}
-          isMyTurn={isMyTurn}
-          activePlayerIsAi={activePlayerIsAi}
-          isOnline={isOnline}
-          isOnlineHost={isOnlineHost}
-          syncPending={syncPending}
-          roundAwaitingScore={roundAwaitingScore}
-          roundEndSummaryOpen={roundEndSummaryOpen}
-          lastMessage={lastMessage}
-          spacedockValue={round?.spacedockValue ?? 12}
-          unchartedCount={round?.unchartedSectors.length ?? 0}
-          sensorGrid={round?.sensorGrid ?? []}
-          tileBg={tileBg}
-          maxPip={maxPip}
-          onSensorSweep={
-            isMyTurn
-              ? (coordinate) =>
-                  void dispatch({
-                    type: 'SENSOR_SWEEP',
-                    playerId: handOwnerId,
-                    coordinate,
-                  })
-              : undefined
-          }
-          beaconCount={beaconCount}
-          openTrailNames={openTrailNames}
-          shieldsDown={shieldsDown}
-          canRaiseShields={canRaiseShields}
-          manualShieldControl={game.houseRules.manualShieldControl}
-          fractureActive={Boolean(fracture?.active)}
-          fractureStabilizers={fracture?.stabilizers.length ?? 0}
-          redAlertActive={sectorRedAlertRow != null}
-          redAlertLabel={sectorRedAlertRow?.label ?? ''}
-          redAlertSummary={sectorRedAlertRow?.summary ?? ''}
-          redAlertTone={sectorRedAlertRow?.tone ?? 'alert'}
-          longestTrailCaptains={longestTrailData.captains}
-          longestTrailLength={longestTrailData.length}
-          hazardMarkerHolder={hazardMarkerHolder}
-          doubleDownNotice={doubleDownNotice}
-        />
+        {sectorStatusHud ? (
+          <SectorStatusHud
+            containerRef={bridgeSurfaceRef}
+            game={game}
+            round={round}
+            names={names}
+            activePlayerId={activePlayerId}
+            handOwnerId={handOwnerId}
+            viewerId={handOwnerId}
+            isMyTurn={isMyTurn}
+            activePlayerIsAi={activePlayerIsAi}
+            isOnline={isOnline}
+            isOnlineHost={isOnlineHost}
+            syncPending={syncPending}
+            roundAwaitingScore={roundAwaitingScore}
+            roundEndSummaryOpen={roundEndSummaryOpen}
+            lastMessage={lastMessage}
+            spacedockValue={round?.spacedockValue ?? 12}
+            unchartedCount={round?.unchartedSectors.length ?? 0}
+            sensorGrid={round?.sensorGrid ?? []}
+            tileBg={tileBg}
+            maxPip={maxPip}
+            onSensorSweep={
+              isMyTurn
+                ? (coordinate) =>
+                    void dispatch({
+                      type: 'SENSOR_SWEEP',
+                      playerId: handOwnerId,
+                      coordinate,
+                    })
+                : undefined
+            }
+            beaconCount={beaconCount}
+            openTrailNames={openTrailNames}
+            shieldsDown={shieldsDown}
+            canRaiseShields={canRaiseShields}
+            manualShieldControl={game.houseRules.manualShieldControl}
+            fractureActive={Boolean(fracture?.active)}
+            fractureStabilizers={fracture?.stabilizers.length ?? 0}
+            redAlertActive={sectorRedAlertRow != null}
+            redAlertLabel={sectorRedAlertRow?.label ?? ''}
+            redAlertSummary={sectorRedAlertRow?.summary ?? ''}
+            redAlertTone={sectorRedAlertRow?.tone ?? 'alert'}
+            longestTrailCaptains={longestTrailData.captains}
+            longestTrailLength={longestTrailData.length}
+            hazardMarkerHolder={hazardMarkerHolder}
+            doubleDownNotice={doubleDownNotice}
+            compact={compactLayout}
+          />
+        ) : (
+          <SensorGridHud
+            containerRef={bridgeSurfaceRef}
+            sensorGrid={round?.sensorGrid ?? []}
+            tileBg={tileBg}
+            maxPip={maxPip}
+            compact={compactLayout}
+            onSensorSweep={
+              isMyTurn
+                ? (coordinate) =>
+                    void dispatch({
+                      type: 'SENSOR_SWEEP',
+                      playerId: handOwnerId,
+                      coordinate,
+                    })
+                : undefined
+            }
+          />
         )}
 
         {coachSuggestion && !advisorSuppressedForRated && (

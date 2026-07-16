@@ -12,6 +12,8 @@ export interface TableOptionsPrefs {
   pipPreset: WarpPipPreset;
   teachingMode: boolean;
   autoFollowAction: boolean;
+  /** Round / Spacedock / Uncharted / alerts floating panel. */
+  sectorStatusHud: boolean;
   captainTailsHud: boolean;
   captainTailsDisplay: CaptainTailsDisplay;
   captainTailsCoordinate: CaptainTailsCoordinate;
@@ -35,6 +37,9 @@ export const DEFAULT_TABLE_OPTIONS: TableOptionsPrefs = {
   pipPreset: 'classic',
   teachingMode: false,
   autoFollowAction: false,
+  // On by default — desktop always had Sector Status; phone can turn it off.
+  // Module Gamma still surfaces a Sensor Grid panel when this is off.
+  sectorStatusHud: true,
   captainTailsHud: false,
   captainTailsDisplay: 'number',
   captainTailsCoordinate: 'full',
@@ -100,6 +105,9 @@ function sanitizePartial(raw: unknown): Partial<TableOptionsPrefs> {
   }
   if (typeof value.autoFollowAction === 'boolean') {
     next.autoFollowAction = value.autoFollowAction;
+  }
+  if (typeof value.sectorStatusHud === 'boolean') {
+    next.sectorStatusHud = value.sectorStatusHud;
   }
   if (typeof value.captainTailsHud === 'boolean') {
     next.captainTailsHud = value.captainTailsHud;

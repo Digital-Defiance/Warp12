@@ -4471,7 +4471,7 @@ dependencies = [
 
 [[package]]
 name = "warp12"
-version = "0.6.47"
+version = "0.6.49"
 dependencies = [
  "log",
  "serde",

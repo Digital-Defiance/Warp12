@@ -42,6 +42,8 @@ export interface TableOptionsDialogProps {
   advisorNeuralAvailable?: boolean;
   autoFollowAction: boolean;
   onAutoFollowActionChange: (next: boolean) => void;
+  sectorStatusHud: boolean;
+  onSectorStatusHudChange: (next: boolean) => void;
   captainTailsHud: boolean;
   onCaptainTailsHudChange: (next: boolean) => void;
   captainTailsDisplay: CaptainTailsDisplay;
@@ -86,6 +88,8 @@ export function TableOptionsDialog({
   advisorNeuralAvailable = true,
   autoFollowAction,
   onAutoFollowActionChange,
+  sectorStatusHud,
+  onSectorStatusHudChange,
   captainTailsHud,
   onCaptainTailsHudChange,
   captainTailsDisplay,
@@ -227,6 +231,21 @@ export function TableOptionsDialog({
 
           <section className={optionStyles.section}>
             <h3 className={optionStyles.sectionTitle}>Quick look</h3>
+            <label className={optionStyles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={sectorStatusHud}
+                onChange={(event) =>
+                  onSectorStatusHudChange(event.target.checked)
+                }
+              />
+              <span>Sector Status panel</span>
+            </label>
+            <p className={optionStyles.hint}>
+              {sectorStatusHud
+                ? 'Round, Spacedock, Uncharted, alerts, and Sensor Grid in a draggable panel.'
+                : 'Hidden — when Module Gamma is on, a Sensor Grid panel still appears for sweeps.'}
+            </p>
             <label className={optionStyles.checkboxRow}>
               <input
                 type="checkbox"
@@ -401,7 +420,8 @@ export function TableOptionsDialog({
                 Book icon opens the round log to review; curly-brace icon
                 downloads structured JSON. Left save segment: board + logo. Right
                 segment (layer group icon): adds stats overlay. Hover for
-                labels; save downloads, share opens the system sheet.
+                labels; save downloads (or opens the share sheet on iPad), share
+                opens the system sheet.
               </p>
             </section>
           )}
@@ -431,7 +451,7 @@ export function TableOptionsDialog({
               Force reload clears browser cache storage and refreshes the page —
               useful if subspace IWDF link state looks stale.
               {showDebugExport && onExportDebug
-                ? ' Export debug log downloads a JSON snapshot for bug reports (host only).'
+                ? ' Export debug log downloads a JSON snapshot for bug reports (host only; on iPad opens the share sheet or copies).'
                 : ''}
             </p>
           </section>

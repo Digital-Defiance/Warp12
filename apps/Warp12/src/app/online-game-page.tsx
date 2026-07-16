@@ -385,7 +385,7 @@ export function OnlineGamePage() {
         );
       }
 
-      downloadDebugExport({
+      await downloadDebugExport({
         exportedAt,
         mode: 'online',
         sectorCode: code,

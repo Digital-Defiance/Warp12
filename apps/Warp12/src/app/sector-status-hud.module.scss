@@ -8,6 +8,31 @@
   top: calc(58px + env(safe-area-inset-top, 0px));
 }
 
+.compact {
+  max-width: min(240px, calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+
+  .row {
+    grid-template-columns: 5.4rem minmax(0, 1fr);
+    font-size: 0.62rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .turnFooter {
+    font-size: 0.58rem;
+  }
+}
+
+.sensorOnlyBody {
+  padding: 0 0 0.35rem;
+}
+
+.sensorOnlyHint {
+  margin: 0 0 0.45rem;
+  font-size: 0.62rem;
+  line-height: 1.35;
+  color: var(--warp-text-muted);
+}
+
 .row {
   display: grid;
   grid-template-columns: 6.2rem minmax(0, 1fr);

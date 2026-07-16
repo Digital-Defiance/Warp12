@@ -74,7 +74,9 @@ export interface CampaignCompleteOverlayProps {
   pointsHistory?: readonly CampaignRoundPoints[];
   performance: AdvisorPerformanceSummary | null;
   canDownloadAdvisorReport?: boolean;
-  onDownloadAdvisorReport?: (includeAllCaptains: boolean) => void;
+  onDownloadAdvisorReport?: (
+    includeAllCaptains: boolean
+  ) => void | Promise<void>;
   pilotIconSrc?: string;
   onRematch?: () => void;
   onLeaveSetup?: () => void;
@@ -365,8 +367,8 @@ export function CampaignCompleteOverlay({
         {canDownloadAdvisorReport && onDownloadAdvisorReport && (
           <AdvisorReportDownloadButtons
             pilotIconSrc={pilotIconSrc}
-            onDownloadYourMoves={() => onDownloadAdvisorReport(false)}
-            onDownloadAllCaptains={() => onDownloadAdvisorReport(true)}
+            onDownloadYourMoves={() => void onDownloadAdvisorReport(false)}
+            onDownloadAllCaptains={() => void onDownloadAdvisorReport(true)}
           />
         )}
 

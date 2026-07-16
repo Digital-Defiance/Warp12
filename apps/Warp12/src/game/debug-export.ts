@@ -5,6 +5,8 @@ import {
   type EncodeContext,
 } from 'warp12-engine';
 
+import { deliverBlob, type DeliverFileResult } from './deliver-file.js';
+
 export function sanitizeFilenamePart(value: string): string {
   return value.replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 64);
 }
@@ -214,10 +216,10 @@ export function processPayloadForBinaryExport(payload: unknown): unknown {
   return processed;
 }
 
-export function downloadDebugExport(
+export async function downloadDebugExport(
   payload: unknown,
   filename?: string
-): void {
+): Promise<DeliverFileResult> {
   const exportedAt =
     typeof payload === 'object' &&
     payload &&
@@ -238,11 +240,10 @@ export function downloadDebugExport(
   const processedPayload = processPayloadForBinaryExport(payload);
 
   const json = JSON.stringify(processedPayload, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = name;
-  anchor.click();
-  URL.revokeObjectURL(url);
+  return deliverBlob({
+    blob: new Blob([json], { type: 'application/json' }),
+    filename: name,
+    title: `Warp 12 · Debug export (${sectorCode})`,
+    text: json,
+  });
 }

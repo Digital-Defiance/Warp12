@@ -94,7 +94,8 @@ export function GameLogDialog({
 
         <footer className={styles.footer}>
           <p className={styles.hint}>
-            Review the log, then download a text or JSON copy.
+            Review the log, then download a text or JSON copy. On iPad, download
+            opens the share sheet (or copies to the clipboard).
           </p>
           <div className={styles.downloadActions}>
             <button
