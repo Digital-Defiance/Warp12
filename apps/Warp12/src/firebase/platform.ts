@@ -43,3 +43,21 @@ export function isTauriMobile(): boolean {
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
   return /iPhone|iPad|iPod|Android/i.test(ua);
 }
+
+/** True on Tauri desktop (Windows / macOS / Linux), not iOS/Android. */
+export function isTauriDesktop(): boolean {
+  return isTauriRuntime() && !isTauriMobile();
+}
+
+/** Windows desktop Tauri — no app menu; Quit belongs in Options. */
+export function isTauriWindows(): boolean {
+  if (tauriPlatform() === 'windows') {
+    return true;
+  }
+  // Runtime fallback when build-time platform is missing.
+  if (!isTauriDesktop()) {
+    return false;
+  }
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+  return /Windows/i.test(ua);
+}

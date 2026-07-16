@@ -4,10 +4,12 @@ import { Link } from 'react-router-dom';
 import {
   DEFAULT_SUBSPACE_FRACTURE_SCOPE,
   defaultCampaignRounds,
+  formatAiSkillUnratedLabel,
   type GameObjective,
   type HouseRulesConfig,
   type SubspaceFractureScope,
   type WarpAiPlayer,
+  type WarpSkillLevel,
 } from 'warp12-engine';
 
 import { BridgeTable } from './bridge-table';
@@ -31,21 +33,26 @@ import {
   type PassAndPlaySetupSnapshot,
   type WarpSetupPreset,
 } from '../game/setup-presets.js';
-import { buildAiRosterAsync, createLocalGame } from '../game/create-local-game.js';
 import {
-  WARP12_OFFICIAL_HOUSE_RULES,
-  WARP12_OFFICIAL_MODULES,
-  WARP12_OFFICIAL_OBJECTIVE,
-} from '../game/warp12-preset.js';
+  buildAiRosterAsync,
+  createLocalGame,
+} from '../game/create-local-game.js';
 import {
+  applyAiTierOverrides,
   buildAiCaptains,
   buildHumanCaptains,
   clampPassAndPlayPlayerCount,
   DEFAULT_HUMAN_CAPTAIN_NAMES,
   maxPlayersForFactor,
+  neuralAiSupported,
   PASS_AND_PLAY_MIN_PLAYERS,
   type LocalGameConfig,
 } from '../game/local-game-config.js';
+import {
+  WARP12_OFFICIAL_HOUSE_RULES,
+  WARP12_OFFICIAL_MODULES,
+  WARP12_OFFICIAL_OBJECTIVE,
+} from '../game/warp12-preset.js';
 import { drawMatchSeed } from '../game/match-seed.js';
 import { requireWarpFactor } from './warp-factor.js';
 
@@ -69,6 +76,12 @@ export function PassAndPlayPage() {
     initialSnapshot.humanNames
   );
   const [aiFillCount, setAiFillCount] = useState(initialSnapshot.aiFillCount);
+  const [aiTiers, setAiTiers] = useState<Record<string, WarpSkillLevel>>(
+    initialSnapshot.aiTiers
+  );
+  const [extendedThinkingByAi, setExtendedThinkingByAi] = useState<
+    Record<string, boolean>
+  >(initialSnapshot.aiExtendedThinking);
   const [objective, setObjective] = useState<GameObjective>(
     initialSnapshot.objective
   );
@@ -163,6 +176,8 @@ export function PassAndPlayPage() {
       subspaceFractureScope,
     },
     houseRules,
+    aiTiers,
+    aiExtendedThinking: extendedThinkingByAi,
   });
 
   const applyPreset = (preset: WarpSetupPreset) => {
@@ -170,6 +185,8 @@ export function PassAndPlayPage() {
     setPlayerCount(snap.playerCount);
     setHumanNames(snap.humanNames);
     setAiFillCount(snap.aiFillCount);
+    setAiTiers(snap.aiTiers);
+    setExtendedThinkingByAi(snap.aiExtendedThinking);
     setObjective(snap.objective);
     setCampaignRounds(snap.campaignRounds);
     setSalamander(snap.modules.salamanderPenalty === true);
@@ -192,6 +209,21 @@ export function PassAndPlayPage() {
   const cappedCount = clampPassAndPlayPlayerCount(playerCount, maxPip);
   const humanCount = cappedCount - aiFillCount;
   const aiCount = aiFillCount;
+  const exhibitionSet = !neuralAiSupported(maxPip);
+  const aiCaptains = useMemo(
+    () => buildAiCaptains(aiFillCount, maxPip),
+    [aiFillCount, maxPip]
+  );
+  const configuredAiCaptains = useMemo(
+    () =>
+      applyAiTierOverrides(
+        aiCaptains,
+        aiTiers,
+        extendedThinkingByAi,
+        neuralAiSupported(maxPip)
+      ),
+    [aiCaptains, aiTiers, extendedThinkingByAi, maxPip]
+  );
 
   const syncPlayerCount = (count: number) => {
     const next = clampPassAndPlayPlayerCount(count, maxPip);
@@ -251,7 +283,12 @@ export function PassAndPlayPage() {
       campaignRounds: snap.campaignRounds,
       modules: snap.modules,
       houseRules: snap.houseRules,
-      aiCaptains: buildAiCaptains(snap.aiFillCount, maxPip),
+      aiCaptains: applyAiTierOverrides(
+        buildAiCaptains(snap.aiFillCount, maxPip),
+        snap.aiTiers,
+        snap.aiExtendedThinking,
+        neuralAiSupported(maxPip)
+      ),
       maxPip,
     };
     writeLastUsedPreset(
@@ -301,6 +338,12 @@ export function PassAndPlayPage() {
         bridge when the turn indicator changes so the next captain can helm without
         peeking.
       </p>
+      {exhibitionSet && aiCount > 0 ? (
+        <p className={styles.notice} role="status">
+          Exhibition set — Warp {maxPip} uses heuristic Commander officers until
+          neural weights ship for this factor (Warp 12 has Ω today).
+        </p>
+      ) : null}
 
       <SetupPresetsBar
         setupType="pass-and-play"
@@ -346,6 +389,69 @@ export function PassAndPlayPage() {
           ))}
         </select>
       </label>
+
+      {aiCount > 0 ? (
+        <fieldset className={styles.fieldset}>
+          <legend>AI officers ({aiCount})</legend>
+          <p className={styles.hint}>
+            Pick each officer&apos;s commission track. Pass-and-play is always
+            unrated — extended thinking (Ω+) is optional on Commander seats.
+          </p>
+          {configuredAiCaptains.map((ai) => {
+            const tier = aiTiers[ai.id] ?? ai.skill;
+            return (
+              <div key={ai.id} className={styles.aiRow}>
+                <span className={styles.aiName}>{ai.displayName}</span>
+                <select
+                  aria-label={`${ai.displayName} commission track`}
+                  value={tier}
+                  onChange={(e) => {
+                    const nextTier = e.target.value as WarpSkillLevel;
+                    setAiTiers((current) => ({
+                      ...current,
+                      [ai.id]: nextTier,
+                    }));
+                    if (nextTier !== 'commander') {
+                      setExtendedThinkingByAi((current) => ({
+                        ...current,
+                        [ai.id]: false,
+                      }));
+                    }
+                  }}
+                >
+                  <option value="ensign">
+                    {formatAiSkillUnratedLabel('ensign')}
+                  </option>
+                  <option value="lieutenant">
+                    {formatAiSkillUnratedLabel('lieutenant')}
+                  </option>
+                  <option value="commander">
+                    {exhibitionSet
+                      ? `${formatAiSkillUnratedLabel('commander')} · heuristics`
+                      : formatAiSkillUnratedLabel('commander')}
+                  </option>
+                </select>
+                {tier === 'commander' && neuralAiSupported(maxPip) ? (
+                  <label className={styles.checkboxRow}>
+                    <input
+                      type="checkbox"
+                      checked={extendedThinkingByAi[ai.id] === true}
+                      aria-label={`${ai.displayName}: extended thinking`}
+                      onChange={(e) =>
+                        setExtendedThinkingByAi((current) => ({
+                          ...current,
+                          [ai.id]: e.target.checked,
+                        }))
+                      }
+                    />
+                    <span>Extended thinking (Ω+)</span>
+                  </label>
+                ) : null}
+              </div>
+            );
+          })}
+        </fieldset>
+      ) : null}
 
       <fieldset className={styles.fieldset}>
         <legend>Human captains ({humanCount})</legend>
@@ -543,7 +649,11 @@ export function PassAndPlayPage() {
           disabled={launching}
           onClick={launch}
         >
-          {launching ? 'Loading Commander…' : 'Launch table'}
+          {launching
+            ? neuralAiSupported(maxPip) && aiCount > 0
+              ? 'Loading Commander…'
+              : 'Launching…'
+            : 'Launch table'}
         </button>
       </div>
     </section>

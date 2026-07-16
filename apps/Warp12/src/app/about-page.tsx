@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 
+import { formatAppVersionLabel } from './app-version';
 import styles from './about-page.module.scss';
 
 export function AboutPage() {
@@ -9,6 +10,9 @@ export function AboutPage() {
         <div>
           <p className={styles.eyebrow}>Digital Defiance · nonprofit hobby project</p>
           <h1 className={styles.title}>About Warp 12</h1>
+          <p className={styles.version} aria-label={`App version ${formatAppVersionLabel()}`}>
+            {formatAppVersionLabel()}
+          </p>
         </div>
         <Link to="/" className={styles.back}>
           Back to the bridge

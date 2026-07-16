@@ -1,0 +1,84 @@
+/* Mobile Sensor Grid — compact hologram strip (no dialog header / resize). */
+
+.holo {
+  position: fixed;
+  z-index: 1150;
+  width: max-content;
+  max-width: min(200px, calc(100vw - 16px));
+  margin: 0;
+  padding: 0.35rem 0.4rem;
+  font-family: var(--font-federation, system-ui);
+  color: rgba(186, 230, 253, 0.92);
+  background: linear-gradient(
+    160deg,
+    rgba(14, 40, 70, 0.28) 0%,
+    rgba(8, 22, 48, 0.18) 55%,
+    rgba(6, 18, 40, 0.22) 100%
+  );
+  border: 1px solid rgba(125, 211, 252, 0.22);
+  border-radius: 2px;
+  box-shadow:
+    0 0 16px rgba(56, 189, 248, 0.1),
+    inset 0 0 14px rgba(56, 189, 248, 0.05);
+  backdrop-filter: blur(3px) saturate(1.15);
+  -webkit-backdrop-filter: blur(3px) saturate(1.15);
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+  overflow: hidden;
+
+  &[data-dragging='true'] {
+    cursor: grabbing;
+    border-color: rgba(125, 211, 252, 0.45);
+  }
+
+  &:focus-visible {
+    outline: 1px solid rgba(125, 211, 252, 0.7);
+    outline-offset: 2px;
+  }
+}
+
+.scan {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0,
+    transparent 3px,
+    rgba(56, 189, 248, 0.035) 3px,
+    rgba(56, 189, 248, 0.035) 4px
+  );
+  opacity: 0.85;
+}
+
+.body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.5rem;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  color: rgba(148, 163, 184, 0.9);
+  text-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
+}
+
+.tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+  align-items: center;
+  justify-content: flex-end;
+
+  :global(button) {
+    padding: 0.1rem;
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.28);
+    border-radius: 2px;
+  }
+}

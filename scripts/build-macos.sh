@@ -69,6 +69,8 @@ Environment (set before build or enter when prompted):
     APPLE_API_KEY, APPLE_API_ISSUER, APPLE_API_KEY_PATH
 
   Publish (--publish)
+    WARP12_CREATE_GIT_TAG=0     Skip creating a new local tag (needs existing tag)
+    WARP12_PUSH_HOMEBREW_TAP=0  Commit cask only; do not push homebrew-tap
     gh                  GitHub CLI (gh auth login)
     GITHUB_REPO         default Digital-Defiance/Warp12
     HOMEBREW_TAP_DIR    default ~/Code/homebrew-tap
@@ -114,27 +116,8 @@ apply_app_version() {
   _ver="$(normalize_version "$_ver")"
   command -v node >/dev/null 2>&1 || die "node is required to set app version"
 
-  echo "Setting app version to ${_ver} (package.json, tauri.conf.json, Cargo.toml)..." >&2
-  node -e "
-    const fs = require('fs');
-    const path = require('path');
-    const ver = process.argv[1];
-    const root = process.argv[2];
-    for (const rel of [
-      'apps/Warp12/package.json',
-      'apps/Warp12/src-tauri/tauri.conf.json',
-    ]) {
-      const p = path.join(root, rel);
-      const j = JSON.parse(fs.readFileSync(p, 'utf8'));
-      j.version = ver;
-      fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
-    }
-  " "$_ver" "$ROOT" || die "failed to update JSON version files"
-
-  if [ ! -f "$CARGO_TOML" ]; then
-    die "missing ${CARGO_TOML}"
-  fi
-  sed -i '' "s/^version = \".*\"/version = \"${_ver}\"/" "$CARGO_TOML" || die "failed to update Cargo.toml"
+  echo "Setting app version to ${_ver} (package.json, tauri.conf.json, Cargo.toml, mobile build codes)..." >&2
+  node "${ROOT}/scripts/app-version.mjs" set "$_ver" >/dev/null || die "failed to set app version"
 
   APP_VERSION="$_ver"
   export APP_VERSION
@@ -252,6 +235,9 @@ ensure_git_release_tag() {
   if git rev-parse "$_tag" >/dev/null 2>&1; then
     echo "Git tag ${_tag} exists locally." >&2
   else
+    if [ "${WARP12_CREATE_GIT_TAG:-}" = "0" ]; then
+      die "tag ${_tag} does not exist and WARP12_CREATE_GIT_TAG=0"
+    fi
     if is_interactive && [ "${NONINTERACTIVE:-}" != "1" ]; then
       printf "Create git tag %s on HEAD? [y/N] " "$_tag"
       read -r _ans
@@ -325,8 +311,10 @@ publish_github_and_homebrew() {
         echo "homebrew-tap: no cask changes to commit." >&2
       else
         _msg="warp12 ${APP_VERSION}"
-        if is_interactive && [ "${NONINTERACTIVE:-}" != "1" ]; then
-          git commit -m "$_msg"
+        git commit -m "$_msg"
+        if [ "${WARP12_PUSH_HOMEBREW_TAP:-}" = "0" ]; then
+          echo "homebrew-tap: committed locally; push skipped (WARP12_PUSH_HOMEBREW_TAP=0)." >&2
+        elif is_interactive && [ "${NONINTERACTIVE:-}" != "1" ]; then
           printf "Push homebrew-tap to origin? [y/N] "
           read -r _push_ans
           _push_ans="$(printf '%s' "${_push_ans:-N}" | tr '[:upper:]' '[:lower:]')"
@@ -335,7 +323,6 @@ publish_github_and_homebrew() {
             *) echo "Skipped push. Commit is local in ${HOMEBREW_TAP_DIR}" >&2 ;;
           esac
         else
-          git commit -m "$_msg"
           git push origin HEAD
         fi
       fi

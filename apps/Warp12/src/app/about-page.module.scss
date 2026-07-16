@@ -32,6 +32,14 @@
   margin: 0;
 }
 
+.version {
+  margin: 0.35rem 0 0;
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: #64748b;
+}
+
 .back {
   font-size: 0.8rem;
   color: #94a3b8;

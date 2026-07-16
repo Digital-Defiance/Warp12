@@ -498,7 +498,7 @@
 
 .aiRow {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: minmax(4.5rem, auto) minmax(0, 1fr) auto;
   gap: 0.5rem 0.75rem;
   align-items: center;
   margin-bottom: 0.65rem;
@@ -507,6 +507,8 @@
   color: #e2e8f0;
 
   select {
+    min-width: 0;
+    max-width: 100%;
     font-family: var(--font-federation);
     font-size: 0.75rem;
     padding: 0.35rem 0.5rem;
@@ -515,10 +517,63 @@
     background: #050816;
     color: #e2e8f0;
   }
+
+  .checkboxRow {
+    margin-bottom: 0;
+  }
+}
+
+// Phone / narrow: name + track on one line, Ω+ on the next — keeps desktop's
+// three-column row, avoids clipping "Extended thinking (unrated)".
+@media (max-width: 720px) {
+  .lobby,
+  .lobbyWide,
+  .waitingRoom {
+    padding: 0.85rem 0.65rem;
+  }
+
+  .fieldset {
+    padding: 0.65rem 0.7rem 0.85rem;
+  }
+
+  .aiRow {
+    grid-template-columns: minmax(3.5rem, auto) minmax(0, 1fr);
+
+    .checkboxRow {
+      grid-column: 1 / -1;
+      font-size: 0.8rem;
+    }
+  }
+
+  .aiNameInput {
+    min-width: 0;
+    width: 100%;
+  }
+
+  // Select / name on its own row; action buttons share the next line.
+  .presetRow {
+    flex-wrap: wrap;
+  }
+
+  .presetSelect,
+  .presetInput {
+    flex: 1 1 100%;
+  }
+
+  .presetSave,
+  .presetDelete {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.55rem 0.75rem;
+  }
 }
 
 .aiName {
   color: #38bdf8;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .aiNameInput {

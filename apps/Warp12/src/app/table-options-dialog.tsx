@@ -17,6 +17,9 @@ import type {
 } from './table-view-prefs';
 import { RoundImageActions } from './round-image-actions';
 import { forceReloadPage } from './force-reload';
+import { formatAppVersionLabel } from './app-version';
+import { quitTauriApp } from './quit-app';
+import { isTauriWindows } from '../firebase/platform.js';
 import styles from './rules-view.module.scss';
 import optionStyles from './table-options-dialog.module.scss';
 
@@ -52,6 +55,8 @@ export interface TableOptionsDialogProps {
   onCaptainTailsCoordinateChange: (next: CaptainTailsCoordinate) => void;
   captainTailsTrailLength: boolean;
   onCaptainTailsTrailLengthChange: (next: boolean) => void;
+  /** Phone layout — HUD labels and hide Fleet panel-only controls. */
+  compactLayout?: boolean;
   bridgeSoundsEnabled: boolean;
   onBridgeSoundsEnabledChange: (next: boolean) => void;
   turnBeepsEnabled: boolean;
@@ -98,6 +103,7 @@ export function TableOptionsDialog({
   onCaptainTailsCoordinateChange,
   captainTailsTrailLength,
   onCaptainTailsTrailLengthChange,
+  compactLayout = false,
   bridgeSoundsEnabled,
   onBridgeSoundsEnabledChange,
   turnBeepsEnabled,
@@ -239,12 +245,18 @@ export function TableOptionsDialog({
                   onSectorStatusHudChange(event.target.checked)
                 }
               />
-              <span>Sector Status panel</span>
+              <span>
+                {compactLayout ? 'Sector Status HUD' : 'Sector Status panel'}
+              </span>
             </label>
             <p className={optionStyles.hint}>
-              {sectorStatusHud
-                ? 'Round, Spacedock, Uncharted, alerts, and Sensor Grid in a draggable panel.'
-                : 'Hidden — when Module Gamma is on, a Sensor Grid panel still appears for sweeps.'}
+              {compactLayout
+                ? sectorStatusHud
+                  ? 'Draggable hologram projection for round, Spacedock, Uncharted, and alerts — not a dialog panel. Sensor Grid stays separate when Module Gamma is on.'
+                  : 'Off by default on phones. Turn on for a translucent hologram readout — Sensor Grid still appears separately for sweeps when Gamma is on.'
+                : sectorStatusHud
+                  ? 'Round, Spacedock, Uncharted, alerts, and Sensor Grid in a draggable panel.'
+                  : 'Hidden — when Module Gamma is on, a Sensor Grid panel still appears for sweeps.'}
             </p>
             <label className={optionStyles.checkboxRow}>
               <input
@@ -254,8 +266,42 @@ export function TableOptionsDialog({
                   onCaptainTailsHudChange(event.target.checked)
                 }
               />
-              <span>Fleet Status panel</span>
+              <span>
+                {compactLayout ? 'Fleet Status HUD' : 'Fleet Status panel'}
+              </span>
             </label>
+            {compactLayout ? (
+              <>
+                <div className={optionStyles.row}>
+                  <button
+                    type="button"
+                    className={optionStyles.optionBtn}
+                    disabled={!captainTailsHud}
+                    data-active={captainTailsCoordinate !== 'off'}
+                    onClick={() => onCaptainTailsCoordinateChange('full')}
+                  >
+                    Show open pip
+                  </button>
+                  <button
+                    type="button"
+                    className={optionStyles.optionBtn}
+                    disabled={!captainTailsHud}
+                    data-active={captainTailsCoordinate === 'off'}
+                    onClick={() => onCaptainTailsCoordinateChange('off')}
+                  >
+                    Initials only
+                  </button>
+                </div>
+                <p className={optionStyles.hint}>
+                  {captainTailsHud
+                    ? captainTailsCoordinate === 'off'
+                      ? 'Edge HUD — captain initials and trail state only.'
+                      : 'Edge HUD — initials, trail state, and open pip value.'
+                    : 'Turn on for a slim edge HUD of each trail at a glance.'}
+                </p>
+              </>
+            ) : (
+              <>
             <div className={optionStyles.row}>
               <button
                 type="button"
@@ -325,6 +371,8 @@ export function TableOptionsDialog({
                 ? 'Shows a tile-count badge per trail — handy for longest-trail play.'
                 : 'Turn on to badge each trail with its current tile count.'}
             </p>
+              </>
+            )}
           </section>
 
           <section className={optionStyles.section}>
@@ -454,7 +502,29 @@ export function TableOptionsDialog({
                 ? ' Export debug log downloads a JSON snapshot for bug reports (host only; on iPad opens the share sheet or copies).'
                 : ''}
             </p>
+            <p className={optionStyles.versionMeta}>
+              Warp 12 {formatAppVersionLabel()}
+            </p>
           </section>
+
+          {isTauriWindows() && (
+            <section className={optionStyles.section}>
+              <h3 className={optionStyles.sectionTitle}>Application</h3>
+              <div className={optionStyles.actionRow}>
+                <button
+                  type="button"
+                  className={`${optionStyles.actionBtn} ${optionStyles.dangerBtn}`}
+                  onClick={() => void quitTauriApp()}
+                >
+                  Quit Warp 12
+                </button>
+              </div>
+              <p className={optionStyles.hint}>
+                Closes the app. You can also use Alt+F4 or the window close
+                button.
+              </p>
+            </section>
+          )}
         </div>
       </div>
     </div>

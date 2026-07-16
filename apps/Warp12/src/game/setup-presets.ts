@@ -118,6 +118,8 @@ export interface PassAndPlaySetupSnapshot {
   campaignRounds: number;
   modules: GameModuleConfig;
   houseRules: HouseRulesConfig;
+  aiTiers: Record<string, WarpSkillLevel>;
+  aiExtendedThinking: Record<string, boolean>;
 }
 
 // ---------------------------------------------------------------------------
@@ -269,6 +271,8 @@ export function passAndPlaySnapshotToPreset(
     rated: false,
     humanNames: [...snapshot.humanNames],
     aiFillCount: snapshot.aiFillCount,
+    aiTiers: { ...snapshot.aiTiers },
+    aiExtendedThinking: { ...snapshot.aiExtendedThinking },
   };
 }
 
@@ -289,6 +293,8 @@ export function presetToPassAndPlaySnapshot(
     campaignRounds: resolveCampaignRounds(base.campaignRounds, factor),
     modules: normalizeModuleConfig(base.modules),
     houseRules: normalizeHouseRulesConfig(base.houseRules),
+    aiTiers: { ...(base.aiTiers ?? {}) },
+    aiExtendedThinking: { ...(base.aiExtendedThinking ?? {}) },
   };
 }
 

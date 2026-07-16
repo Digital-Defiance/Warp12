@@ -67,6 +67,14 @@
   font-style: italic;
 }
 
+.versionMeta {
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin: 0.35rem 0 0;
+}
+
 .checkboxRow {
   display: flex;
   align-items: center;
@@ -103,6 +111,16 @@
   &:disabled {
     opacity: 0.55;
     cursor: wait;
+  }
+}
+
+.dangerBtn {
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.45);
+
+  &:hover:not(:disabled) {
+    border-color: #f87171;
+    color: #fca5a5;
   }
 }
 

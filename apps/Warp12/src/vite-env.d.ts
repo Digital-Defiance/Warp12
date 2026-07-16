@@ -2,6 +2,7 @@
 /// <reference types="@tauri-apps/cli/vite" />
 
 interface ImportMetaEnv {
+  readonly VITE_APP_VERSION?: string;
   readonly VITE_USE_FIREBASE_EMULATORS?: string;
   readonly VITE_FUNCTIONS_EMULATOR?: string;
   readonly VITE_FIREBASE_API_KEY: string;

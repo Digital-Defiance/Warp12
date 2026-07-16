@@ -257,7 +257,7 @@ export function CampaignCompleteOverlay({
                                   Round {round.roundNumber}
                                 </span>
                                 <span className={styles.receiptModPts}>
-                                  {formatSignedPoints(round.points).replace('+', '')}
+                                  {formatSignedPoints(round.points)}
                                 </span>
                               </li>
                             ))}

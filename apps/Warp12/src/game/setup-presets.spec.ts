@@ -47,6 +47,8 @@ const pnpSnapshot: PassAndPlaySetupSnapshot = {
   campaignRounds: 10,
   modules: { salamanderPenalty: true, doubleDown: true },
   houseRules: { doubleZeroScore: 0 },
+  aiTiers: { chen: 'ensign' },
+  aiExtendedThinking: {},
 };
 
 beforeEach(() => {
@@ -109,6 +111,7 @@ describe('pass-and-play adapter round-trip', () => {
     expect(restored.humanNames.slice(0, 3)).toEqual(['Kirk', 'Spock', 'McCoy']);
     expect(restored.modules.doubleDown).toBe(true);
     expect(restored.houseRules.doubleZeroScore).toBe(0);
+    expect(restored.aiTiers).toEqual({ chen: 'ensign' });
   });
 
   it('always marks the preset unrated', () => {

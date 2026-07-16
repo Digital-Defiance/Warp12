@@ -4,6 +4,7 @@ import '../test/setup.js';
 import {
   DEFAULT_TABLE_OPTIONS,
   readTableOptions,
+  resolveSectorStatusHud,
   writeTableOptions,
 } from './table-view-prefs.js';
 
@@ -70,6 +71,18 @@ describe('table-view-prefs', () => {
 
     writeTableOptions({ sectorStatusHud: false });
     expect(readTableOptions().sectorStatusHud).toBe(false);
+  });
+
+  it('resolves Sector Status off by default on compact until explicitly set', () => {
+    const prefs = readTableOptions();
+    expect(resolveSectorStatusHud(prefs, false)).toBe(true);
+    expect(resolveSectorStatusHud(prefs, true)).toBe(false);
+
+    writeTableOptions({ sectorStatusHud: true });
+    expect(resolveSectorStatusHud(readTableOptions(), true)).toBe(true);
+
+    writeTableOptions({ sectorStatusHud: false });
+    expect(resolveSectorStatusHud(readTableOptions(), true)).toBe(false);
   });
 
   it('ignores invalid stored values', () => {
