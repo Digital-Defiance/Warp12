@@ -3,7 +3,6 @@ import {
   DEFAULT_GAME_OBJECTIVE,
   generateCoordinateSet,
   hasWarpedModules,
-  resolveHouseRules,
   shuffleCoordinates,
   startGame,
   warpSetProfile,
@@ -14,7 +13,6 @@ import {
   type WarpSkillLevel,
 } from 'warp12-engine';
 import {
-  deleteDoc,
   deleteField,
   doc,
   getDoc,
@@ -25,11 +23,7 @@ import {
 } from 'firebase/firestore';
 
 import { FIRESTORE_COLLECTIONS, getFirestoreDb } from './config.js';
-import {
-  extractHands,
-  mergeHandsIntoGame,
-  serializePublicGame,
-} from './serialize.js';
+import { extractHands, mergeHandsIntoGame } from './serialize.js';
 import {
   isAiCaptain,
   isAiCaptainId,
@@ -57,7 +51,6 @@ import {
   ONLINE_MAX_PLAYERS,
   ONLINE_MIN_PLAYERS,
 } from './schema.js';
-import { stripUndefined } from './strip-undefined.js';
 import { allocateUniqueCallSign } from './display-name.js';
 import { WARP12_OFFICIAL_RULES_PROFILE_ID } from './rules-profile.js';
 

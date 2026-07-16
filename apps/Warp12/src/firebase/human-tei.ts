@@ -339,7 +339,7 @@ export function applyHumanTeiSelfUpdate(
         sigma: seed.sigma,
         matches: 0,
         displayRating: Math.max(0, seed.mu - 3 * seed.sigma),
-        displayGrade: getTeiDisplay({ mu: seed.mu, sigma: seed.sigma, matches: 0 }).formatted,
+        displayGrade: getTeiDisplay({ mu: seed.mu, sigma: seed.sigma, matches: 0 }).grade,
       };
     } else {
       // Default rating
@@ -348,7 +348,7 @@ export function applyHumanTeiSelfUpdate(
         sigma: 8.33,
         matches: 0,
         displayRating: 0.0,
-        displayGrade: 'P00',
+        displayGrade: 'P',
       };
     }
   }
@@ -382,7 +382,7 @@ export function applyHumanTeiSelfUpdate(
     displayGrade: getTeiDisplay(
       newRating,
       ratingBefore.displayGrade
-    ).formatted,
+    ).grade,
   };
 
   return {

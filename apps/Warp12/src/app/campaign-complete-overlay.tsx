@@ -1,5 +1,6 @@
+import { Fragment, useState } from 'react';
 import type { GameState } from 'warp12-engine';
-import { TEI_OBJECTIVE_LABEL, getTeiDisplay } from 'warp12-engine';
+import { TEI_OBJECTIVE_LABEL } from 'warp12-engine';
 import {
   coachingMessageForTeiDelta,
   type AdvisorPerformanceSummary,
@@ -21,24 +22,12 @@ import { TeiChange } from './components/tei-change.js';
 import { useConfettiOnPromotion } from './use-confetti.js';
 import dialogStyles from './rules-view.module.scss';
 import styles from './bridge-table.module.scss';
+import type { CampaignRoundPoints } from './campaign-points-history.js';
 
-function formatRatingChange(
-  before: StoredRating | null,
-  after: StoredRating | null,
-  muDelta: number | null
-): string {
-  if (!before || !after || muDelta === null) {
-    return '—';
-  }
-  const gradeBefore = before.displayGrade ?? 'P00';
-  const gradeAfter = after.displayGrade ?? 'P00';
-  
-  if (muDelta === 0 || gradeBefore === gradeAfter) {
-    return `${gradeBefore} → ${gradeAfter}`;
-  }
-  const sign = muDelta > 0 ? '+' : '';
-  const muChange = muDelta.toFixed(1);
-  return `${gradeBefore} → ${gradeAfter} (${sign}${muChange}μ)`;
+export type { CampaignRoundPoints };
+
+function formatSignedPoints(points: number): string {
+  return `${points < 0 ? '−' : '+'}${Math.abs(points)}`;
 }
 
 function getRatingGradeChange(
@@ -81,6 +70,8 @@ export interface CampaignCompleteOverlayProps {
   matchReportPending?: boolean;
   matchReportNotice?: string | null;
   ratedMatchCheckInUrl?: string;
+  /** Per-round campaign point deltas (points objective) for the by-round breakdown. */
+  pointsHistory?: readonly CampaignRoundPoints[];
   performance: AdvisorPerformanceSummary | null;
   canDownloadAdvisorReport?: boolean;
   onDownloadAdvisorReport?: (includeAllCaptains: boolean) => void;
@@ -100,6 +91,7 @@ export function CampaignCompleteOverlay({
   matchReportPending = false,
   matchReportNotice = null,
   ratedMatchCheckInUrl,
+  pointsHistory,
   performance,
   canDownloadAdvisorReport = false,
   onDownloadAdvisorReport,
@@ -108,16 +100,32 @@ export function CampaignCompleteOverlay({
   onLeaveSetup,
   onClose,
 }: CampaignCompleteOverlayProps) {
+  // Online sectors carry charter/squad ratings; local AI reports do not. Narrow
+  // once so charter fields are only read off the online report shape.
+  const onlineReport =
+    matchReport && 'humanPool' in matchReport ? matchReport : null;
+  const charter =
+    onlineReport?.charterId &&
+    onlineReport.charterRatingBefore &&
+    onlineReport.charterRatingAfter
+      ? {
+          id: onlineReport.charterId,
+          before: onlineReport.charterRatingBefore,
+          after: onlineReport.charterRatingAfter,
+        }
+      : null;
   // Check if any grade was promoted
   const gradeChange = matchReport?.ratingBefore && matchReport?.ratingAfter
     ? getRatingGradeChange(matchReport.ratingBefore, matchReport.ratingAfter)
     : { promoted: false, demoted: false };
-  
-  const charterGradeChange = matchReport?.charterRatingBefore && matchReport?.charterRatingAfter
-    ? getRatingGradeChange(matchReport.charterRatingBefore, matchReport.charterRatingAfter)
+
+  const charterGradeChange = charter
+    ? getRatingGradeChange(charter.before, charter.after)
     : { promoted: false, demoted: false };
   
   const anyPromotion = gradeChange.promoted || charterGradeChange.promoted;
+
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Trigger confetti on grade promotion
   useConfettiOnPromotion(anyPromotion && open);
@@ -130,9 +138,27 @@ export function CampaignCompleteOverlay({
   const humanWon = Boolean(humanId && winnerId === humanId);
   const standings = sectorStandings(game, names);
   const headline = sectorCompleteHeadline(game, names, humanId);
+
+  // Per-captain by-round point deltas for the click-to-expand breakdown.
+  const byCaptainRounds = new Map<
+    string,
+    { roundNumber: number; points: number }[]
+  >();
+  for (const round of pointsHistory ?? []) {
+    for (const [id, points] of Object.entries(round.deltas)) {
+      const list = byCaptainRounds.get(id) ?? [];
+      list.push({ roundNumber: round.roundNumber, points });
+      byCaptainRounds.set(id, list);
+    }
+  }
+  for (const list of byCaptainRounds.values()) {
+    list.sort((a, b) => a.roundNumber - b.roundNumber);
+  }
+  const canExpandStandings =
+    game.objective !== 'go-out' && byCaptainRounds.size > 0;
   const eloMessage = matchReport
     ? coachingMessageForTeiDelta(
-        matchReport.teiDelta,
+        matchReport.teiDelta ?? null,
         matchReport.rated,
         matchReport.won
       )
@@ -154,23 +180,104 @@ export function CampaignCompleteOverlay({
         </h3>
         <p className={styles.roundEndBody}>{headline}</p>
 
-        <ul className={styles.roundEndPoints}>
-          {standings.map((entry, index) => (
-            <li
-              key={entry.id}
-              data-winner={entry.id === winnerId ? 'true' : undefined}
-            >
-              {index + 1}. {entry.name} — {entry.label}
-            </li>
-          ))}
-        </ul>
+        <table className={styles.roundEndTable}>
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col" className={styles.roundEndCaptain}>
+                Captain
+              </th>
+              <th scope="col">
+                {game.objective === 'go-out' ? 'Tiles' : 'Points'}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {standings.map((entry, index) => {
+              const isWinner = entry.id === winnerId;
+              const rounds = byCaptainRounds.get(entry.id);
+              const expandable =
+                canExpandStandings && rounds != null && rounds.length > 0;
+              const isExpanded = expandedId === entry.id;
+              const detailId = `campaign-breakdown-${entry.id}`;
+              // Standings sort on the raw value (so a negative Longest Trail
+              // tiebreak edges a 0), but the lowest number shown is zero.
+              const shownPoints = Math.max(0, entry.value);
+              return (
+                <Fragment key={entry.id}>
+                  <tr data-winner={isWinner ? 'true' : undefined}>
+                    <td className={styles.roundEndRank}>
+                      {isWinner ? (
+                        <span aria-label="Winner" title="Winner">
+                          🏆
+                        </span>
+                      ) : (
+                        index + 1
+                      )}
+                    </td>
+                    <td className={styles.roundEndCaptain}>{entry.name}</td>
+                    <td
+                      className={styles.roundEndPointsCell}
+                      title={entry.label}
+                    >
+                      {expandable ? (
+                        <button
+                          type="button"
+                          className={styles.pointsButton}
+                          aria-expanded={isExpanded}
+                          aria-controls={detailId}
+                          onClick={() =>
+                            setExpandedId(isExpanded ? null : entry.id)
+                          }
+                          title="Show points by round"
+                        >
+                          <span>{shownPoints}</span>
+                          <span className={styles.pointsCaret} aria-hidden>
+                            {isExpanded ? '▶️' : '🔽'}
+                          </span>
+                        </button>
+                      ) : (
+                        shownPoints
+                      )}
+                    </td>
+                  </tr>
+                  {expandable && isExpanded && (
+                    <tr className={styles.roundEndDetailRow}>
+                      <td colSpan={3} id={detailId}>
+                        <div className={styles.receipt}>
+                          <ul className={styles.receiptRounds}>
+                            {rounds.map((round) => (
+                              <li
+                                key={round.roundNumber}
+                                className={styles.receiptMod}
+                              >
+                                <span className={styles.receiptModLabel}>
+                                  Round {round.roundNumber}
+                                </span>
+                                <span className={styles.receiptModPts}>
+                                  {formatSignedPoints(round.points).replace('+', '')}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                          <div className={styles.receiptTotal}>
+                            <span>Total</span>
+                            <span>{shownPoints}</span>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
 
         {matchReport?.rated && matchReport.ratingBefore && matchReport.ratingAfter && (
           <>
-            {matchReport.charterId &&
-            matchReport.charterRatingBefore &&
-            matchReport.charterRatingAfter &&
-            matchReport.charterRatingBefore.displayRating !== matchReport.ratingBefore.displayRating ? (
+            {charter &&
+            charter.before.displayRating !== matchReport.ratingBefore.displayRating ? (
               <>
                 <div className={styles.roundEndBody}>
                   <strong>Global TEI</strong> ({TEI_OBJECTIVE_LABEL[matchReport.objective]}):
@@ -188,10 +295,10 @@ export function CampaignCompleteOverlay({
                   <strong>Crew TEI:</strong>
                   <br />
                   <TeiChange
-                    beforeRating={{ mu: matchReport.charterRatingBefore.mu, sigma: matchReport.charterRatingBefore.sigma, matches: matchReport.charterRatingBefore.matches }}
-                    beforeGrade={matchReport.charterRatingBefore.displayGrade?.charAt(0) as any}
-                    afterRating={{ mu: matchReport.charterRatingAfter.mu, sigma: matchReport.charterRatingAfter.sigma, matches: matchReport.charterRatingAfter.matches }}
-                    afterGrade={matchReport.charterRatingAfter.displayGrade?.charAt(0) as any}
+                    beforeRating={{ mu: charter.before.mu, sigma: charter.before.sigma, matches: charter.before.matches }}
+                    beforeGrade={charter.before.displayGrade?.charAt(0) as any}
+                    afterRating={{ mu: charter.after.mu, sigma: charter.after.sigma, matches: charter.after.matches }}
+                    afterGrade={charter.after.displayGrade?.charAt(0) as any}
                     showDelta={true}
                     animate={true}
                   />
@@ -202,7 +309,7 @@ export function CampaignCompleteOverlay({
                 <strong>
                   {'squadId' in matchReport && matchReport.squadId
                     ? 'Squad TEI'
-                    : matchReport.charterId
+                    : onlineReport?.charterId
                       ? 'Crew TEI'
                       : 'TEI'}
                 </strong> (

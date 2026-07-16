@@ -87,7 +87,7 @@ export const Consistent: Story = {
   args: {
     rating: consistentRating,
     currentGrade: 'C',
-    objective: 'go-out',
+    objective: 'goOut',
     size: 'medium',
   },
 };

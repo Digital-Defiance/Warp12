@@ -1,6 +1,5 @@
 import type { GameAction } from 'warp12-engine';
 
-import type { LocalGameConfig } from './local-game-config.js';
 import type { ReportLocalAiMatchInput } from '../firebase/stats-service.js';
 import { isReplayableLocalAiMatch } from './local-ai-match-validation.js';
 

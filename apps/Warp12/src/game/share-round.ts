@@ -421,10 +421,9 @@ export async function captureTableContentPng(
       pixelRatio,
       cacheBust: false,
       backgroundColor,
-      // Library re-clones the stage; scrub again so stylesheet shadows cannot return.
-      onclone: (_document, cloned) => {
-        stripCaptureDecorations(cloned);
-      },
+      // The mounted stage is already scrubbed via mountShareCaptureStage, and
+      // html-to-image clones that scrubbed node internally, so no extra hook is
+      // needed here (html-to-image's Options has no onclone equivalent anyway).
     });
   } finally {
     host.remove();

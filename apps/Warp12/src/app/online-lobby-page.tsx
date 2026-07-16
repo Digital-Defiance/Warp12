@@ -62,6 +62,12 @@ import {
   WARP12_OFFICIAL_OBJECTIVE,
   warp12OfficialCreateLobbyOptions,
 } from '../game/warp12-preset.js';
+import {
+  createLobbyOptionsToPreset,
+  presetToCreateLobbyOptions,
+  resolveLastUsedPreset,
+  writeLastUsedPreset,
+} from '../game/setup-presets.js';
 import { maxPlayersForFactor } from '../game/local-game-config.js';
 import styles from './lobby.module.scss';
 import { requireWarpFactor } from './warp-factor.js';
@@ -77,10 +83,31 @@ export function OnlineLobbyPage() {
   const auth = useFirebaseAuth();
   const createMaxPip = requireWarpFactor();
 
+  const [initialOnlinePreset] = useState(() =>
+    resolveLastUsedPreset('online')
+  );
   const [gameCode, setGameCode] = useState(routeGameId?.toUpperCase() ?? '');
-  const [displayName, setDisplayName] = useState('');
-  const [createOptions, setCreateOptions] =
-    useState<CreateLobbyOptions>(DEFAULT_CREATE_OPTIONS);
+  const [displayName, setDisplayName] = useState(
+    () => initialOnlinePreset?.callSign ?? ''
+  );
+  const [createOptions, setCreateOptions] = useState<CreateLobbyOptions>(() => {
+    if (!initialOnlinePreset) {
+      return DEFAULT_CREATE_OPTIONS;
+    }
+    const applied = presetToCreateLobbyOptions(
+      initialOnlinePreset,
+      createMaxPip,
+      DEFAULT_CREATE_OPTIONS
+    );
+    const ceiling = maxPlayersForFactor(createMaxPip);
+    return {
+      ...applied,
+      maxPlayers: clampOnlineMaxPlayers(
+        applied.maxPlayers ?? ceiling,
+        ceiling
+      ),
+    };
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -160,6 +187,12 @@ export function OnlineLobbyPage() {
         ...createOptions,
         verified: Boolean(auth.user && !auth.user.isAnonymous),
       });
+      writeLastUsedPreset(
+        'online',
+        createLobbyOptionsToPreset(createOptions, {
+          callSign: displayName.trim(),
+        })
+      );
       navigate(`/online/${code}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create sector');

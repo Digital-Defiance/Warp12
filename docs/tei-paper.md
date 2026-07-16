@@ -443,8 +443,9 @@ style="width:95.0%" />
 <figcaption>Agent architecture overview. Top: Heuristic policy stack
 (candidate generation through action selection). Middle-left: Class I*
 residual MLP adds learned correction to heuristics. Middle-right: Class
-Ω standalone policy/value heads (no heuristics). Bottom: Fleet Admiral
-multi-engine routing by player count.</figcaption>
+<span class="math inline"><em>Ω</em></span> standalone policy/value
+heads (no heuristics). Bottom: Fleet Admiral multi-engine routing by
+player count.</figcaption>
 </figure>
 
 ## Policy Stack
@@ -701,10 +702,11 @@ style="width:95.0%" />
 <figcaption>AI bench results across experimental tiers. Top-left: Class
 I* neural residual iterations (imitation ceiling at 48–51%). Top-right:
 Fleet Admiral search backends (expectimax wins 2p, ISMCTS wins 4p).
-Bottom-left: Class Ω fair-share rises with fleet size (points
-objective). Bottom-right: Fair-share hazard — naive Elo-style
-translation overestimates shipping anchors vs the tempered OpenSkill
-Commander <span class="math inline"><em>μ</em></span>.</figcaption>
+Bottom-left: Class <span class="math inline"><em>Ω</em></span>
+fair-share rises with fleet size (points objective). Bottom-right:
+Fair-share hazard — naive Elo-style translation overestimates shipping
+anchors vs the tempered OpenSkill Commander <span
+class="math inline"><em>μ</em></span>.</figcaption>
 </figure>
 
 **Neural residual (MLP - Class I\*):**
@@ -1654,11 +1656,11 @@ All figures are generated from empirical data and located in
     points clarity vs go-out compression.
 
 8.  **AI bench results comparison (Section 7)** — Class I\* parity,
-    Fleet Admiral wins (expectimax 64%), Ω fair-share by fleet size,
-    fair-share hazard.
+    Fleet Admiral wins (expectimax 64%), $`\Omega`$ fair-share by fleet
+    size, fair-share hazard.
 
 9.  **Architecture diagrams (Section 4)** — Policy stack, Class I\* MLP,
-    Class Ω policy/value heads, Fleet Admiral routing.
+    Class $`\Omega`$ policy/value heads, Fleet Admiral routing.
 
 10. **Points vs go-out divergence (Section 3)** — $`|\Delta\mu|`$ anchor
     vs implied gaps; weaker-side win rates.

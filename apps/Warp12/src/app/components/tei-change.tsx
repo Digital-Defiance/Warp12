@@ -5,6 +5,7 @@
  * Highlights grade promotions/demotions with special effects.
  */
 
+import type { JSX } from 'react';
 import { type PlayerRating, type TeiGrade, getTeiDisplay } from 'warp12-engine';
 import { TeiDisplay } from './tei-display.js';
 import styles from './tei-change.module.scss';

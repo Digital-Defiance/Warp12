@@ -132,6 +132,13 @@
   }
 }
 
+// Match the Fleet Status mini-tiles' slight round (see captain-tails-hud):
+// these Sensor Grid tiles are 20x40, so ~4px keeps the same ~18%-of-short-side
+// proportion as the board tiles. `!important` beats DominoTile's inline radius.
+.gridTile [data-testid='domino-tile'] {
+  border-radius: 4px !important;
+}
+
 .stats :global(.banner dd),
 .stats :global(.peek dd) {
   color: var(--warp-accent-warm, #fbbf24);

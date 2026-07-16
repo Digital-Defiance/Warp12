@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import {
-  DEFAULT_GAME_OBJECTIVE,
   DEFAULT_SUBSPACE_FRACTURE_SCOPE,
   defaultCampaignRounds,
   type GameObjective,
@@ -23,6 +22,15 @@ import {
 } from './deal-hand-size-hint';
 import { SubspaceFractureOptions } from './subspace-fracture-options';
 import { Warp12RulesPreset } from './warp12-rules-preset';
+import { SetupPresetsBar } from './setup-presets-bar';
+import {
+  passAndPlaySnapshotToPreset,
+  presetToPassAndPlaySnapshot,
+  resolveLastUsedPreset,
+  writeLastUsedPreset,
+  type PassAndPlaySetupSnapshot,
+  type WarpSetupPreset,
+} from '../game/setup-presets.js';
 import { buildAiRosterAsync, createLocalGame } from '../game/create-local-game.js';
 import {
   WARP12_OFFICIAL_HOUSE_RULES,
@@ -53,38 +61,61 @@ export function PassAndPlayPage() {
   const maxPip = requireWarpFactor();
   const fleetMax = maxPlayersForFactor(maxPip);
   const [phase, setPhase] = useState<SetupPhase>('configure');
-  const [playerCount, setPlayerCount] = useState(() =>
-    clampPassAndPlayPlayerCount(4, maxPip)
+  const [initialSnapshot] = useState(() =>
+    presetToPassAndPlaySnapshot(resolveLastUsedPreset('pass-and-play'), maxPip)
   );
-  const [humanNames, setHumanNames] = useState<string[]>(() =>
-    DEFAULT_HUMAN_CAPTAIN_NAMES.slice(0, 4).map((name) => name)
+  const [playerCount, setPlayerCount] = useState(initialSnapshot.playerCount);
+  const [humanNames, setHumanNames] = useState<string[]>(
+    initialSnapshot.humanNames
   );
-  const [aiFillCount, setAiFillCount] = useState(0);
-  const [objective, setObjective] = useState<GameObjective>(DEFAULT_GAME_OBJECTIVE);
-  const [campaignRounds, setCampaignRounds] = useState(() =>
-    defaultCampaignRounds(maxPip)
+  const [aiFillCount, setAiFillCount] = useState(initialSnapshot.aiFillCount);
+  const [objective, setObjective] = useState<GameObjective>(
+    initialSnapshot.objective
+  );
+  const [campaignRounds, setCampaignRounds] = useState(
+    initialSnapshot.campaignRounds
   );
   const [salamander, setSalamander] = useState(
-    WARP12_OFFICIAL_MODULES.salamanderPenalty ?? true
+    initialSnapshot.modules.salamanderPenalty ?? true
   );
   const [continuum, setContinuum] = useState(
-    WARP12_OFFICIAL_MODULES.continuum ?? true
+    initialSnapshot.modules.continuum ?? true
   );
-  const [sensorGrid, setSensorGrid] = useState(false);
-  const [warpDriveSpool, setWarpDriveSpool] = useState(false);
-  const [longestTrail, setLongestTrail] = useState(false);
-  const [doubleDown, setDoubleDown] = useState(false);
-  const [temporalInversion, setTemporalInversion] = useState(false);
+  const [sensorGrid, setSensorGrid] = useState(
+    initialSnapshot.modules.sensorGrid ?? false
+  );
+  const [warpDriveSpool, setWarpDriveSpool] = useState(
+    initialSnapshot.modules.warpDriveSpool ?? false
+  );
+  const [longestTrail, setLongestTrail] = useState(
+    initialSnapshot.modules.longestTrail ?? false
+  );
+  const [doubleDown, setDoubleDown] = useState(
+    initialSnapshot.modules.doubleDown ?? false
+  );
+  const [temporalDebt, setTemporalDebt] = useState(
+    initialSnapshot.modules.temporalDebt ?? false
+  );
+  const [drafting, setDrafting] = useState(
+    initialSnapshot.modules.drafting ?? false
+  );
+  const [temporalInversion, setTemporalInversion] = useState(
+    initialSnapshot.modules.temporalInversion ?? false
+  );
+  const [wormholes, setWormholes] = useState(
+    initialSnapshot.modules.wormholes ?? false
+  );
   const [subspaceFracture, setSubspaceFracture] = useState(
-    WARP12_OFFICIAL_MODULES.subspaceFracture ?? false
+    initialSnapshot.modules.subspaceFracture ?? false
   );
   const [subspaceFractureScope, setSubspaceFractureScope] =
     useState<SubspaceFractureScope>(
-      WARP12_OFFICIAL_MODULES.subspaceFractureScope ?? DEFAULT_SUBSPACE_FRACTURE_SCOPE
+      initialSnapshot.modules.subspaceFractureScope ??
+        DEFAULT_SUBSPACE_FRACTURE_SCOPE
     );
-  const [houseRules, setHouseRules] = useState<HouseRulesConfig>({
-    ...WARP12_OFFICIAL_HOUSE_RULES,
-  });
+  const [houseRules, setHouseRules] = useState<HouseRulesConfig>(
+    initialSnapshot.houseRules
+  );
   const [launchSession, setLaunchSession] = useState<PassAndPlayLaunchSession | null>(
     null
   );
@@ -100,12 +131,62 @@ export function PassAndPlayPage() {
     setWarpDriveSpool(false);
     setLongestTrail(false);
     setDoubleDown(false);
+    setTemporalDebt(false);
+    setDrafting(false);
     setTemporalInversion(false);
+    setWormholes(false);
     setSubspaceFracture(WARP12_OFFICIAL_MODULES.subspaceFracture ?? false);
     setSubspaceFractureScope(
       WARP12_OFFICIAL_MODULES.subspaceFractureScope ?? DEFAULT_SUBSPACE_FRACTURE_SCOPE
     );
     setHouseRules({ ...WARP12_OFFICIAL_HOUSE_RULES });
+  };
+
+  const currentSnapshot = (): PassAndPlaySetupSnapshot => ({
+    playerCount,
+    aiFillCount,
+    humanNames,
+    objective,
+    campaignRounds,
+    modules: {
+      salamanderPenalty: salamander,
+      continuum,
+      sensorGrid,
+      warpDriveSpool,
+      longestTrail,
+      doubleDown,
+      temporalDebt,
+      drafting,
+      temporalInversion,
+      wormholes,
+      subspaceFracture,
+      subspaceFractureScope,
+    },
+    houseRules,
+  });
+
+  const applyPreset = (preset: WarpSetupPreset) => {
+    const snap = presetToPassAndPlaySnapshot(preset, maxPip);
+    setPlayerCount(snap.playerCount);
+    setHumanNames(snap.humanNames);
+    setAiFillCount(snap.aiFillCount);
+    setObjective(snap.objective);
+    setCampaignRounds(snap.campaignRounds);
+    setSalamander(snap.modules.salamanderPenalty ?? true);
+    setContinuum(snap.modules.continuum ?? true);
+    setSensorGrid(snap.modules.sensorGrid ?? false);
+    setWarpDriveSpool(snap.modules.warpDriveSpool ?? false);
+    setLongestTrail(snap.modules.longestTrail ?? false);
+    setDoubleDown(snap.modules.doubleDown ?? false);
+    setTemporalDebt(snap.modules.temporalDebt ?? false);
+    setDrafting(snap.modules.drafting ?? false);
+    setTemporalInversion(snap.modules.temporalInversion ?? false);
+    setWormholes(snap.modules.wormholes ?? false);
+    setSubspaceFracture(snap.modules.subspaceFracture ?? false);
+    setSubspaceFractureScope(
+      snap.modules.subspaceFractureScope ?? DEFAULT_SUBSPACE_FRACTURE_SCOPE
+    );
+    setHouseRules(snap.houseRules);
   };
 
   const cappedCount = clampPassAndPlayPlayerCount(playerCount, maxPip);
@@ -175,7 +256,10 @@ export function PassAndPlayPage() {
         warpDriveSpool,
         longestTrail,
         doubleDown,
+        temporalDebt,
+        drafting,
         temporalInversion,
+        wormholes,
         subspaceFracture,
         subspaceFractureScope,
       },
@@ -183,6 +267,10 @@ export function PassAndPlayPage() {
       aiCaptains: buildAiCaptains(aiCount, maxPip),
       maxPip,
     };
+    writeLastUsedPreset(
+      'pass-and-play',
+      passAndPlaySnapshotToPreset(currentSnapshot(), maxPip)
+    );
     void startSession(next, drawMatchSeed());
   };
 
@@ -226,6 +314,14 @@ export function PassAndPlayPage() {
         bridge when the turn indicator changes so the next captain can helm without
         peeking.
       </p>
+
+      <SetupPresetsBar
+        setupType="pass-and-play"
+        getCurrentPreset={() =>
+          passAndPlaySnapshotToPreset(currentSnapshot(), maxPip)
+        }
+        onApply={applyPreset}
+      />
 
       <label className={styles.field}>
         <span>
@@ -313,18 +409,18 @@ export function PassAndPlayPage() {
         <label className={styles.checkboxRow}>
           <input
             type="checkbox"
-            checked={salamander}
-            onChange={(e) => setSalamander(e.target.checked)}
-          />
-          <span>Module Beta — Salamander penalty</span>
-        </label>
-        <label className={styles.checkboxRow}>
-          <input
-            type="checkbox"
             checked={continuum}
             onChange={(e) => setContinuum(e.target.checked)}
           />
           <span>Module Alpha — Continuum</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={salamander}
+            onChange={(e) => setSalamander(e.target.checked)}
+          />
+          <span>Module Beta — Salamander penalty</span>
         </label>
         <label className={styles.checkboxRow}>
           <input
@@ -361,11 +457,56 @@ export function PassAndPlayPage() {
         <label className={styles.checkboxRow}>
           <input
             type="checkbox"
+            checked={temporalDebt}
+            onChange={(e) => setTemporalDebt(e.target.checked)}
+          />
+          <span>Module Eta — Temporal Debt</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={drafting}
+            onChange={(e) => setDrafting(e.target.checked)}
+          />
+          <span>Module Epsilon — Tactical Requisition (Drafting)</span>
+        </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
             checked={temporalInversion}
             onChange={(e) => setTemporalInversion(e.target.checked)}
           />
           <span>Module Kappa — Temporal Inversion (Warped/Exhibition)</span>
         </label>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={wormholes}
+            onChange={(e) => setWormholes(e.target.checked)}
+          />
+          <span>Module Lambda — Wormholes (Warped/Exhibition)</span>
+        </label>
+        <div className={`${styles.checkboxRow} ${styles.checkboxRowDisabled}`}>
+          <input
+            type="checkbox"
+            checked={false}
+            disabled
+            readOnly
+            aria-label="Module Zeta — Fleet Squadrons (online only)"
+          />
+          <span>Module Zeta — Fleet Squadrons</span>
+          <Link
+            to="/online"
+            className={styles.onlineOnlyBadge}
+            aria-label="Fleet Squadrons is online only — open the online lobby"
+          >
+            Online only
+          </Link>
+        </div>
+        <p className={styles.moduleHint}>
+          Team play with shared trails &amp; beacons — assemble crews in an
+          online sector.
+        </p>
       </fieldset>
 
       <fieldset className={styles.fieldset}>

@@ -72,6 +72,7 @@ import {
   maybeMarkDropToImpulsePending,
 } from './drop-to-impulse.js';
 import {
+  applySensorGridToRound,
   removeFromSensorGrid,
   refillSensorGrid,
 } from './sensor-grid.js';
@@ -1491,7 +1492,7 @@ function handleDraftPick(
     // Set activePlayerId to spacedock holder (standard game start)
     const spacedockHolder = round.table.spacedock.placedBy;
 
-    const nextRound: RoundState = {
+    const playingRound: RoundState = {
       ...round,
       phase: 'playing',
       activePlayerId: spacedockHolder,
@@ -1499,6 +1500,12 @@ function handleDraftPick(
       hands: finalHands,
       unchartedSectors: [...round.unchartedSectors, ...remaining],
     };
+
+    // Module Gamma: seed the face-up Sensor Grid now that the draft has resolved
+    // and the final Uncharted pile is settled. startGame deliberately skips this
+    // on the drafting branch (the pile isn't known until picks finish), so this
+    // is the only place a Gamma+Epsilon round gets its grid.
+    const nextRound = applySensorGridToRound(playingRound, state.modules);
 
     return { ok: true, state: withRound(state, nextRound) };
   }

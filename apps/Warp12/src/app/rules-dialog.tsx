@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 
-import { WARP12_RULES_HTML } from '../content/rules-source';
-import { RulesHtml } from './rules-html';
+import { ManualViewer } from './manual-viewer';
 import styles from './rules-view.module.scss';
 
 interface RulesDialogProps {
@@ -52,7 +51,7 @@ export function RulesDialog({ open, onClose }: RulesDialogProps) {
           </button>
         </header>
         <div className={styles.dialogBody}>
-          <RulesHtml source={WARP12_RULES_HTML} />
+          <ManualViewer variant="dialog" />
         </div>
       </div>
     </div>

@@ -264,8 +264,7 @@ export async function replayLocalAiHumanActions(input: {
     current: GameState,
     playerId: string
   ): GameAction | null => {
-    // Skip off-turn actions during replay - they depend on exact game state
-    // and can cause false verification failures even with deterministic AI
+    // Active-turn decision only; off-turn reactions are handled in the main loop.
     const scratch = structuredClone(current);
     if (
       scratch.round?.phase !== 'playing' ||
@@ -295,6 +294,35 @@ export async function replayLocalAiHumanActions(input: {
     const round = state.round;
     if (!round || round.phase !== 'playing') {
       return { ok: false, violation: 'STALE_GAME_STATE', steps };
+    }
+
+    // Off-turn AI reactions (e.g. CATCH_DROP_TO_IMPULSE when a captain forgets
+    // to announce Drop to Impulse) mutate the state *before* the active player's
+    // turn. The live game and the client verifier both apply them, so the server
+    // replay must too — otherwise the recorded human moves desync and later
+    // surface as STALE_GAME_STATE, silently voiding TEI. Drop to Impulse is on in
+    // the Official rated preset, so this path fires in ordinary rated matches.
+    // Keep in sync with apps/Warp12/src/game/verify-local-ai-replay.ts.
+    let offTurnHandled = false;
+    for (const [aiId, ai] of roster) {
+      if (aiId === config.humanId) continue;
+      const offTurnAction = ai.decideOffTurnGameAction
+        ? ai.decideOffTurnGameAction(structuredClone(state), aiId)
+        : null;
+      if (offTurnAction) {
+        const result = applyMatchAction(state, offTurnAction);
+        steps += 1;
+        if (!result.ok) {
+          return { ok: false, violation: result.violation, steps };
+        }
+        state = result.state;
+        offTurnHandled = true;
+        break; // Process one off-turn action at a time.
+      }
+    }
+    if (offTurnHandled) {
+      if (state.phase === 'complete') break;
+      continue;
     }
 
     const activeId = round.activePlayerId;

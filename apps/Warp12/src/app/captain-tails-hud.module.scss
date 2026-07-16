@@ -18,9 +18,24 @@
   font-size: 0.68rem;
   line-height: 1.2;
 
+  // Three grid items in domino mode: name cell (with rank/length inside),
+  // the mini-domino (44px), and the coordinate. Keep exactly three columns so
+  // the tile + coordinate hug the right edge instead of leaving a phantom
+  // trailing column (which pushed them left, into the names).
   &[data-display='domino'] {
-    grid-template-columns: minmax(0, 1fr) auto 44px 3.1rem;
+    grid-template-columns: minmax(0, 1fr) 44px 3.1rem;
     column-gap: 0.4rem;
+
+    // Tail-only reads as a single digit, so let the column hug and hand the
+    // freed width back to the name.
+    &[data-coord='tail'] {
+      grid-template-columns: minmax(0, 1fr) 44px auto;
+    }
+
+    // Coordinate hidden: drop the trailing column entirely (tile hugs right).
+    &[data-coord='off'] {
+      grid-template-columns: minmax(0, 1fr) 44px;
+    }
   }
 
   &[data-active='true'] {
@@ -208,6 +223,16 @@
     left: calc(50% - 11px);
     top: calc(50% - 22px);
   }
+}
+
+// EXPERIMENT (easy revert): give the Fleet Status mini-tiles the same slight
+// round as the board tiles. Board tiles are 60x120 with a 10px radius (~17% of
+// the short side); these minis are 22x44, so ~4px matches that proportion.
+// `!important` beats DominoTile's inline border-radius. Set to 0px for square,
+// or delete this block to restore the default 10px rounding. Later this can be
+// gated behind a "rounded tiles in panels" pref via a wrapper data-attribute.
+.dominoWrap [data-testid='domino-tile'] {
+  border-radius: 4px !important;
 }
 
 .hint {

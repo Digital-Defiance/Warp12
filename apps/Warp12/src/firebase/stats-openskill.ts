@@ -30,7 +30,7 @@ export function getAIAnchorStored(
 ): StoredRating {
   const rating = getAIAnchorRating(objective, skillLevel);
   const teiDisplay = getTeiDisplay(rating);
-  return toStoredRating(rating, teiDisplay.formatted);
+  return toStoredRating(rating, teiDisplay.grade);
 }
 
 /**
@@ -102,6 +102,6 @@ export function opponentTeiGradeForObjective(
   objective: RatedObjective,
   skillLevel: AiSkillLevel
 ): string {
-  const rating = getAIAnchorStored(objective, skillLevel);
-  return rating.displayGrade ?? 'P00';
+  const rating = getAIAnchorRating(objective, skillLevel);
+  return getTeiDisplay(rating).formatted;
 }

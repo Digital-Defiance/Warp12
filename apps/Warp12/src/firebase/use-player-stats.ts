@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import type { TeiGrade, TeiDisplay } from 'warp12-engine';
+import type { TeiDisplay } from 'warp12-engine';
 import type { RatedObjective, PlayerStatsDocument, StoredRating } from './stats-schema.js';
 import type { WarpSkillLevel } from 'warp12-engine';
 

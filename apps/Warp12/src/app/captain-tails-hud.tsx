@@ -7,7 +7,10 @@ import { useEffect, useMemo, useRef } from 'react';
 import type { TrailAccessState, TrailSpokeStatus } from 'warp12-react';
 import { WARP_PIP_COLORS, WARP_TILE_SURFACE, type WarpTileBg } from 'warp12-theme';
 import { FloatingPanelShell } from './floating-panel-shell';
-import type { CaptainTailsDisplay } from './table-view-prefs';
+import type {
+  CaptainTailsCoordinate,
+  CaptainTailsDisplay,
+} from './table-view-prefs';
 import { TeiGradeBadge } from './components/tei-grade-badge';
 import styles from './captain-tails-hud.module.scss';
 
@@ -35,6 +38,10 @@ export interface CaptainTailsHudProps {
   trailSpokes: readonly TrailSpokeStatus[];
   activePlayerId: string;
   display: CaptainTailsDisplay;
+  /** Coordinate readout: full `X:Y`, tail-only, or hidden. Defaults to full. */
+  coordinate?: CaptainTailsCoordinate;
+  /** Show the per-trail tile-count badge. Defaults to true. */
+  showTrailLength?: boolean;
   tileBg: WarpTileBg;
   tacticalClassAbbrevByCaptain?: Readonly<Record<string, string>>;
   tacticalClassLabelByCaptain?: Readonly<Record<string, string>>;
@@ -171,21 +178,29 @@ function TailCoordinateText({
   className,
   title,
   compact = false,
+  tailOnly = false,
 }: {
   anchor: number;
   tail: number;
   className?: string;
   title?: string;
   compact?: boolean;
+  tailOnly?: boolean;
 }) {
   return (
     <span
       className={compact ? styles.coordinateInline : className}
       title={title ?? `${anchor}:${tail}`}
     >
-      <span className={styles.coordinateAnchor}>{anchor}</span>
-      <span className={styles.coordinateColon}>:</span>
-      <span className={styles.coordinateTail}>{tail}</span>
+      {tailOnly ? (
+        <span className={styles.coordinateTail}>{tail}</span>
+      ) : (
+        <>
+          <span className={styles.coordinateAnchor}>{anchor}</span>
+          <span className={styles.coordinateColon}>:</span>
+          <span className={styles.coordinateTail}>{tail}</span>
+        </>
+      )}
     </span>
   );
 }
@@ -225,6 +240,8 @@ export function CaptainTailsHud({
   trailSpokes,
   activePlayerId,
   display,
+  coordinate = 'full',
+  showTrailLength = true,
   tileBg,
   tacticalClassAbbrevByCaptain = {},
   tacticalClassLabelByCaptain = {},
@@ -268,8 +285,9 @@ export function CaptainTailsHud({
       containerRef={containerRef}
       storageKey={STORAGE_KEY}
       defaultAnchor="bottom-right"
-      title="Tails"
+      title="Fleet Status"
       width={260}
+      resizableWidth
       accent="cyan"
     >
       <ul className={styles.list} aria-label="Trail tails">
@@ -292,6 +310,7 @@ export function CaptainTailsHud({
               ref={row.isActive ? activeRowRef : undefined}
               className={styles.row}
               data-display={display}
+              data-coord={coordinate}
               data-active={row.isActive ? 'true' : undefined}
               data-state={row.state}
               data-hazard={row.hasHazardMarker ? 'true' : undefined}
@@ -324,7 +343,7 @@ export function CaptainTailsHud({
                         {row.tacticalClassAbbrev}
                       </span>
                     )}
-                    {row.trailLength !== undefined && row.trailLength > 0 && (
+                    {showTrailLength && row.trailLength !== undefined && row.trailLength > 0 && (
                       <span className={styles.trailLength} title={`Trail length: ${row.trailLength} tiles`}>
                         {row.trailLength}
                       </span>
@@ -338,7 +357,7 @@ export function CaptainTailsHud({
                         {row.tacticalClassAbbrev}
                       </span>
                     )}
-                    {row.trailLength !== undefined && row.trailLength > 0 && (
+                    {showTrailLength && row.trailLength !== undefined && row.trailLength > 0 && (
                       <span className={styles.trailLength} title={`Trail length: ${row.trailLength} tiles`}>
                         {row.trailLength}
                       </span>
@@ -354,21 +373,32 @@ export function CaptainTailsHud({
                   maxPip={maxPip}
                 />
               )}
-              <TailCoordinateText
-                anchor={anchor}
-                tail={tail}
-                className={styles.coordinate}
-                title={coordinateTitle}
-                compact={display === 'domino'}
-              />
+              {coordinate !== 'off' && (
+                <TailCoordinateText
+                  anchor={anchor}
+                  tail={tail}
+                  className={styles.coordinate}
+                  title={coordinateTitle}
+                  compact={display === 'domino'}
+                  tailOnly={coordinate === 'tail'}
+                />
+              )}
             </li>
           );
         })}
       </ul>
       <p className={styles.hint}>
         {display === 'domino'
-          ? 'Mini tile plus coordinate · empty lines show the spacedock double.'
-          : 'Tail coordinate for each warp trail and Neutral zone (e.g. 12:6 — bold tail is open).'}
+          ? coordinate === 'off'
+            ? 'Mini tile for each warp trail and Neutral zone · empty lines show the spacedock double.'
+            : coordinate === 'tail'
+              ? 'Mini tile plus open tail value · empty lines show the spacedock double.'
+              : 'Mini tile plus coordinate · empty lines show the spacedock double.'
+          : coordinate === 'off'
+            ? 'Warp trails and Neutral zone at a glance — coordinates hidden.'
+            : coordinate === 'tail'
+              ? 'Open tail value for each warp trail and Neutral zone (the number in play).'
+              : 'Tail coordinate for each warp trail and Neutral zone (e.g. 12:6 — bold tail is open).'}
       </p>
     </FloatingPanelShell>
   );

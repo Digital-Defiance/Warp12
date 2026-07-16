@@ -36,16 +36,9 @@ import {
   type PlayerRating,
   type TeiGrade,
 } from 'warp12-engine';
-import { WARP12_OFFICIAL_RULES_PROFILE_ID } from './rules-profile.js';
-import {
-  appendMatchHistory,
-  type MatchHistoryEntry,
-} from './match-history.js';
-
 import type { CaptainGender } from '../game/captain-profile.js';
 import { isRatedLocalGame } from '../game/local-game-config.js';
 import {
-  emptyLocalAiSkillStats,
   objectiveRatingStats as objectiveTeiStats,
   startingRatingForObjective,
   type LocalAiSkillStats,
@@ -56,17 +49,11 @@ import { objectiveToTrackKey, cacheDisplayRating, type StoredRating } from './ra
 
 const PLAYER_STATS = 'playerStats';
 
-function localRulesProfileId(
-  config: ReportLocalAiMatchInput['config']
-): string {
-  return config.rulesProfileId ?? WARP12_OFFICIAL_RULES_PROFILE_ID;
-}
-
 /** Firestore rejects explicit `undefined` in documents. */
 export function stripUndefinedFieldsForFirestore<T extends Record<string, unknown>>(
   value: T
 ): T {
-  const next = { ...value };
+  const next: Record<string, unknown> = { ...value };
   for (const key of Object.keys(next)) {
     const field = next[key];
     if (field === undefined) {
@@ -79,7 +66,7 @@ export function stripUndefinedFieldsForFirestore<T extends Record<string, unknow
       );
     }
   }
-  return next;
+  return next as T;
 }
 
 export interface ReportLocalAiMatchInput {
@@ -202,7 +189,9 @@ export function incrementLocalAiSkillStats(
     const prior = objectiveTeiStats(current, input.objective);
     const playerBefore: PlayerRating = prior.rating.matches > 0
       ? { mu: prior.rating.mu, sigma: prior.rating.sigma, matches: prior.rating.matches }
-      : (options?.startingRating ?? DEFAULT_RATING);
+      : options?.startingRating
+        ? { ...options.startingRating, matches: 0 }
+        : DEFAULT_RATING;
     
     const track = objectiveToTrackKey(input.objective);
     const aiAnchor = getAIAnchor(track, input.skill);
@@ -251,24 +240,26 @@ export function previewLocalAiMatchReport(
     };
   }
 
-  const prior = objectiveRatingStats(current, input.objective);
+  const prior = objectiveTeiStats(current, input.objective);
   const playerBefore: PlayerRating = prior.rating.matches > 0
     ? { mu: prior.rating.mu, sigma: prior.rating.sigma, matches: prior.rating.matches }
-    : (startingRating ?? DEFAULT_RATING);
+    : startingRating
+      ? { ...startingRating, matches: 0 }
+      : DEFAULT_RATING;
   
   const track = objectiveToTrackKey(input.objective);
   const aiAnchor = getAIAnchor(track, input.skill);
   const updatedPlayer = updateVsAI('local', playerBefore, input.skill, aiAnchor, won);
   
   const teiDisplayBefore = getTeiDisplay(playerBefore, prior.rating.displayGrade);
-  const teiDisplayAfter = getTeiDisplay(updatedPlayer, teiDisplayBefore.formatted);
+  const teiDisplayAfter = getTeiDisplay(updatedPlayer, teiDisplayBefore.grade);
   
   const ratingBefore: StoredRating = {
     mu: playerBefore.mu,
     sigma: playerBefore.sigma,
     matches: playerBefore.matches,
     displayRating: cacheDisplayRating(playerBefore.mu, playerBefore.sigma),
-    displayGrade: teiDisplayBefore.formatted,
+    displayGrade: teiDisplayBefore.grade,
   };
   
   const ratingAfter: StoredRating = {
@@ -276,7 +267,7 @@ export function previewLocalAiMatchReport(
     sigma: updatedPlayer.sigma,
     matches: updatedPlayer.matches,
     displayRating: cacheDisplayRating(updatedPlayer.mu, updatedPlayer.sigma),
-    displayGrade: teiDisplayAfter.formatted,
+    displayGrade: teiDisplayAfter.grade,
   };
 
   return {
@@ -395,9 +386,9 @@ async function uploadLocalAiMatch(
     {
       rated: boolean;
       won: boolean;
-      teiBefore: number | null;
-      teiAfter: number | null;
-      teiDelta: number | null;
+      ratingBefore: StoredRating | null;
+      ratingAfter: StoredRating | null;
+      muDelta: number | null;
     }
   >('reportPracticeAiMatch', {
     displayName: input.displayName,
@@ -420,9 +411,13 @@ async function uploadLocalAiMatch(
     advisorUsed: input.advisorUsed,
     objective: input.objective,
     skill: input.skill,
-    teiBefore: result.teiBefore,
-    teiAfter: result.teiAfter,
-    teiDelta: result.teiDelta,
+    ratingBefore: result.ratingBefore,
+    ratingAfter: result.ratingAfter,
+    muDelta: result.muDelta,
+    sigmaDelta:
+      result.ratingBefore != null && result.ratingAfter != null
+        ? result.ratingAfter.sigma - result.ratingBefore.sigma
+        : null,
   };
 }
 

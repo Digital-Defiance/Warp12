@@ -27,7 +27,7 @@ describe('round-end summary copy', () => {
 
     expect(roundEndTitle(game, round, names)).toBe('Ada wins the round');
     expect(roundEndHeadline(game, round, names)).toBe(
-      'Ada charts the final coordinate — round 1 complete.'
+      'Ada charts the final coordinate.'
     );
   });
 

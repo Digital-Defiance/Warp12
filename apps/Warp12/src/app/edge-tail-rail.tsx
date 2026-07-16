@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 
 import type { RoundState } from 'warp12-engine';
 import type { TrailSpokeStatus } from 'warp12-react';
-import type { CaptainTailsDisplay } from './table-view-prefs';
+import type { CaptainTailsCoordinate } from './table-view-prefs';
 import {
   buildTailRows,
   resolveTailEnds,
@@ -14,7 +14,8 @@ export interface EdgeTailRailProps {
   round: RoundState;
   trailSpokes: readonly TrailSpokeStatus[];
   activePlayerId: string;
-  display: CaptainTailsDisplay;
+  /** When 'off', the numeric tail readout is hidden (initials + state only). */
+  coordinate?: CaptainTailsCoordinate;
   tacticalClassAbbrevByCaptain?: Readonly<Record<string, string>>;
   tacticalClassLabelByCaptain?: Readonly<Record<string, string>>;
 }
@@ -47,7 +48,7 @@ export function EdgeTailRail({
   round,
   trailSpokes,
   activePlayerId,
-  display,
+  coordinate = 'full',
   tacticalClassAbbrevByCaptain = {},
   tacticalClassLabelByCaptain = {},
 }: EdgeTailRailProps) {
@@ -102,7 +103,9 @@ export function EdgeTailRail({
               <span className={styles.glyph} aria-hidden>
                 {stateGlyph(row.state)}
               </span>
-              <span className={styles.pip}>{display === 'domino' ? tail : tail}</span>
+              {coordinate !== 'off' && (
+                <span className={styles.pip}>{tail}</span>
+              )}
             </li>
           );
         })}

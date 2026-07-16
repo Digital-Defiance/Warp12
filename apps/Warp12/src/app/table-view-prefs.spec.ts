@@ -22,6 +22,7 @@ describe('table-view-prefs', () => {
       teachingMode: true,
       captainTailsHud: true,
       captainTailsDisplay: 'domino',
+      captainTailsCoordinate: 'tail',
       pipPreset: 'futuristic',
       bridgeSoundsEnabled: false,
     });
@@ -31,10 +32,37 @@ describe('table-view-prefs', () => {
       teachingMode: true,
       captainTailsHud: true,
       captainTailsDisplay: 'domino',
+      captainTailsCoordinate: 'tail',
       pipPreset: 'futuristic',
       tileBg: 'dark',
       bridgeSoundsEnabled: false,
     });
+  });
+
+  it('defaults and sanitizes the captain tails coordinate readout', () => {
+    expect(readTableOptions().captainTailsCoordinate).toBe('full');
+
+    localStorage.setItem(
+      'warp12-table-options',
+      JSON.stringify({ captainTailsCoordinate: 'sideways' })
+    );
+    expect(readTableOptions().captainTailsCoordinate).toBe('full');
+
+    writeTableOptions({ captainTailsCoordinate: 'off' });
+    expect(readTableOptions().captainTailsCoordinate).toBe('off');
+  });
+
+  it('defaults the trail-length badge on and persists toggling it off', () => {
+    expect(readTableOptions().captainTailsTrailLength).toBe(true);
+
+    localStorage.setItem(
+      'warp12-table-options',
+      JSON.stringify({ captainTailsTrailLength: 'nope' })
+    );
+    expect(readTableOptions().captainTailsTrailLength).toBe(true);
+
+    writeTableOptions({ captainTailsTrailLength: false });
+    expect(readTableOptions().captainTailsTrailLength).toBe(false);
   });
 
   it('ignores invalid stored values', () => {

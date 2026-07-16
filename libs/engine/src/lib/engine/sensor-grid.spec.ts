@@ -39,6 +39,49 @@ describe('Module Gamma — Sensor Grid', () => {
     expect(totalTiles).toBe(90); // 91 - 1 spacedock
   });
 
+  it('initializes the sensor grid after a draft resolves (Module Gamma + Epsilon)', () => {
+    // Regression: with Drafting (Epsilon) also enabled, startGame builds the
+    // round on the draft branch and skipped Sensor Grid init, so the grid stayed
+    // empty forever and never appeared. It must be seeded when the draft ends.
+    const coords = shuffleCoordinates(generateCoordinateSet(12), seededRandom(11));
+    let state = startGame(
+      {
+        id: 'gamma-epsilon-test',
+        captains: [
+          { id: 'a', displayName: 'Alpha' },
+          { id: 'b', displayName: 'Beta' },
+        ],
+        modules: { drafting: true, sensorGrid: true, sensorGridSize: 5 },
+        maxPip: 12,
+      },
+      { shuffledCoordinates: coords }
+    );
+
+    // The grid must not appear during the draft (captains pick from packs).
+    expect(state.round?.phase).toBe('drafting');
+    expect(state.round?.sensorGrid.length ?? 0).toBe(0);
+
+    // Drive the draft to completion by always taking the first tile in the pack.
+    let guard = 0;
+    while (state.round?.phase === 'drafting' && guard < 500) {
+      const draft = state.round.draftState!;
+      const drafter = draft.currentDrafter;
+      const pick = draft.currentPacks[drafter][0];
+      const res = applyAction(state, {
+        type: 'PICK_FROM_PACK',
+        playerId: drafter,
+        coordinate: pick,
+      });
+      expect(res.ok).toBe(true);
+      if (!res.ok) break;
+      state = res.state;
+      guard += 1;
+    }
+
+    expect(state.round?.phase).toBe('playing');
+    expect(state.round?.sensorGrid.length).toBe(5);
+  });
+
   it('does not initialize sensor grid when disabled', () => {
     const coords = shuffleCoordinates(generateCoordinateSet(12), seededRandom(2));
     const result = startGame(

@@ -6,30 +6,25 @@ import {
   CLASS1_STAR_DISPLAY_NAME,
   formatAiOfficerTacticalClass,
   formatTacticalClass,
-  formatTei,
   getTeiDisplay,
-  isTeiProvisional,
   TEI_OBJECTIVE_LABEL,
   WARP_SKILL_LEVELS,
-  type WarpSkillLevel,
 } from 'warp12-engine';
 
 import {
   recentDecisionTrend,
   recentTeiTrend,
 } from '../firebase/match-history.js';
-import {
-  opponentTeiForObjective,
-  getAIAnchorStored,
-} from '../firebase/stats-openskill.js';
+import { getAIAnchorStored } from '../firebase/stats-openskill.js';
 import { getPlayerStoredRating } from '../firebase/stats-service.js';
 import {
-  displayHumanObjectiveTei,
   humanObjectiveTeiStats,
   squadObjectiveTeiStats,
 } from '../firebase/human-tei.js';
 import {
+  emptyLocalAiSkillStats,
   objectiveRatingStats as objectiveTeiStats,
+  objectiveToTrackKey,
   type MatchHistoryEntry,
   type PlayerStatsDocument,
   type RatedObjective,
@@ -143,7 +138,7 @@ function TeiCell({
     <TeiDisplay
       rating={rating}
       currentGrade={rating.displayGrade}
-      objective={objective}
+      objective={objectiveToTrackKey(objective)}
       size="medium"
       showAdvanced={showAdvanced}
     />
@@ -187,7 +182,7 @@ function HumanTeiTable({
               <span className={styles.hint}>—</span>
             )}
           </td>
-          <td>{track.unassistedMatches}</td>
+          <td>{track.rating.matches}</td>
         </tr>
       </tbody>
     </table>
@@ -295,7 +290,10 @@ function TeiTable({
   showAdvanced?: boolean;
 }) {
   const rows = WARP_SKILL_LEVELS.map((skill) => {
-    const trackStats = objectiveTeiStats(stats.localAi?.[skill] ?? {}, objective);
+    const trackStats = objectiveTeiStats(
+      stats.localAi?.[skill] ?? emptyLocalAiSkillStats(),
+      objective
+    );
     const rating = getPlayerStoredRating(stats, skill, objective);
     const opponentRating = getAIAnchorStored(objective, skill);
     

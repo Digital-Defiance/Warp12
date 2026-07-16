@@ -91,6 +91,8 @@ export function buildHubHarnessRound(
       redAlert: null,
     },
     unchartedSectors: [],
+    sensorGrid: [],
+    draftState: null,
     hands: Object.fromEntries(turnOrder.map((id) => [id, []])),
     allStopRequired: false,
     allStopDeclared: false,

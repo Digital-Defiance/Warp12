@@ -5,6 +5,7 @@
  * OpenSkill μ/σ only when Advanced rating details is on.
  */
 
+import type { JSX } from 'react';
 import {
   type PlayerRating,
   type TeiGrade,

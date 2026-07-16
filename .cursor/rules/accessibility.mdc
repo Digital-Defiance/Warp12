@@ -1,0 +1,43 @@
+---
+description: Accessibility (screen-reader first) standards for the Warp app
+alwaysApply: true
+---
+
+# Accessibility — build for non-sighted play
+
+Warp must be fully usable with a screen reader and keyboard alone. Treat this as
+a functional requirement, not polish. When adding or changing UI:
+
+## Announce dynamic game/app state
+- Import `useAnnounce()` from `apps/Warp12/src/a11y/live-announcer` and announce
+  events a sighted player would see: turn changes, tiles played, draws, beacons,
+  round/match results, errors.
+- `polite` for routine narration; `assertive` only for time-critical events
+  (your turn, illegal move). Never put game state in visuals alone.
+
+## Names, roles, structure
+- Every interactive control has an accessible name. Icon/emoji-only buttons need
+  `aria-label` (or `role="img"` + `aria-label` for non-interactive markers);
+  decorative emoji get `aria-hidden`.
+- Never convey meaning by color, emoji, or position alone — add text or an
+  `aria-label`/`aria-describedby`.
+- Use semantic elements: `<button>` for actions, `<main>/<nav>`, real headings,
+  `<table>` with `<th>`, lists for lists.
+
+## Keyboard & focus
+- All actions reachable and operable by keyboard (no hover-only or pointer-only).
+- Dialogs: `role="dialog"` + `aria-modal`, labelled by their title, trap focus,
+  return focus to the trigger on close, close on Escape.
+- Provide visible `:focus-visible` styling.
+
+## Tooltips
+- Prefer the portal tooltip pattern (see `ReceiptModRow`/`PortalTip` in
+  `bridge-table.tsx`): keyboard-focusable, Escape-dismissable, text also exposed
+  via `aria-label`/`aria-describedby`, bubble `aria-hidden`. Avoid native `title`
+  (invisible in the Tauri webview, inconsistently announced).
+
+## Hidden-but-announced text
+- Use the global `.sr-only` class (in `styles.scss`) for visually-hidden text.
+  Do not use `display:none`/`visibility:hidden` for content meant for readers.
+
+When you touch a component, leave it at least as accessible as you found it.

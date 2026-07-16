@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import {
-  DEFAULT_GAME_OBJECTIVE,
   DEFAULT_SUBSPACE_FRACTURE_SCOPE,
   aiSkillToTacticalClass,
   defaultCampaignRounds,
@@ -31,6 +30,15 @@ import {
 } from './deal-hand-size-hint';
 import { SubspaceFractureOptions } from './subspace-fracture-options';
 import { Warp12RulesPreset } from './warp12-rules-preset';
+import { SetupPresetsBar } from './setup-presets-bar';
+import {
+  localSnapshotToPreset,
+  presetToLocalSnapshot,
+  resolveLastUsedPreset,
+  writeLastUsedPreset,
+  type LocalSetupSnapshot,
+  type WarpSetupPreset,
+} from '../game/setup-presets.js';
 import {
   buildAiRosterAsync,
   createLocalGame,
@@ -93,11 +101,12 @@ function ratedObjective(objective: GameObjective): RatedObjective | null {
 function skillOptionLabel(
   skill: WarpSkillLevel,
   objective: RatedObjective,
-  rulesProfileId: string
+  // Reserved: AI anchors are global today, so rules profile isn't consulted yet.
+  _rulesProfileId: string
 ): string {
   return formatAiSkillRatedLabel(
     skill,
-    opponentTeiForObjective(objective, skill, rulesProfileId)
+    opponentTeiForObjective(objective, skill)
   );
 }
 
@@ -106,47 +115,69 @@ export function LocalGamePage() {
   const fleetMin = minPlayersForFactor(maxPip);
   const fleetMax = maxPlayersForFactor(maxPip);
   const [phase, setPhase] = useState<SetupPhase>('configure');
-  const [humanName, setHumanName] = useState('Armstrong');
-  const [playerCount, setPlayerCount] = useState(() =>
-    clampLocalPlayerCount(4, maxPip)
+  const [initialSnapshot] = useState(() =>
+    presetToLocalSnapshot(resolveLastUsedPreset('local'), maxPip)
   );
-  const [objective, setObjective] = useState<GameObjective>(DEFAULT_GAME_OBJECTIVE);
-  const [campaignRounds, setCampaignRounds] = useState(() =>
-    defaultCampaignRounds(maxPip)
+  const [humanName, setHumanName] = useState(initialSnapshot.callSign);
+  const [playerCount, setPlayerCount] = useState(initialSnapshot.playerCount);
+  const [objective, setObjective] = useState<GameObjective>(
+    initialSnapshot.objective
+  );
+  const [campaignRounds, setCampaignRounds] = useState(
+    initialSnapshot.campaignRounds
   );
   const [salamander, setSalamander] = useState(
-    WARP12_OFFICIAL_MODULES.salamanderPenalty ?? true
+    initialSnapshot.modules.salamanderPenalty ?? true
   );
   const [continuum, setContinuum] = useState(
-    WARP12_OFFICIAL_MODULES.continuum ?? true
+    initialSnapshot.modules.continuum ?? true
   );
-  const [sensorGrid, setSensorGrid] = useState(false);
-  const [warpDriveSpool, setWarpDriveSpool] = useState(false);
-  const [longestTrail, setLongestTrail] = useState(false);
-  const [doubleDown, setDoubleDown] = useState(false);
-  const [temporalDebt, setTemporalDebt] = useState(false);
-  const [drafting, setDrafting] = useState(false);
-  const [temporalInversion, setTemporalInversion] = useState(false);
-  const [wormholes, setWormholes] = useState(false);
+  const [sensorGrid, setSensorGrid] = useState(
+    initialSnapshot.modules.sensorGrid ?? false
+  );
+  const [warpDriveSpool, setWarpDriveSpool] = useState(
+    initialSnapshot.modules.warpDriveSpool ?? false
+  );
+  const [longestTrail, setLongestTrail] = useState(
+    initialSnapshot.modules.longestTrail ?? false
+  );
+  const [doubleDown, setDoubleDown] = useState(
+    initialSnapshot.modules.doubleDown ?? false
+  );
+  const [temporalDebt, setTemporalDebt] = useState(
+    initialSnapshot.modules.temporalDebt ?? false
+  );
+  const [drafting, setDrafting] = useState(
+    initialSnapshot.modules.drafting ?? false
+  );
+  const [temporalInversion, setTemporalInversion] = useState(
+    initialSnapshot.modules.temporalInversion ?? false
+  );
+  const [wormholes, setWormholes] = useState(
+    initialSnapshot.modules.wormholes ?? false
+  );
   const [subspaceFracture, setSubspaceFracture] = useState(
-    WARP12_OFFICIAL_MODULES.subspaceFracture ?? false
+    initialSnapshot.modules.subspaceFracture ?? false
   );
   const [subspaceFractureScope, setSubspaceFractureScope] =
     useState<SubspaceFractureScope>(
-      WARP12_OFFICIAL_MODULES.subspaceFractureScope ?? DEFAULT_SUBSPACE_FRACTURE_SCOPE
+      initialSnapshot.modules.subspaceFractureScope ??
+        DEFAULT_SUBSPACE_FRACTURE_SCOPE
     );
-  const [houseRules, setHouseRules] = useState<HouseRulesConfig>({
-    ...WARP12_OFFICIAL_HOUSE_RULES,
-  });
-  const [aiTiers, setAiTiers] = useState<Record<string, AiOfficerTier>>({});
+  const [houseRules, setHouseRules] = useState<HouseRulesConfig>(
+    initialSnapshot.houseRules
+  );
+  const [aiTiers, setAiTiers] = useState<Record<string, AiOfficerTier>>(
+    initialSnapshot.aiTiers
+  );
   const [extendedThinkingByAi, setExtendedThinkingByAi] = useState<
     Record<string, boolean>
-  >({});
+  >(initialSnapshot.aiExtendedThinking);
   const [academySaving, setAcademySaving] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
   const [launching, setLaunching] = useState(false);
   /** Host intent: TEI-rated solo (advisor hidden). Casual = advisor available. */
-  const [ratedPlay, setRatedPlay] = useState(maxPip === 12);
+  const [ratedPlay, setRatedPlay] = useState(initialSnapshot.ratedPlay);
 
   useEffect(() => {
     if (!neuralAiSupported(maxPip)) return;
@@ -184,6 +215,57 @@ export function LocalGamePage() {
       WARP12_OFFICIAL_MODULES.subspaceFractureScope ?? DEFAULT_SUBSPACE_FRACTURE_SCOPE
     );
     setHouseRules({ ...WARP12_OFFICIAL_HOUSE_RULES });
+  };
+
+  const currentSnapshot = (): LocalSetupSnapshot => ({
+    callSign: humanName,
+    playerCount,
+    objective,
+    campaignRounds,
+    modules: {
+      salamanderPenalty: salamander,
+      continuum,
+      sensorGrid,
+      warpDriveSpool,
+      longestTrail,
+      doubleDown,
+      temporalDebt,
+      drafting,
+      temporalInversion,
+      wormholes,
+      subspaceFracture,
+      subspaceFractureScope,
+    },
+    houseRules,
+    aiTiers,
+    aiExtendedThinking: extendedThinkingByAi,
+    ratedPlay,
+  });
+
+  const applyPreset = (preset: WarpSetupPreset) => {
+    const snap = presetToLocalSnapshot(preset, maxPip);
+    setHumanName(snap.callSign);
+    setPlayerCount(snap.playerCount);
+    setObjective(snap.objective);
+    setCampaignRounds(snap.campaignRounds);
+    setSalamander(snap.modules.salamanderPenalty ?? true);
+    setContinuum(snap.modules.continuum ?? true);
+    setSensorGrid(snap.modules.sensorGrid ?? false);
+    setWarpDriveSpool(snap.modules.warpDriveSpool ?? false);
+    setLongestTrail(snap.modules.longestTrail ?? false);
+    setDoubleDown(snap.modules.doubleDown ?? false);
+    setTemporalDebt(snap.modules.temporalDebt ?? false);
+    setDrafting(snap.modules.drafting ?? false);
+    setTemporalInversion(snap.modules.temporalInversion ?? false);
+    setWormholes(snap.modules.wormholes ?? false);
+    setSubspaceFracture(snap.modules.subspaceFracture ?? false);
+    setSubspaceFractureScope(
+      snap.modules.subspaceFractureScope ?? DEFAULT_SUBSPACE_FRACTURE_SCOPE
+    );
+    setHouseRules(snap.houseRules);
+    setAiTiers(snap.aiTiers);
+    setExtendedThinkingByAi(snap.aiExtendedThinking);
+    setRatedPlay(snap.ratedPlay);
   };
 
   const playerStats = usePlayerStats();
@@ -289,6 +371,7 @@ export function LocalGamePage() {
       maxPip,
       rated: canOfferRated && ratedPlay,
     };
+    writeLastUsedPreset('local', localSnapshotToPreset(currentSnapshot(), maxPip));
     void startSession(next, drawMatchSeed());
   };
 
@@ -351,6 +434,12 @@ export function LocalGamePage() {
           placeholder="Captain name"
         />
       </label>
+
+      <SetupPresetsBar
+        setupType="local"
+        getCurrentPreset={() => localSnapshotToPreset(currentSnapshot(), maxPip)}
+        onApply={applyPreset}
+      />
 
       <label className={styles.field}>
         <span>
@@ -478,6 +567,27 @@ export function LocalGamePage() {
           />
           <span>Module Lambda — Wormholes (Warped/Exhibition)</span>
         </label>
+        <div className={`${styles.checkboxRow} ${styles.checkboxRowDisabled}`}>
+          <input
+            type="checkbox"
+            checked={false}
+            disabled
+            readOnly
+            aria-label="Module Zeta — Fleet Squadrons (online only)"
+          />
+          <span>Module Zeta — Fleet Squadrons</span>
+          <Link
+            to="/online"
+            className={styles.onlineOnlyBadge}
+            aria-label="Fleet Squadrons is online only — open the online lobby"
+          >
+            Online only
+          </Link>
+        </div>
+        <p className={styles.moduleHint}>
+          Team play with shared trails &amp; beacons — assemble crews in an
+          online sector.
+        </p>
       </fieldset>
 
       <fieldset className={styles.fieldset}>
@@ -570,7 +680,7 @@ export function LocalGamePage() {
               {' · '}
               reference{' '}
               {formatTei(
-                opponentTeiForObjective(teiTrack, matchSkill, rulesProfileId),
+                opponentTeiForObjective(teiTrack, matchSkill),
                 true
               )}
             </p>

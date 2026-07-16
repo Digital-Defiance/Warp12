@@ -709,8 +709,9 @@ for tabletop play with physical tiles).
   round score to their running cumulative total. Lower is better. If
   \textbf{Module Kappa (Temporal Inversion)} is on and this is an
   \textbf{even} round, do \textbf{not} use this normal write-up --- use
-  the inverted tally in Section~VI (negate hands; going out is a large
-  positive dump). The campaign still ends on lowest cumulative total.
+  the inverted tally in Section~VI (spread off the round's top hand;
+  going out takes the full baseline). The campaign still ends on lowest
+  cumulative total.
 \item
   \textbf{Advance the round.} Step Spacedock down one double
   (\texttt{12-12\ →\ 11-11\ →\ …\ →\ 0-0}), re-deal, and play the next
@@ -737,8 +738,11 @@ immediately.
 \subsection{VI. Optional directives and
 variants}\label{vi-optional-directives-and-variants}
 
-Warp has designed several Modules (currently 12, Alpha through Zeta)
-that add optional gameplay mechanics. We have taken extensive measures
+Warp has designed several Modules (currently 11, Alpha through Lambda)
+that add optional gameplay mechanics. (\textbf{Subspace Fracture} --- the
+chicken-foot protocol on doubles --- is part of \textbf{core} multi-trail
+play, not a Module; it is documented as a separate directive below.) We
+have taken extensive measures
 to keep rated play unaffected: a skill/luck quantifier and over
 171,000 game combinations across module configurations, checking for
 strange outcomes or behaviors. Some modules are marked
@@ -1207,67 +1211,79 @@ into it.
 \end{itemize}
 
 \textbf{Even-round tally (tabletop):} Count hands the same way as
-Section~IV (pip totals, double-blank setting, Salamander if on). Then
-write the \textbf{campaign adjustment} as follows --- do \textbf{not}
+Section~IV (pip totals, double-blank setting, Salamander if on). Find
+the \textbf{top hand} --- the largest hand pip total any captain still
+holds this round. Then write each captain's \textbf{campaign
+adjustment} as a \emph{spread} off that top hand --- do \textbf{not}
 award ``0 for going out'' on these rounds.
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
 \tightlist
 \item
-  \textbf{Who emptied their hand} (went out) takes a large positive
-  dump --- you wanted to \emph{keep} tiles, not empty. For Warp~$N$,
-  use \(2N\times 13\) (Warp~12 \(\rightarrow\) \textbf{312}; Warp~18
-  \(\rightarrow\) \textbf{468}). Add that amount to their campaign
-  total.
+  \textbf{Baseline = top hand.} Every captain starts the round at that
+  number.
 \item
-  \textbf{Everyone else} takes the \textbf{negation} of their hand total:
-  subtract the hand from the campaign (a hand of 40 becomes
-  \textbf{$-40$}). Holding more pips improves your standing; a thin hand
-  hurts.
+  \textbf{Subtract your own hand.} The captain holding the top hand
+  nets \textbf{0} --- they win the round. A thinner hand nets the
+  difference (top hand minus theirs). Whoever \textbf{emptied their
+  hand} (went out) kept nothing, so they take the \textbf{full baseline}
+  --- the worst outcome, since on an inverted round you wanted to
+  \emph{keep} tiles, not shed them.
 \item
   Apply any other enabled Module add-ons from this section (Hazard pass
   penalties, Longest Trail $-3$, Temporal Debt, and so on) \textbf{after}
-  that hand term, same as the app. Longest Trail still cannot push a
-  \emph{normal} (odd-round) total below 0; on inverted rounds the ledger
-  is already allowed to go negative by design.
+  that hand term, same as the app.
 \item
   The sector winner at the end is still whoever has the
   \textbf{lowest cumulative} score --- Kappa never switches the campaign
   to ``highest wins.''
 \end{enumerate}
 
-\textbf{Why the signs look backwards:} On an even round, a fat hand must
-\emph{help} you under a lowest-total campaign. Negating the hand does
-that on paper: \texttt{$-40$} beats \texttt{$-10$}, and both beat a
-go-out's \texttt{$+312$}. Offline, just keep a running total column and
-add / subtract the even-round adjustment as written; you do not need a
-second ranking system.
+\textbf{Scoring floor and ties (both round types):} The lowest score a
+captain can \emph{show} is \textbf{zero}. The only term that can dip a
+round below zero is the Longest Trail bonus ($-3$); that sub-zero amount
+is \textbf{kept} so it can break an otherwise-tied campaign (a true
+$-3$ edges a $0$), but it is never \emph{displayed} as a negative ---
+scoreboards clamp the shown total to zero and use the raw value only to
+rank level totals.
+
+\textbf{Why the top hand wins:} On an even round a fat hand should
+\emph{help} you under a lowest-total campaign, and the spread does
+exactly that: the biggest hand contributes 0, thinner hands contribute
+the gap, and an empty hand (a go-out) contributes the most. Unlike the
+old fixed dump, the swing scales with the actual hands --- one bad even
+round no longer dwarfs an entire campaign. Offline, just keep a running
+total column and add each captain's spread as written.
 
 \textbf{Worked example (Warp 12, even round, three captains).} Before
 the round: Armstrong 20, Lovell 25, Earhart 30. Earhart goes out;
-Armstrong holds 40 pips; Lovell holds 12.
+Armstrong holds 40 pips; Lovell holds 12. The \textbf{top hand is 40}
+(Armstrong).
 
 \begin{itemize}
 \tightlist
 \item
-  Earhart (went out): \textbf{$+312$} $\rightarrow$ campaign
-  \(30+312=\textbf{342}\).
+  Armstrong (40 in hand): \(40-40=\) \textbf{$+0$} $\rightarrow$
+  campaign \(20+0=\textbf{20}\) --- wins the round with the fattest
+  hand.
 \item
-  Armstrong (40 in hand): \textbf{$-40$} $\rightarrow$ campaign
-  \(20-40=\textbf{$-20$}\).
+  Lovell (12 in hand): \(40-12=\) \textbf{$+28$} $\rightarrow$ campaign
+  \(25+28=\textbf{53}\).
 \item
-  Lovell (12 in hand): \textbf{$-12$} $\rightarrow$ campaign
-  \(25-12=\textbf{13}\).
+  Earhart (went out): \(40-0=\) \textbf{$+40$} $\rightarrow$ campaign
+  \(30+40=\textbf{70}\).
 \end{itemize}
 
-Armstrong now leads the campaign despite going deep into negatives;
-Earhart is crushed for emptying out when tiles were the prize.
+Armstrong leads the campaign for holding the most; Earhart is penalized
+for emptying out when tiles were the prize --- but by a proportional 40,
+not a flat 312.
 
-\textbf{Tactical Impact:} Going out in even rounds is catastrophic.
-Medium hands become optimal. AI struggles to adapt. Lower-skilled
-players win \textasciitilde65\% of the time (35.6\% higher-skill win
-rate in calibration --- intentionally inverts skill ordering).
+\textbf{Tactical Impact:} Going out in even rounds is the worst outcome
+(you take the full top-hand baseline). Medium-to-large hands become
+optimal. AI struggles to adapt. Lower-skilled players win
+\textasciitilde65\% of the time (35.6\% higher-skill win rate in
+calibration --- intentionally inverts skill ordering).
 
 \textbf{Status:} Exhibition/Warped mode only---\textbf{intentionally
 breaks skill ordering} for casual chaos play. Never rated (TEI does not
@@ -1839,6 +1855,21 @@ displayed number sits a bit below a raw ``best guess.''
   \textbf{Play more rated matches} → confidence tends to rise, which
   often lifts the conservative score as well
 \end{itemize}
+
+\textbf{Placement, not margin.} Ratings track \emph{where} you finish,
+not \emph{by how much}. When a match is scored, the final standings are
+collapsed to finishing places (1st, 2nd, 3rd\ldots) and your rating
+moves on those places alone: every captain you finish ahead of nudges
+you up, every one who finishes ahead of you nudges you down, each
+weighted by how strong that opponent was. The size of the point gap
+never enters the math --- losing a points campaign by 3 and losing it by
+300 move your TEI by \textbf{exactly the same amount}, and a blowout win
+counts no more than a one-point squeaker. (Tie on the cumulative total
+and you split the place, a half-step each.) So a single ugly round ---
+say a Module~Kappa inversion or a fat go-out penalty that dumps a big
+number on you --- only costs rating if it actually drops you \emph{past}
+another captain; if you still finish in the same place, your TEI is
+unchanged. Chase \textbf{finishing order}, not a pretty scoreline.
 
 \textbf{Two ways to improve your TEI:}
 \begin{enumerate}

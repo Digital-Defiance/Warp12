@@ -160,15 +160,13 @@ describe('Module Delta — Overdrive Tie-Break Integration', () => {
     const aliceAfter = result.state.captains.find((c) => c.id === 'a')!;
     const bobAfter = result.state.captains.find((c) => c.id === 'b')!;
 
-    // Alice wins (no hand penalty) + tied longest trail −3 → floored to 0
-    expect(aliceAfter.pointsScore).toBe(aliceBefore.pointsScore);
+    // Alice wins (no hand penalty) + tied longest trail −3 = −3, kept (not floored)
+    expect(aliceAfter.pointsScore).toBe(aliceBefore.pointsScore - 3);
 
     // Bob also gets −3 bonus (tied for longest trail with Alice)
     const bobHand = gameHazardTieBreak.round!.hands['b'] ?? [];
     const bobHandPips = bobHand.reduce((sum, tile) => sum + tile.low + tile.high, 0);
-    expect(bobAfter.pointsScore - bobBefore.pointsScore).toBe(
-      Math.max(0, bobHandPips - 3)
-    );
+    expect(bobAfter.pointsScore - bobBefore.pointsScore).toBe(bobHandPips - 3);
   });
 
   it('uses Emergency Sectors (Phase 3) when uncharted depletes during overdrive', () => {
