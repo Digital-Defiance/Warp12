@@ -48,6 +48,7 @@ export function emptyRoundFields(): Pick<
   | 'allStopDeclared'
   | 'roundWinnerId'
   | 'roundStarterOpening'
+  | 'roundStarterOpeningResolved'
   | 'dropToImpulseCallPending'
   | 'dropToImpulseCatchable'
   | 'playedThisTurn'
@@ -64,6 +65,7 @@ export function emptyRoundFields(): Pick<
     pendingRoundWin: null,
     roundBlocked: false,
     roundStarterOpening: null,
+    roundStarterOpeningResolved: false,
     dropToImpulseCallPending: null,
     dropToImpulseCatchable: null,
     playedThisTurn: false,
@@ -91,6 +93,8 @@ export function makeRound(
     maxPip: 12,
     sensorGrid: [],
     ...over,
+    // Partial overlays can omit required booleans — pin after spread.
+    roundStarterOpeningResolved: over.roundStarterOpeningResolved ?? false,
   };
 }
 

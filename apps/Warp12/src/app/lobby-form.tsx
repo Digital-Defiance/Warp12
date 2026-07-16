@@ -82,7 +82,7 @@ export function LobbyForm({
   const setModules = (patch: Partial<NonNullable<CreateLobbyOptions['modules']>>) =>
     onCreateOptionsChange({
       ...createOptions,
-      modules: { ...createOptions.modules!, ...patch },
+      modules: { ...(createOptions.modules ?? {}), ...patch },
     });
 
   const trimmedCode = gameCode.trim();

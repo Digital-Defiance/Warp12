@@ -253,6 +253,19 @@ describe('sanitizeSetupPreset', () => {
     expect(preset?.modules.subspaceFractureScope).toBe('own-trail');
   });
 
+  it('normalizes sparse modules so missing toggles are explicit false', () => {
+    const preset = sanitizeSetupPreset({
+      objective: 'points',
+      modules: { longestTrail: true },
+    });
+    expect(preset?.modules.longestTrail).toBe(true);
+    expect(preset?.modules.continuum).toBe(false);
+    expect(preset?.modules.salamanderPenalty).toBe(false);
+    expect(preset?.modules.temporalDebt).toBe(false);
+    expect(preset?.modules.drafting).toBe(false);
+    expect(preset?.modules.wormholes).toBe(false);
+  });
+
   it('drops invalid AI tiers but keeps valid ones', () => {
     const preset = sanitizeSetupPreset({
       objective: 'points',

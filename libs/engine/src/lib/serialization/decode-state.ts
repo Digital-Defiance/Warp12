@@ -187,6 +187,7 @@ export function decodeRoundState(
     pendingRoundWin: null,
     roundBlocked,
     roundStarterOpening: null,
+    roundStarterOpeningResolved: false,
     dropToImpulseCallPending: null,
     dropToImpulseCatchable: null,
     playedThisTurn: false,

@@ -104,6 +104,7 @@ export function buildHubHarnessRound(
     pendingRoundWin: null,
     roundBlocked: false,
     roundStarterOpening: null,
+    roundStarterOpeningResolved: false,
     dropToImpulseCallPending: null,
     dropToImpulseCatchable: null,
     playedThisTurn: false,

@@ -37,6 +37,7 @@ function makeObs(over: Partial<WarpAiObservation['round']> = {}): WarpAiObservat
     pendingRoundWin: null,
     roundBlocked: false,
     roundStarterOpening: null,
+    roundStarterOpeningResolved: false,
     dropToImpulseCallPending: null,
     dropToImpulseCatchable: null,
     ...over,

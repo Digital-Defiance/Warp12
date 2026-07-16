@@ -37,6 +37,7 @@ function baseRound(overrides: Partial<RoundState> = {}): RoundState {
     pendingRoundWin: null,
     roundBlocked: false,
     roundStarterOpening: null,
+    roundStarterOpeningResolved: false,
     table: {
       spacedock: { value: 12, placedBy: 'you' },
       warpTrails: {
@@ -319,6 +320,7 @@ describe('subspace fracture and red alert', () => {
         pendingRoundWin: null,
         roundBlocked: false,
         roundStarterOpening: null,
+        roundStarterOpeningResolved: false,
         table: {
           spacedock: { value: 12, placedBy: 'glenn' },
           warpTrails: {

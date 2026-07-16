@@ -61,6 +61,7 @@ function completeGame(over: Partial<GameState>): GameState {
       pendingRoundWin: null,
       roundBlocked: false,
       roundStarterOpening: null,
+      roundStarterOpeningResolved: false,
       dropToImpulseCallPending: null,
       dropToImpulseCatchable: null,
     },

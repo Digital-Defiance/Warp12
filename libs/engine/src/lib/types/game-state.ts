@@ -67,10 +67,15 @@ export interface RoundState {
   } | null;
   /** Sector ended with an empty draw pile and no legal charts (no domino winner). */
   readonly roundBlocked: boolean;
-  /** Deluxe opening: round starter owes a second own-trail chart this turn. */
+  /** Deluxe opening: round starter owes a second chart this turn (opening only). */
   readonly roundStarterOpening: {
     readonly playerId: PlayerId;
   } | null;
+  /**
+   * Deluxe opening complete for this round. Once true, the starter no longer
+   * gets a held turn for a second tile — play two is opening-turn only.
+   */
+  readonly roundStarterOpeningResolved: boolean;
   /** Voluntary Drop to Impulse declare pending (one coordinate left this turn). */
   readonly dropToImpulseCallPending: PlayerId | null;
   /** Forgot to declare — opponents may catch until the next helm pass. */

@@ -73,6 +73,9 @@ export function roundStarterOpeningObligation(
   if (!houseRules.roundStarterPlaysTwo) {
     return 'none';
   }
+  if (round.roundStarterOpeningResolved) {
+    return 'none';
+  }
   if (playerId !== round.table.spacedock.placedBy) {
     return 'none';
   }
@@ -80,19 +83,13 @@ export function roundStarterOpeningObligation(
     return 'none';
   }
 
-  // If roundStarterOpening is set, they owe a second tile
+  // Mid-opening: second tile still owed.
   if (round.roundStarterOpening?.playerId === playerId) {
     return 'second-tile-required';
   }
 
-  // On first tile of the round, require second (but don't restrict route).
-  // Module Zeta: read the shared squad trail via trailKeyFor.
-  const ownTiles =
-    round.table.warpTrails[trailKeyFor(round, playerId)]?.tiles.length ?? 0;
-  if (ownTiles === 0) {
-    return 'second-tile-required';
-  }
-  return 'none';
+  // Opening turn has not started yet — first chart will hold for a second.
+  return 'second-tile-required';
 }
 
 export function mustRestrictToOwnTrailForOpening(
