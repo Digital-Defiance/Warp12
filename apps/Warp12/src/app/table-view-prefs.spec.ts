@@ -65,6 +65,13 @@ describe('table-view-prefs', () => {
     expect(readTableOptions().captainTailsTrailLength).toBe(false);
   });
 
+  it('defaults Sector Status on and persists toggling it off', () => {
+    expect(readTableOptions().sectorStatusHud).toBe(true);
+
+    writeTableOptions({ sectorStatusHud: false });
+    expect(readTableOptions().sectorStatusHud).toBe(false);
+  });
+
   it('ignores invalid stored values', () => {
     localStorage.setItem(
       'warp12-table-options',

@@ -1,6 +1,12 @@
 import { toPng } from 'html-to-image';
 
 import { sanitizeFilenamePart } from './debug-export.js';
+import {
+  canUseAnchorDownload,
+  deliverBlob,
+  isShareGestureError,
+  type DeliverFileResult,
+} from './deliver-file.js';
 
 import { formatRoundPointsDelta } from 'warp12-engine';
 
@@ -459,13 +465,10 @@ export function canUseSystemShare(): boolean {
   return typeof navigator.share === 'function';
 }
 
+export { canUseAnchorDownload, isShareGestureError };
+
 export function downloadRoundImage(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
+  void deliverBlob({ blob, filename, preferShare: false });
 }
 
 export async function shareRoundImageBlob(
@@ -473,18 +476,44 @@ export async function shareRoundImageBlob(
   filename: string,
   meta: ShareRoundMetadata
 ): Promise<void> {
-  const file = new File([blob], filename, { type: 'image/png' });
-  const text = formatShareRoundMessage(meta);
-  const payload = { title: meta.headline, text, files: [file] };
+  await deliverBlob({
+    blob,
+    filename,
+    title: meta.headline,
+    text: formatShareRoundMessage(meta),
+    preferShare: true,
+  });
+}
 
-  if (!canUseSystemShare()) {
-    throw new Error('System share is unavailable');
-  }
-  if (navigator.canShare && !navigator.canShare(payload)) {
-    throw new Error('System share is unavailable for this image');
-  }
+/** Prepared board PNG waiting for a fresh user gesture (iOS share sheet). */
+export interface PendingRoundImageShare {
+  blob: Blob;
+  filename: string;
+  meta: ShareRoundMetadata;
+  delivery: ShareRoundDelivery;
+}
 
-  await navigator.share(payload);
+export class RoundImageShareGestureError extends Error {
+  readonly pending: PendingRoundImageShare;
+
+  constructor(pending: PendingRoundImageShare) {
+    super('Share needs another tap on this device');
+    this.name = 'RoundImageShareGestureError';
+    this.pending = pending;
+  }
+}
+
+export async function deliverPendingRoundImage(
+  pending: PendingRoundImageShare
+): Promise<DeliverFileResult> {
+  return deliverBlob({
+    blob: pending.blob,
+    filename: pending.filename,
+    title: pending.meta.headline,
+    text: formatShareRoundMessage(pending.meta),
+    // Share sheet also covers "Save Image" on iOS when download is unavailable.
+    preferShare: true,
+  });
 }
 
 export async function deliverRoundImage(options: {
@@ -492,7 +521,7 @@ export async function deliverRoundImage(options: {
   meta: ShareRoundMetadata;
   mode?: ShareRoundImageMode;
   delivery: ShareRoundDelivery;
-}): Promise<'shared' | 'saved'> {
+}): Promise<'shared' | 'saved' | 'downloaded'> {
   const mode = options.mode ?? 'board';
   const boardDataUrl = await captureTableContentPng(options.tableContent);
   const blob = await composeBoardShareImage(boardDataUrl, options.meta, mode);
@@ -502,11 +531,34 @@ export async function deliverRoundImage(options: {
     mode
   );
 
-  if (options.delivery === 'save') {
-    downloadRoundImage(blob, filename);
-    return 'saved';
-  }
+  const preferShare =
+    options.delivery === 'share' || !canUseAnchorDownload();
 
-  await shareRoundImageBlob(blob, filename, options.meta);
-  return 'shared';
+  try {
+    const result = await deliverBlob({
+      blob,
+      filename,
+      title: options.meta.headline,
+      text: formatShareRoundMessage(options.meta),
+      preferShare,
+    });
+    if (result === 'shared') {
+      return 'shared';
+    }
+    return options.delivery === 'save' ? 'saved' : 'downloaded';
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw err;
+    }
+    // html-to-image is async — iOS often rejects share() after the gesture window.
+    if (preferShare && isShareGestureError(err)) {
+      throw new RoundImageShareGestureError({
+        blob,
+        filename,
+        meta: options.meta,
+        delivery: options.delivery,
+      });
+    }
+    throw err;
+  }
 }

@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import type { AdvisorReport } from 'warp12-engine';
 import { advisorReportPlainText, formatAdvisorReport } from 'warp12-react';
 
+import { deliverBlob } from '../game/deliver-file.js';
 import type { NameColorEntry } from './game-log-display.js';
 import { GameLogLine } from './game-log-line.js';
 import dialogStyles from './rules-view.module.scss';
@@ -31,10 +32,14 @@ export function AdvisorReportDialog({
   onIncludeAllCaptainsChange,
   opponentLabel,
 }: AdvisorReportDialogProps) {
+  const [downloadBusy, setDownloadBusy] = useState(false);
+  const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
+
   useEffect(() => {
     if (!open) {
       return;
     }
+    setDownloadStatus(null);
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onClose();
@@ -50,16 +55,32 @@ export function AdvisorReportDialog({
 
   const lines = formatAdvisorReport(report, names, { opponentLabel });
 
-  const handleDownload = () => {
-    const blob = new Blob([advisorReportPlainText(report, names, { opponentLabel })], {
-      type: 'text/plain;charset=utf-8',
-    });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = downloadFilename;
-    anchor.click();
-    URL.revokeObjectURL(url);
+  const handleDownload = async () => {
+    const text = advisorReportPlainText(report, names, { opponentLabel });
+    setDownloadBusy(true);
+    setDownloadStatus(null);
+    try {
+      const result = await deliverBlob({
+        blob: new Blob([text], { type: 'text/plain;charset=utf-8' }),
+        filename: downloadFilename,
+        title: 'Warp 12 · Advisor report',
+        text,
+      });
+      if (result === 'copied') {
+        setDownloadStatus('Copied to clipboard');
+      } else if (result === 'shared') {
+        setDownloadStatus('Opened in the share sheet');
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return;
+      }
+      setDownloadStatus(
+        err instanceof Error ? err.message : 'Could not export the advisor report'
+      );
+    } finally {
+      setDownloadBusy(false);
+    }
   };
 
   return (
@@ -113,16 +134,22 @@ export function AdvisorReportDialog({
           <p className={styles.hint}>
             Move strength is scored against other legal lines at that moment. Your
             TEI uses only your moves; turn on all captains to learn from
-            everyone at the table.
+            everyone at the table. On iPad, download opens the share sheet (or
+            copies to the clipboard).
           </p>
+          {downloadStatus && (
+            <p className={styles.hint} role="status">
+              {downloadStatus}
+            </p>
+          )}
           <button
             type="button"
             className={styles.downloadBtn}
-            disabled={lines.length === 0}
-            onClick={handleDownload}
+            disabled={lines.length === 0 || downloadBusy}
+            onClick={() => void handleDownload()}
             title={downloadFilename}
           >
-            Download report
+            {downloadBusy ? 'Preparing…' : 'Download report'}
           </button>
         </footer>
       </div>

@@ -47,6 +47,8 @@ export interface SectorStatusHudProps {
   longestTrailLength?: number;
   hazardMarkerHolder?: string | null;
   doubleDownNotice?: DoubleDownNotice | null;
+  /** Phone / compact bridge: narrower panel so it fits beside EdgeTailRail. */
+  compact?: boolean;
 }
 
 export function shouldShowAiThinking(props: {
@@ -165,6 +167,7 @@ export function SectorStatusHud({
   longestTrailLength = 0,
   hazardMarkerHolder = null,
   doubleDownNotice = null,
+  compact = false,
 }: SectorStatusHudProps) {
   const showAiThinking = shouldShowAiThinking({
     activePlayerIsAi,
@@ -190,11 +193,11 @@ export function SectorStatusHud({
   return (
     <FloatingPanelShell
       containerRef={containerRef}
-      storageKey={STORAGE_KEY}
+      storageKey={compact ? `${STORAGE_KEY}:compact` : STORAGE_KEY}
       defaultAnchor="top-right"
-      panelClassName={styles.belowQOrb}
+      panelClassName={`${styles.belowQOrb}${compact ? ` ${styles.compact}` : ''}`}
       title="Sector status"
-      width={300}
+      width={compact ? 240 : 300}
       accent="cyan"
     >
       <dl className={styles.stats}>

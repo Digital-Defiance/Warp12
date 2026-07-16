@@ -19,7 +19,7 @@ describe('save-round-log', () => {
     ).toBe('warp12-8SU55R-round-2-log-2026-06-28-21-38-21.json');
   });
 
-  it('downloads structured round log entries as JSON', () => {
+  it('downloads structured round log entries as JSON', async () => {
     const payload: RoundLogExport = {
       exportedAt: '2026-06-28T21:38:21.000Z',
       roundNumber: 2,
@@ -40,12 +40,19 @@ describe('save-round-log', () => {
     vi.spyOn(document, 'createElement').mockReturnValue(anchor);
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:test');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    vi.stubGlobal('navigator', {
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X)',
+      platform: 'MacIntel',
+      maxTouchPoints: 0,
+    });
 
-    downloadRoundLogJson(payload);
+    const result = await downloadRoundLogJson(payload);
 
+    expect(result).toBe('downloaded');
     expect(anchor.download).toBe(
       'warp12-local-round-2-log-2026-06-28-21-38-21.json'
     );
     expect(click).toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 });

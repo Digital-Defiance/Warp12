@@ -1,4 +1,5 @@
 import {
+  applySensorGridToRound,
   createOmegaPlayer,
   createOmegaSearchPlayer,
   createRoundStateFromDeal,
@@ -80,7 +81,11 @@ function applyDevRoundModules(
   round: NonNullable<GameState['round']>,
   spacedockPlacedBy: string
 ): NonNullable<GameState['round']> {
-  let next = round;
+  // Drafting rounds seed the grid when the draft resolves; skip here.
+  let next =
+    round.phase === 'drafting'
+      ? round
+      : applySensorGridToRound(round, state.modules);
 
   if (state.modules.warpDriveSpool.enabled) {
     next = {

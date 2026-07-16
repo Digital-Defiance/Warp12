@@ -23,6 +23,7 @@ import {
 import { highestPointsCaptainId } from './continuum.js';
 import { withRoundAndCaptains } from './helpers.js';
 import { determineLongestTrailWinners, getTrailLength } from './longest-trail.js';
+import { applySensorGridToRound } from './sensor-grid.js';
 import type { PlayerId } from '../types/player.js';
 
 /**
@@ -749,6 +750,10 @@ export function scoreRound(
     maxPip: state.maxPip ?? DOUBLE_TWELVE_MAX_PIPS,
   });
   let nextRound = createRoundStateFromDeal(nextDeal, round.squadrons);
+
+  // Module Gamma: seed the face-up Sensor Grid (same as startGame — rounds 2+
+  // used to skip this and leave an empty grid while the module stayed "On").
+  nextRound = applySensorGridToRound(nextRound, state.modules);
 
   // Module Delta: Initialize hazard marker with round starter
   if (state.modules.warpDriveSpool.enabled) {

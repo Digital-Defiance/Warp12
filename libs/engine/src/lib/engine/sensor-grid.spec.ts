@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { normalizeCoordinate } from '../types/coordinate.js';
 import { startGame } from '../setup/create-game.js';
 import { applyAction } from './apply-action.js';
+import { scoreRound } from './scoring.js';
 import { generateCoordinateSet, shuffleCoordinates } from '../domino/coordinates.js';
 
 function seededRandom(seed: number): () => number {
@@ -193,5 +194,47 @@ describe('Module Gamma — Sensor Grid', () => {
     
     // As the game progresses and uncharted sectors deplete,
     // grid size can shrink below target
+  });
+
+  it('reseeds the sensor grid when scoreRound deals the next round', () => {
+    // Regression: Module Gamma stayed "On" in sector rules / log, but rounds 2+
+    // never called applySensorGridToRound — Uncharted stayed at the full pile
+    // size and the HUD market never appeared after round 1.
+    const coords = shuffleCoordinates(generateCoordinateSet(12), seededRandom(42));
+    let state = startGame(
+      {
+        id: 'gamma-next-round',
+        captains: [
+          { id: 'a', displayName: 'Alpha' },
+          { id: 'b', displayName: 'Beta' },
+          { id: 'c', displayName: 'Gamma' },
+        ],
+        modules: { sensorGrid: true, sensorGridSize: 5 },
+        maxPip: 12,
+        campaignRounds: 13,
+      },
+      { shuffledCoordinates: coords }
+    );
+
+    expect(state.round?.sensorGrid.length).toBe(5);
+
+    // Force round 1 ended with a winner so scoreRound deals round 2.
+    state = {
+      ...state,
+      round: {
+        ...state.round!,
+        phase: 'ended',
+        roundWinnerId: 'a',
+        roundBlocked: false,
+      },
+    };
+
+    const scored = scoreRound(state, state.round!, seededRandom(99));
+    expect(scored.ok).toBe(true);
+    if (!scored.ok) return;
+
+    expect(scored.state.round?.roundNumber).toBe(2);
+    expect(scored.state.round?.sensorGrid.length).toBe(5);
+    expect(scored.state.modules.sensorGrid.enabled).toBe(true);
   });
 });

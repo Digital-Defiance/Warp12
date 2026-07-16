@@ -1,4 +1,5 @@
 import { sanitizeFilenamePart } from './debug-export.js';
+import { deliverBlob, type DeliverFileResult } from './deliver-file.js';
 import type { RoundLogExport } from 'warp12-react';
 
 export function buildRoundLogFilename(
@@ -12,16 +13,9 @@ export function buildRoundLogFilename(
   return `warp12-${sector}round-${roundNumber}-log-${stamp}.${extension}`;
 }
 
-function downloadBlob(filename: string, blob: Blob): void {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
-}
-
-export function downloadRoundLog(payload: RoundLogExport): void {
+export async function downloadRoundLog(
+  payload: RoundLogExport
+): Promise<DeliverFileResult> {
   const filename = buildRoundLogFilename(
     payload.roundNumber,
     payload.exportedAt,
@@ -29,10 +23,17 @@ export function downloadRoundLog(payload: RoundLogExport): void {
     'txt'
   );
   const body = payload.lines.join('\n');
-  downloadBlob(filename, new Blob([body], { type: 'text/plain;charset=utf-8' }));
+  return deliverBlob({
+    blob: new Blob([body], { type: 'text/plain;charset=utf-8' }),
+    filename,
+    title: `Warp 12 · Round ${payload.roundNumber} log`,
+    text: body,
+  });
 }
 
-export function downloadRoundLogJson(payload: RoundLogExport): void {
+export async function downloadRoundLogJson(
+  payload: RoundLogExport
+): Promise<DeliverFileResult> {
   const filename = buildRoundLogFilename(
     payload.roundNumber,
     payload.exportedAt,
@@ -40,5 +41,10 @@ export function downloadRoundLogJson(payload: RoundLogExport): void {
     'json'
   );
   const json = JSON.stringify(payload, null, 2);
-  downloadBlob(filename, new Blob([json], { type: 'application/json' }));
+  return deliverBlob({
+    blob: new Blob([json], { type: 'application/json' }),
+    filename,
+    title: `Warp 12 · Round ${payload.roundNumber} log (JSON)`,
+    text: json,
+  });
 }
