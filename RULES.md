@@ -134,7 +134,7 @@ Fleet command chooses one objective before the sector opens:
 | Train marker | **Distress Beacon** *(Shields Down)* |
 | Boneyard | **Uncharted Sectors** |
 | Open Market (Drafting) | **Sensor Grid** — optional Module Gamma visible market |
-| — | **Red Alert** — a double must be satisfied before normal play continues (cover tile, or stabilizers when Subspace Fracture applies) |
+| — | **Red Alert** — a double must be satisfied before normal play continues (cover coordinate, or stabilizers when Subspace Fracture applies) |
 | — | **Subspace Fracture** — optional chicken-foot protocol on doubles (scope: Own Trail, All Captains, or All Doubles) |
 | — | **Continuum Flash** — optional Module Alpha anomaly on 0-0 |
 | — | **All Stop!** — ceremony required after some round-winning charts (Neutral Zone, or any go-out when All Stop! echo is active) |
@@ -156,8 +156,8 @@ Setup matches standard double-twelve multi-trail practice:
 \*Or however many are appropriate for the warp factor in play
 
 1.  **Set aside Spacedock** before dealing — **12-12** (round 1),
-    **11-11** (round 2), … **0-0** (round 13). This tile is **not**
-    dealt.
+    **11-11** (round 2), … **0-0** (round 13). This coordinate is
+    **not** dealt.
 
 2.  **Deal hands** from the remainder:
 
@@ -171,13 +171,14 @@ Setup matches standard double-twelve multi-trail practice:
     > value where widely published rule sets genuinely disagree: Masters
     > of Games and most modern/commercial sets deal **10**, while
     > Galt (1994) and University Games deal **11**. Warp defaults to
-    > **10** (it leaves a healthier Uncharted Sectors pile — 10 tiles at
-    > 8 captains versus only 2 at 11) and lets the host opt into **11**
-    > on the setup screen. It has no effect below 7 captains.
+    > **10** (it leaves a healthier Uncharted Sectors pile — 10
+    > coordinates at 8 captains versus only 2 at 11) and lets the host
+    > opt into **11** on the setup screen. It has no effect below 7
+    > captains.
 
 3.  **Place Spacedock** in the center.
 
-4.  **Uncharted Sectors** — all remaining tiles face down.
+4.  **Uncharted Sectors** — all remaining coordinates face down.
 
 **Round starter:** Round 1 opener is designated by fleet command
 (typically the host). Each later round, the starter rotates clockwise.
@@ -195,12 +196,12 @@ also supports larger and smaller multi-trail sets as **exhibition**
 sectors — same protocols, different bone count and fleet caps. These
 never update TEI (Section VIII).
 
-| Factor      | Set       | Tiles | Fleet | Points campaign                   |
-|:------------|:----------|:------|:------|:----------------------------------|
-| **Warp 9**  | Double-9  | 55    | 2–4   | 10 rounds (9-9 → 0-0)             |
-| **Warp 12** | Double-12 | 91    | 2–8   | 13 rounds (12-12 → 0-0) — *rated* |
-| **Warp 15** | Double-15 | 136   | 2–12  | 16 rounds (15-15 → 0-0)           |
-| **Warp 18** | Double-18 | 190   | 2–18  | 19 rounds (18-18 → 0-0)           |
+| Factor      | Set       | Coordinates | Fleet | Points campaign                   |
+|:------------|:----------|:------------|:------|:----------------------------------|
+| **Warp 9**  | Double-9  | 55          | 2–4   | 10 rounds (9-9 → 0-0)             |
+| **Warp 12** | Double-12 | 91          | 2–8   | 13 rounds (12-12 → 0-0) — *rated* |
+| **Warp 15** | Double-15 | 136         | 2–12  | 16 rounds (15-15 → 0-0)           |
+| **Warp 18** | Double-18 | 190         | 2–18  | 19 rounds (18-18 → 0-0)           |
 
 Hand sizes for Warp 9 / 15 / 18 follow the engine’s set profile. The
 **7–8 captain 10-vs-11** host choice still applies on Warp 15 / 18 when
@@ -222,13 +223,13 @@ does **one** of the following:
 
 1.  **Chart** one legal coordinate, if any exist.
 
-2.  **Draw** one tile from Uncharted Sectors, then follow the draw rules
-    below.
+2.  **Draw** one coordinate from Uncharted Sectors, then follow the draw
+    rules below.
 
-3.  **Deploy a Distress Beacon** — after drawing your one tile and still
-    being unable to chart, your marker goes down and your turn ends.
-    (With **Manual shield control**, Section VI, you may also lower
-    shields voluntarily during your turn.)
+3.  **Deploy a Distress Beacon** — after drawing your one coordinate and
+    still being unable to chart, your marker goes down and your turn
+    ends. (With **Manual shield control**, Section VI, you may also
+    lower shields voluntarily during your turn.)
 
 4.  **Pass** only when their Distress Beacon is already active, they
     still cannot chart, and Uncharted Sectors are empty.
@@ -236,8 +237,8 @@ does **one** of the following:
 ### Must play when able
 
 If you hold a coordinate that can be legally charted, you **must** chart
-one tile this turn. You may **not** skip charting while legal moves
-exist.
+one coordinate this turn. You may **not** skip charting while legal
+moves exist.
 
 ### Eligible routes
 
@@ -259,23 +260,23 @@ are not required to chart on your own trail.
 
 On the first turn of a round, a captain who can play must open **their
 own Warp Trail** or the **Neutral Zone** with a coordinate matching
-Spacedock (e.g. any tile containing twelve when Spacedock is 12-12). If
-they cannot play, they draw once; if the drawn tile is playable, they
-must chart it immediately (choosing any legal route). If they still
-cannot play, they deploy their Distress Beacon.
+Spacedock (e.g. any coordinate containing twelve when Spacedock is
+12-12). If they cannot play, they draw once; if the drawn coordinate is
+playable, they must chart it immediately (choosing any legal route). If
+they still cannot play, they deploy their Distress Beacon.
 
 ### Drawing from Uncharted Sectors
 
-When you cannot chart and tiles remain in the pile, you **must draw**
-one coordinate.
+When you cannot chart and uncharted coordinates remain, you **must
+draw** one coordinate.
 
-- If the drawn tile can be played, you **must** chart it immediately
-  (any legal route).
+- If the drawn coordinate can be played, you **must** chart it
+  immediately (any legal route).
 
 - If it cannot be played, you deploy your **Distress Beacon** (shields
-  down) and your turn ends. You draw **one** tile per turn — you do not
-  keep drawing, and the marker goes down after that single failed draw
-  regardless of how many tiles remain in Uncharted Sectors.
+  down) and your turn ends. You draw **one** coordinate per turn — you
+  do not keep drawing, and the marker goes down after that single failed
+  draw regardless of how many coordinates remain in Uncharted Sectors.
 
 ### Distress Beacon (train marker)
 
@@ -307,8 +308,8 @@ responsibility passes** to the next captain. The alert remains until the
 double is satisfied.
 
 When **Subspace Fracture** is active (Section VI), “satisfy” means
-**stabilizers** — not a separate cover tile. Pass Red Alert only when
-you cannot add the next stabilizer.
+**stabilizers** — not a separate cover coordinate. Pass Red Alert only
+when you cannot add the next stabilizer.
 
 *(Opt-in exception — Section VI **Pass Red Alert without draw or
 beacon**: the captain who **charted** the double may pass it on
@@ -329,9 +330,10 @@ eligible route — your Warp Trail, the Neutral Zone, or an open opponent
 trail — announce **"Red Alert!"**
 
 - The captain who charted the double must **satisfy** it by playing
-  another valid tile on that double **in the same turn sequence**,
-  unless turn rules below apply. *(Standard cover: one matching tile on
-  the double. Subspace Fracture: three stabilizers — Section VI.)*
+  another valid coordinate on that double **in the same turn sequence**,
+  unless turn rules below apply. *(Standard cover: one matching
+  coordinate on the double. Subspace Fracture: three stabilizers —
+  Section VI.)*
 
 - **Going out:** An empty hand does **not** win the round while your
   chart left a double unsatisfied. Chart the cover (or final stabilizer)
@@ -343,33 +345,33 @@ trail — announce **"Red Alert!"**
 
 **Worked example — pass Red Alert after already drawing.** Captain A
 draws once from Uncharted Sectors, then charts a double they cannot
-cover. The pile still has tiles, but Captain A **does not draw again** —
-**one draw per turn**. They deploy their Distress Beacon and **pass Red
-Alert** to the next captain.
+cover. Uncharted still has coordinates, but Captain A **does not draw
+again** — **one draw per turn**. They deploy their Distress Beacon and
+**pass Red Alert** to the next captain.
 
 **Worked example — empty hand without going out (tournament-style).**
 Four captains, points campaign, Red Alert only (no Subspace Fracture).
-Captain A's **last tile** is **12-12**. A charts it on Captain B's open
-Warp Trail but **does not cover** the double. A's hand is empty, but the
-round **does not** end — A was **not officially out**.
+Captain A's **last coordinate** is **12-12**. A charts it on Captain B's
+open Warp Trail but **does not cover** the double. A's hand is empty,
+but the round **does not** end — A was **not officially out**.
 
 Red Alert responsibility is on A. A cannot cover the double, so A
 **passes Red Alert** (drawing first if Uncharted Sectors still hold
-tiles and A has not drawn this turn; otherwise deploy beacon and pass).
-Responsibility moves to B, then C. Captain C **covers** the double with
-**11-12**. Red Alert clears and normal play resumes.
+coordinates and A has not drawn this turn; otherwise deploy beacon and
+pass). Responsibility moves to B, then C. Captain C **covers** the
+double with **11-12**. Red Alert clears and normal play resumes.
 
-Captain B still holds **one tile** and later charts it legally, emptying
-B's hand. **B wins the round** and scores **0** for that round. A's hand
-is still empty, but A is **not** the round winner.
+Captain B still holds **one coordinate** and later charts it legally,
+emptying B's hand. **B wins the round** and scores **0** for that round.
+A's hand is still empty, but A is **not** the round winner.
 
 *If B had not gone out:* play would continue around the table. A is
 still **not** out of the sector. On A's later turns with **no legal
 charts** and the beacon up: if Uncharted Sectors are **empty**, A may
-**pass**; if tiles **remain**, A **must draw one** before passing (same
-stuck-with-no-play rule as everyone else) and re-enters the round with a
-tile in hand. The round ends when someone **legally** goes out or the
-sector is **blocked** (Section V).
+**pass**; if coordinates **remain**, A **must draw one** before passing
+(same stuck-with-no-play rule as everyone else) and re-enters the round
+with a coordinate in hand. The round ends when someone **legally** goes
+out or the sector is **blocked** (Section V).
 
 *Points campaign:* A may still win the **sector** on lowest cumulative
 penalty even when another captain wins this round — **round winner** and
@@ -378,8 +380,8 @@ penalty even when another captain wins this round — **round winner** and
 - While Red Alert is active, **no other routes** may be played until the
   double is satisfied.
 
-- **Dead double:** If every tile in the set containing that pip is
-  already charted (all thirteen tiles showing that number in a
+- **Dead double:** If every coordinate in the set containing that pip is
+  already charted (all thirteen coordinates showing that number in a
   double-twelve set), the double cannot be satisfied — Red Alert ends
   and normal play resumes.
 
@@ -387,14 +389,14 @@ penalty even when another captain wins this round — **round winner** and
   their Distress Beacon.
 
 **One double at a time.** Warp resolves doubles one at a time: chart a
-double, satisfy it (cover tile, or three stabilizers under Subspace
-Fracture), and your turn ends. Because a cover must match the double's
-pip and no other double shares that pip, a cover is always a non-double
-— you never chain into a fresh Red Alert, and you do not play multiple
-doubles in a single turn. (Some casual house rules let a captain lay
-several doubles in one turn as long as the last is covered by a
-non-double; Warp follows the tournament-style single-double resolution
-instead.)
+double, satisfy it (cover coordinate, or three stabilizers under
+Subspace Fracture), and your turn ends. Because a cover must match the
+double's pip and no other double shares that pip, a cover is always a
+non-double — you never chain into a fresh Red Alert, and you do not play
+multiple doubles in a single turn. (Some casual house rules let a
+captain lay several doubles in one turn as long as the last is covered
+by a non-double; Warp follows the tournament-style single-double
+resolution instead.)
 
 ### Yellow alert and Red Alert *(digital status)*
 
@@ -428,11 +430,11 @@ When a double in scope is charted:
 
 2.  While the fracture is open (fewer than three stabilizers), the
     responsible captain may play **only stabilizers** — not a cover
-    tile, not other routes.
+    coordinate, not other routes.
 
 3.  The **third stabilizer satisfies the double** and clears **both**
-    Subspace Fracture and Red Alert. No fourth tile is required on the
-    trail to “cover” the double.
+    Subspace Fracture and Red Alert. No fourth coordinate is required on
+    the trail to “cover” the double.
 
 4.  If the responsible captain cannot stabilize, draw and/or pass Red
     Alert as usual; the next responsible captain continues adding
@@ -442,7 +444,7 @@ Doubles **outside** the chosen scope never open Subspace Fracture — Red
 Alert cover rules in this section apply unchanged.
 
 When Subspace Fracture is **off**, all doubles use **Red Alert only**
-(single cover tile).
+(single cover coordinate).
 
 <div class="center">
 
@@ -479,17 +481,18 @@ is on.
 charts down to **one** coordinate remaining, they are **at impulse** —
 they must call this befor their turn completes, and they **cannot chart
 again** on that turn. This matches standard multi-trail **knock**. (No,
-reaching one tile does not let you silently play that last coordinate.)
+reaching one coordinate does not let you silently play that last
+coordinate.)
 
-They must **Drop to Impulse!** (announce and **pass helm** with one tile
-still in hand) or **pass** without announcing and risk a **catch**. On a
-**later** turn they may chart their last coordinate under normal rules —
-including going out when the hand empties.
+They must **Drop to Impulse!** (announce and **pass helm** with one
+coordinate still in hand) or **pass** without announcing and risk a
+**catch**. On a **later** turn they may chart their last coordinate
+under normal rules — including going out when the hand empties.
 
 If they **pass** without having announced, any other captain may
 **catch** the miss while the catch window is open. A successful catch
 forces the forgetful captain to draw from Uncharted Sectors (1 or 2
-tiles per game setup, if any remain) — they **return to warp** (no
+coordinates per game setup, if any remain) — they **return to warp** (no
 longer at impulse). The window opens when they pass without announcing
 and **closes** when the **next** captain passes helm (if no one caught).
 This is separate from **All Stop!** ceremony.
@@ -503,9 +506,9 @@ state.
 
 If Uncharted Sectors are empty and **no captain** can make a legal chart
 (after dead doubles are resolved), the round ends **without** a domino
-winner. **Every** captain scores the pip total of tiles in hand — no
-exempt captain. All table tiles, hands, and any remaining pile are
-shuffled for the next round's deal (standard multi-trail recycle —
+winner. **Every** captain scores the pip total of coordinates in hand —
+no exempt captain. All table coordinates, hands, and any remaining pile
+are shuffled for the next round's deal (standard multi-trail recycle —
 trails are not trimmed to open ends).
 
 ### Round scoring *(points campaign)*
@@ -529,24 +532,25 @@ Factor** (eg **12-12** under Warp 12, **18-18** under Warp 18).
 
 The app does this automatically at round end and shows a summary before
 the next deal. The procedure below is for understanding the math (and
-for tabletop play with physical tiles).
+for tabletop play with physical coordinates).
 
 1.  **Decide who counts.** When a captain goes out (empty hand), that
-    **round winner scores 0**. Every **other** captain counts the tiles
-    left in their hand. In a **blocked sector** (no winner), there is no
-    exemption — **every** captain counts their hand.
+    **round winner scores 0**. Every **other** captain counts the
+    coordinates left in their hand. In a **blocked sector** (no winner),
+    there is no exemption — **every** captain counts their hand.
 
-2.  **Count a hand.** A tile is worth the **total number of pips on it —
-    both ends added together**. A blank end counts as **0**. So:
+2.  **Count a hand.** A coordinate is worth the **total number of pips
+    on it — both ends added together**. A blank end counts as **0**. So:
 
     - `5-3` = **8**, `6-0` (blank) = **6**, `0-0` (double-blank) = **0
       pips**.
 
     - A **double counts both halves**: `9-9` = **18**, `12-12` = **24**.
 
-    - Add every tile in the hand to get that captain's **round score**.
+    - Add every coordinate in the hand to get that captain's **round
+      score**.
 
-3.  **Apply special-tile settings** (if enabled — see Section VI):
+3.  **Apply special-coordinate settings** (if enabled — see Section VI):
 
     - **Double-blank (0-0):** scored by the **Double-blank score**
       setting — **50** (tournament standard, the default for hand-built
@@ -621,7 +625,7 @@ only turns on the extras below.
 |:---|:---|
 | **Module Alpha — Continuum** | **On** |
 | **Module Beta — Salamander Penalty** | **On** |
-| **Drop to Impulse** | **On** — **1-tile catch** when opponents catch a missed announce |
+| **Drop to Impulse** | **On** — **1-coordinate catch** when opponents catch a missed announce |
 | **All Stop! ceremony** | **On** — auto log/sound after Neutral Zone wins and All Stop! echo go-outs |
 | **Subspace Fracture** | **Off** (hosts may enable separately) |
 | **Deluxe house rules** | **Off** (own trail first, NZ after all trails, beacon on any play, round starter plays two) |
@@ -651,10 +655,10 @@ Alert** open together:
 
 - While the fracture is open, the captain holding Red Alert
   responsibility may play **only stabilizers** matching the fracture pip
-  — no cover tile, no other routes.
+  — no cover coordinate, no other routes.
 
-- Each stabilizer must match the double's pip (e.g. any tile containing
-  nine on a 9-9 fracture).
+- Each stabilizer must match the double's pip (e.g. any coordinate
+  containing nine on a 9-9 fracture).
 
 - If you cannot add a stabilizer, draw; if still unable, deploy your
   Distress Beacon and pass Red Alert. The next responsible captain
@@ -665,14 +669,14 @@ Alert** open together:
   double.
 
 - The **third stabilizer satisfies the double** — it clears both
-  Subspace Fracture and Red Alert. **No separate cover tile** is
+  Subspace Fracture and Red Alert. **No separate cover coordinate** is
   required afterward.
 
 - When the third stabilizer is placed, normal play resumes across all
   routes from the center foot's open end.
 
 When Subspace Fracture is **off**, doubles use **Red Alert only** (one
-cover tile on the double).
+cover coordinate on the double).
 
 **Fracture immunity** (Continuum Flash Module Alpha): the next double on
 your own trail opens Red Alert but **does not** open Subspace Fracture
@@ -684,13 +688,13 @@ Hosts may enable any combination before launch.
 
 | Toggle | When enabled |
 |:---|:---|
-| **Require own trail first** | You must chart at least one tile on **your own** Warp Trail before playing on an opponent's open trail. The Neutral Zone and your own trail are unaffected. |
-| **Neutral Zone after all trails started** | The Neutral Zone cannot be started until **every** captain has at least one tile on their own Warp Trail. |
+| **Require own trail first** | You must chart at least one coordinate on **your own** Warp Trail before playing on an opponent's open trail. The Neutral Zone and your own trail are unaffected. |
+| **Neutral Zone after all trails started** | The Neutral Zone cannot be started until **every** captain has at least one coordinate on their own Warp Trail. |
 | **Beacon clears on any play** | Any legal chart removes **your** Distress Beacon — not only a chart on your own trail. |
-| **Round starter plays two** | The round starter must chart **two tiles on their own Warp Trail** on their opening turn (Spacedock + two from hand). If the first tile is a double, the Red Alert cover counts as the second. If you cannot play the second tile, deploy your Distress Beacon — no extra draw. Cannot start the Neutral Zone or opponent trails until both are played. |
-| **Drop to Impulse** | At one coordinate left (**at impulse**), your turn continues but you **cannot chart** until you **Drop to Impulse!** (announce and pass helm) or **pass** without announcing (opponents may **catch** — 1 or 2 tile penalty per setup). Draw while stuck at impulse → **return to warp**. Catch window closes when the next captain passes helm. |
-| **Pass Red Alert without draw or beacon** | Only the captain who **charted the double** gets this break, and only while the alert is still in **Yellow alert** (before it has passed to anyone). If they cannot cover their own double, they may pass responsibility to the next captain **without drawing** from Uncharted Sectors and **without** deploying their Distress Beacon. Red Alert then proceeds normally: every other captain — and the original captain when it cycles back to them — must follow standard rules (draw when tiles remain, deploy the beacon on pass). |
-| **Manual shield control** | Replaces the automatic "shields rise when you chart your own trail" behavior with manual control, all **during** your turn (never between turns). **Open (Shields down):** you may open your own Warp Trail at any time, for any reason — even with legal plays in hand and even before you've started your trail. **Close (Shields up):** after you drop shields you must chart at least one tile on **your own** Warp Trail before you may raise them again (that own-trail chart may be this turn or a later one); charting your own trail does **not** auto-raise. **One shield change per turn** — a single open **or** a single close, never both and never repeated. Shield changes never pass helm on their own; adjust, then chart or **Pass**. Standard draw/marker rules still apply when you cannot chart (a forced marker after a failed draw ends your turn). |
+| **Round starter plays two** | The round starter must chart **two coordinate on their own Warp Trail** on their opening turn (Spacedock + two from hand). If the first coordinate is a double, the Red Alert cover counts as the second. If you cannot play the second coordinate, deploy your Distress Beacon — no extra draw. Cannot start the Neutral Zone or opponent trails until both are played. |
+| **Drop to Impulse** | At one coordinate left (**at impulse**), your turn continues but you **cannot chart** until you **Drop to Impulse!** (announce and pass helm) or **pass** without announcing (opponents may **catch** — 1 or 2 coordinate penalty per setup). Draw while stuck at impulse → **return to warp**. Catch window closes when the next captain passes helm. |
+| **Pass Red Alert without draw or beacon** | Only the captain who **charted the double** gets this break, and only while the alert is still in **Yellow alert** (before it has passed to anyone). If they cannot cover their own double, they may pass responsibility to the next captain **without drawing** from Uncharted Sectors and **without** deploying their Distress Beacon. Red Alert then proceeds normally: every other captain — and the original captain when it cycles back to them — must follow standard rules (draw when coordinates remain, deploy the beacon on pass). |
+| **Manual shield control** | Replaces the automatic "shields rise when you chart your own trail" behavior with manual control, all **during** your turn (never between turns). **Open (Shields down):** you may open your own Warp Trail at any time, for any reason — even with legal plays in hand and even before you've started your trail. **Close (Shields up):** after you drop shields you must chart at least one coordinate on **your own** Warp Trail before you may raise them again (that own-trail chart may be this turn or a later one); charting your own trail does **not** auto-raise. **One shield change per turn** — a single open **or** a single close, never both and never repeated. Shield changes never pass helm on their own; adjust, then chart or **Pass**. Standard draw/marker rules still apply when you cannot chart (a forced marker after a failed draw ends your turn). |
 
 ### Module Alpha — The Continuum *(on in Official Warp preset)*
 
@@ -703,13 +707,13 @@ scores):
 |:---|:---|
 | **Reverse turn order** | Helm passes counter-clockwise for the rest of the round. |
 | **Skip lowest points** | The captain with the lowest campaign points score skips their next turn. |
-| **Peek Uncharted Sector** | The invoker sees the top tile in Uncharted Sectors (hidden from others). |
+| **Peek Uncharted Sector** | The invoker sees the top coordinate in Uncharted Sectors (hidden from others). |
 | **Temporal inversion** | Turn order reverses until the next double is charted on the table. |
 | **Distress amplification** | All warp trails are open to every captain without a Distress Beacon. |
 | **Fracture immunity** | The next double on an own trail will not open Subspace Fracture (Red Alert still applies). |
-| **Salamander swap** *(requires Module Beta)* | If anyone holds the highest double (`maxPip-maxPip`) at round end, the full Salamander penalty (double its pips) lands on the **highest-points captain among those who did not win the round** instead — the holder pays nothing for that tile. If the holder **is already** that captain, the swap does **not** transfer: they keep the full doubled penalty (same as Salamander without swap). |
+| **Salamander swap** *(requires Module Beta)* | If anyone holds the highest double (`maxPip-maxPip`) at round end, the full Salamander penalty (double its pips) lands on the **highest-points captain among those who did not win the round** instead — the holder pays nothing for that coordinate. If the holder **is already** that captain, the swap does **not** transfer: they keep the full doubled penalty (same as Salamander without swap). |
 | **All Stop! echo** | Any captain going out this round must call All Stop! before the sector closes. |
-| **Continuum Wager** | Draw two tiles from Uncharted Sectors — keep one, return the other face-down. |
+| **Continuum Wager** | Draw two coordinates from Uncharted Sectors — keep one, return the other face-down. |
 
 0-0 charted on the Neutral Zone or an opponent's trail does **not**
 trigger Continuum Flash. A winning 0-0 on your own trail still requires
@@ -718,7 +722,7 @@ Continuum Flash resolution before the sector can close.
 ### Module Beta — The Salamander Penalty *(on in Official Warp preset)*
 
 If a round ends and a captain holds the **highest double for the Warp
-Factor** (`maxPip-maxPip`) in hand, that tile scores **double its
+Factor** (`maxPip-maxPip`) in hand, that coordinate scores **double its
 both-ends pip value**. Round 1 never applies (that double is Spacedock).
 From round 2 onward it is in circulation.
 
@@ -727,12 +731,12 @@ Examples: Warp 12 **12-12 → 48** (base 24); Warp 9 **9-9 → 36**; Warp 15
 
 With **Salamander swap** (Continuum, Module Alpha), the **entire doubled
 penalty** transfers to the **highest-points captain among non-winners**
-of the round — the highest-double holder pays **nothing** for that tile,
-and that leader receives the full amount. The round winner is not
-eligible as the swap target (they score 0 for the round hand). If the
-holder is already that campaign leader, there is no transfer: they keep
-the full doubled penalty, exactly as under Salamander without Continuum
-swap.
+of the round — the highest-double holder pays **nothing** for that
+coordinate, and that leader receives the full amount. The round winner
+is not eligible as the swap target (they score 0 for the round hand). If
+the holder is already that campaign leader, there is no transfer: they
+keep the full doubled penalty, exactly as under Salamander without
+Continuum swap.
 
 ### Module Gamma — Long-Range Sensor Sweep
 
@@ -783,14 +787,15 @@ you suffer a **+5 point penalty** added to your round score.
 
 **Round Initialization:** The round starter receives the Hazard Marker
 at the beginning of each round (they got the “privilege” of the opening
-tile).
+coordinate).
 
 **Warp Drive Engagement (Spool):** On your turn (when not blocked by Red
 Alert or Subspace Fracture), you may **engage warp drive** to draw
-coordinates from Uncharted Sectors—draw tiles one at a time until you
-draw a tile that cannot be charted to your chosen route. All matching
-tiles are charted; the mismatch (and any remaining tiles) go to your
-hand. Spooling is part of Module Delta; Module Theta does not unlock it.
+coordinates from Uncharted Sectors—draw coordinates one at a time until
+you draw a coordinate that cannot be charted to your chosen route. All
+matching coordinates are charted; the mismatch (and any remaining
+coordinates) go to your hand. Spooling is part of Module Delta; Module
+Theta does not unlock it.
 
 **Tactical Impact:** The Neutral Zone becomes a strategic dumping ground
 with real risk. Captains must weigh convenience against the danger of
@@ -860,8 +865,8 @@ on opponents.
 
 **Mechanic:** When any captain charts a double to any eligible route
 (own trail, Neutral Zone, or opponent's open trail), the **next
-captain** draws **2 tiles** from Uncharted Sectors (or Sensor Grid if
-uncharted exhausted) before their turn begins.
+captain** draws **2 coordinates** from Uncharted Sectors (or Sensor Grid
+if uncharted exhausted) before their turn begins.
 
 **Tactical Impact:** Doubles shift from liability (Red Alert) to weapon
 (burden next player). Encourages double hoarding or strategic timing.
@@ -898,8 +903,8 @@ points total**.
 - **Punishes excessive drawing** — the classic "draw until you can play"
   strategy becomes costly
 
-- **Rewards playing from hand** — skilled tile management (holding
-  versatile tiles, planning ahead) gains an edge
+- **Rewards playing from hand** — skilled coordinate management (holding
+  versatile coordinates, planning ahead) gains an edge
 
 - **Strategic drawing** — you must weigh: is drawing worth +2 penalty?
   Can I play from hand instead?
@@ -937,8 +942,8 @@ top hand — do **not** award “0 for going out” on these rounds.
     **0** — they win the round. A thinner hand nets the difference (top
     hand minus theirs). Whoever **emptied their hand** (went out) kept
     nothing, so they take the **full baseline** — the worst outcome,
-    since on an inverted round you wanted to *keep* tiles, not shed
-    them.
+    since on an inverted round you wanted to *keep* coordinates, not
+    shed them.
 
 3.  Apply any other enabled Module add-ons from this section (Hazard
     pass penalties, Longest Trail $`-3`$, Temporal Debt, and so on)
@@ -977,8 +982,8 @@ holds 40 pips; Lovell holds 12. The **top hand is 40** (Armstrong).
   $`30+40=\textbf{70}`$.
 
 Armstrong leads the campaign for holding the most; Earhart is penalized
-for emptying out when tiles were the prize — but by a proportional 40,
-not a flat 312.
+for emptying out when coordinates were the prize — but by a proportional
+40, not a flat 312.
 
 **Tactical Impact:** Going out in even rounds is the worst outcome (you
 take the full top-hand baseline). Medium-to-large hands become optimal.
@@ -1024,12 +1029,12 @@ Zone, fundamentally altering board state ownership.
   the Red Alert after the swap; otherwise you beacon your stolen trail
   open to everyone
 
-**Tactical Impact:** Fundamentally rewrites the game from linear tile
-shedding to aggressive board state hijacking. High-skill players'
-long-term trail building becomes a vulnerability (theft target). AI
-heuristics must weigh theft opportunities against defense. Lower-skilled
-players benefit from the randomness of dynamic ownership (~50-60%
-expected skill preservation).
+**Tactical Impact:** Fundamentally rewrites the game from linear
+coordinates shedding to aggressive board state hijacking. High-skill
+players' long-term trail building becomes a vulnerability (theft
+target). AI heuristics must weigh theft opportunities against defense.
+Lower-skilled players benefit from the randomness of dynamic ownership
+(~50-60% expected skill preservation).
 
 **Status:** Exhibition/Warped mode only—**predicted to significantly
 reduce skill ordering** (untested; awaiting calibration). Never rated.
@@ -1115,14 +1120,14 @@ An AI captain has the same **public** information you do:
 - Every coordinate already **charted** on the table (all Warp Trails,
   Neutral Zone, fracture stabilizers).
 
-- How many tiles each opponent is **holding** (hand count only — not
-  which coordinates).
+- How many coordinates each opponent is **holding** (hand count only —
+  not which coordinates).
 
-- How many tiles remain in **Uncharted Sectors**.
+- How many coordinates remain in **Uncharted Sectors**.
 
 An AI officer **cannot** see which specific coordinates are in an
-opponent's hand. It does not read hidden tiles from the game state when
-choosing a move.
+opponent's hand. It does not read hidden coordinates from the game state
+when choosing a move.
 
 ### AI officers (Ensign / Lieutenant / Commander)
 
@@ -1155,8 +1160,8 @@ acting:
 
 2.  Because opponent hands and the draw order are hidden, each
     simulation **guesses** plausible holdings: opponents receive a
-    random assignment from the pool of tiles not on the table and not in
-    the AI's hand, while preserving each opponent's **actual hand
+    random assignment from the pool of coordinates not on the table and
+    not in the AI's hand, while preserving each opponent's **actual hand
     count**. Uncharted Sectors are filled from the same unseen pool.
 
 3.  The search repeats that guess several times (**determinizations**),
@@ -1672,8 +1677,8 @@ The host can opt out of rating at any time before launch by unchecking
 ## Quick reference — standard vs Warp extras
 
 **Official Warp rules** (recommended preset) — see **Section VI** —
-enables Continuum, Salamander, Drop to Impulse (1-tile catch), and All
-Stop! ceremony on standard **Sections I–V** gameplay.
+enables Continuum, Salamander, Drop to Impulse (1-coordinate catch), and
+All Stop! ceremony on standard **Sections I–V** gameplay.
 
 | Rule | Standard multi-trail | Warp |
 |:---|:---|:---|
@@ -1690,7 +1695,7 @@ Stop! ceremony on standard **Sections I–V** gameplay.
 | -0 anomaly | — | Continuum — Official Warp preset |
 | Highest-double Salamander Penalty | — | Salamander — Official Warp preset |
 | NZ win announcement | — | All Stop! ceremony — Official Warp preset |
-| One tile left announce | — | Drop to Impulse — Official Warp preset (1-tile catch) |
+| One coordinate left announce | — | Drop to Impulse — Official Warp preset (1-coordinate catch) |
 | Double-blank (0-0) score | (tournament standard) | Setup option 50 / 25 / 0 — Official Warp preset uses 0 (Continuum trigger) |
 | Blocked boneyard | Round ends, all score | Blocked sector — same |
 | AI officers / tactical advisor | — | Section VII — digital only |
