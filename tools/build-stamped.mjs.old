@@ -21,14 +21,47 @@ import {
   readdirSync,
   statSync,
   writeFileSync,
-  cpSync,
-  rmSync,
 } from 'node:fs';
-import { dirname, join, relative, resolve, basename } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const STAMP_PATH = join(ROOT, '.docs-build-stamps.json');
+
+/** @typedef {{ inputs: string[]; outputs: string[]; command: string; cwd?: string }} DocBuild */
+
+/** @type {Record<string, DocBuild>} */
+const BUILDS = {
+  rules: {
+    inputs: ['RULES.tex'],
+    outputs: [
+      'RULES.pdf',
+      'RULES.html',
+      'RULES.md',
+      'apps/Warp12/public/rules.pdf',
+    ],
+    // Two pdflatex passes so longtable column widths settle before pandoc runs.
+    // Mirror the paper build: ship the typeset PDF into the app public/ tree.
+    command:
+      'pdflatex -interaction=nonstopmode RULES.tex && pdflatex -interaction=nonstopmode RULES.tex && pandoc RULES.tex -f latex -t html --mathjax -s -o RULES.html && pandoc RULES.tex -f latex -t gfm -o RULES.md && mkdir -p apps/Warp12/public && cp -f RULES.pdf apps/Warp12/public/rules.pdf && rm -f RULES.aux RULES.log RULES.out',
+  },
+  paper: {
+    inputs: [
+      'docs/tei-paper.tex',
+      'docs/tei-paper.bib',
+      'tools/nn/figures/*.png',
+    ],
+    outputs: [
+      'docs/tei-paper.pdf',
+      'docs/tei-paper.html',
+      'docs/tei-paper.md',
+      'apps/Warp12/public/tei-paper.pdf',
+    ],
+    // Keep sed escapes identical to the former package.json script (shell sees \[ … \]).
+    command:
+      "mkdir -p apps/Warp12/public/figures && cp -f tools/nn/figures/*.png apps/Warp12/public/figures/ 2>/dev/null || true && cd docs && pdflatex -interaction=nonstopmode tei-paper.tex && pdflatex -interaction=nonstopmode tei-paper.tex && cp tei-paper.pdf ../apps/Warp12/public/ && pandoc tei-paper.tex -f latex -t html --mathml --number-sections -s -o tei-paper.html && pandoc tei-paper.tex -f latex -t gfm -o tei-paper.md && cd .. && sed -i.bak 's|../tools/nn/figures/|/figures/|g' docs/tei-paper.html && sed -i.bak 's|>\\[tab:[^]]*\\]|>Table|g' docs/tei-paper.html && sed -i.bak 's|>\\[fig:[^]]*\\]|>Figure|g' docs/tei-paper.html && rm -f docs/tei-paper.html.bak docs/tei-paper.aux docs/tei-paper.log docs/tei-paper.out",
+  },
+};
 
 /**
  * Expand a repo-relative path or simple `dir/*.ext` glob to absolute files.
@@ -55,75 +88,6 @@ function expandInput(pattern) {
   }
   return [abs];
 }
-
-/** @typedef {{ inputs: string[]; outputs: string[]; run: () => void }} DocBuild */
-
-/** @type {Record<string, DocBuild>} */
-const BUILDS = {
-  rules: {
-    inputs: ['RULES.tex'],
-    outputs: [
-      'RULES.pdf',
-      'RULES.html',
-      'RULES.md',
-      'apps/Warp12/public/rules.pdf',
-    ],
-    // Two pdflatex passes so longtable column widths settle before pandoc runs.
-    // Mirror the paper build: ship the typeset PDF into the app public/ tree.
-    run: () => {
-      execSync('pdflatex -interaction=nonstopmode RULES.tex', { stdio: 'inherit', cwd: ROOT });
-      execSync('pdflatex -interaction=nonstopmode RULES.tex', { stdio: 'inherit', cwd: ROOT });
-      execSync('pandoc RULES.tex -f latex -t html --mathjax -s -o RULES.html', { stdio: 'inherit', cwd: ROOT });
-      execSync('pandoc RULES.tex -f latex -t gfm -o RULES.md', { stdio: 'inherit', cwd: ROOT });
-
-      mkdirSync(join(ROOT, 'apps/Warp12/public'), { recursive: true });
-      cpSync(join(ROOT, 'RULES.pdf'), join(ROOT, 'apps/Warp12/public/rules.pdf'));
-      
-      ['RULES.aux', 'RULES.log', 'RULES.out'].forEach((file) => {
-        rmSync(join(ROOT, file), { force: true });
-      });
-    },
-  },
-  paper: {
-    inputs: [
-      'docs/tei-paper.tex',
-      'docs/tei-paper.bib',
-      'tools/nn/figures/*.png',
-    ],
-    outputs: [
-      'docs/tei-paper.pdf',
-      'docs/tei-paper.html',
-      'docs/tei-paper.md',
-      'apps/Warp12/public/tei-paper.pdf',
-    ],
-    run: () => {
-      mkdirSync(join(ROOT, 'apps/Warp12/public/figures'), { recursive: true });
-      const figures = expandInput('tools/nn/figures/*.png');
-      for (const fig of figures) {
-        cpSync(fig, join(ROOT, 'apps/Warp12/public/figures', basename(fig)));
-      }
-
-      const docsDir = join(ROOT, 'docs');
-      execSync('pdflatex -interaction=nonstopmode tei-paper.tex', { stdio: 'inherit', cwd: docsDir });
-      execSync('pdflatex -interaction=nonstopmode tei-paper.tex', { stdio: 'inherit', cwd: docsDir });
-      cpSync(join(docsDir, 'tei-paper.pdf'), join(ROOT, 'apps/Warp12/public/tei-paper.pdf'));
-      
-      execSync('pandoc tei-paper.tex -f latex -t html --mathml --number-sections -s -o tei-paper.html', { stdio: 'inherit', cwd: docsDir });
-      execSync('pandoc tei-paper.tex -f latex -t gfm -o tei-paper.md', { stdio: 'inherit', cwd: docsDir });
-
-      const htmlPath = join(docsDir, 'tei-paper.html');
-      let htmlContent = readFileSync(htmlPath, 'utf8');
-      htmlContent = htmlContent.replaceAll('../tools/nn/figures/', '/figures/');
-      htmlContent = htmlContent.replace(/>\[tab:[^\]]*\]/g, '>Table');
-      htmlContent = htmlContent.replace(/>\[fig:[^\]]*\]/g, '>Figure');
-      writeFileSync(htmlPath, htmlContent, 'utf8');
-
-      ['tei-paper.aux', 'tei-paper.log', 'tei-paper.out'].forEach((file) => {
-        rmSync(join(docsDir, file), { force: true });
-      });
-    },
-  },
-};
 
 /**
  * @param {string[]} patterns
@@ -227,7 +191,12 @@ function main() {
     mkdirSync(dir, { recursive: true });
   }
 
-  build.run();
+  execSync(build.command, {
+    cwd: ROOT,
+    stdio: 'inherit',
+    env: process.env,
+    shell: true,
+  });
 
   stamps[name] = {
     hash: nextHash,
