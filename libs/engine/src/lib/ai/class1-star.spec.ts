@@ -50,6 +50,7 @@ function makeRound(over: Partial<RoundState> = {}): RoundState {
     pendingRoundWin: null,
     roundBlocked: false,
     roundStarterOpening: null,
+    roundStarterOpeningResolved: false,
     dropToImpulseCallPending: null,
     dropToImpulseCatchable: null,
     ...over,

@@ -147,6 +147,8 @@ export interface FirestorePublicRound {
   roundStarterOpening?: {
     playerId: string;
   } | null;
+  /** True once the deluxe opening double-chart is finished for this round. */
+  roundStarterOpeningResolved?: boolean;
   dropToImpulseCallPending?: string | null;
   dropToImpulseCatchable?: string | null;
   playedThisTurn?: boolean;

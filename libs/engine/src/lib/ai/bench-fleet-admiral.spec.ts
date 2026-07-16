@@ -62,6 +62,7 @@ describe('belief-constraints', () => {
       pendingRoundWin: null,
       roundBlocked: false,
       roundStarterOpening: null,
+      roundStarterOpeningResolved: false,
     };
 
     const badHands = {

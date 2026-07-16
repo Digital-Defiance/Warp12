@@ -42,6 +42,7 @@ function makeEndedRound(winnerId: string): RoundState {
     pendingRoundWin: null,
     roundBlocked: false,
     roundStarterOpening: null,
+    roundStarterOpeningResolved: false,
   };
 }
 
@@ -93,6 +94,7 @@ describe('game objective', () => {
         pendingRoundWin: null,
         roundBlocked: false,
         roundStarterOpening: null,
+        roundStarterOpeningResolved: false,
       },
       playerId: 'a',
       modules: DEFAULT_MODULES,
@@ -148,6 +150,7 @@ describe('game objective', () => {
         pendingRoundWin: null,
         roundBlocked: false,
         roundStarterOpening: null,
+        roundStarterOpeningResolved: false,
       },
       playerId: 'a',
       modules: DEFAULT_MODULES,

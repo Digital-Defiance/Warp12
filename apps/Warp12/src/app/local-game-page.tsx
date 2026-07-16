@@ -127,10 +127,10 @@ export function LocalGamePage() {
     initialSnapshot.campaignRounds
   );
   const [salamander, setSalamander] = useState(
-    initialSnapshot.modules.salamanderPenalty ?? true
+    initialSnapshot.modules.salamanderPenalty === true
   );
   const [continuum, setContinuum] = useState(
-    initialSnapshot.modules.continuum ?? true
+    initialSnapshot.modules.continuum === true
   );
   const [sensorGrid, setSensorGrid] = useState(
     initialSnapshot.modules.sensorGrid ?? false
@@ -248,17 +248,17 @@ export function LocalGamePage() {
     setPlayerCount(snap.playerCount);
     setObjective(snap.objective);
     setCampaignRounds(snap.campaignRounds);
-    setSalamander(snap.modules.salamanderPenalty ?? true);
-    setContinuum(snap.modules.continuum ?? true);
-    setSensorGrid(snap.modules.sensorGrid ?? false);
-    setWarpDriveSpool(snap.modules.warpDriveSpool ?? false);
-    setLongestTrail(snap.modules.longestTrail ?? false);
-    setDoubleDown(snap.modules.doubleDown ?? false);
-    setTemporalDebt(snap.modules.temporalDebt ?? false);
-    setDrafting(snap.modules.drafting ?? false);
-    setTemporalInversion(snap.modules.temporalInversion ?? false);
-    setWormholes(snap.modules.wormholes ?? false);
-    setSubspaceFracture(snap.modules.subspaceFracture ?? false);
+    setSalamander(snap.modules.salamanderPenalty === true);
+    setContinuum(snap.modules.continuum === true);
+    setSensorGrid(snap.modules.sensorGrid === true);
+    setWarpDriveSpool(snap.modules.warpDriveSpool === true);
+    setLongestTrail(snap.modules.longestTrail === true);
+    setDoubleDown(snap.modules.doubleDown === true);
+    setTemporalDebt(snap.modules.temporalDebt === true);
+    setDrafting(snap.modules.drafting === true);
+    setTemporalInversion(snap.modules.temporalInversion === true);
+    setWormholes(snap.modules.wormholes === true);
+    setSubspaceFracture(snap.modules.subspaceFracture === true);
     setSubspaceFractureScope(
       snap.modules.subspaceFractureScope ?? DEFAULT_SUBSPACE_FRACTURE_SCOPE
     );
@@ -337,41 +337,29 @@ export function LocalGamePage() {
   };
 
   const launch = () => {
-    const count = clampLocalPlayerCount(playerCount, maxPip);
-    const human = soloHumanCaptain(humanName);
+    const snap = currentSnapshot();
+    const count = clampLocalPlayerCount(snap.playerCount, maxPip);
+    const human = soloHumanCaptain(snap.callSign);
     const next: LocalGameConfig = {
       humanId: human.id,
       humanName: human.displayName,
       humanCaptains: [human],
       playerCount: count,
-      objective,
-      campaignRounds,
-      modules: {
-        salamanderPenalty: salamander,
-        continuum: continuum,
-        sensorGrid,
-        warpDriveSpool,
-        longestTrail,
-        doubleDown,
-        temporalDebt,
-        drafting,
-        temporalInversion,
-        wormholes,
-        subspaceFracture,
-        subspaceFractureScope,
-      },
-      houseRules,
+      objective: snap.objective,
+      campaignRounds: snap.campaignRounds,
+      modules: snap.modules,
+      houseRules: snap.houseRules,
       aiCaptains: applyAiTierOverrides(
         buildAiCaptains(count - 1, maxPip),
-        aiTiers,
-        extendedThinkingByAi,
+        snap.aiTiers,
+        snap.aiExtendedThinking,
         neuralAiSupported(maxPip)
       ),
       rulesProfileId,
       maxPip,
-      rated: canOfferRated && ratedPlay,
+      rated: canOfferRated && snap.ratedPlay,
     };
-    writeLastUsedPreset('local', localSnapshotToPreset(currentSnapshot(), maxPip));
+    writeLastUsedPreset('local', localSnapshotToPreset(snap, maxPip));
     void startSession(next, drawMatchSeed());
   };
 

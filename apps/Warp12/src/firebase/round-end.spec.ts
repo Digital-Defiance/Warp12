@@ -46,6 +46,7 @@ describe('online round end scoring', () => {
         pendingRoundWin: null,
         roundBlocked: false,
         roundStarterOpening: null,
+        roundStarterOpeningResolved: false,
         table: {
           spacedock: { value: 12, placedBy: 'a' },
           warpTrails: {
@@ -120,6 +121,7 @@ describe('online round end scoring', () => {
         pendingRoundWin: null,
         roundBlocked: false,
         roundStarterOpening: null,
+        roundStarterOpeningResolved: false,
         table: {
           spacedock: { value: 12, placedBy: 'a' },
           warpTrails: {

@@ -54,6 +54,7 @@ function makeRound(over: Partial<RoundState>): RoundState {
     pendingRoundWin: null,
     roundBlocked: false,
     roundStarterOpening: null,
+    roundStarterOpeningResolved: false,
   };
   return { ...base, ...over };
 }

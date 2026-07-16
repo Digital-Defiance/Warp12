@@ -35,6 +35,16 @@ function buildSections(game: GameState): { title: string; rows: SettingRow[] }[]
         }`
       : 'Go out (first to empty their hand)';
 
+  const squadronRow: SettingRow = modules.squadrons.enabled
+    ? {
+        label: 'Module Zeta — Fleet Squadrons',
+        value: `On — crews of ${modules.squadrons.squadronSize}`,
+      }
+    : {
+        label: 'Module Zeta — Fleet Squadrons',
+        value: 'Off',
+      };
+
   return [
     {
       title: 'Objective',
@@ -57,6 +67,15 @@ function buildSections(game: GameState): { title: string; rows: SettingRow[] }[]
           value: onOff(modules.warpDriveSpool.enabled),
         },
         {
+          label: 'Module Epsilon — Tactical Requisition (Drafting)',
+          value: onOff(modules.drafting.enabled),
+        },
+        squadronRow,
+        {
+          label: 'Module Eta — Temporal Debt',
+          value: onOff(modules.temporalDebt.enabled),
+        },
+        {
           label: 'Module Theta — Longest Trail Bonus',
           value: onOff(modules.longestTrail.enabled),
         },
@@ -67,6 +86,10 @@ function buildSections(game: GameState): { title: string; rows: SettingRow[] }[]
         {
           label: 'Module Kappa — Temporal Inversion',
           value: onOff(modules.temporalInversion.enabled),
+        },
+        {
+          label: 'Module Lambda — Wormholes',
+          value: onOff(modules.wormholes.enabled),
         },
         {
           label: 'Subspace Fracture',

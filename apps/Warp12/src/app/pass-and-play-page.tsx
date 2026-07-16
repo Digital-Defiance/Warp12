@@ -76,13 +76,13 @@ export function PassAndPlayPage() {
     initialSnapshot.campaignRounds
   );
   const [salamander, setSalamander] = useState(
-    initialSnapshot.modules.salamanderPenalty ?? true
+    initialSnapshot.modules.salamanderPenalty === true
   );
   const [continuum, setContinuum] = useState(
-    initialSnapshot.modules.continuum ?? true
+    initialSnapshot.modules.continuum === true
   );
   const [sensorGrid, setSensorGrid] = useState(
-    initialSnapshot.modules.sensorGrid ?? false
+    initialSnapshot.modules.sensorGrid === true
   );
   const [warpDriveSpool, setWarpDriveSpool] = useState(
     initialSnapshot.modules.warpDriveSpool ?? false
@@ -172,17 +172,17 @@ export function PassAndPlayPage() {
     setAiFillCount(snap.aiFillCount);
     setObjective(snap.objective);
     setCampaignRounds(snap.campaignRounds);
-    setSalamander(snap.modules.salamanderPenalty ?? true);
-    setContinuum(snap.modules.continuum ?? true);
-    setSensorGrid(snap.modules.sensorGrid ?? false);
-    setWarpDriveSpool(snap.modules.warpDriveSpool ?? false);
-    setLongestTrail(snap.modules.longestTrail ?? false);
-    setDoubleDown(snap.modules.doubleDown ?? false);
-    setTemporalDebt(snap.modules.temporalDebt ?? false);
-    setDrafting(snap.modules.drafting ?? false);
-    setTemporalInversion(snap.modules.temporalInversion ?? false);
-    setWormholes(snap.modules.wormholes ?? false);
-    setSubspaceFracture(snap.modules.subspaceFracture ?? false);
+    setSalamander(snap.modules.salamanderPenalty === true);
+    setContinuum(snap.modules.continuum === true);
+    setSensorGrid(snap.modules.sensorGrid === true);
+    setWarpDriveSpool(snap.modules.warpDriveSpool === true);
+    setLongestTrail(snap.modules.longestTrail === true);
+    setDoubleDown(snap.modules.doubleDown === true);
+    setTemporalDebt(snap.modules.temporalDebt === true);
+    setDrafting(snap.modules.drafting === true);
+    setTemporalInversion(snap.modules.temporalInversion === true);
+    setWormholes(snap.modules.wormholes === true);
+    setSubspaceFracture(snap.modules.subspaceFracture === true);
     setSubspaceFractureScope(
       snap.modules.subspaceFractureScope ?? DEFAULT_SUBSPACE_FRACTURE_SCOPE
     );
@@ -206,11 +206,6 @@ export function PassAndPlayPage() {
     const maxAi = cappedCount - PASS_AND_PLAY_MIN_PLAYERS;
     setAiFillCount(Math.min(Math.max(0, count), maxAi));
   };
-
-  const configuredHumanNames = useMemo(
-    () => humanNames.slice(0, humanCount),
-    [humanCount, humanNames]
-  );
 
   const game = useMemo(() => {
     if (!launchSession) return null;
@@ -239,37 +234,29 @@ export function PassAndPlayPage() {
   };
 
   const launch = () => {
-    const count = clampPassAndPlayPlayerCount(playerCount, maxPip);
-    const humans = buildHumanCaptains(humanCount, configuredHumanNames, maxPip);
+    const snap = currentSnapshot();
+    const count = clampPassAndPlayPlayerCount(snap.playerCount, maxPip);
+    const humans = buildHumanCaptains(
+      count - snap.aiFillCount,
+      snap.humanNames.slice(0, count - snap.aiFillCount),
+      maxPip
+    );
     const primary = humans[0];
     const next: LocalGameConfig = {
       humanId: primary.id,
       humanName: primary.displayName,
       humanCaptains: humans,
       playerCount: count,
-      objective,
-      campaignRounds,
-      modules: {
-        salamanderPenalty: salamander,
-        continuum: continuum,
-        sensorGrid,
-        warpDriveSpool,
-        longestTrail,
-        doubleDown,
-        temporalDebt,
-        drafting,
-        temporalInversion,
-        wormholes,
-        subspaceFracture,
-        subspaceFractureScope,
-      },
-      houseRules,
-      aiCaptains: buildAiCaptains(aiCount, maxPip),
+      objective: snap.objective,
+      campaignRounds: snap.campaignRounds,
+      modules: snap.modules,
+      houseRules: snap.houseRules,
+      aiCaptains: buildAiCaptains(snap.aiFillCount, maxPip),
       maxPip,
     };
     writeLastUsedPreset(
       'pass-and-play',
-      passAndPlaySnapshotToPreset(currentSnapshot(), maxPip)
+      passAndPlaySnapshotToPreset(snap, maxPip)
     );
     void startSession(next, drawMatchSeed());
   };

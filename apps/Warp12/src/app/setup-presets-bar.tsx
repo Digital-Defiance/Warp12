@@ -52,6 +52,14 @@ export function SetupPresetsBar({
     announce(`Loaded setup preset ${match.name}.`);
   };
 
+  const handleReapply = () => {
+    if (!selected) {
+      return;
+    }
+    onApply(selected.preset);
+    announce(`Re-applied setup preset ${selected.name}.`);
+  };
+
   const handleSave = async () => {
     const trimmed = name.trim();
     if (!trimmed) {
@@ -114,6 +122,14 @@ export function SetupPresetsBar({
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            className={styles.presetSave}
+            disabled={controlsDisabled || !selected}
+            onClick={handleReapply}
+          >
+            Apply
+          </button>
           <button
             type="button"
             className={styles.presetDelete}

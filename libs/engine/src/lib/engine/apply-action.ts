@@ -549,11 +549,16 @@ function applyChartToRoute(
 
   const winnerHand = nextRound.hands[playerId] ?? [];
   const emptyHandWin = winnerHand.length === 0;
-  const openingIncomplete =
+  // Opening is incomplete until the starter finishes their one-time double chart
+  // (or beacons out). Must not re-trigger on later turns, and must not key off
+  // own-trail length (Neutral Zone opening leaves own trail empty).
+  const stillInOpening =
     options.houseRules.roundStarterPlaysTwo &&
     playerId === nextRound.table.spacedock.placedBy &&
-    (nextRound.table.warpTrails[trailKeyFor(nextRound, playerId)]?.tiles.length ??
-      0) < 2;
+    !nextRound.roundStarterOpeningResolved;
+  const completingSecondOpeningTile =
+    stillInOpening && nextRound.roundStarterOpening?.playerId === playerId;
+  const openingIncomplete = stillInOpening && !completingSecondOpeningTile;
 
   if (
     !emptyHandWin &&
@@ -603,11 +608,13 @@ function applyChartToRoute(
       nextRound.table.redAlert
     )
   ) {
-    // Round Starter Plays Two: after first tile, keep the turn for second tile
+    // Round Starter Plays Two: after first opening tile (e.g. a double), keep
+    // the turn for the cover / second chart — only once per round.
     if (
       options.houseRules.roundStarterPlaysTwo &&
       playerId === nextRound.table.spacedock.placedBy &&
-      !nextRound.roundStarterOpening // First tile hasn't set the flag yet
+      !nextRound.roundStarterOpeningResolved &&
+      !nextRound.roundStarterOpening
     ) {
       nextRound = {
         ...nextRound,
@@ -658,6 +665,7 @@ function applyRoundStarterOpeningFailure(
   const cleared: RoundState = {
     ...withBeacon,
     roundStarterOpening: null,
+    roundStarterOpeningResolved: true,
     playedThisTurn: houseRules.manualShieldControl ? true : withBeacon.playedThisTurn,
   };
   if (houseRules.manualShieldControl) {
@@ -677,14 +685,22 @@ function resolveRoundStarterOpeningTurn(
   if (playerId !== nextRound.table.spacedock.placedBy) {
     return finishRoutineChartTurn(nextRound, houseRules);
   }
-
-  // If roundStarterOpening is set, this is the second tile - clear flag and advance
-  if (nextRound.roundStarterOpening?.playerId === playerId) {
-    nextRound = { ...nextRound, roundStarterOpening: null };
+  // Opening already finished this round — normal single-chart turns from here.
+  if (nextRound.roundStarterOpeningResolved) {
     return finishRoutineChartTurn(nextRound, houseRules);
   }
 
-  // This is the first tile - set flag to keep turn
+  // Second opening tile — clear obligation, mark resolved, advance helm.
+  if (nextRound.roundStarterOpening?.playerId === playerId) {
+    nextRound = {
+      ...nextRound,
+      roundStarterOpening: null,
+      roundStarterOpeningResolved: true,
+    };
+    return finishRoutineChartTurn(nextRound, houseRules);
+  }
+
+  // First opening tile — hold helm for the required second chart.
   nextRound = {
     ...nextRound,
     roundStarterOpening: { playerId },

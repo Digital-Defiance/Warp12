@@ -27,6 +27,7 @@ function baseRound(overrides: Partial<RoundState> = {}): RoundState {
     pendingRoundWin: null,
     roundBlocked: false,
     roundStarterOpening: null,
+    roundStarterOpeningResolved: false,
     table: {
       spacedock: { value: 12, placedBy: 'a' },
       warpTrails: {

@@ -382,6 +382,7 @@ describe('house rules', () => {
     it('does not force a second opening chart on a later turn', () => {
       const round = starterRound({
         activePlayerId: 'a',
+        roundStarterOpeningResolved: true,
         hands: { a: [T(5, 6)], b: [] },
         table: {
           warpTrails: {
@@ -407,6 +408,63 @@ describe('house rules', () => {
           route: { kind: 'warp-trail', playerId: 'a' },
         },
       ]);
+    });
+
+    it('allows only one chart per turn after the opening double-chart', () => {
+      let state = makeGame(
+        starterRound({
+          hands: {
+            a: [T(12, 5), T(5, 6), T(6, 7), T(1, 2)],
+            b: [T(12, 3), T(3, 4)],
+          },
+        }),
+        { houseRules: deluxeTwo }
+      );
+
+      // Opening: two charts in a row
+      const first = applyAction(state, {
+        type: 'CHART_COORDINATE',
+        playerId: 'a',
+        coordinate: T(12, 5),
+        route: { kind: 'warp-trail', playerId: 'a' },
+      });
+      expect(first.ok).toBe(true);
+      expect(first.state.round?.activePlayerId).toBe('a');
+      expect(first.state.round?.roundStarterOpeningResolved).toBe(false);
+
+      const second = applyAction(first.state, {
+        type: 'CHART_COORDINATE',
+        playerId: 'a',
+        coordinate: T(5, 6),
+        route: { kind: 'warp-trail', playerId: 'a' },
+      });
+      expect(second.ok).toBe(true);
+      expect(second.state.round?.activePlayerId).toBe('b');
+      expect(second.state.round?.roundStarterOpeningResolved).toBe(true);
+      expect(second.state.round?.roundStarterOpening).toBeNull();
+
+      // B plays one and passes helm back
+      const bPlay = applyAction(second.state, {
+        type: 'CHART_COORDINATE',
+        playerId: 'b',
+        coordinate: T(12, 3),
+        route: { kind: 'warp-trail', playerId: 'b' },
+      });
+      expect(bPlay.ok).toBe(true);
+      expect(bPlay.state.round?.activePlayerId).toBe('a');
+
+      // Later turn for the starter: one chart, then helm advances
+      const later = applyAction(bPlay.state, {
+        type: 'CHART_COORDINATE',
+        playerId: 'a',
+        coordinate: T(6, 7),
+        route: { kind: 'warp-trail', playerId: 'a' },
+      });
+      expect(later.ok).toBe(true);
+      expect(later.state.round?.activePlayerId).toBe('b');
+      expect(later.state.round?.roundStarterOpening).toBeNull();
+      expect(later.state.round?.roundStarterOpeningResolved).toBe(true);
+      expect(later.state.round?.table.warpTrails.a.tiles).toHaveLength(3);
     });
   });
 

@@ -17,6 +17,7 @@ import {
   DEFAULT_SUBSPACE_FRACTURE_SCOPE,
   defaultCampaignRounds,
   normalizeWarpFactor,
+  resolveHouseRules,
   type GameModuleConfig,
   type GameObjective,
   type HouseRulesConfig,
@@ -123,6 +124,74 @@ export interface PassAndPlaySetupSnapshot {
 // Defaults
 // ---------------------------------------------------------------------------
 
+/**
+ * Flatten module toggles to explicit booleans so a sparse saved preset cannot
+ * leave UI state and launch config disagreeing (e.g. `?? true` on Continuum
+ * while `resolveModules` treats missing as off).
+ */
+export function normalizeModuleConfig(
+  modules: GameModuleConfig = {}
+): GameModuleConfig {
+  return {
+    continuum: modules.continuum === true,
+    salamanderPenalty: modules.salamanderPenalty === true,
+    sensorGrid: modules.sensorGrid === true,
+    ...(typeof modules.sensorGridSize === 'number'
+      ? { sensorGridSize: modules.sensorGridSize }
+      : {}),
+    warpDriveSpool: modules.warpDriveSpool === true,
+    drafting: modules.drafting === true,
+    ...(typeof modules.draftingPackSize === 'number'
+      ? { draftingPackSize: modules.draftingPackSize }
+      : {}),
+    squadrons: modules.squadrons === true,
+    ...(typeof modules.squadronSize === 'number'
+      ? { squadronSize: modules.squadronSize }
+      : {}),
+    ...(modules.squadronNames ? { squadronNames: modules.squadronNames } : {}),
+    ...(modules.squadronRosters
+      ? { squadronRosters: modules.squadronRosters }
+      : {}),
+    longestTrail: modules.longestTrail === true,
+    ...(typeof modules.longestTrailBonus === 'number'
+      ? { longestTrailBonus: modules.longestTrailBonus }
+      : {}),
+    doubleDown: modules.doubleDown === true,
+    ...(typeof modules.doubleDownDrawCount === 'number'
+      ? { doubleDownDrawCount: modules.doubleDownDrawCount }
+      : {}),
+    temporalDebt: modules.temporalDebt === true,
+    ...(typeof modules.temporalDebtCost === 'number'
+      ? { temporalDebtCost: modules.temporalDebtCost }
+      : {}),
+    temporalInversion: modules.temporalInversion === true,
+    wormholes: modules.wormholes === true,
+    subspaceFracture: modules.subspaceFracture === true,
+    subspaceFractureScope: resolveFractureScope(modules),
+  };
+}
+
+/** Expand partial house-rule patches to a full explicit config. */
+export function normalizeHouseRulesConfig(
+  rules: HouseRulesConfig = {}
+): HouseRulesConfig {
+  const resolved = resolveHouseRules(rules);
+  return {
+    requireOwnTrailFirst: resolved.requireOwnTrailFirst,
+    neutralZoneAfterAllTrails: resolved.neutralZoneAfterAllTrails,
+    beaconClearsOnAnyPlay: resolved.beaconClearsOnAnyPlay,
+    roundStarterPlaysTwo: resolved.roundStarterPlaysTwo,
+    roundStarterOwnTrailOnly: resolved.roundStarterOwnTrailOnly,
+    dropToImpulseCall: resolved.dropToImpulseCall,
+    dropToImpulseCatchPenalty: resolved.dropToImpulseCatchPenalty,
+    allStopCeremony: resolved.allStopCeremony,
+    passRedAlertWithoutDraw: resolved.passRedAlertWithoutDraw,
+    manualShieldControl: resolved.manualShieldControl,
+    doubleZeroScore: resolved.doubleZeroScore,
+    largeFleetHandSize: resolved.largeFleetHandSize,
+  };
+}
+
 /** The Warp-defaults preset for a given factor (Official Warp rules bundle). */
 export function defaultSetupPreset(maxPip: number): WarpSetupPreset {
   const factor = normalizeWarpFactor(maxPip);
@@ -132,8 +201,8 @@ export function defaultSetupPreset(maxPip: number): WarpSetupPreset {
     objective: WARP12_OFFICIAL_OBJECTIVE,
     campaignRounds: defaultCampaignRounds(factor),
     fleetSize: 4,
-    modules: { ...WARP12_OFFICIAL_MODULES },
-    houseRules: { ...WARP12_OFFICIAL_HOUSE_RULES },
+    modules: normalizeModuleConfig({ ...WARP12_OFFICIAL_MODULES }),
+    houseRules: normalizeHouseRulesConfig({ ...WARP12_OFFICIAL_HOUSE_RULES }),
     rated: factor === 12,
   };
 }
@@ -152,8 +221,8 @@ export function localSnapshotToPreset(
     objective: snapshot.objective,
     campaignRounds: snapshot.campaignRounds,
     fleetSize: snapshot.playerCount,
-    modules: { ...snapshot.modules },
-    houseRules: { ...snapshot.houseRules },
+    modules: normalizeModuleConfig(snapshot.modules),
+    houseRules: normalizeHouseRulesConfig(snapshot.houseRules),
     rated: snapshot.ratedPlay,
     callSign: snapshot.callSign,
     aiTiers: { ...snapshot.aiTiers },
@@ -172,8 +241,8 @@ export function presetToLocalSnapshot(
     playerCount: clampLocalPlayerCount(base.fleetSize, factor),
     objective: base.objective,
     campaignRounds: resolveCampaignRounds(base.campaignRounds, factor),
-    modules: { ...base.modules },
-    houseRules: { ...base.houseRules },
+    modules: normalizeModuleConfig(base.modules),
+    houseRules: normalizeHouseRulesConfig(base.houseRules),
     aiTiers: { ...(base.aiTiers ?? {}) },
     aiExtendedThinking: { ...(base.aiExtendedThinking ?? {}) },
     // Only Warp 12 may rate; never force it on for exhibition sets.
@@ -195,8 +264,8 @@ export function passAndPlaySnapshotToPreset(
     objective: snapshot.objective,
     campaignRounds: snapshot.campaignRounds,
     fleetSize: snapshot.playerCount,
-    modules: { ...snapshot.modules },
-    houseRules: { ...snapshot.houseRules },
+    modules: normalizeModuleConfig(snapshot.modules),
+    houseRules: normalizeHouseRulesConfig(snapshot.houseRules),
     rated: false,
     humanNames: [...snapshot.humanNames],
     aiFillCount: snapshot.aiFillCount,
@@ -218,8 +287,8 @@ export function presetToPassAndPlaySnapshot(
     humanNames: buildHumanNames(base.humanNames, playerCount),
     objective: base.objective,
     campaignRounds: resolveCampaignRounds(base.campaignRounds, factor),
-    modules: { ...base.modules },
-    houseRules: { ...base.houseRules },
+    modules: normalizeModuleConfig(base.modules),
+    houseRules: normalizeHouseRulesConfig(base.houseRules),
   };
 }
 
@@ -238,8 +307,10 @@ export function createLobbyOptionsToPreset(
     objective: options.objective ?? WARP12_OFFICIAL_OBJECTIVE,
     campaignRounds: options.campaignRounds ?? defaultCampaignRounds(factor),
     fleetSize: options.maxPlayers ?? 4,
-    modules: { ...(options.modules ?? WARP12_OFFICIAL_MODULES) },
-    houseRules: { ...(options.houseRules ?? WARP12_OFFICIAL_HOUSE_RULES) },
+    modules: normalizeModuleConfig(options.modules ?? WARP12_OFFICIAL_MODULES),
+    houseRules: normalizeHouseRulesConfig(
+      options.houseRules ?? WARP12_OFFICIAL_HOUSE_RULES
+    ),
     rated: options.rated ?? factor === 12,
     ...(extras.callSign ? { callSign: extras.callSign } : {}),
   };
@@ -264,8 +335,8 @@ export function presetToCreateLobbyOptions(
     campaignRounds: resolveCampaignRounds(source.campaignRounds, factor),
     maxPlayers: source.fleetSize,
     maxPip: factor,
-    modules: { ...source.modules },
-    houseRules: { ...source.houseRules },
+    modules: normalizeModuleConfig(source.modules),
+    houseRules: normalizeHouseRulesConfig(source.houseRules),
     rated: factor === 12 ? (source.rated ?? true) : false,
   };
 }
@@ -393,12 +464,16 @@ export function sanitizeSetupPreset(raw: unknown): WarpSetupPreset | null {
   if (objective !== 'points' && objective !== 'go-out') {
     return null;
   }
-  const modules = isRecord(raw.modules)
-    ? (raw.modules as GameModuleConfig)
-    : { ...WARP12_OFFICIAL_MODULES };
-  const houseRules = isRecord(raw.houseRules)
-    ? (raw.houseRules as HouseRulesConfig)
-    : { ...WARP12_OFFICIAL_HOUSE_RULES };
+  const modules = normalizeModuleConfig(
+    isRecord(raw.modules)
+      ? (raw.modules as GameModuleConfig)
+      : { ...WARP12_OFFICIAL_MODULES }
+  );
+  const houseRules = normalizeHouseRulesConfig(
+    isRecord(raw.houseRules)
+      ? (raw.houseRules as HouseRulesConfig)
+      : { ...WARP12_OFFICIAL_HOUSE_RULES }
+  );
   const fleetSize = toPositiveInt(raw.fleetSize, 4);
   const campaignRounds = toPositiveInt(raw.campaignRounds, defaultCampaignRounds(12));
 
@@ -407,8 +482,8 @@ export function sanitizeSetupPreset(raw: unknown): WarpSetupPreset | null {
     objective: objective as GameObjective,
     campaignRounds,
     fleetSize,
-    modules: { ...modules, subspaceFractureScope: resolveFractureScope(modules) },
-    houseRules: { ...houseRules },
+    modules,
+    houseRules,
   };
   if (isWarpFactorLike(raw.maxPip)) {
     preset.maxPip = normalizeWarpFactor(raw.maxPip);

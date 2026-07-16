@@ -219,6 +219,7 @@ function serializePublicRound(round: RoundState): FirestorePublicRound {
     roundStarterOpening: round.roundStarterOpening
       ? { playerId: round.roundStarterOpening.playerId }
       : null,
+    roundStarterOpeningResolved: round.roundStarterOpeningResolved ?? false,
     dropToImpulseCallPending: round.dropToImpulseCallPending ?? null,
     dropToImpulseCatchable: round.dropToImpulseCatchable ?? null,
     playedThisTurn: round.playedThisTurn ?? false,
@@ -408,6 +409,8 @@ export function mergeHandsIntoGame(
           : null,
         roundBlocked: doc.round.roundBlocked ?? false,
         roundStarterOpening: doc.round.roundStarterOpening ?? null,
+        roundStarterOpeningResolved:
+          doc.round.roundStarterOpeningResolved ?? false,
         dropToImpulseCallPending: doc.round.dropToImpulseCallPending ?? null,
         dropToImpulseCatchable: doc.round.dropToImpulseCatchable ?? null,
         playedThisTurn: doc.round.playedThisTurn ?? false,
