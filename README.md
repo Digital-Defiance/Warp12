@@ -6,6 +6,22 @@ Warp 12 is multiplayer, federation-themed **multi-trail Interstellar Dominoes**.
 
 Online sectors include **subspace messaging** — quick-phrase hails (always available, even during rated play) plus free-form text and DMs (lobby, casual, and post-game). Rated sectors restrict comms to hails to prevent collusion. See [Subspace messaging in RULES.md](RULES.md#ix-subspace-messaging-digital--online-sectors).
 
+Complete Ecosystem:
+
+- Game:
+  <img width="1728" height="1084" alt="Screenshot 2026-07-17 at 8 23 27 AM" src="https://github.com/user-attachments/assets/d5e1816b-142c-4fc4-9534-6fbfdf752f89" />
+
+- Debug extension:
+  <img width="1728" height="1039" alt="Screenshot 2026-07-16 at 1 29 16 PM" src="https://github.com/user-attachments/assets/31455f3a-4d14-41fc-b080-b703a24a6355" />
+  <img width="1720" height="1004" alt="Screenshot 2026-07-16 at 1 29 31 PM" src="https://github.com/user-attachments/assets/fae65fa4-de5b-4631-b6af-0b90a5bcd8b8" />
+
+- Build tool:
+  <img width="1119" height="752" alt="Screenshot 2026-07-16 at 12 06 20 PM" src="https://github.com/user-attachments/assets/458ee254-1159-4082-8190-d634e0bc716b" />
+
+- Admin tool:
+  <img width="1728" height="1084" alt="Screenshot 2026-07-17 at 8 18 22 AM" src="https://github.com/user-attachments/assets/b931f14f-79c0-48ec-9db9-480a8db5523e" />
+
+
 ### Warp factors
 
 Captains pick a set before play (`/factor`, or **Choose your Warp Factor** on the home page). The choice is stored in `localStorage` (`warp-factor`) and drives tile count, campaign length, and fleet caps:
