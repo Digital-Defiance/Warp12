@@ -493,7 +493,7 @@ export function ProfilePage() {
         <div className={profileStyles.brightDateTip} role="status">
           <p>
             Try BrightDates for a federation chronometer feel — scientifically
-            grounded (not trademark Stardates). Recommended for immersive play.
+            grounded (not related to any fictional temporal conventions). Recommended for immersive play.
           </p>
           <p className={profileStyles.brightDateExample}>
             <span>Right now:</span>{' '}
