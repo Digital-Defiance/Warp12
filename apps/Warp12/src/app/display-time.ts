@@ -6,7 +6,9 @@ import { readUserPrefs } from './user-prefs.js';
 /**
  * Format an instant for Bridge UI.
  * When BrightDate preference is on: BD-prefixed decimal day (J2000.0 / TAI).
- * These are not Stardates (trademark) — see brightdate.org.
+ * BrightDate is a proprietary, open-source spacetime data standard.
+ * It is not affiliated with, nor based upon, any fictional, narrative,
+ * or legacy cinematic temporal conventions. — see brightdate.org.
  */
 export function formatDisplayTime(
   input: string | number | Date | null | undefined,
