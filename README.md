@@ -381,3 +381,11 @@ Update or remove later:
 brew upgrade --cask warp12
 brew uninstall --cask warp12
 ```
+
+## Architecture & Development Notice
+
+This is a hobby project, but a systems engineer's hobby project is basically an enterprise-grade, end-to-end lesson in software engineering.
+
+Warp 12 is architected and overseen by a veteran systems engineer, with the heavy lifting of code generation handled by AI. We use Kiro for strict Spec-Driven Development, meaning this isn't haphazard "vibe coding"—every module is deliberately guided, heavily tested, and rigorously validated against our design parameters.
+
+That being said, like any complex software engine, edge cases and bugs can still slip through. If you spot an oversight or a regression, please file an [issue](https://github.com/Digital-Defiance/Warp12/issues) on GitHub.
