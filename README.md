@@ -2,6 +2,29 @@
 
 **Interstellar Dominoes — Warp factors 9 / 12 / 15 / 18**
 
+## Warp 12 / 8p 1v7AI All Modules Demo
+
+<a href="https://youtu.be/qYvHTRTxAjM">
+  <img
+    src="https://img.youtube.com/vi/qYvHTRTxAjM/maxresdefault.jpg"
+    alt="Watch the Warp 12 eight-player, one-versus-seven AI, all-modules demo on YouTube"
+    width="960"
+  />
+</a>
+
+> [Watch on YouTube](https://youtu.be/qYvHTRTxAjM)
+>
+> Playing Warp 12 at [warp.iwdf.org](https://warp.iwdf.org) against seven AI players with all available modules enabled.
+>
+> Warp 12 is an open-source, federation-themed “Mexican Train” (Interstellar Warp Dominoes) game with several novel add-on modules that enhance gameplay. [Every module](https://warp.iwdf.org/modules) has been battle-tested across 285,000 games, as detailed in our [40-page research paper](https://warp.iwdf.org/research), and carefully balanced either for demonstrable skill or to flip the game on its head with more luck-dominant “Warped” play.
+>
+> Warp supports online squads through **Module Zeta**.
+>
+> Warp is what the night shift plays on the bridge of a federation starship. Come captain your own ship and leave your own trail.
+>
+> Also accessible at [warp12.app](https://warp12.app), available on Google Play, and coming soon to Apple and Windows.
+>
+
 Warp 12 is multiplayer, federation-themed **multi-trail Interstellar Dominoes**. The Bridge client supports **double-9, double-12, double-15, and double-18** sets (choose a Warp factor on first launch or from the home screen). This repository contains the game engine, client UI, domino rendering library, and Firebase-backed multiplayer infrastructure in a TypeScript Nx monorepo.
 
 Online sectors include **subspace messaging** — quick-phrase hails (always available, even during rated play) plus free-form text and DMs (lobby, casual, and post-game). Rated sectors restrict comms to hails to prevent collusion. See [Subspace messaging in RULES.md](RULES.md#ix-subspace-messaging-digital--online-sectors).
@@ -141,13 +164,26 @@ Nx 23’s TUI is disabled in `nx.json`, but the integrated terminal can still mi
 
 ## 🔥 Firebase Setup
 
-The client targets the [warp-12 Firebase project](https://console.firebase.google.com/project/warp-12).
+Deploy scripts read `FIREBASE_PROJECT` from the **repo-root `.env`** (or process ENV). There are no production project defaults in source.
 
-1. Copy `apps/Warp12/.env.example` to `apps/Warp12/.env`
-2. Fill in values from Firebase Console → Project Settings → Your apps → Web app config
+1. Copy `.env.example` → `.env` and set `FIREBASE_PROJECT`, domains, and Apple/GitHub identity (see below)
+2. Copy `apps/Warp12/.env.example` → `apps/Warp12/.env` and fill Firebase web + Google OAuth from Firebase Console → Project Settings → Your apps
 3. Enable **Anonymous Auth** in Firebase Console → Authentication → Sign-in method
 4. Deploy Firestore rules: `yarn deploy:firestore` (requires [Firebase CLI](https://firebase.google.com/docs/cli) and `firebase login`)
-5. Without credentials, **Local simulation** still works; **Online fleet** requires the `.env` file
+5. Without credentials, **Local simulation** still works; **Online fleet** requires `apps/Warp12/.env`
+
+### Portable build identity (forks / CI)
+
+```bash
+cp .env.example .env
+cp apps/Warp12/.env.example apps/Warp12/.env
+# Edit .env: APPLE_TEAM_ID, APPLE_BUNDLE_ID, APPLE_PUBLISHER_NAME,
+# FIREBASE_PROJECT, GITHUB_REPO, HOMEBREW_TAP_DIR, …
+yarn env:check
+yarn tauri:config:local   # writes gitignored tauri.conf.local.json
+```
+
+Process environment always wins over `.env`. Release scripts fail closed if required org vars are missing.
 
 **Online lobby:** Host picks fleet size (3–8), objective (points / go-out; **points is default**), and modules before launch. Up to eight captains per sector; host can kick, reset, or dissolve from the waiting room. Points campaigns score rounds server-side (all private hands are read briefly at round end, then redealt).
 
@@ -206,7 +242,7 @@ Two static SPAs on the **`warp-12`** project:
 
 ### Build + deploy
 
-Firebase config is injected at **build time** via `.env` files. Bridge and Warp Ops use `apps/Warp12/.env`; leaderboard uses `Warp12-leaderboard/.env` (same `warp-12` web app credentials).
+Firebase config is injected at **build time** via `.env` files. Set `FIREBASE_PROJECT` in the repo-root `.env`. Bridge and Warp Ops use `apps/Warp12/.env` for `VITE_*` keys; leaderboard uses `Warp12-leaderboard/.env` (same web app credentials as the Bridge). Deploy scripts load the project id via `scripts/firebase-with-env.sh` — process ENV overrides the file.
 
 ```bash
 # Firestore rules + indexes
