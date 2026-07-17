@@ -175,7 +175,6 @@ Two static SPAs on the **`warp-12`** project:
 | ---- | ------------- | ------------ | --- |
 | Bridge | `hosting:bridge` | `apps/Warp12/dist` | [warp.iwdf.org](https://warp.iwdf.org) |
 | Leaderboard | `hosting:leaderboard` | `Warp12-leaderboard/dist` | [iwdf.org](https://iwdf.org) |
-| Warp Ops | `hosting:ops` | `apps/WarpOps/dist` | [ops.iwdf.org](https://ops.iwdf.org) |
 
 ### One-time setup
 
