@@ -709,7 +709,7 @@ scores):
 |:---|:---|
 | **Reverse turn order** | Helm passes counter-clockwise for the rest of the round. |
 | **Skip lowest points** | The captain with the lowest campaign points score skips their next turn. |
-| **Peek Uncharted Sector** | The invoker sees the top coordinate in Uncharted Sectors (hidden from others). |
+| **Peek Uncharted Sector** | The invoker sees the next coordinate that would be drawn from Uncharted Sectors (hidden from others). |
 | **Temporal inversion** | Turn order reverses until the next double is charted on the table. |
 | **Distress amplification** | All warp trails are open to every captain without a Distress Beacon. |
 | **Fracture immunity** | The next double on an own trail will not open Subspace Fracture (Red Alert still applies). |
@@ -759,6 +759,12 @@ engagements.
   **Blind Jump** (draw a random face-down coordinate from the Uncharted
   Sectors) if the tactical situation requires an uncharted coordinate.
 
+- **Replenish:** Whenever a coordinate leaves the Sensor Grid (Sensor
+  Sweep, or any module that draws through the market), replace it from
+  Uncharted Sectors so the market returns to its configured size while
+  Uncharted still has coordinates. Blind Jumps draw only from Uncharted
+  and do not change the face-up market.
+
 - **Real-Time Updates:** The grid provides a constant, refreshing view
   of the immediate navigational environment, allowing for precise
   hand-management in complex, high-skill sectors.
@@ -797,7 +803,9 @@ coordinates from Uncharted Sectors—draw coordinates one at a time until
 you draw a coordinate that cannot be charted to your chosen route. All
 matching coordinates are charted; the mismatch (and any remaining
 coordinates) go to your hand. Spooling is part of Module Delta; Module
-Theta does not unlock it.
+Theta does not unlock it. Engage Warp Drive is unavailable when
+Uncharted Sectors (and the Sensor Grid, if Module Gamma is on) have no
+coordinates left to draw.
 
 **Tactical Impact:** The Neutral Zone becomes a strategic dumping ground
 with real risk. Captains must weigh convenience against the danger of

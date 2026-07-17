@@ -1040,13 +1040,22 @@ function handleWarpDriveSpool(
     ]);
   }
 
-  // Update uncharted sectors AND sensor grid
-  // After spool, remaining tiles go back to uncharted (sensor grid depleted during spool)
-  nextRound = { 
-    ...nextRound, 
-    unchartedSectors: spoolResult.unchartedRemaining,
-    sensorGrid: [], // Sensor grid is depleted during spool - refill on next draw action
-  };
+  // Spool drew from uncharted + sensor grid as one pool; restore the market
+  // from whatever remains (RULES §VI Gamma — refreshing Sensor Grid).
+  {
+    const refilled = refillSensorGrid(
+      [],
+      spoolResult.unchartedRemaining,
+      state.modules.sensorGrid?.enabled
+        ? state.modules.sensorGrid.gridSize
+        : 0
+    );
+    nextRound = {
+      ...nextRound,
+      unchartedSectors: refilled.unchartedSectors,
+      sensorGrid: refilled.sensorGrid,
+    };
+  }
 
   // Handle Red Alert state if spool ended with uncovered double
   if (spoolResult.redAlertActive && spoolResult.tilesPlayed.length > 0) {
@@ -1721,10 +1730,17 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
           }
           
           if (availableToDraw.length > 0) {
+            const refilled = refillSensorGrid(
+              remainingSensorGrid ?? [],
+              remainingUncharted,
+              state.modules.sensorGrid?.enabled
+                ? state.modules.sensorGrid.gridSize
+                : 0
+            );
             round = {
               ...round,
-              unchartedSectors: remainingUncharted,
-              sensorGrid: remainingSensorGrid ?? [],
+              unchartedSectors: refilled.unchartedSectors,
+              sensorGrid: refilled.sensorGrid,
               hands: {
                 ...round.hands,
                 [nextId]: [...(round.hands[nextId] ?? []), ...availableToDraw],

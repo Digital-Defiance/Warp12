@@ -3,6 +3,7 @@ import * as admin from 'firebase-admin';
 import { getAIAnchor, type WarpSkillLevel } from 'warp12-engine';
 
 import { requireVerifiedUser } from './auth';
+import { assertNotBanned } from './bans';
 import { objectiveTeiKey, type RatedObjective } from './tei/rated-match-schema';
 import { toStoredRating } from './tei/rating-types.js';
 
@@ -43,6 +44,7 @@ function needsAcademyPlacement(
 /** One-time academy placement — server picks benchmark TEI from class (clients cannot). */
 export const setAcademyPlacement = onCall(async (request) => {
   const uid = requireVerifiedUser(request);
+  await assertNotBanned(uid, request);
   const data = request.data as {
     objective?: RatedObjective;
     skill?: WarpSkillLevel;

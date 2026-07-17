@@ -13,12 +13,16 @@ import {
   onSnapshot,
   orderBy,
   query,
+  where,
   type Unsubscribe,
 } from 'firebase/firestore';
 
 import { getFirestoreDb } from './config.js';
 
 export type MessageKind = 'phrase' | 'text';
+
+/** Who may read this message (spectators only get `table`). */
+export type MessageAudience = 'table' | 'dm' | 'squad';
 
 /** Persisted shape (Firestore document). */
 export interface SubspaceMessage {
@@ -36,6 +40,10 @@ export interface SubspaceMessage {
   readonly channel?: 'table' | 'squad';
   /** Module Zeta: squad id the message is scoped to (present when channel === 'squad'). */
   readonly squadronId?: string;
+  /** Required for new writes — spectators query audience=='table'. */
+  readonly audience?: MessageAudience | 'shadow';
+  /** Set by shadow-mute fanout; other captains should hide client-side. */
+  readonly shadowHidden?: boolean;
   readonly at: string;
 }
 
@@ -49,7 +57,16 @@ function messagesCol(gameId: string) {
   return collection(db, 'games', gameId, 'messages');
 }
 
-/** Subscribe to the sector message stream (newest last). */
+function mapDocs(
+  docs: { id: string; data: () => Record<string, unknown> }[]
+): SubspaceMessage[] {
+  return docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as Omit<SubspaceMessage, 'id'>),
+  }));
+}
+
+/** Subscribe to the sector message stream (newest last) — members / admins. */
 export function subscribeMessages(
   gameId: string,
   onMessages: (messages: SubspaceMessage[]) => void,
@@ -69,11 +86,34 @@ export function subscribeMessages(
   return onSnapshot(
     q,
     (snapshot) => {
-      const messages: SubspaceMessage[] = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<SubspaceMessage, 'id'>),
-      }));
-      onMessages(messages);
+      onMessages(mapDocs(snapshot.docs));
+    },
+    (err) => onError?.(err)
+  );
+}
+
+/** Public table-only stream for spectators (no DMs / squad). */
+export function subscribePublicMessages(
+  gameId: string,
+  onMessages: (messages: SubspaceMessage[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  const db = getFirestoreDb();
+  if (!db) {
+    return () => undefined;
+  }
+
+  const q = query(
+    messagesCol(gameId),
+    where('audience', '==', 'table'),
+    orderBy('at', 'asc'),
+    limit(MESSAGE_LIMIT)
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      onMessages(mapDocs(snapshot.docs));
     },
     (err) => onError?.(err)
   );
@@ -91,6 +131,7 @@ export async function sendQuickPhrase(
     fromName,
     kind: 'phrase' as MessageKind,
     phraseId,
+    audience: 'table' as MessageAudience,
     at: new Date().toISOString(),
   });
 }
@@ -107,11 +148,17 @@ export async function sendTextMessage(
   to?: string,
   squad?: { channel: 'squad'; squadronId: string }
 ): Promise<void> {
+  const audience: MessageAudience = squad
+    ? 'squad'
+    : to
+      ? 'dm'
+      : 'table';
   const payload: Record<string, unknown> = {
     from: fromUid,
     fromName,
     kind: 'text' as MessageKind,
     text: text.trim(),
+    audience,
     at: new Date().toISOString(),
   };
   if (to) {
@@ -123,5 +170,3 @@ export async function sendTextMessage(
   }
   await addDoc(messagesCol(gameId), payload);
 }
-
-export type { Unsubscribe };

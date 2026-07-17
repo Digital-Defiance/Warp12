@@ -88,6 +88,11 @@
   }
 }
 
+.messageRow {
+  display: grid;
+  gap: 0.35rem;
+}
+
 .sender {
   color: #94a3b8;
   font-weight: 600;
@@ -102,22 +107,70 @@
   color: #e2e8f0;
 }
 
-.muteBtn {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0;
-  border: none;
-  background: none;
-  color: #f87171;
-  font-size: 0.9rem;
-  cursor: pointer;
-  padding: 0.1rem 0.3rem;
+.messageActions {
+  display: inline-flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
 
-  .msg:hover & {
-    opacity: 1;
+.messageActionBtn {
+  border: 1px solid #334155;
+  border-radius: 4px;
+  background: #0f172a;
+  color: #cbd5e1;
+  font-family: var(--font-federation);
+  font-size: 0.62rem;
+  cursor: pointer;
+  padding: 0.15rem 0.35rem;
+
+  &:hover:not(:disabled) {
+    border-color: #5eead4;
   }
+
+  &:focus-visible {
+    outline: 2px solid #5eead4;
+    outline-offset: 2px;
+  }
+}
+
+.reportForm {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.55rem;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  background: #0f172a;
+  font-family: var(--font-federation);
+  font-size: 0.7rem;
+
+  label {
+    display: grid;
+    gap: 0.25rem;
+    color: #cbd5e1;
+  }
+
+  select,
+  textarea {
+    width: 100%;
+    border: 1px solid #475569;
+    border-radius: 4px;
+    background: #020617;
+    color: #e2e8f0;
+    padding: 0.35rem 0.45rem;
+    font: inherit;
+  }
+
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid #5eead4;
+    outline-offset: 2px;
+  }
+}
+
+.reportActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
 }
 
 .composer {
@@ -175,4 +228,28 @@
   font-size: 0.7rem;
   color: #fbbf24;
   margin: 0;
+}
+
+.localReply {
+  font-family: var(--font-federation);
+  font-size: 0.72rem;
+  color: #7dd3fc;
+  margin: 0.25rem 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.inlineCommandHint {
+  font: inherit;
+  color: #5eead4;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+
+  &:focus-visible {
+    outline: 2px solid #5eead4;
+    outline-offset: 2px;
+  }
 }

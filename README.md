@@ -159,6 +159,7 @@ Two static SPAs on the **`warp-12`** project:
 | ---- | ------------- | ------------ | --- |
 | Bridge | `hosting:bridge` | `apps/Warp12/dist` | [warp.iwdf.org](https://warp.iwdf.org) |
 | Leaderboard | `hosting:leaderboard` | `Warp12-leaderboard/dist` | [iwdf.org](https://iwdf.org) |
+| Warp Ops | `hosting:ops` | `apps/WarpOps/dist` | [ops.iwdf.org](https://ops.iwdf.org) |
 
 ### One-time setup
 
@@ -174,20 +175,23 @@ Two static SPAs on the **`warp-12`** project:
 3. Hosting targets (already configured in `.firebaserc`):
    - **Bridge** site id: `warp-12` → [warp.iwdf.org](https://warp.iwdf.org)
    - **Leaderboard** site id: `warp-12-leaderboard` → [iwdf.org](https://iwdf.org) (Firebase default URL: `warp-12-leaderboard.web.app`)
+   - **Warp Ops** site id: `warp-12-ops` → [ops.iwdf.org](https://ops.iwdf.org)
 
    Re-apply targets if needed:
    ```bash
    firebase target:apply hosting bridge warp-12 --project warp-12
    firebase target:apply hosting leaderboard warp-12-leaderboard --project warp-12
+   firebase target:apply hosting ops warp-12-ops --project warp-12
    ```
 4. In [Firebase Console → Hosting](https://console.firebase.google.com/project/warp-12/hosting), attach custom domains:
    - **Bridge** (`warp-12`): `warp.iwdf.org`
-   - **Leaderboard** (`warp-12-leaderboard`): `iwdf.org`
-5. Enable Hosting on both sites if prompted.
+   - **Leaderboard** (`warp-12-leaderboard`): `iwdf.org` (and `www` if used)
+   - **Warp Ops** (`warp-12-ops`): `ops.iwdf.org`
+5. Enable Hosting on the sites if prompted.
 
 ### Build + deploy
 
-Firebase config is injected at **build time** via `.env` files. Bridge uses `apps/Warp12/.env`; leaderboard uses `Warp12-leaderboard/.env` (same `warp-12` web app credentials).
+Firebase config is injected at **build time** via `.env` files. Bridge and Warp Ops use `apps/Warp12/.env`; leaderboard uses `Warp12-leaderboard/.env` (same `warp-12` web app credentials).
 
 ```bash
 # Firestore rules + indexes

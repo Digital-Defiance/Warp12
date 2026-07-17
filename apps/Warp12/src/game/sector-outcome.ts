@@ -40,19 +40,33 @@ export function sectorWinnerName(
 
 export function sectorStandings(
   game: GameState,
-  names: Readonly<Record<string, string>>
+  names: Readonly<Record<string, string>>,
+  options?: {
+    /**
+     * Online go-out: private hands are cleared (or not mirrored) once the
+     * sector completes. Prefer the public `handCounts` snapshot so final
+     * standings still show every seat's remaining tiles.
+     */
+    readonly handCounts?: Readonly<Record<string, number>>;
+  }
 ): readonly SectorStanding[] {
   if (game.objective === 'go-out') {
     const winnerId = sectorWinnerId(game);
-    return game.captains.map((captain) => ({
-      id: captain.id,
-      name: names[captain.id] ?? captain.displayName,
-      value: (game.round?.hands[captain.id] ?? []).length,
-      label:
-        captain.id === winnerId
-          ? 'Winner · empty hand'
-          : `${(game.round?.hands[captain.id] ?? []).length} tile(s) left`,
-    }));
+    const handCounts = options?.handCounts;
+    return game.captains.map((captain) => {
+      const fromHand = (game.round?.hands[captain.id] ?? []).length;
+      const tiles =
+        handCounts != null ? (handCounts[captain.id] ?? fromHand) : fromHand;
+      return {
+        id: captain.id,
+        name: names[captain.id] ?? captain.displayName,
+        value: tiles,
+        label:
+          captain.id === winnerId
+            ? 'Winner · empty hand'
+            : `${tiles} tile(s) left`,
+      };
+    });
   }
 
   return [...game.captains]

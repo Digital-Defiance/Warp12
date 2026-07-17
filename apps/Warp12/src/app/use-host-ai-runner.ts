@@ -269,9 +269,13 @@ export function useHostAiRunner(options: {
         return;
       }
 
+      let mirrored = aiHandsRef.current[activePlayerId];
+      // Empty array is not nullish — treat a zero-length mirror as "unknown" and
+      // fall back to getDoc (listeners can stay empty while one-shot reads work).
       let hand =
-        aiHandsRef.current[activePlayerId] ??
-        (await fetchAiCaptainHand(code, activePlayerId));
+        mirrored != null && mirrored.length > 0
+          ? mirrored
+          : await fetchAiCaptainHand(code, activePlayerId);
 
       if (currentRun !== runId.current) {
         return;

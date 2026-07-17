@@ -1,7 +1,7 @@
 import type { User } from 'firebase/auth';
 
 /** Mirrors Cloud Functions `WarpRole` claims. */
-export type WarpAuthRole = 'admin' | 'match_official';
+export type WarpAuthRole = 'admin' | 'moderator' | 'match_official';
 
 /** How long a successful (or failed) admin probe is trusted without re-hitting Auth. */
 const ADMIN_ROLE_CACHE_MS = 15 * 60 * 1000;
@@ -23,7 +23,11 @@ export function warpRolesFromClaims(
   }
   const roles: WarpAuthRole[] = [];
   for (const value of raw) {
-    if (value === 'admin' || value === 'match_official') {
+    if (
+      value === 'admin' ||
+      value === 'moderator' ||
+      value === 'match_official'
+    ) {
       roles.push(value);
     }
   }

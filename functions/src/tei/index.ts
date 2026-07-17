@@ -44,10 +44,30 @@ export {
   buildRatedMatchCertificate,
 } from './build-rated-match-certificate';
 export {
+  issueSignedCertificate,
+  onlineCertificateMatchCode,
+  resolveCertificateLookupCode,
+  type IssuedCertificate,
+} from './issue-certificate';
+export { issueOnlineSectorCertificate } from './issue-online-certificate';
+export {
   applyGroupRatingForPlayer,
   charterMatchesRatedEvent,
   groupObjectiveRatingStats,
 } from './apply-group-tei';
+export {
+  RATING_EVENTS_COLLECTION,
+  writeRatingEventIfAbsent,
+  markRatingEventsVoided,
+  officialRatingEventId,
+  onlineRatingEventId,
+  practiceRatingEventId,
+  snapshotFromRatedTable,
+  type RatingEventDocument,
+  type RatingEventParticipant,
+  type RatingEventPool,
+  type RatingEventSource,
+} from './rating-ledger';
 export {
   OFFICIAL_CHARTER_HOUSE_RULES,
   OFFICIAL_CHARTER_MODULES,

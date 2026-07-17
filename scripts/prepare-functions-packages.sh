@@ -7,8 +7,12 @@ VENDOR="$ROOT/functions/vendor"
 MODELS="$ROOT/functions/models"
 
 cd "$ROOT"
-yarn build:double-eighteen
-yarn build:engine
+if [[ "${SKIP_FUNCTIONS_VENDOR_BUILD:-}" == "1" ]]; then
+  echo "SKIP_FUNCTIONS_VENDOR_BUILD=1 — reusing existing dist for double-eighteen / engine"
+else
+  yarn build:double-eighteen
+  yarn build:engine
+fi
 
 rm -rf "$VENDOR"
 mkdir -p "$VENDOR" "$MODELS"

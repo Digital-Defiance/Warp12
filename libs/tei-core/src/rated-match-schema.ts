@@ -1,6 +1,6 @@
 export type RatedObjective = 'go-out' | 'points';
 
-export type WarpRole = 'admin' | 'match_official';
+export type WarpRole = 'admin' | 'moderator' | 'match_official';
 
 export type RatedMatchStatus =
   | 'draft'

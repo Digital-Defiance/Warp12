@@ -77,7 +77,7 @@ async function shareBlobAsFile(
   return 'shared';
 }
 
-async function copyTextToClipboard(text: string): Promise<'copied'> {
+export async function copyTextToClipboard(text: string): Promise<'copied'> {
   if (!navigator.clipboard?.writeText) {
     throw new Error('Clipboard is unavailable');
   }

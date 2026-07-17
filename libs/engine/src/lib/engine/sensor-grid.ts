@@ -32,22 +32,23 @@ export function initializeSensorGrid(
 }
 
 /**
- * Refill the sensor grid after a captain selects from it.
- * Moves one tile from uncharted sectors to the grid.
+ * Refill the sensor grid up to targetSize from Uncharted Sectors.
+ * Used after Sensor Sweep, Warp Drive Spool, Double Down, etc. — Module Gamma’s
+ * “constant, refreshing” market (RULES §VI Gamma).
  */
 export function refillSensorGrid(
   sensorGrid: readonly Coordinate[],
   unchartedSectors: readonly Coordinate[],
   targetSize: number
 ): { readonly sensorGrid: readonly Coordinate[]; readonly unchartedSectors: readonly Coordinate[] } {
-  if (sensorGrid.length >= targetSize || unchartedSectors.length === 0) {
+  if (targetSize <= 0 || sensorGrid.length >= targetSize || unchartedSectors.length === 0) {
     return { sensorGrid, unchartedSectors };
   }
 
-  const [next, ...remaining] = unchartedSectors;
+  const need = Math.min(targetSize - sensorGrid.length, unchartedSectors.length);
   return {
-    sensorGrid: [...sensorGrid, next!],
-    unchartedSectors: remaining,
+    sensorGrid: [...sensorGrid, ...unchartedSectors.slice(0, need)],
+    unchartedSectors: unchartedSectors.slice(need),
   };
 }
 

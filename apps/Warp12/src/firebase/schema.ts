@@ -43,6 +43,18 @@ export interface FirestoreGameDocument {
    * casual game — never rated — and free-form chat/DMs stay open during play.
    */
   rated?: boolean;
+  /** Ops soft-terminated this sector (no further play / rematch). */
+  opsTerminated?: boolean;
+  opsTerminatedAt?: string;
+  opsTerminatedBy?: string;
+  opsTerminationReason?: string;
+  /**
+   * When false, public spectate is closed (host or ops). Default true when
+   * omitted (legacy sectors).
+   */
+  allowSpectate?: boolean;
+  /** Uids watching without a fleet seat. Not used for TEI / hands / moves. */
+  spectatorIds?: string[];
   /** Fleet capacity (3–8). */
   maxPlayers: number;
   /** Denormalized uid list for security rules. */
@@ -112,6 +124,8 @@ export interface OnlineLobbySettings {
   maxPip?: number;
   /** Host intent to play for TEI (default true). */
   rated?: boolean;
+  /** Allow public spectate (default true). */
+  allowSpectate?: boolean;
   modules: import('warp12-engine').GameModuleConfig;
   houseRules?: HouseRulesConfig;
   charterId?: string;

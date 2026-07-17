@@ -23,6 +23,7 @@ export {
   type OnlineRatingIneligibleReason,
 } from './online-match-eligibility';
 import { requireVerifiedUser } from './auth';
+import { assertNotBanned } from './bans';
 import {
   getAIAnchorStored,
   resolveEffectivePlayerRating,
@@ -39,7 +40,13 @@ import {
   humanObjectiveRatingStats,
   squadObjectiveRatingStats,
   startingRatingForObjective,
+  writeRatingEventIfAbsent,
+  onlineRatingEventId,
+  snapshotFromRatedTable,
+  objectiveToTrackKey,
+  issueOnlineSectorCertificate,
   type PlayerStatsDocument,
+  type RatingEventParticipant,
   type SquadRatedPlayer,
   type StoredRating,
 } from './tei';
@@ -161,6 +168,9 @@ async function reportOnlineSquadMatch(
     muDelta: number;
   } | null = null;
 
+  const squadLedgerParticipants: RatingEventParticipant[] = [];
+  const appliedAt = new Date().toISOString();
+
   for (const human of humans) {
     if (!table.some((p) => p.playerId === human.id)) {
       continue; // human wasn't on a rated squad roster (shouldn't happen)
@@ -227,6 +237,18 @@ async function reportOnlineSquadMatch(
       return result;
     });
 
+    if (applied) {
+      squadLedgerParticipants.push({
+        uid: human.id,
+        displayName: human.displayName || 'Captain',
+        rank: applied.rank,
+        won: applied.won,
+        ratingBefore: applied.ratingBefore,
+        ratingAfter: applied.ratingAfter,
+        squadId: applied.squadId,
+      });
+    }
+
     if (applied && human.id === callerUid) {
       callerReport = {
         rated: true,
@@ -238,6 +260,41 @@ async function reportOnlineSquadMatch(
         muDelta: applied.ratingAfter.mu - applied.ratingBefore.mu,
       };
     }
+  }
+
+  if (squadLedgerParticipants.length > 0) {
+    await writeRatingEventIfAbsent({
+      eventId: onlineRatingEventId(gameId, 'squad'),
+      source: 'online',
+      matchId: gameId,
+      pool: 'squad',
+      track: objectiveToTrackKey(objective),
+      objective,
+      playedAt: appliedAt,
+      appliedAt,
+      memberUids: squadLedgerParticipants.map((p) => p.uid),
+      participants: squadLedgerParticipants,
+      snapshot: snapshotFromRatedTable(table),
+      writer: 'reportOnlineSquadMatch',
+    });
+
+    await issueOnlineSectorCertificate({
+      gameId,
+      objective,
+      campaignRounds: game.campaignRounds ?? 13,
+      players: squadLedgerParticipants.map((p) => {
+        const captain = humans.find((h) => h.id === p.uid);
+        return {
+          uid: p.uid,
+          displayName: p.displayName ?? captain?.displayName ?? 'Captain',
+          rank: p.rank,
+          score:
+            typeof captain?.pointsScore === 'number' ? captain.pointsScore : 0,
+          ratingBefore: p.ratingBefore,
+          ratingAfter: p.ratingAfter,
+        };
+      }),
+    });
   }
 
   // Durable squad-vs-squad archive (idempotent on gameId).
@@ -271,6 +328,7 @@ export const reportOnlineMatch = onCall(
   { memory: '256MiB', timeoutSeconds: 60 },
   async (request) => {
     const callerUid = requireVerifiedUser(request);
+    await assertNotBanned(callerUid, request);
     const { gameId } = (request.data ?? {}) as { gameId?: string };
     if (!gameId || typeof gameId !== 'string') {
       throw new HttpsError('invalid-argument', 'gameId required.');
@@ -419,6 +477,21 @@ export const reportOnlineMatch = onCall(
       ? groupRatedClaimId(charter.charterId, gameId, charter.seasonKey)
       : null;
 
+    const groupLedgerParticipants: RatingEventParticipant[] = [];
+    const humanLedgerParticipants: RatingEventParticipant[] = [];
+    const certPlayers: Array<{
+      uid: string;
+      displayName: string;
+      rank: number;
+      score: number;
+      ratingBefore: StoredRating;
+      ratingAfter: StoredRating;
+      charterId?: string;
+      globalRatingBefore?: StoredRating;
+      globalRatingAfter?: StoredRating;
+    }> = [];
+    const appliedAt = new Date().toISOString();
+
     for (const human of humans) {
       const ref = db.collection('playerStats').doc(human.id);
 
@@ -448,6 +521,8 @@ export const reportOnlineMatch = onCall(
         let rank = 0;
         let charterRatingBefore: StoredRating | undefined;
         let charterRatingAfter: StoredRating | undefined;
+        let humanPoolBefore: StoredRating | undefined;
+        let humanPoolAfter: StoredRating | undefined;
 
         if (charter) {
           const groupApplied = applyGroupRatingForPlayer(
@@ -478,6 +553,8 @@ export const reportOnlineMatch = onCall(
             );
             if (humanApplied) {
               humanRating = humanApplied.humanRating;
+              humanPoolBefore = humanApplied.ratingBefore;
+              humanPoolAfter = humanApplied.ratingAfter;
               ratingBefore = humanApplied.ratingBefore;
               ratingAfter = humanApplied.ratingAfter;
             }
@@ -492,6 +569,8 @@ export const reportOnlineMatch = onCall(
           ratingAfter = result.ratingAfter;
           won = result.won;
           rank = result.rank;
+          humanPoolBefore = result.ratingBefore;
+          humanPoolAfter = result.ratingAfter;
         }
 
         const now = new Date().toISOString();
@@ -557,8 +636,58 @@ export const reportOnlineMatch = onCall(
           ratingAfter,
           charterRatingBefore,
           charterRatingAfter,
+          humanPoolBefore,
+          humanPoolAfter,
         };
       });
+
+      if (applied) {
+        if (applied.charterRatingBefore && applied.charterRatingAfter) {
+          groupLedgerParticipants.push({
+            uid: human.id,
+            displayName: human.displayName || 'Captain',
+            rank: applied.rank,
+            won: applied.won,
+            ratingBefore: applied.charterRatingBefore,
+            ratingAfter: applied.charterRatingAfter,
+          });
+        }
+        if (applied.humanPoolBefore && applied.humanPoolAfter) {
+          humanLedgerParticipants.push({
+            uid: human.id,
+            displayName: human.displayName || 'Captain',
+            rank: applied.rank,
+            won: applied.won,
+            ratingBefore: applied.humanPoolBefore,
+            ratingAfter: applied.humanPoolAfter,
+          });
+        }
+
+        const score =
+          typeof human.pointsScore === 'number' ? human.pointsScore : 0;
+        if (applied.charterRatingBefore && applied.charterRatingAfter) {
+          certPlayers.push({
+            uid: human.id,
+            displayName: human.displayName || 'Captain',
+            rank: applied.rank,
+            score,
+            ratingBefore: applied.charterRatingBefore,
+            ratingAfter: applied.charterRatingAfter,
+            charterId: charter?.charterId,
+            globalRatingBefore: applied.humanPoolBefore,
+            globalRatingAfter: applied.humanPoolAfter,
+          });
+        } else if (applied.humanPoolBefore && applied.humanPoolAfter) {
+          certPlayers.push({
+            uid: human.id,
+            displayName: human.displayName || 'Captain',
+            rank: applied.rank,
+            score,
+            ratingBefore: applied.humanPoolBefore,
+            ratingAfter: applied.humanPoolAfter,
+          });
+        }
+      }
 
       if (applied && human.id === callerUid) {
         callerReport = {
@@ -584,6 +713,75 @@ export const reportOnlineMatch = onCall(
       }
     }
 
-    return callerReport ?? { rated: true, alreadyApplied: true };
+    const snapshot = snapshotFromRatedTable(table);
+    const track = objectiveToTrackKey(objective);
+    if (groupLedgerParticipants.length > 0 && charter) {
+      await writeRatingEventIfAbsent({
+        eventId: onlineRatingEventId(gameId, 'group'),
+        source: 'online',
+        matchId: gameId,
+        pool: 'group',
+        track,
+        objective,
+        playedAt: appliedAt,
+        appliedAt,
+        memberUids: groupLedgerParticipants.map((p) => p.uid),
+        participants: groupLedgerParticipants,
+        snapshot,
+        charterId: charter.charterId,
+        seasonKey: charter.seasonKey,
+        writer: 'reportOnlineMatch',
+      });
+    }
+    if (humanLedgerParticipants.length > 0) {
+      await writeRatingEventIfAbsent({
+        eventId: onlineRatingEventId(gameId, 'human'),
+        source: 'online',
+        matchId: gameId,
+        pool: 'human',
+        track,
+        objective,
+        playedAt: appliedAt,
+        appliedAt,
+        memberUids: humanLedgerParticipants.map((p) => p.uid),
+        participants: humanLedgerParticipants,
+        snapshot,
+        writer: 'reportOnlineMatch',
+      });
+    }
+
+    let certificateMatchCode: string | undefined;
+    if (certPlayers.length > 0) {
+      const issued = await issueOnlineSectorCertificate({
+        gameId,
+        objective,
+        campaignRounds: game.campaignRounds ?? 13,
+        players: certPlayers,
+        charter: charter
+          ? {
+              charterId: charter.charterId,
+              name: charter.name,
+              slug: charter.slug,
+              rulesProfileId: charter.rulesProfileId,
+              playerCount: charter.playerCount,
+              campaignRounds: charter.campaignRounds,
+              seasonLabel: charter.seasonLabel,
+            }
+          : undefined,
+      });
+      certificateMatchCode = issued?.matchCode;
+    }
+
+    if (callerReport) {
+      return {
+        ...callerReport,
+        ...(certificateMatchCode ? { certificateMatchCode } : {}),
+      };
+    }
+    return {
+      rated: true,
+      alreadyApplied: true,
+      ...(certificateMatchCode ? { certificateMatchCode } : {}),
+    };
   }
 );

@@ -12,6 +12,12 @@ service cloud.firestore {
         && request.auth.uid in data.captainIds;
     }
 
+    function isSpectator(data) {
+      return isSignedIn()
+        && data.spectatorIds != null
+        && request.auth.uid in data.spectatorIds;
+    }
+
     function isHost(data) {
       return isSignedIn() && request.auth.uid == data.hostId;
     }
@@ -89,6 +95,44 @@ service cloud.firestore {
         && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
 
+    // Ban docs are Admin SDK only. Expiry is Timestamp or null.
+    function isBanned() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/bans/$(request.auth.uid))
+        && get(/databases/$(database)/documents/bans/$(request.auth.uid)).data.active == true
+        && (
+          get(/databases/$(database)/documents/bans/$(request.auth.uid)).data.expiresAt == null
+          || get(/databases/$(database)/documents/bans/$(request.auth.uid)).data.expiresAt
+               > request.time
+        );
+    }
+
+    function notBanned() {
+      return !isBanned();
+    }
+
+    // Global mute docs are Admin SDK only. Expiry is Timestamp or null.
+    // mode == 'shadow' allows creates (hidden after write); omit/hard blocks.
+    function isGloballyMuted() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/mutes/$(request.auth.uid))
+        && get(/databases/$(database)/documents/mutes/$(request.auth.uid)).data.active == true
+        && get(/databases/$(database)/documents/mutes/$(request.auth.uid)).data.get('mode', 'hard') != 'shadow'
+        && (
+          get(/databases/$(database)/documents/mutes/$(request.auth.uid)).data.expiresAt == null
+          || get(/databases/$(database)/documents/mutes/$(request.auth.uid)).data.expiresAt
+               > request.time
+        );
+    }
+
+    function notGloballyMuted() {
+      return !isGloballyMuted();
+    }
+
+    function sectorNotTerminated(data) {
+      return data.get('opsTerminated', false) != true;
+    }
+
     function ratedStatsFieldsUnchanged() {
       return request.resource.data.get('humanRating', null) == resource.data.get('humanRating', null)
         && request.resource.data.get('humanRatedGameIds', null) == resource.data.get('humanRatedGameIds', null)
@@ -133,6 +177,52 @@ service cloud.firestore {
       return clientStatsCreate();
     }
 
+    match /bans/{uid} {
+      allow read, write: if false;
+    }
+
+    match /opsAudit/{id} {
+      allow read, write: if false;
+    }
+
+    // Moderation queue/config/rate state is reachable only through validated
+    // Cloud Functions. Reports may contain DM/squad evidence.
+    match /moderationReports/{reportId} {
+      allow read, write: if false;
+    }
+
+    match /moderationConfig/{configId} {
+      allow read, write: if false;
+    }
+
+    match /moderationReportRate/{uid} {
+      allow read, write: if false;
+    }
+
+    // TEI match ledger — Admin SDK only (ops callables). Prerequisite for cascade.
+    match /ratingEvents/{eventId} {
+      allow read, write: if false;
+    }
+
+    match /adminNotes/{uid} {
+      allow read, write: if false;
+    }
+
+    match /mutes/{uid} {
+      allow read, write: if false;
+    }
+
+    // Related-account / fingerprint signals — Admin SDK only.
+    match /captainSignals/{uid} {
+      allow read, write: if false;
+    }
+    match /ipSightings/{ipKey} {
+      allow read, write: if false;
+    }
+    match /installSightings/{installId} {
+      allow read, write: if false;
+    }
+
     match /ratedMatches/{matchCode} {
       allow read: if isSignedIn();
       allow create, update, delete: if false;
@@ -173,6 +263,7 @@ service cloud.firestore {
 
       // Host opens a new sector lobby.
       allow create: if isSignedIn()
+        && notBanned()
         && request.resource.data.phase == 'lobby'
         && request.resource.data.hostId == request.auth.uid
         && request.resource.data.captainIds.size() == 1
@@ -180,28 +271,10 @@ service cloud.firestore {
         && request.resource.data.captains.size() == 1
         && request.resource.data.captains[0].id == request.auth.uid;
 
-      allow update: if isSignedIn() && (
-        // Host edits lobby settings or launches / resets the sector.
-        (isHost(resource.data) && resource.data.phase == 'lobby')
-        ||
-        // Host resets an active/completed sector back to lobby.
-        (isHost(resource.data)
-          && resource.data.phase in ['active', 'complete', 'round-end']
-          && request.resource.data.phase == 'lobby')
-        ||
-        // Captain submits a move (engine validates inside the transaction).
-        (isMember(resource.data)
-          && resource.data.phase == 'active'
-          && request.resource.data.phase in ['active', 'complete', 'round-end'])
-        ||
-        // New captain joins a lobby.
-        (resource.data.phase == 'lobby'
-          && isMember(request.resource.data)
-          && !(request.auth.uid in resource.data.captainIds)
-          && lobbyRosterGrewByOne()
-          && lobbyMissionSettingsUnchanged())
-        ||
-        // Captain leaves a lobby (host cannot — enforced in app).
+      allow update: if isSignedIn()
+        && sectorNotTerminated(resource.data)
+        && (
+        // Banned captains may still leave a lobby so they are not stuck aboard.
         (resource.data.phase == 'lobby'
           && isMember(resource.data)
           && request.auth.uid in resource.data.captainIds
@@ -209,33 +282,72 @@ service cloud.firestore {
           && lobbyRosterShrankByOne()
           && lobbyMissionSettingsUnchanged())
         ||
-        // Host removes a captain from the lobby.
-        (resource.data.phase == 'lobby'
-          && isHost(resource.data)
-          && lobbyRosterShrankByOne()
-          && lobbyMissionSettingsUnchanged())
-        ||
-        // Host adds an AI officer to the lobby.
-        (resource.data.phase == 'lobby'
-          && isHost(resource.data)
-          && lobbyAiCaptainAdded()
-          && lobbyMissionSettingsUnchanged())
+        (notBanned() && (
+          // Host edits lobby settings or launches / resets the sector.
+          (isHost(resource.data) && resource.data.phase == 'lobby')
+          ||
+          // Host toggles spectator gallery mid-mission (or in lobby).
+          (isHost(resource.data)
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['allowSpectate', 'spectatorIds', 'updatedAt']))
+          ||
+          // Host resets an active/completed sector back to lobby.
+          (isHost(resource.data)
+            && resource.data.phase in ['active', 'complete', 'round-end']
+            && request.resource.data.phase == 'lobby')
+          ||
+          // Captain submits a move (engine validates inside the transaction).
+          (isMember(resource.data)
+            && resource.data.phase == 'active'
+            && request.resource.data.phase in ['active', 'complete', 'round-end'])
+          ||
+          // New captain joins a lobby.
+          (resource.data.phase == 'lobby'
+            && isMember(request.resource.data)
+            && !(request.auth.uid in resource.data.captainIds)
+            && lobbyRosterGrewByOne()
+            && lobbyMissionSettingsUnchanged())
+          ||
+          // Host removes a captain from the lobby.
+          (resource.data.phase == 'lobby'
+            && isHost(resource.data)
+            && lobbyRosterShrankByOne()
+            && lobbyMissionSettingsUnchanged())
+          ||
+          // Host adds an AI officer to the lobby.
+          (resource.data.phase == 'lobby'
+            && isHost(resource.data)
+            && lobbyAiCaptainAdded()
+            && lobbyMissionSettingsUnchanged())
+        ))
       );
 
       allow delete: if isHost(resource.data)
+        && notBanned()
+        && sectorNotTerminated(resource.data)
         && resource.data.phase in ['lobby', 'active', 'complete', 'round-end'];
+
+      match /mutes/{mutedUid} {
+        allow read, write: if false;
+      }
 
       match /presence/{playerId} {
         function parentGame() {
           return get(/databases/$(database)/documents/games/$(gameId)).data;
         }
 
-        allow read: if isSignedIn() && isMember(parentGame());
+        allow read: if isSignedIn() && (
+          isMember(parentGame())
+          || isSpectator(parentGame())
+          || isAdmin()
+        );
 
         allow create, update: if isSignedIn()
+          && notBanned()
           && request.auth.uid == playerId
           && isMember(parentGame())
-          && parentGame().phase == 'active';
+          && parentGame().phase == 'active'
+          && sectorNotTerminated(parentGame());
       }
 
       // ── Subspace Messaging ──────────────────────────────────────────────
@@ -290,23 +402,68 @@ service cloud.firestore {
             : null;
         }
 
-        // Any sector member can read all messages (including DMs — per the
-        // honor model, not private to sender/recipient). Squad-channel
-        // messages are further restricted to that squad's own members.
+        // Members: all messages (DMs honor-model); squad gated. Shadow-mute is
+        // enforced by moving audience off 'table' + client filter — do NOT gate
+        // list reads on shadowHidden (Firestore rejects queries that cannot prove
+        // every matched doc is readable).
+        // Spectators: public table only (audience == 'table').
+        // Admins: full thread for silent supervision.
         allow read: if isSignedIn()
-          && isMember(parentGameForMsg())
           && (
-            resource.data.get('channel', 'table') != 'squad'
-            || resource.data.squadronId == senderSquadronId()
+            isAdmin()
+            || (
+              isMember(parentGameForMsg())
+              && (
+                resource.data.get('channel', 'table') != 'squad'
+                || resource.data.squadronId == senderSquadronId()
+              )
+            )
+            || (
+              isSpectator(parentGameForMsg())
+              && resource.data.get('audience', 'table') == 'table'
+            )
           );
+
+        function isSectorMuted() {
+          return isSignedIn()
+            && exists(/databases/$(database)/documents/games/$(gameId)/mutes/$(request.auth.uid))
+            && get(/databases/$(database)/documents/games/$(gameId)/mutes/$(request.auth.uid)).data.active == true
+            && get(/databases/$(database)/documents/games/$(gameId)/mutes/$(request.auth.uid)).data.get('mode', 'hard') != 'shadow'
+            && (
+              get(/databases/$(database)/documents/games/$(gameId)/mutes/$(request.auth.uid)).data.expiresAt == null
+              || get(/databases/$(database)/documents/games/$(gameId)/mutes/$(request.auth.uid)).data.expiresAt
+                   > request.time
+            );
+        }
 
         // Write rules: sender must be a member; enforce rated-sector comms
         // gate at the rule level so tampered clients cannot bypass it.
         allow create: if isSignedIn()
+          && notBanned()
+          && notGloballyMuted()
+          && !isSectorMuted()
+          && sectorNotTerminated(parentGameForMsg())
           && isMember(parentGameForMsg())
           && request.resource.data.from == request.auth.uid
+          && request.resource.data.get('shadowHidden', false) == false
           && request.resource.data.at is string
           && request.resource.data.kind in ['phrase', 'text']
+          && request.resource.data.audience in ['table', 'dm', 'squad']
+          && (
+            (
+              request.resource.data.audience == 'dm'
+              && request.resource.data.keys().hasAny(['to'])
+            )
+            || (
+              request.resource.data.audience == 'squad'
+              && request.resource.data.get('channel', '') == 'squad'
+            )
+            || (
+              request.resource.data.audience == 'table'
+              && !request.resource.data.keys().hasAny(['to'])
+              && request.resource.data.get('channel', 'table') != 'squad'
+            )
+          )
           // Module Zeta: a squad-channel message is always allowed (honor
           // system — coordinate strategy, never paste raw hand contents) but
           // only for a captain actually on that squad, and only when the
@@ -336,7 +493,7 @@ service cloud.firestore {
             )
           );
 
-        // Messages are append-only — no edits or deletes.
+        // Messages are append-only for clients — Admin SDK may set shadowHidden.
         allow update, delete: if false;
       }
 
@@ -360,6 +517,7 @@ service cloud.firestore {
         );
 
         allow create, update: if isSignedIn()
+          && notBanned()
           && playerId in parentGame().captainIds
           && (
             // Host deals every hand when launching (hands written before phase → active).
@@ -391,6 +549,7 @@ service cloud.firestore {
         || isOwner(uid);
 
       allow create, update: if isOwner(uid)
+        && notBanned()
         && request.resource.data.uid == uid;
 
       allow delete: if isOwner(uid);
@@ -399,9 +558,10 @@ service cloud.firestore {
     match /playerStats/{uid} {
       allow read: if true;
 
-      allow create: if isOwner(uid) && clientStatsCreate();
+      allow create: if isOwner(uid) && notBanned() && clientStatsCreate();
 
       allow update: if isOwner(uid)
+        && notBanned()
         && request.resource.data.uid == uid
         && ratedStatsFieldsUnchanged()
         && clientProfileFieldsOnly();
@@ -413,9 +573,11 @@ service cloud.firestore {
       allow read: if logIsReadable(resource.data);
 
       allow create: if isSignedIn()
+        && notBanned()
         && request.resource.data.authorId == request.auth.uid;
 
       allow update, delete: if isSignedIn()
+        && notBanned()
         && resource.data.authorId == request.auth.uid;
     }
   }

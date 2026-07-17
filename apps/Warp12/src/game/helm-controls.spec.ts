@@ -246,6 +246,31 @@ describe('resolveHelmControls', () => {
     );
   });
 
+  it('hides Engage Warp Drive when Uncharted (and Sensor Grid) are empty', () => {
+    const round = trailReadyRound();
+    const empty = {
+      ...round,
+      unchartedSectors: [],
+      sensorGrid: [],
+    };
+    const game = makeGame(empty, {
+      modules: resolveModules({ warpDriveSpool: true }),
+      houseRules: manual,
+    });
+
+    const helm = resolveHelmControls({
+      round: empty,
+      handOwnerId: 'a',
+      isMyTurn: true,
+      houseRules: manual,
+      dropToImpulsePending: false,
+      legalMovesCount: 0,
+      gameState: game,
+    });
+
+    expect(helm.spoolOptions).toHaveLength(0);
+  });
+
   it('shows pass red alert when the house rule allows passing without drawing', () => {
     const round = makeRound(['a', 'b'], {
       activePlayerId: 'a',

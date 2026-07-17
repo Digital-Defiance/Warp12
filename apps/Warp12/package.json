@@ -1,8 +1,9 @@
 {
   "name": "@warp12/Warp12",
-  "version": "0.6.53",
+  "version": "0.6.54",
   "private": true,
   "dependencies": {
+    "@brightchain/brightdate": "^0.37.0",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-deep-link": "^2",
     "@tauri-apps/plugin-opener": "^2",

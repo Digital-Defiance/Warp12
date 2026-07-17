@@ -51,6 +51,56 @@ function onlineDoc(
 describe('prepareOnlineAction', () => {
   const manual = resolveHouseRules({ manualShieldControl: true });
 
+  it('preserves spectator gallery fields across a full-doc rewrite', () => {
+    const round = makeRound(['a', 'b'], {
+      activePlayerId: 'a',
+      spacedockValue: 6,
+      hands: { a: [T(6, 7)], b: [] },
+      table: {
+        ...createInitialTable(['a', 'b'], 6, 'a'),
+        warpTrails: {
+          a: {
+            playerId: 'a',
+            tiles: [placed(T(6, 6), 0, 6)],
+            distressBeacon: { active: true },
+          },
+          b: {
+            playerId: 'b',
+            tiles: [],
+            distressBeacon: { active: false },
+          },
+        },
+      },
+    });
+    const state = makeGame(round, { houseRules: manual, id: 'WATCH1' });
+    const doc = onlineDoc(state, [T(6, 7)]);
+    doc.allowSpectate = true;
+    doc.spectatorIds = ['gallery-uid-1', 'gallery-uid-2'];
+    doc.charterId = 'charter-abc';
+
+    const chart = prepareOnlineAction(
+      doc,
+      'a',
+      {
+        type: 'CHART_COORDINATE',
+        playerId: 'a',
+        coordinate: T(6, 7),
+        route: { kind: 'warp-trail', playerId: 'a' },
+      },
+      { a: [T(6, 7)], b: [] }
+    );
+    expect(chart.ok).toBe(true);
+    if (!chart.ok) {
+      return;
+    }
+    expect(chart.publicDoc.allowSpectate).toBe(true);
+    expect(chart.publicDoc.spectatorIds).toEqual([
+      'gallery-uid-1',
+      'gallery-uid-2',
+    ]);
+    expect(chart.publicDoc.charterId).toBe('charter-abc');
+  });
+
   it('runs manual shield chart → raise → pass through the online pipeline', () => {
     const round = makeRound(['a', 'b'], {
       activePlayerId: 'a',

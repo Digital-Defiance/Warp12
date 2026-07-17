@@ -1,5 +1,10 @@
 import type { WarpPipPreset, WarpTileBg } from 'warp12-theme';
 
+import {
+  DEFAULT_AUTO_FOLLOW_RETURN_DELAY_MS,
+  sanitizeAutoFollowReturnDelayMs,
+} from './follow-snap-back.js';
+
 export type CaptainTailsDisplay = 'number' | 'domino';
 /** Tails-panel coordinate readout: full `X:Y`, tail (open) value only, or hidden. */
 export type CaptainTailsCoordinate = 'full' | 'tail' | 'off';
@@ -12,6 +17,14 @@ export interface TableOptionsPrefs {
   pipPreset: WarpPipPreset;
   teachingMode: boolean;
   autoFollowAction: boolean;
+  /**
+   * After following a charted tile, ease the camera back to the pre-jump view
+   * once `autoFollowReturnDelayMs` elapses (unless the user pans/zooms or
+   * another tile is charted first).
+   */
+  autoFollowReturn: boolean;
+  /** Dwell before snap-back, in milliseconds. */
+  autoFollowReturnDelayMs: number;
   /** Round / Spacedock / Uncharted / alerts floating panel. */
   sectorStatusHud: boolean;
   captainTailsHud: boolean;
@@ -37,6 +50,8 @@ export const DEFAULT_TABLE_OPTIONS: TableOptionsPrefs = {
   pipPreset: 'classic',
   teachingMode: false,
   autoFollowAction: false,
+  autoFollowReturn: false,
+  autoFollowReturnDelayMs: DEFAULT_AUTO_FOLLOW_RETURN_DELAY_MS,
   // Desktop default on. Phone uses resolveSectorStatusHud() → off until toggled
   // (opaque panel was too heavy; hologram is opt-in). Module Gamma still gets
   // its own Sensor Grid panel either way.
@@ -106,6 +121,17 @@ function sanitizePartial(raw: unknown): Partial<TableOptionsPrefs> {
   }
   if (typeof value.autoFollowAction === 'boolean') {
     next.autoFollowAction = value.autoFollowAction;
+  }
+  if (typeof value.autoFollowReturn === 'boolean') {
+    next.autoFollowReturn = value.autoFollowReturn;
+  }
+  if (
+    typeof value.autoFollowReturnDelayMs === 'number' ||
+    typeof value.autoFollowReturnDelayMs === 'string'
+  ) {
+    next.autoFollowReturnDelayMs = sanitizeAutoFollowReturnDelayMs(
+      value.autoFollowReturnDelayMs
+    );
   }
   if (typeof value.sectorStatusHud === 'boolean') {
     next.sectorStatusHud = value.sectorStatusHud;

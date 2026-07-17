@@ -2,7 +2,6 @@ import * as admin from 'firebase-admin';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 
 import { bootstrapAdminSecret } from './params';
-
 import {
   hasRole,
   requireAdmin,
@@ -10,6 +9,7 @@ import {
   requireSignedIn,
   requireVerifiedUser,
 } from './auth';
+import { assertNotBanned } from './bans';
 import {
   applyHumanRatingForPlayer,
   applyGroupRatingForPlayer,
@@ -20,15 +20,21 @@ import {
   groupObjectiveRatingStats,
   groupRatedClaimId,
   humanObjectiveRatingStats,
+  issueSignedCertificate,
   normalizeMatchCode,
   resolveEffectivePlayerRating,
   startingRatingForObjective,
+  writeRatingEventIfAbsent,
+  officialRatingEventId,
+  snapshotFromRatedTable,
+  objectiveToTrackKey,
   WARP12_OFFICIAL_RULES_PROFILE_ID,
   type PlayerStatsDocument,
   type RatedMatchCertificatePlayer,
   type RatedMatchDocument,
   type RatedMatchStanding,
   type RatedObjective,
+  type RatingEventParticipant,
   type StoredRating,
   type WarpRole,
 } from './tei';
@@ -140,6 +146,8 @@ async function applyRatingForApprovedMatch(
       )
     : null;
   const certificatePlayers: RatedMatchCertificatePlayer[] = [];
+  const groupLedgerParticipants: RatingEventParticipant[] = [];
+  const humanLedgerParticipants: RatingEventParticipant[] = [];
 
   for (const row of match.standings) {
     if (claims[row.uid]) {
@@ -263,10 +271,45 @@ async function applyRatingForApprovedMatch(
     claims[row.uid] = true;
 
     const standing = match.standings.find((s) => s.uid === row.uid);
+    const displayName = participant?.displayName ?? base.displayName;
+
+    if (charter) {
+      groupLedgerParticipants.push({
+        uid: row.uid,
+        displayName,
+        rank,
+        won,
+        ratingBefore,
+        ratingAfter,
+        score: standing?.score ?? 0,
+      });
+      if (globalRatingBefore && globalRatingAfter) {
+        humanLedgerParticipants.push({
+          uid: row.uid,
+          displayName,
+          rank,
+          won,
+          ratingBefore: globalRatingBefore,
+          ratingAfter: globalRatingAfter,
+          score: standing?.score ?? 0,
+        });
+      }
+    } else {
+      humanLedgerParticipants.push({
+        uid: row.uid,
+        displayName,
+        rank,
+        won,
+        ratingBefore,
+        ratingAfter,
+        score: standing?.score ?? 0,
+      });
+    }
+
     certificatePlayers.push(
       buildCertificatePlayer({
         uid: row.uid,
-        displayName: participant?.displayName ?? base.displayName,
+        displayName,
         rank,
         score: standing?.score ?? 0,
         ratingBefore,
@@ -276,6 +319,43 @@ async function applyRatingForApprovedMatch(
         globalRatingAfter,
       })
     );
+  }
+
+  const track = objectiveToTrackKey(match.objective);
+  const snapshot = snapshotFromRatedTable(table);
+  if (groupLedgerParticipants.length > 0 && charter) {
+    await writeRatingEventIfAbsent({
+      eventId: officialRatingEventId(match.matchCode, 'group'),
+      source: 'official',
+      matchId: match.matchCode,
+      pool: 'group',
+      track,
+      objective: match.objective,
+      playedAt: match.completedAt ?? now,
+      appliedAt: now,
+      memberUids: groupLedgerParticipants.map((p) => p.uid),
+      participants: groupLedgerParticipants,
+      snapshot,
+      charterId: charter.charterId,
+      seasonKey: charter.seasonKey,
+      writer: 'approveRatedMatch',
+    });
+  }
+  if (humanLedgerParticipants.length > 0) {
+    await writeRatingEventIfAbsent({
+      eventId: officialRatingEventId(match.matchCode, 'human'),
+      source: 'official',
+      matchId: match.matchCode,
+      pool: 'human',
+      track,
+      objective: match.objective,
+      playedAt: match.completedAt ?? now,
+      appliedAt: now,
+      memberUids: humanLedgerParticipants.map((p) => p.uid),
+      participants: humanLedgerParticipants,
+      snapshot,
+      writer: 'approveRatedMatch',
+    });
   }
 
   const certificate = buildRatedMatchCertificate({
@@ -296,9 +376,11 @@ async function applyRatingForApprovedMatch(
     players: certificatePlayers,
   });
 
+  const certificateWithPdf = await issueSignedCertificate(certificate);
+
   await matchRef(match.matchCode).update({
     teiClaims: claims,
-    certificate,
+    certificate: certificateWithPdf,
     updatedAt: now,
   });
 }
@@ -309,7 +391,7 @@ export const setUserRoles = onCall(async (request) => {
   if (!uid || !Array.isArray(roles)) {
     throw new HttpsError('invalid-argument', 'uid and roles array required.');
   }
-  const allowed: WarpRole[] = ['admin', 'match_official'];
+  const allowed: WarpRole[] = ['admin', 'moderator', 'match_official'];
   for (const role of roles) {
     if (!allowed.includes(role)) {
       throw new HttpsError('invalid-argument', `Invalid role: ${role}`);
@@ -332,6 +414,7 @@ export const bootstrapAdmin = onCall(async (request) => {
 
 export const createRatedMatch = onCall(async (request) => {
   const officialId = requireOfficial(request);
+  await assertNotBanned(officialId, request);
   const data = request.data as {
     objective?: RatedObjective;
     campaignRounds?: number;
@@ -406,6 +489,7 @@ export const createRatedMatch = onCall(async (request) => {
 
 export const checkInToMatch = onCall(async (request) => {
   const uid = requireVerifiedUser(request);
+  await assertNotBanned(uid, request);
   const { matchCode, displayName } = request.data as {
     matchCode?: string;
     displayName?: string;

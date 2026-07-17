@@ -26,6 +26,8 @@ describe('table-view-prefs', () => {
       captainTailsCoordinate: 'tail',
       pipPreset: 'futuristic',
       bridgeSoundsEnabled: false,
+      autoFollowReturn: true,
+      autoFollowReturnDelayMs: 2500,
     });
 
     expect(readTableOptions()).toMatchObject({
@@ -37,7 +39,20 @@ describe('table-view-prefs', () => {
       pipPreset: 'futuristic',
       tileBg: 'dark',
       bridgeSoundsEnabled: false,
+      autoFollowReturn: true,
+      autoFollowReturnDelayMs: 2500,
     });
+  });
+
+  it('sanitizes return-view delay ms', () => {
+    writeTableOptions({ autoFollowReturnDelayMs: 50 });
+    expect(readTableOptions().autoFollowReturnDelayMs).toBe(300);
+
+    localStorage.setItem(
+      'warp12-table-options',
+      JSON.stringify({ autoFollowReturnDelayMs: 'nope' })
+    );
+    expect(readTableOptions().autoFollowReturnDelayMs).toBe(2000);
   });
 
   it('defaults and sanitizes the captain tails coordinate readout', () => {

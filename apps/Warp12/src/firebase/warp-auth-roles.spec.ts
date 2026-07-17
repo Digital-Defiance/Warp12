@@ -20,6 +20,8 @@ describe('warp-auth-roles', () => {
       'admin',
       'match_official',
     ]);
+    expect(warpRolesFromClaims({ roles: ['moderator'] })).toEqual(['moderator']);
+    expect(claimsIncludeAdmin({ roles: ['moderator'] })).toBe(false);
   });
 
   it('caches admin probes so seed loops do not force-refresh every call', async () => {

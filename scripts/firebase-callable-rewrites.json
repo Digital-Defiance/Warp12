@@ -1,27 +1,318 @@
 [
-  { "name": "approveRatedMatch", "serviceId": "approveratedmatch" },
-  { "name": "bootstrapAdmin", "serviceId": "bootstrapadmin" },
-  { "name": "checkInToMatch", "serviceId": "checkintomatch" },
-  { "name": "createCharter", "serviceId": "createcharter" },
-  { "name": "createRatedMatch", "serviceId": "createratedmatch" },
-  { "name": "getCharter", "serviceId": "getcharter" },
-  { "name": "getCharterLeaderboard", "serviceId": "getcharterleaderboard" },
-  { "name": "getCharterManageInfo", "serviceId": "getchartermanageinfo" },
-  { "name": "getMyRoles", "serviceId": "getmyroles" },
-  { "name": "joinCharter", "serviceId": "joincharter" },
-  { "name": "leaveCharter", "serviceId": "leavecharter" },
-  { "name": "listCharterJoinRequests", "serviceId": "listcharterjoinrequests" },
-  { "name": "listListedCharters", "serviceId": "listlistedcharters" },
-  { "name": "listMyCharters", "serviceId": "listmycharters" },
-  { "name": "rejectRatedMatch", "serviceId": "rejectratedmatch" },
-  { "name": "reportOnlineMatch", "serviceId": "reportonlinematch" },
-  { "name": "reportPracticeAiMatch", "serviceId": "reportpracticeaimatch" },
-  { "name": "requestJoinCharter", "serviceId": "requestjoincharter" },
-  { "name": "resolveJoinRequest", "serviceId": "resolvejoinrequest" },
-  { "name": "resetGlobalOfficialSeason", "serviceId": "resetglobalofficialseason" },
-  { "name": "rotateCharterInvite", "serviceId": "rotatecharterinvite" },
-  { "name": "setAcademyPlacement", "serviceId": "setacademyplacement" },
-  { "name": "setUserRoles", "serviceId": "setuserroles" },
-  { "name": "submitMatchStandings", "serviceId": "submitmatchstandings" },
-  { "name": "updateCharterListing", "serviceId": "updatecharterlisting" }
+  {
+    "name": "addAdminNote",
+    "serviceId": "addadminnote"
+  },
+  {
+    "name": "approveRatedMatch",
+    "serviceId": "approveratedmatch"
+  },
+  {
+    "name": "banUser",
+    "serviceId": "banuser"
+  },
+  {
+    "name": "bootstrapAdmin",
+    "serviceId": "bootstrapadmin"
+  },
+  {
+    "name": "checkInToMatch",
+    "serviceId": "checkintomatch"
+  },
+  {
+    "name": "countActiveSectors",
+    "serviceId": "countactivesectors"
+  },
+  {
+    "name": "createCharter",
+    "serviceId": "createcharter"
+  },
+  {
+    "name": "createRatedMatch",
+    "serviceId": "createratedmatch"
+  },
+  {
+    "name": "deleteAdminNote",
+    "serviceId": "deleteadminnote"
+  },
+  {
+    "name": "deleteSectorMessage",
+    "serviceId": "deletesectormessage"
+  },
+  {
+    "name": "getBan",
+    "serviceId": "getban"
+  },
+  {
+    "name": "getCaptainDossier",
+    "serviceId": "getcaptaindossier"
+  },
+  {
+    "name": "getCharter",
+    "serviceId": "getcharter"
+  },
+  {
+    "name": "getCharterLeaderboard",
+    "serviceId": "getcharterleaderboard"
+  },
+  {
+    "name": "getCharterManageInfo",
+    "serviceId": "getchartermanageinfo"
+  },
+  {
+    "name": "getContentReviewConfig",
+    "serviceId": "getcontentreviewconfig"
+  },
+  {
+    "name": "getModerationEvidencePack",
+    "serviceId": "getmoderationevidencepack"
+  },
+  {
+    "name": "getMute",
+    "serviceId": "getmute"
+  },
+  {
+    "name": "getMyRoles",
+    "serviceId": "getmyroles"
+  },
+  {
+    "name": "getOpsGame",
+    "serviceId": "getopsgame"
+  },
+  {
+    "name": "getOpsHands",
+    "serviceId": "getopshands"
+  },
+  {
+    "name": "getOpsRatedMatch",
+    "serviceId": "getopsratedmatch"
+  },
+  {
+    "name": "joinCharter",
+    "serviceId": "joincharter"
+  },
+  {
+    "name": "joinSpectate",
+    "serviceId": "joinspectate"
+  },
+  {
+    "name": "leaveCharter",
+    "serviceId": "leavecharter"
+  },
+  {
+    "name": "leaveSpectate",
+    "serviceId": "leavespectate"
+  },
+  {
+    "name": "listActiveGames",
+    "serviceId": "listactivegames"
+  },
+  {
+    "name": "listAdminNotes",
+    "serviceId": "listadminnotes"
+  },
+  {
+    "name": "listBans",
+    "serviceId": "listbans"
+  },
+  {
+    "name": "listCaptainRatingEvents",
+    "serviceId": "listcaptainratingevents"
+  },
+  {
+    "name": "listCharterJoinRequests",
+    "serviceId": "listcharterjoinrequests"
+  },
+  {
+    "name": "listListedCharters",
+    "serviceId": "listlistedcharters"
+  },
+  {
+    "name": "listMatchRatingEvents",
+    "serviceId": "listmatchratingevents"
+  },
+  {
+    "name": "listModerationReports",
+    "serviceId": "listmoderationreports"
+  },
+  {
+    "name": "listMutes",
+    "serviceId": "listmutes"
+  },
+  {
+    "name": "listMyCharters",
+    "serviceId": "listmycharters"
+  },
+  {
+    "name": "listOpsAudit",
+    "serviceId": "listopsaudit"
+  },
+  {
+    "name": "listSectorMessages",
+    "serviceId": "listsectormessages"
+  },
+  {
+    "name": "listStaleGames",
+    "serviceId": "liststalegames"
+  },
+  {
+    "name": "muteInSector",
+    "serviceId": "muteinsector"
+  },
+  {
+    "name": "muteUser",
+    "serviceId": "muteuser"
+  },
+  {
+    "name": "opsCascadeFromRatingEvent",
+    "serviceId": "opscascadefromratingevent"
+  },
+  {
+    "name": "opsCleanupStaleSector",
+    "serviceId": "opscleanupstalesector"
+  },
+  {
+    "name": "opsClearCharterJoinRequests",
+    "serviceId": "opsclearcharterjoinrequests"
+  },
+  {
+    "name": "opsCloseCharter",
+    "serviceId": "opsclosecharter"
+  },
+  {
+    "name": "opsDropSpectators",
+    "serviceId": "opsdropspectators"
+  },
+  {
+    "name": "opsGetCharter",
+    "serviceId": "opsgetcharter"
+  },
+  {
+    "name": "opsKickCaptain",
+    "serviceId": "opskickcaptain"
+  },
+  {
+    "name": "opsListCharters",
+    "serviceId": "opslistcharters"
+  },
+  {
+    "name": "opsRemoveCharterMember",
+    "serviceId": "opsremovechartermember"
+  },
+  {
+    "name": "opsSetCaptainRating",
+    "serviceId": "opssetcaptainrating"
+  },
+  {
+    "name": "opsSetDisplayName",
+    "serviceId": "opssetdisplayname"
+  },
+  {
+    "name": "opsTerminateSector",
+    "serviceId": "opsterminatesector"
+  },
+  {
+    "name": "opsUnrateOnlineSector",
+    "serviceId": "opsunrateonlinesector"
+  },
+  {
+    "name": "opsVoidRatedMatch",
+    "serviceId": "opsvoidratedmatch"
+  },
+  {
+    "name": "redactSectorMessage",
+    "serviceId": "redactsectormessage"
+  },
+  {
+    "name": "rejectRatedMatch",
+    "serviceId": "rejectratedmatch"
+  },
+  {
+    "name": "reportOnlineMatch",
+    "serviceId": "reportonlinematch"
+  },
+  {
+    "name": "reportPracticeAiMatch",
+    "serviceId": "reportpracticeaimatch"
+  },
+  {
+    "name": "requestJoinCharter",
+    "serviceId": "requestjoincharter"
+  },
+  {
+    "name": "resetGlobalOfficialSeason",
+    "serviceId": "resetglobalofficialseason"
+  },
+  {
+    "name": "resolveJoinRequest",
+    "serviceId": "resolvejoinrequest"
+  },
+  {
+    "name": "rotateCharterInvite",
+    "serviceId": "rotatecharterinvite"
+  },
+  {
+    "name": "searchCaptains",
+    "serviceId": "searchcaptains"
+  },
+  {
+    "name": "searchGames",
+    "serviceId": "searchgames"
+  },
+  {
+    "name": "searchMessages",
+    "serviceId": "searchmessages"
+  },
+  {
+    "name": "setAcademyPlacement",
+    "serviceId": "setacademyplacement"
+  },
+  {
+    "name": "setAllowSpectate",
+    "serviceId": "setallowspectate"
+  },
+  {
+    "name": "setUserRoles",
+    "serviceId": "setuserroles"
+  },
+  {
+    "name": "submitMatchStandings",
+    "serviceId": "submitmatchstandings"
+  },
+  {
+    "name": "submitModerationReport",
+    "serviceId": "submitmoderationreport"
+  },
+  {
+    "name": "unbanUser",
+    "serviceId": "unbanuser"
+  },
+  {
+    "name": "unmuteInSector",
+    "serviceId": "unmuteinsector"
+  },
+  {
+    "name": "unmuteUser",
+    "serviceId": "unmuteuser"
+  },
+  {
+    "name": "updateAdminNote",
+    "serviceId": "updateadminnote"
+  },
+  {
+    "name": "updateCharterListing",
+    "serviceId": "updatecharterlisting"
+  },
+  {
+    "name": "updateContentReviewConfig",
+    "serviceId": "updatecontentreviewconfig"
+  },
+  {
+    "name": "updateModerationReport",
+    "serviceId": "updatemoderationreport"
+  },
+  {
+    "name": "verifyMatchCertificate",
+    "serviceId": "verifymatchcertificate"
+  }
 ]

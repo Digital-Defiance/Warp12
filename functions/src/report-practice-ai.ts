@@ -3,9 +3,11 @@ import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 
 import { requireSignedIn, requireVerifiedUser, hasRole } from './auth';
+import { assertNotBanned } from './bans';
 import { practiceMatchTeiEligible } from './practice-match-tei-eligibility.js';
 import {
   getAIAnchorRating,
+  getAIAnchorStored,
   resolveEffectivePlayerRating,
   type AiSkillLevel,
 } from './tei/stats-openskill';
@@ -16,6 +18,11 @@ import {
   type ObjectiveRatingStats,
 } from './tei/rated-match-schema';
 import { toStoredRatingWithGrade } from './tei/rating-types';
+import {
+  practiceRatingEventId,
+  writeRatingEventIfAbsent,
+  objectiveToTrackKey,
+} from './tei';
 import { hasWarpedModules, updateVsAI, type GameAction } from 'warp12-engine';
 import {
   replayLocalAiHumanActions,
@@ -73,6 +80,7 @@ export const reportPracticeAiMatch = onCall(
   },
   async (request) => {
     const uid = requireSignedIn(request);
+    await assertNotBanned(uid, request);
     const data = request.data as {
       displayName?: string;
       skill?: AiSkillLevel;
@@ -281,6 +289,46 @@ export const reportPracticeAiMatch = onCall(
       },
       { merge: true }
     );
+
+    if (teiEligible && ratingBefore && ratingAfter) {
+      const aiAnchor = getAIAnchorStored(data.objective, data.skill);
+      await writeRatingEventIfAbsent({
+        eventId: practiceRatingEventId(uid, data.seed, data.skill, data.objective),
+        source: 'practice',
+        matchId: `practice:${uid}:${data.seed}`,
+        pool: 'localAi',
+        track: objectiveToTrackKey(data.objective),
+        objective: data.objective,
+        playedAt: now,
+        appliedAt: now,
+        memberUids: [uid],
+        participants: [
+          {
+            uid,
+            displayName:
+              data.displayName?.trim() || existing?.displayName || 'Captain',
+            rank: won ? 1 : 2,
+            won,
+            ratingBefore,
+            ratingAfter,
+          },
+        ],
+        snapshot: [
+          {
+            playerId: uid,
+            rank: won ? 1 : 2,
+            rating: ratingBefore,
+          },
+          {
+            playerId: `ai:${data.skill}`,
+            rank: won ? 2 : 1,
+            rating: aiAnchor,
+          },
+        ],
+        skill: data.skill,
+        writer: 'reportPracticeAiMatch',
+      });
+    }
 
     return {
       rated: teiEligible,

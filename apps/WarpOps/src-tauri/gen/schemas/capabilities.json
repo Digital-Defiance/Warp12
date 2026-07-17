@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Warp Ops desktop permissions","local":true,"windows":["main"],"permissions":["core:default","opener:default","allow-start-oauth-server","allow-await-oauth-redirect"]}}

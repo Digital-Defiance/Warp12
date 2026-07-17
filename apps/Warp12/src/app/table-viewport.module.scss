@@ -115,6 +115,43 @@
   position: relative;
 }
 
+.followPulse {
+  position: absolute;
+  width: 72px;
+  height: 72px;
+  margin-left: -36px;
+  margin-top: -36px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 40;
+  border: 2px solid rgba(125, 211, 252, 0.85);
+  box-shadow:
+    0 0 0 0 rgba(125, 211, 252, 0.45),
+    inset 0 0 18px rgba(56, 189, 248, 0.25);
+  animation: followPulse 0.4s ease-out infinite;
+}
+
+@keyframes followPulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.95;
+    box-shadow:
+      0 0 0 0 rgba(125, 211, 252, 0.5),
+      inset 0 0 12px rgba(56, 189, 248, 0.3);
+  }
+  70% {
+    transform: scale(1.15);
+    opacity: 0.35;
+    box-shadow:
+      0 0 0 14px rgba(125, 211, 252, 0),
+      inset 0 0 8px rgba(56, 189, 248, 0.1);
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
+
 .viewportControls[data-compact='true'] {
   .viewportBtn:nth-child(1),
   .viewportBtn:nth-child(2) {

@@ -10,6 +10,9 @@
         ],
         "leaderboard": [
           "warp-12-leaderboard"
+        ],
+        "ops": [
+          "warp-12-ops"
         ]
       }
     }

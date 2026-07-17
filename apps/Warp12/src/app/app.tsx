@@ -22,6 +22,7 @@ import { PassAndPlayPage } from './pass-and-play-page';
 import { HomePage } from './home-page';
 import { OnlineGamePage } from './online-game-page';
 import { OnlineLobbyPage } from './online-lobby-page';
+import { OnlineWatchPage } from './online-watch-page';
 import { PaperPage } from './paper-page';
 import { ProfilePage } from './profile-page';
 import { PrivacyDialog } from './privacy-dialog';
@@ -187,6 +188,7 @@ function AppShell() {
             <Route path="/online" element={<OnlineLobbyPage />} />
             <Route path="/online/:gameId" element={<OnlineLobbyPage />} />
             <Route path="/online/:gameId/play" element={<OnlineGamePage />} />
+            <Route path="/online/:gameId/watch" element={<OnlineWatchPage />} />
           </Routes>
         </div>
       </main>

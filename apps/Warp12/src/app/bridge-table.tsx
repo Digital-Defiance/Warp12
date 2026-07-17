@@ -40,7 +40,6 @@ import {
   salamanderPenaltyAction,
   longestTrailBonusActions,
   temporalDebtPenaltyActions,
-  computeRoundPointDeltas,
   explainRoundPoints,
   summarizeRoundOutcome,
   EMPTY_Q_ROUND_EFFECTS,
@@ -49,6 +48,10 @@ import {
 } from 'warp12-engine';
 import { resolveHelmControls } from '../game/helm-controls.js';
 import { roundEndHeadline, roundEndTitle } from './round-end-summary.js';
+import {
+  buildRoundEndScoreRows,
+  sortRoundEndScoreRows,
+} from './round-end-scoreboard.js';
 import {
   doubleDownNoticeFromEntry,
   formatDoubleDownFeedback,
@@ -173,6 +176,7 @@ import {
 import {
   sectorWinnerName,
 } from '../game/sector-outcome.js';
+import { isAiCaptainId } from '../game/ai-captain.js';
 import {
   ratedObjective,
   reportLocalAiMatch,
@@ -223,6 +227,7 @@ import {
   resolveSectorStatusHud,
   writeTableOptions,
 } from './table-view-prefs';
+import { sanitizeAutoFollowReturnDelayMs } from './follow-snap-back.js';
 import { ConfirmDialog } from './confirm-dialog';
 import { HostLeaveSectorDialog } from './host-leave-sector-dialog';
 import { RoundImageActions } from './round-image-actions';
@@ -233,6 +238,7 @@ import { GameLogTicker } from './game-log-ticker';
 import { GameLogDialog } from './game-log-dialog';
 import { AdvisorReportDialog } from './advisor-report-dialog.js';
 import { buildCaptainNameColors } from './game-log-display';
+import { formatElapsedLogTime } from './display-time.js';
 
 const HAND_TILE_WIDTH = 36;
 const HAND_TILE_HEIGHT = 72;
@@ -287,22 +293,6 @@ function roundEndContinueLabel(
     return `Deal round ${round.roundNumber + 1}`;
   }
   return 'Score round';
-}
-
-function roundPenaltyAdds(
-  game: GameState,
-  round: RoundState
-): { id: string; name: string; points: number }[] {
-  const namesById = new Map(
-    game.captains.map((captain) => [captain.id, captain.displayName] as const)
-  );
-  return computeRoundPointDeltas(game, round)
-    .filter((entry) => entry.points !== 0)
-    .map((entry) => ({
-      id: entry.playerId,
-      name: namesById.get(entry.playerId) ?? entry.playerId,
-      points: entry.points,
-    }));
 }
 
 function formatSignedPoints(points: number): string {
@@ -676,6 +666,8 @@ export interface BridgeTableProps {
   sectorRated?: boolean;
   /** Online: shared per-round applied-action history (full log + advisor). */
   onlineMoveLog?: readonly FirestoreRoundMove[];
+  /** Online: host allowSpectate (default true). */
+  allowSpectate?: boolean;
   onAction?: (action: GameAction) => Promise<ActionResult>;
   onLeave?: () => void;
   isOnlineHost?: boolean;
@@ -712,6 +704,7 @@ export function BridgeTable({
   onlineCaptains,
   sectorRated = true,
   onlineMoveLog,
+  allowSpectate = true,
   onAction,
   onLeave,
   isOnlineHost = false,
@@ -1119,6 +1112,8 @@ export function BridgeTable({
     pipPreset,
     teachingMode,
     autoFollowAction,
+    autoFollowReturn,
+    autoFollowReturnDelayMs,
     sectorStatusHud,
     captainTailsHud,
     captainTailsDisplay,
@@ -1145,6 +1140,10 @@ export function BridgeTable({
     []
   );
   const [actionFocus, setActionFocus] = useState<TableFocusPoint | null>(null);
+  const [followReturnCancelSignal, setFollowReturnCancelSignal] = useState(0);
+  const bumpFollowReturnCancel = useCallback(() => {
+    setFollowReturnCancelSignal((n) => n + 1);
+  }, []);
   const prevRoundRef = useRef<RoundState | null>(null);
   const [selectedTile, setSelectedTile] = useState<Coordinate | null>(null);
   const [showSpoolPicker, setShowSpoolPicker] = useState(false);
@@ -1245,6 +1244,7 @@ export function BridgeTable({
             names, 
             {
               roundStartedAtMs: roundStartedAtRef.current,
+              formatElapsed: formatElapsedLogTime,
             },
             humanCaptainId,
             ownHandSizeAfter
@@ -1893,6 +1893,7 @@ export function BridgeTable({
           names, 
           {
             roundStartedAtMs: roundStartedAtRef.current,
+            formatElapsed: formatElapsedLogTime,
           },
           humanCaptainId,
           ownHandSizeAfter
@@ -2810,6 +2811,7 @@ export function BridgeTable({
       {
         sectorCode: sectorCode ?? (isOnline ? undefined : 'local'),
         roundStartedAtMs: roundStartedAtRef.current,
+        formatElapsed: formatElapsedLogTime,
       }
     );
   }, [isOnline, names, round, sectorCode]);
@@ -3046,7 +3048,7 @@ export function BridgeTable({
 
     const statsLines =
       game.objective === 'points'
-        ? formatPointsStatLines(roundPenaltyAdds(game, round))
+        ? formatPointsStatLines(buildRoundEndScoreRows(game, round))
         : game.captains.map(
             (captain) =>
               `${names[captain.id] ?? captain.displayName}: ${
@@ -3143,42 +3145,26 @@ export function BridgeTable({
     if (!round || !roundAwaitingScore || game.objective !== 'points') {
       return [];
     }
-    const adds = roundPenaltyAdds(game, round);
-    if (!roundOutcome) {
-      return adds;
-    }
-    // Always surface the round winner and the captain who went out, even at 0
-    // points, so the trophy / hand indicators appear on normal rounds too.
-    const shown = new Set(adds.map((entry) => entry.id));
-    const namesById = new Map(
-      game.captains.map((captain) => [captain.id, captain.displayName] as const)
-    );
-    const highlightIds = [
-      ...roundOutcome.roundWinnerIds,
-      ...(roundOutcome.wentOutId ? [roundOutcome.wentOutId] : []),
-    ];
-    const extras = computeRoundPointDeltas(game, round)
-      .filter(
-        (entry) => highlightIds.includes(entry.playerId) && !shown.has(entry.playerId)
-      )
-      .map((entry) => ({
-        id: entry.playerId,
-        name: namesById.get(entry.playerId) ?? entry.playerId,
-        points: entry.points,
-      }));
-    const winnerIds = new Set(roundOutcome.roundWinnerIds);
-    // Standard leaderboard order: winner(s) on top, then best-to-worst. Pinning
-    // winners first matters for inverted (Kappa) rounds, where the winner can
-    // actually hold the most points; low points = better in golf-style scoring.
-    return [...adds, ...extras].sort((a, b) => {
-      const aWin = winnerIds.has(a.id) ? 0 : 1;
-      const bWin = winnerIds.has(b.id) ? 0 : 1;
-      if (aWin !== bWin) {
-        return aWin - bWin;
-      }
-      return a.points - b.points;
+    const rows = buildRoundEndScoreRows(game, round, {
+      ...(isOnline ? { handCounts } : {}),
     });
-  }, [game, round, roundAwaitingScore, roundOutcome]);
+    if (!roundOutcome) {
+      return rows;
+    }
+    // Winner(s) first, then best-to-worst. Pinning winners first matters for
+    // inverted (Kappa) rounds, where the winner can hold the most points.
+    return sortRoundEndScoreRows(
+      rows,
+      new Set(roundOutcome.roundWinnerIds)
+    );
+  }, [
+    game,
+    round,
+    roundAwaitingScore,
+    roundOutcome,
+    isOnline,
+    handCounts,
+  ]);
 
   // Itemized "why did I score that?" receipt for each captain, keyed by id.
   const roundPointBreakdowns = useMemo(() => {
@@ -3833,7 +3819,7 @@ export function BridgeTable({
             (compactLayout || !showSectorStatusHud);
 
           return (
-            <>
+            <div onPointerDownCapture={bumpFollowReturnCancel}>
               {showSectorHud &&
                 (compactLayout ? (
                   <SectorStatusHolo
@@ -3943,7 +3929,7 @@ export function BridgeTable({
                     }
                   />
                 ))}
-            </>
+            </div>
           );
         })()}
 
@@ -3968,7 +3954,10 @@ export function BridgeTable({
           tableHeight={TABLE_HEIGHT}
           contentRef={tableContentRef}
           autoFollowAction={autoFollowAction}
+          autoFollowReturn={autoFollowReturn}
+          autoFollowReturnDelayMs={autoFollowReturnDelayMs}
           actionFocus={actionFocus}
+          followReturnCancelSignal={followReturnCancelSignal}
           compactLayout={compactLayout}
           focusControl={
             compactLayout
@@ -4058,8 +4047,15 @@ export function BridgeTable({
                           roundOutcome?.roundWinnerIds.includes(entry.id) ??
                           false;
                         const wentOut = roundOutcome?.wentOutId === entry.id;
-                        const pointsLabel = formatSignedPoints(entry.points);
-                        const breakdown = roundPointBreakdowns.get(entry.id);
+                        const pointsLabel = entry.pointsPending
+                          ? '…'
+                          : formatSignedPoints(entry.points);
+                        const pointsAriaLabel = entry.pointsPending
+                          ? 'Points pending — revealing hand'
+                          : undefined;
+                        const breakdown = entry.pointsPending
+                          ? undefined
+                          : roundPointBreakdowns.get(entry.id);
                         const isExpanded = expandedBreakdownId === entry.id;
                         const detailId = `round-breakdown-${entry.id}`;
                         return (
@@ -4075,8 +4071,12 @@ export function BridgeTable({
                               </td>
                               <td className={styles.roundEndCaptain}>
                                 {entry.name}
+                                {isAiCaptainId(entry.id) ? ' · AI' : ''}
                               </td>
-                              <td className={styles.roundEndPointsCell}>
+                              <td
+                                className={styles.roundEndPointsCell}
+                                aria-label={pointsAriaLabel}
+                              >
                                 {breakdown ? (
                                   <ScoreBreakdownButton
                                     pointsLabel={pointsLabel}
@@ -4260,6 +4260,7 @@ export function BridgeTable({
           matchReportNotice={matchReportNotice}
           ratedMatchCheckInUrl={ratedMatchCheckInUrl()}
           pointsHistory={campaignPointsHistory}
+          handCounts={isOnline ? handCounts : undefined}
           performance={campaignPerformance}
           canDownloadAdvisorReport={campaignRoundCount > 0}
           onDownloadAdvisorReport={downloadCampaignAdvisorReport}
@@ -4575,6 +4576,7 @@ export function BridgeTable({
                 <li key={captain.id}>
                   <span>
                     {captain.displayName}
+                    {isAiCaptainId(captain.id) ? ' · AI' : ''}
                     {coachByCaptain[captain.id] && (
                       <span
                         className={spokeStyles.captainCoachTag}
@@ -4613,6 +4615,7 @@ export function BridgeTable({
                 <li key={id}>
                   <span>
                     {names[id]}
+                    {isAiCaptainId(id) ? ' · AI' : ''}
                     {coachByCaptain[id] && (
                       <span
                         className={spokeStyles.captainCoachTag}
@@ -4670,7 +4673,20 @@ export function BridgeTable({
         advisorNeuralAvailable={neuralAdvisorOk}
         autoFollowAction={autoFollowAction}
         onAutoFollowActionChange={(next) =>
-          patchTablePrefs({ autoFollowAction: next })
+          patchTablePrefs({
+            autoFollowAction: next,
+            ...(next ? {} : { autoFollowReturn: false }),
+          })
+        }
+        autoFollowReturn={autoFollowReturn}
+        onAutoFollowReturnChange={(next) =>
+          patchTablePrefs({ autoFollowReturn: next })
+        }
+        autoFollowReturnDelayMs={autoFollowReturnDelayMs}
+        onAutoFollowReturnDelayMsChange={(next) =>
+          patchTablePrefs({
+            autoFollowReturnDelayMs: sanitizeAutoFollowReturnDelayMs(next),
+          })
         }
         sectorStatusHud={showSectorStatusHud}
         onSectorStatusHudChange={(next) =>
@@ -4713,6 +4729,15 @@ export function BridgeTable({
           canShareRound ? handleDownloadRoundLogJson : undefined
         }
         roundLogBusy={roundLogDownloadBusy}
+        sectorInvite={
+          isOnline && sectorCode
+            ? {
+                code: sectorCode,
+                allowSpectate,
+                rated: sectorRated,
+              }
+            : null
+        }
       />
 
       <ConfirmDialog

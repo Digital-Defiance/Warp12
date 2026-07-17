@@ -39,6 +39,13 @@ import {
   shouldRedealHandsAfterScore,
   toHandDocument,
 } from './round-end-hands.js';
+import {
+  isRoundAwaitingScore,
+  remoteHandCaptainIdsForViewer,
+  remoteHandIdsNeedingHydration,
+  shouldResubscribeRemoteHands,
+  type OnlineWatchMode,
+} from './remote-hands.js';
 import type {
   FirestoreCaptain,
   FirestoreGameDocument,
@@ -53,6 +60,13 @@ import {
 } from './schema.js';
 import { allocateUniqueCallSign } from './display-name.js';
 import { WARP12_OFFICIAL_RULES_PROFILE_ID } from './rules-profile.js';
+
+export type { OnlineWatchMode } from './remote-hands.js';
+export {
+  isRoundAwaitingScore,
+  remoteHandCaptainIdsForViewer,
+  shouldResubscribeRemoteHands,
+} from './remote-hands.js';
 
 function gameRef(gameId: string) {
   const db = getFirestoreDb();
@@ -152,6 +166,8 @@ export async function createLobby(
     captains,
     completedRounds: 0,
     round: null,
+    allowSpectate: true,
+    spectatorIds: [],
   };
 
   await setDoc(gameRef(gameId), payload);
@@ -403,8 +419,22 @@ export async function updateLobbySettings(
     if (data.hostId !== hostId) {
       throw new Error('Only the host can change sector settings');
     }
-    if (data.phase !== 'lobby') {
+
+    // Spectator gallery may be toggled mid-mission; other settings stay lobby-locked.
+    const onlySpectateToggle =
+      settings.allowSpectate !== undefined &&
+      Object.keys(settings).every((k) => k === 'allowSpectate');
+    if (data.phase !== 'lobby' && !onlySpectateToggle) {
       throw new Error('Settings are locked once the mission launches');
+    }
+
+    if (onlySpectateToggle) {
+      tx.update(gameRef(gameId), {
+        allowSpectate: settings.allowSpectate,
+        ...(settings.allowSpectate === false ? { spectatorIds: [] } : {}),
+        updatedAt: new Date().toISOString(),
+      });
+      return;
     }
 
     const factorMax = warpSetProfile(data.maxPip ?? 12).maxPlayers;
@@ -455,6 +485,12 @@ export async function updateLobbySettings(
         : {}),
       ...(settings.rulesProfileId !== undefined && settings.charterId
         ? { rulesProfileId: settings.rulesProfileId }
+        : {}),
+      ...(settings.allowSpectate !== undefined
+        ? {
+            allowSpectate: settings.allowSpectate,
+            ...(settings.allowSpectate === false ? { spectatorIds: [] } : {}),
+          }
         : {}),
       maxPlayers,
       updatedAt: new Date().toISOString(),
@@ -509,6 +545,10 @@ export async function launchOnlineGame(
       captains: lobby.captains,
       rated: lobby.rated,
       maxPlayers: maxPlayersFor(lobby),
+      allowSpectate: lobby.allowSpectate,
+      spectatorIds: lobby.spectatorIds ?? [],
+      charterId: lobby.charterId,
+      rulesProfileId: lobby.rulesProfileId,
     });
 
     // Deal private hands while the sector is still in lobby — rules allow the host
@@ -622,35 +662,22 @@ export interface OnlineGameSnapshot {
   /** Host intent to play for TEI (default true). */
   rated: boolean;
   dissolved: boolean;
-}
-
-/** Captain hand subdocs mirrored for live AI proxy / round-end public scoring. */
-function remoteHandCaptainIdsForViewer(
-  doc: FirestoreGameDocument | null,
-  viewerId: string
-): string[] {
-  if (!doc?.round) {
-    return [];
-  }
-  const awaitingScore =
-    doc.phase === 'active' && doc.round.phase === 'ended';
-  // Host always mirrors every seat (AI proxy + debug export).
-  if (doc.hostId === viewerId) {
-    return doc.captainIds.filter((captainId) => captainId !== viewerId);
-  }
-  // During round-end revelation every member may read all hands (Firestore rules);
-  // subscribe so Salamander / pip tallies are public on every client.
-  if (awaitingScore && doc.captainIds.includes(viewerId)) {
-    return doc.captainIds.filter((captainId) => captainId !== viewerId);
-  }
-  return [];
+  /** Viewer was removed from captainIds (ops kick). */
+  ejected: boolean;
+  /** Ops soft-terminated the sector. */
+  terminated: boolean;
+  allowSpectate: boolean;
+  spectatorCount: number;
+  /** Viewer is listed in spectatorIds. */
+  isSpectator: boolean;
 }
 
 export function subscribeOnlineGame(
   gameId: string,
   viewerId: string,
   onSnapshotState: (snapshot: OnlineGameSnapshot) => void,
-  onError: (error: Error) => void
+  onError: (error: Error) => void,
+  mode: OnlineWatchMode = 'play'
 ): Unsubscribe {
   const db = getFirestoreDb();
   if (!db) {
@@ -665,23 +692,59 @@ export function subscribeOnlineGame(
     readonly { low: number; high: number }[]
   > = {};
   let gameConnected = false;
-  let handConnected = false;
+  let handConnected = mode !== 'play';
   let gameFromCache = true;
-  let handFromCache = true;
+  let handFromCache = mode !== 'play' ? false : true;
   let serverConfirmedMissing = false;
   let remoteHandUnsubs: Unsubscribe[] = [];
 
   const isSynced = () =>
     gameConnected && handConnected && !gameFromCache && !handFromCache;
 
+  const hydrateMissingRemoteHands = () => {
+    if (!latestDoc?.round) {
+      return;
+    }
+    const ids = remoteHandIdsNeedingHydration(
+      latestDoc.round.handCounts,
+      remoteHandsByCaptain,
+      remoteHandCaptainIdsForViewer(latestDoc, viewerId, mode)
+    );
+    if (ids.length === 0) {
+      return;
+    }
+    void Promise.all(
+      ids.map(async (captainId) => {
+        try {
+          const snap = await getDoc(handRef(gameId, captainId));
+          remoteHandsByCaptain[captainId] = snap.exists()
+            ? (snap.data() as FirestorePlayerHandDocument).coordinates
+            : [];
+        } catch {
+          // Listener / rules may still catch up; leave empty for pending UI.
+        }
+      })
+    ).then(() => {
+      publish();
+    });
+  };
+
   const resubscribeRemoteHands = () => {
     for (const unsub of remoteHandUnsubs) {
       unsub();
     }
     remoteHandUnsubs = [];
+    // Keep prior mirrors for seats we still need — round-end resubscribe used
+    // to wipe AI/human hands to {} and briefly score everyone as +0.
+    const previousHands = remoteHandsByCaptain;
     remoteHandsByCaptain = {};
 
-    const ids = remoteHandCaptainIdsForViewer(latestDoc, viewerId);
+    const ids = remoteHandCaptainIdsForViewer(latestDoc, viewerId, mode);
+    for (const captainId of ids) {
+      if (previousHands[captainId]) {
+        remoteHandsByCaptain[captainId] = previousHands[captainId];
+      }
+    }
     if (ids.length === 0) {
       publish();
       return;
@@ -697,13 +760,40 @@ export function subscribeOnlineGame(
               : [];
             publish();
           },
-          (err) => onError(err)
+          (err) => {
+            // One seat's listen failure must not block others. Fall back to get
+            // so host AI proxy / round-end scoring still see real tiles (the
+            // runner already used getDoc successfully when listeners were empty).
+            console.warn('[online] remote hand subscription failed', {
+              gameId,
+              captainId,
+              message: err.message,
+            });
+            void getDoc(handRef(gameId, captainId))
+              .then((snap) => {
+                remoteHandsByCaptain[captainId] = snap.exists()
+                  ? (snap.data() as FirestorePlayerHandDocument).coordinates
+                  : [];
+                publish();
+              })
+              .catch(() => {
+                /* leave empty; hydrate may retry on the next public-doc update */
+              });
+          }
         )
       );
     }
+    hydrateMissingRemoteHands();
   };
 
   const publish = () => {
+    const spectatorIds = latestDoc?.spectatorIds ?? [];
+    const meta = {
+      allowSpectate: latestDoc?.allowSpectate !== false,
+      spectatorCount: spectatorIds.length,
+      isSpectator: spectatorIds.includes(viewerId),
+    };
+
     if (!latestDoc) {
       // Hand snapshots can arrive before the public game doc on subscribe; that is
       // not a host dissolve. Likewise, Firestore can emit a cache-only exists=false
@@ -722,18 +812,102 @@ export function subscribeOnlineGame(
         aiHands: {},
         rated: true,
         dissolved: true,
+        ejected: false,
+        terminated: false,
+        allowSpectate: true,
+        spectatorCount: 0,
+        isSpectator: false,
       });
       return;
+    }
+
+    if (latestDoc.opsTerminated === true) {
+      onSnapshotState({
+        state: null,
+        handCounts: {},
+        moveLog: [],
+        connected: gameConnected && handConnected,
+        synced: isSynced(),
+        hostId: latestDoc.hostId,
+        sectorCaptains: latestDoc.captains,
+        aiHands: {},
+        rated: false,
+        dissolved: false,
+        ejected: false,
+        terminated: true,
+        ...meta,
+      });
+      return;
+    }
+
+    const isCaptain = latestDoc.captainIds.includes(viewerId);
+    if (mode === 'play' && !isCaptain) {
+      onSnapshotState({
+        state: null,
+        handCounts: {},
+        moveLog: [],
+        connected: gameConnected && handConnected,
+        synced: isSynced(),
+        hostId: latestDoc.hostId,
+        sectorCaptains: latestDoc.captains,
+        aiHands: {},
+        rated: latestDoc.rated ?? true,
+        dissolved: false,
+        ejected: true,
+        terminated: false,
+        ...meta,
+      });
+      return;
+    }
+
+    if (mode === 'spectate') {
+      if (latestDoc.allowSpectate === false && !meta.isSpectator) {
+        onSnapshotState({
+          state: null,
+          handCounts: {},
+          moveLog: [],
+          connected: gameConnected && handConnected,
+          synced: isSynced(),
+          hostId: latestDoc.hostId,
+          sectorCaptains: latestDoc.captains,
+          aiHands: {},
+          rated: latestDoc.rated ?? true,
+          dissolved: false,
+          ejected: true,
+          terminated: false,
+          ...meta,
+        });
+        return;
+      }
+      if (isCaptain) {
+        // Seated captains should use /play, not /watch.
+        onSnapshotState({
+          state: null,
+          handCounts: {},
+          moveLog: [],
+          connected: gameConnected && handConnected,
+          synced: isSynced(),
+          hostId: latestDoc.hostId,
+          sectorCaptains: latestDoc.captains,
+          aiHands: {},
+          rated: latestDoc.rated ?? true,
+          dissolved: false,
+          ejected: false,
+          terminated: false,
+          ...meta,
+        });
+        return;
+      }
     }
 
     const hands: Record<string, readonly { low: number; high: number }[]> =
       {};
     if (latestDoc.round) {
       for (const captainId of latestDoc.round.turnOrder) {
-        if (captainId === viewerId && ownHand) {
+        if (mode === 'play' && captainId === viewerId && ownHand) {
           hands[captainId] = ownHand.coordinates;
-        } else if (remoteHandsByCaptain[captainId]) {
-          hands[captainId] = remoteHandsByCaptain[captainId];
+        } else if (Object.prototype.hasOwnProperty.call(remoteHandsByCaptain, captainId)) {
+          hands[captainId] = remoteHandsByCaptain[captainId]!;
         } else {
           hands[captainId] = [];
         }
@@ -757,6 +931,9 @@ export function subscribeOnlineGame(
       aiHands,
       rated: latestDoc.rated ?? true,
       dissolved: false,
+      ejected: false,
+      terminated: false,
+      ...meta,
     });
   };
 
@@ -780,12 +957,20 @@ export function subscribeOnlineGame(
 
       serverConfirmedMissing = false;
       const nextDoc = snap.data() as FirestoreGameDocument;
-      const remoteIdsChanged =
-        remoteHandCaptainIdsForViewer(latestDoc, viewerId).join('|') !==
-        remoteHandCaptainIdsForViewer(nextDoc, viewerId).join('|');
+      const resubscribe = shouldResubscribeRemoteHands(
+        latestDoc,
+        nextDoc,
+        viewerId,
+        mode
+      );
       latestDoc = nextDoc;
-      if (remoteIdsChanged) {
+      if (resubscribe) {
         resubscribeRemoteHands();
+      } else {
+        // Host AI seats: public handCounts move every turn, but a dead/empty
+        // listener leaves aiHands {} until round-end. Hydrate whenever mirrors
+        // lag the public counts (same getDoc path the AI runner already uses).
+        hydrateMissingRemoteHands();
       }
       publish();
     },
@@ -795,22 +980,25 @@ export function subscribeOnlineGame(
     }
   );
 
-  const unsubHand = onSnapshot(
-    handRef(gameId, viewerId),
-    { includeMetadataChanges: true },
-    (snap) => {
-      handConnected = true;
-      handFromCache = snap.metadata.fromCache;
-      ownHand = snap.exists()
-        ? (snap.data() as FirestorePlayerHandDocument)
-        : null;
-      publish();
-    },
-    (err) => {
-      handConnected = false;
-      onError(err);
-    }
-  );
+  const unsubHand =
+    mode === 'play'
+      ? onSnapshot(
+          handRef(gameId, viewerId),
+          { includeMetadataChanges: true },
+          (snap) => {
+            handConnected = true;
+            handFromCache = snap.metadata.fromCache;
+            ownHand = snap.exists()
+              ? (snap.data() as FirestorePlayerHandDocument)
+              : null;
+            publish();
+          },
+          (err) => {
+            handConnected = false;
+            onError(err);
+          }
+        )
+      : () => undefined;
 
   resubscribeRemoteHands();
 

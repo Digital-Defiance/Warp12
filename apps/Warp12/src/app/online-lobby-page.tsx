@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import {
@@ -33,6 +33,7 @@ import {
   JoinSectorPanel,
   SectorUnavailablePanel,
 } from './join-sector-panel';
+import { joinSpectate } from '../firebase/spectate-service.js';
 import { CampaignRoundsField, ObjectivePicker, ObjectiveSummary } from './objective-picker';
 import { HouseRulesOptions } from './house-rules-options';
 import { DoubleZeroScoreField } from './double-zero-score-field';
@@ -69,6 +70,8 @@ import {
   writeLastUsedPreset,
 } from '../game/setup-presets.js';
 import { maxPlayersForFactor } from '../game/local-game-config.js';
+import { copyTextToClipboard } from '../game/deliver-file.js';
+import { sectorInviteLinks } from '../game/sector-invite-urls.js';
 import styles from './lobby.module.scss';
 import { requireWarpFactor } from './warp-factor.js';
 
@@ -111,9 +114,11 @@ export function OnlineLobbyPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [inviteStatus, setInviteStatus] = useState<string | null>(null);
   const [lobby, setLobby] = useState<FirestoreGameDocument | null>(null);
   const [lobbyLoaded, setLobbyLoaded] = useState(false);
   const [myCharters, setMyCharters] = useState<PublicCharterView[]>([]);
+  const wasMemberRef = useRef(false);
 
   const sectorMaxPip = lobby?.maxPip ?? createMaxPip;
   const fleetCeiling = maxPlayersForFactor(sectorMaxPip);
@@ -145,20 +150,37 @@ export function OnlineLobbyPage() {
     }
 
     setLobbyLoaded(false);
+    wasMemberRef.current = false;
     return subscribeLobby(
       routeGameId.toUpperCase(),
       (doc) => {
         setLobbyLoaded(true);
         setLobby(doc);
+        const member = Boolean(uid && doc?.captainIds.includes(uid));
         if (
           doc?.phase === 'active' &&
           uid &&
-          doc.captainIds.includes(uid)
+          member
         ) {
           navigate(`/online/${routeGameId.toUpperCase()}/play`, {
             replace: true,
           });
+          return;
         }
+        if (
+          doc &&
+          doc.phase === 'lobby' &&
+          uid &&
+          wasMemberRef.current &&
+          !member
+        ) {
+          navigate('/online', {
+            replace: true,
+            state: { callSignNotice: 'You were removed from this sector.' },
+          });
+          return;
+        }
+        wasMemberRef.current = member;
       },
       (err) => {
         setLobbyLoaded(true);
@@ -237,6 +259,23 @@ export function OnlineLobbyPage() {
     }
   };
 
+  const startSpectate = async (codeOverride?: string) => {
+    if (!uid) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const code = (codeOverride ?? gameCode).toUpperCase();
+      await joinSpectate(code);
+      navigate(`/online/${code}/watch`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not spectate');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const launch = async () => {
     if (!uid || !routeGameId) {
       return;
@@ -259,6 +298,8 @@ export function OnlineLobbyPage() {
     modules?: CreateLobbyOptions['modules'];
     houseRules?: CreateLobbyOptions['houseRules'];
     rated?: boolean;
+    allowSpectate?: boolean;
+    maxPip?: number;
     charterId?: string;
     rulesProfileId?: string;
   }) => {
@@ -318,6 +359,25 @@ export function OnlineLobbyPage() {
     );
   }
 
+  if (sectorCode && auth.ready && !auth.user) {
+    return (
+      <section className={`${styles.waitingRoom} ${styles.lobbyWide}`}>
+        <p className={styles.backLink}>
+          <Link to="/">← Back to bridge</Link>
+        </p>
+        <h2 className={styles.title}>Sector {sectorCode}</h2>
+        <p className={styles.error} role="alert">
+          Could not establish a subspace session
+          {auth.error ? `: ${auth.error}` : '.'} Check your connection, then
+          reload, or sign in with Google from the bridge home.
+        </p>
+        <p className={styles.backLink}>
+          <Link to="/online">← Fleet muster</Link>
+        </p>
+      </section>
+    );
+  }
+
   if (sectorCode && auth.ready && !lobbyLoaded) {
     return (
       <p className={styles.waitingMessage}>Scanning sector {sectorCode}…</p>
@@ -343,6 +403,9 @@ export function OnlineLobbyPage() {
       <SectorUnavailablePanel
         sectorCode={sectorCode}
         message="This mission is already underway. New captains cannot board mid-flight."
+        spectateAvailable={lobby.allowSpectate !== false}
+        onSpectate={() => void startSpectate(sectorCode)}
+        busy={busy}
       />
     );
   }
@@ -355,6 +418,7 @@ export function OnlineLobbyPage() {
         displayName={displayName}
         onDisplayNameChange={setDisplayName}
         onJoin={() => void joinSector(sectorCode)}
+        onSpectate={() => void startSpectate(sectorCode)}
         busy={busy}
         error={error}
         notice={notice}
@@ -384,6 +448,52 @@ export function OnlineLobbyPage() {
           {GAME_OBJECTIVE_LABELS[objective]}
         </p>
         <p className={styles.code}>{routeGameId?.toUpperCase()}</p>
+        <div className={styles.inviteActions}>
+          <button
+            type="button"
+            className={styles.secondaryBtn}
+            onClick={() => {
+              const links = sectorInviteLinks(routeGameId ?? '');
+              void copyTextToClipboard(links.joinUrl)
+                .then(() => {
+                  setError(null);
+                  setInviteStatus('Captain invite link copied.');
+                })
+                .catch(() =>
+                  setError(
+                    'Could not copy invite link — copy the sector code instead.'
+                  )
+                );
+            }}
+          >
+            Copy invite link
+          </button>
+          <button
+            type="button"
+            className={styles.secondaryBtn}
+            disabled={lobby.allowSpectate === false}
+            onClick={() => {
+              const links = sectorInviteLinks(routeGameId ?? '');
+              void copyTextToClipboard(links.watchUrl)
+                .then(() => {
+                  setError(null);
+                  setInviteStatus('Spectator link copied.');
+                })
+                .catch(() =>
+                  setError(
+                    'Could not copy spectator link — open Options mid-mission for Copy spectator link.'
+                  )
+                );
+            }}
+          >
+            Copy spectator link
+          </button>
+        </div>
+        {inviteStatus ? (
+          <p className={styles.inviteStatus} role="status">
+            {inviteStatus}
+          </p>
+        ) : null}
 
         {(() => {
           const eligibility = onlineMatchRatingEligibility(
@@ -476,6 +586,23 @@ export function OnlineLobbyPage() {
                 : (lobby.maxPip ?? 12) === 12
                   ? 'Rated sector — count results toward TEI (quick-hail comms only; tactical advisor hidden). Uncheck for a casual game with open chat and advisor.'
                   : `Exhibition set (Warp ${lobby.maxPip}) — TEI is Warp 12 only. This sector stays unrated.`}
+            </span>
+          </label>
+        )}
+
+        {isHost && (
+          <label className={styles.checkboxRow}>
+            <input
+              type="checkbox"
+              checked={lobby.allowSpectate !== false}
+              disabled={busy}
+              onChange={(e) =>
+                void saveSettings({ allowSpectate: e.target.checked })
+              }
+            />
+            <span>
+              Allow spectators — captains without a seat can watch the table
+              (public subspace only; no hands). Uncheck to close the gallery.
             </span>
           </label>
         )}

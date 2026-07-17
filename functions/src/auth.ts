@@ -47,3 +47,18 @@ export function requireAdmin(request: CallableRequest<unknown>): string {
   }
   return uid;
 }
+
+/**
+ * Moderator or admin. Use for complaint-driven ops (mute, chat, kick, reports).
+ * TEI mutation, Auth-disable bans, roles, and season reset stay `requireAdmin`.
+ */
+export function requireModerator(request: CallableRequest<unknown>): string {
+  const uid = requireVerifiedUser(request);
+  if (!hasRole(request, 'moderator')) {
+    throw new HttpsError(
+      'permission-denied',
+      'Moderator or admin role required.'
+    );
+  }
+  return uid;
+}

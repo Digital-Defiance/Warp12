@@ -14,7 +14,7 @@ import {
 export type { RatedObjective, StoredRating, ObjectiveRatingStats };
 export { objectiveToTrackKey, toStoredRating, toStoredRatingWithGrade };
 
-export type WarpRole = 'admin' | 'match_official';
+export type WarpRole = 'admin' | 'moderator' | 'match_official';
 
 export type RatedMatchStatus =
   | 'draft'
@@ -93,6 +93,12 @@ export interface RatedMatchCertificate {
     seasonLabel?: string;
   };
   players: RatedMatchCertificatePlayer[];
+  /** HMAC-SHA256 hex over canonical certificate payload (required). */
+  signature?: string;
+  /** Cloud Storage object path for the required PDF (e.g. certificates/MT-….pdf). */
+  pdfPath?: string;
+  /** Public verify hint. */
+  verifyUrl?: string;
 }
 
 export function normalizeMatchCode(raw: string): string {
