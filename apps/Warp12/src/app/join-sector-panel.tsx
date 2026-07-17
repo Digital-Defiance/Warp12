@@ -13,6 +13,7 @@ export interface JoinSectorPanelProps {
   displayName: string;
   onDisplayNameChange: (name: string) => void;
   onJoin: () => void;
+  onSpectate?: () => void;
   busy: boolean;
   error: string | null;
   notice: string | null;
@@ -27,6 +28,7 @@ export function JoinSectorPanel({
   displayName,
   onDisplayNameChange,
   onJoin,
+  onSpectate,
   busy,
   error,
   notice,
@@ -36,11 +38,18 @@ export function JoinSectorPanel({
   const maxPlayers = lobby.maxPlayers ?? ONLINE_MAX_PLAYERS;
   const objective = lobby.objective ?? DEFAULT_GAME_OBJECTIVE;
   const atCapacity = lobby.captains.length >= maxPlayers;
+  const allowSpectate = lobby.allowSpectate !== false;
   const canJoin =
     !atCapacity &&
     firebaseReady &&
     firebaseConfigured &&
     displayName.trim().length > 0 &&
+    !busy;
+  const canSpectate =
+    allowSpectate &&
+    Boolean(onSpectate) &&
+    firebaseReady &&
+    firebaseConfigured &&
     !busy;
 
   return (
@@ -98,6 +107,18 @@ export function JoinSectorPanel({
         </>
       )}
 
+      {!allowSpectate && atCapacity ? (
+        <p className={styles.notice} role="status">
+          Spectator gallery is closed for this sector.
+        </p>
+      ) : null}
+
+      {!allowSpectate && !atCapacity && !canSpectate ? (
+        <p className={styles.notice} role="status">
+          Spectating is disabled by the host. Join as a captain, or ask them to
+          reopen the gallery.
+        </p>
+      ) : null}
       {error && (
         <p className={styles.error} role="alert">
           {error}
@@ -121,6 +142,17 @@ export function JoinSectorPanel({
         </button>
       )}
 
+      {canSpectate ? (
+        <button
+          type="button"
+          className={styles.secondary}
+          disabled={!canSpectate}
+          onClick={onSpectate}
+        >
+          Spectate
+        </button>
+      ) : null}
+
       <p className={styles.backLink}>
         <Link to="/online">← Fleet muster</Link>
       </p>
@@ -131,11 +163,17 @@ export function JoinSectorPanel({
 export interface SectorUnavailablePanelProps {
   sectorCode: string;
   message: string;
+  onSpectate?: () => void;
+  spectateAvailable?: boolean;
+  busy?: boolean;
 }
 
 export function SectorUnavailablePanel({
   sectorCode,
   message,
+  onSpectate,
+  spectateAvailable = false,
+  busy = false,
 }: SectorUnavailablePanelProps) {
   return (
     <section className={`${styles.waitingRoom} ${styles.lobbyWide}`}>
@@ -144,6 +182,21 @@ export function SectorUnavailablePanel({
       </p>
       <h2 className={styles.title}>Sector {sectorCode}</h2>
       <p className={styles.subtitle}>{message}</p>
+      {spectateAvailable && onSpectate ? (
+        <button
+          type="button"
+          className={styles.primary}
+          disabled={busy}
+          onClick={onSpectate}
+        >
+          Spectate this sector
+        </button>
+      ) : (
+        <p className={styles.notice} role="status">
+          Spectating is unavailable for this sector (gallery closed or
+          capacity reached).
+        </p>
+      )}
       <p className={styles.backLink}>
         <Link to="/online">← Fleet muster</Link>
       </p>

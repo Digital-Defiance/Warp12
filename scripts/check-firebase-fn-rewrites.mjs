@@ -27,6 +27,18 @@ const exported = new Set(
     .filter(Boolean)
 );
 
+// Background Firestore triggers are exported for Firebase deployment but are
+// not HTTP callables and must not receive Hosting rewrites.
+const nonCallableExports = new Set([
+  'onDisplayNameContentReview',
+  'onMessageContentReview',
+  'onMessageShadowMute',
+  'onRatingEventAbuseReview',
+]);
+for (const name of nonCallableExports) {
+  exported.delete(name);
+}
+
 const expectedNames = new Set(expected.map((e) => e.name));
 const missingFromManifest = [...exported].filter((n) => !expectedNames.has(n));
 const extraInManifest = [...expectedNames].filter((n) => !exported.has(n));

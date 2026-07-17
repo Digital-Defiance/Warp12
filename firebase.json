@@ -8,7 +8,8 @@
         "authorizedRedirectUris": [
           "https://iwdf.org",
           "https://warp12.app",
-          "https://warp.iwdf.org"
+          "https://warp.iwdf.org",
+          "https://ops.iwdf.org"
         ]
       }
     }
@@ -90,9 +91,23 @@
       ],
       "rewrites": [
         {
+          "source": "/api/fn/addAdminNote",
+          "run": {
+            "serviceId": "addadminnote",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/api/fn/approveRatedMatch",
           "run": {
             "serviceId": "approveratedmatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/banUser",
+          "run": {
+            "serviceId": "banuser",
             "region": "us-central1"
           }
         },
@@ -111,6 +126,13 @@
           }
         },
         {
+          "source": "/api/fn/countActiveSectors",
+          "run": {
+            "serviceId": "countactivesectors",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/api/fn/createCharter",
           "run": {
             "serviceId": "createcharter",
@@ -121,6 +143,34 @@
           "source": "/api/fn/createRatedMatch",
           "run": {
             "serviceId": "createratedmatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/deleteAdminNote",
+          "run": {
+            "serviceId": "deleteadminnote",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/deleteSectorMessage",
+          "run": {
+            "serviceId": "deletesectormessage",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getBan",
+          "run": {
+            "serviceId": "getban",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getCaptainDossier",
+          "run": {
+            "serviceId": "getcaptaindossier",
             "region": "us-central1"
           }
         },
@@ -146,9 +196,51 @@
           }
         },
         {
+          "source": "/api/fn/getContentReviewConfig",
+          "run": {
+            "serviceId": "getcontentreviewconfig",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getModerationEvidencePack",
+          "run": {
+            "serviceId": "getmoderationevidencepack",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getMute",
+          "run": {
+            "serviceId": "getmute",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/api/fn/getMyRoles",
           "run": {
             "serviceId": "getmyroles",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getOpsGame",
+          "run": {
+            "serviceId": "getopsgame",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getOpsHands",
+          "run": {
+            "serviceId": "getopshands",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getOpsRatedMatch",
+          "run": {
+            "serviceId": "getopsratedmatch",
             "region": "us-central1"
           }
         },
@@ -160,9 +252,51 @@
           }
         },
         {
+          "source": "/api/fn/joinSpectate",
+          "run": {
+            "serviceId": "joinspectate",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/api/fn/leaveCharter",
           "run": {
             "serviceId": "leavecharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/leaveSpectate",
+          "run": {
+            "serviceId": "leavespectate",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listActiveGames",
+          "run": {
+            "serviceId": "listactivegames",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listAdminNotes",
+          "run": {
+            "serviceId": "listadminnotes",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listBans",
+          "run": {
+            "serviceId": "listbans",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listCaptainRatingEvents",
+          "run": {
+            "serviceId": "listcaptainratingevents",
             "region": "us-central1"
           }
         },
@@ -181,9 +315,170 @@
           }
         },
         {
+          "source": "/api/fn/listMatchRatingEvents",
+          "run": {
+            "serviceId": "listmatchratingevents",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listModerationReports",
+          "run": {
+            "serviceId": "listmoderationreports",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listMutes",
+          "run": {
+            "serviceId": "listmutes",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/api/fn/listMyCharters",
           "run": {
             "serviceId": "listmycharters",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listOpsAudit",
+          "run": {
+            "serviceId": "listopsaudit",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listSectorMessages",
+          "run": {
+            "serviceId": "listsectormessages",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listStaleGames",
+          "run": {
+            "serviceId": "liststalegames",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/muteInSector",
+          "run": {
+            "serviceId": "muteinsector",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/muteUser",
+          "run": {
+            "serviceId": "muteuser",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsCascadeFromRatingEvent",
+          "run": {
+            "serviceId": "opscascadefromratingevent",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsCleanupStaleSector",
+          "run": {
+            "serviceId": "opscleanupstalesector",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsClearCharterJoinRequests",
+          "run": {
+            "serviceId": "opsclearcharterjoinrequests",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsCloseCharter",
+          "run": {
+            "serviceId": "opsclosecharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsDropSpectators",
+          "run": {
+            "serviceId": "opsdropspectators",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsGetCharter",
+          "run": {
+            "serviceId": "opsgetcharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsKickCaptain",
+          "run": {
+            "serviceId": "opskickcaptain",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsListCharters",
+          "run": {
+            "serviceId": "opslistcharters",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsRemoveCharterMember",
+          "run": {
+            "serviceId": "opsremovechartermember",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsSetCaptainRating",
+          "run": {
+            "serviceId": "opssetcaptainrating",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsSetDisplayName",
+          "run": {
+            "serviceId": "opssetdisplayname",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsTerminateSector",
+          "run": {
+            "serviceId": "opsterminatesector",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsUnrateOnlineSector",
+          "run": {
+            "serviceId": "opsunrateonlinesector",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsVoidRatedMatch",
+          "run": {
+            "serviceId": "opsvoidratedmatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/redactSectorMessage",
+          "run": {
+            "serviceId": "redactsectormessage",
             "region": "us-central1"
           }
         },
@@ -216,16 +511,16 @@
           }
         },
         {
-          "source": "/api/fn/resolveJoinRequest",
+          "source": "/api/fn/resetGlobalOfficialSeason",
           "run": {
-            "serviceId": "resolvejoinrequest",
+            "serviceId": "resetglobalofficialseason",
             "region": "us-central1"
           }
         },
         {
-          "source": "/api/fn/resetGlobalOfficialSeason",
+          "source": "/api/fn/resolveJoinRequest",
           "run": {
-            "serviceId": "resetglobalofficialseason",
+            "serviceId": "resolvejoinrequest",
             "region": "us-central1"
           }
         },
@@ -237,9 +532,37 @@
           }
         },
         {
+          "source": "/api/fn/searchCaptains",
+          "run": {
+            "serviceId": "searchcaptains",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/searchGames",
+          "run": {
+            "serviceId": "searchgames",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/searchMessages",
+          "run": {
+            "serviceId": "searchmessages",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/api/fn/setAcademyPlacement",
           "run": {
             "serviceId": "setacademyplacement",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/setAllowSpectate",
+          "run": {
+            "serviceId": "setallowspectate",
             "region": "us-central1"
           }
         },
@@ -258,9 +581,65 @@
           }
         },
         {
+          "source": "/api/fn/submitModerationReport",
+          "run": {
+            "serviceId": "submitmoderationreport",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/unbanUser",
+          "run": {
+            "serviceId": "unbanuser",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/unmuteInSector",
+          "run": {
+            "serviceId": "unmuteinsector",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/unmuteUser",
+          "run": {
+            "serviceId": "unmuteuser",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/updateAdminNote",
+          "run": {
+            "serviceId": "updateadminnote",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/api/fn/updateCharterListing",
           "run": {
             "serviceId": "updatecharterlisting",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/updateContentReviewConfig",
+          "run": {
+            "serviceId": "updatecontentreviewconfig",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/updateModerationReport",
+          "run": {
+            "serviceId": "updatemoderationreport",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/verifyMatchCertificate",
+          "run": {
+            "serviceId": "verifymatchcertificate",
             "region": "us-central1"
           }
         },
@@ -309,9 +688,23 @@
       ],
       "rewrites": [
         {
+          "source": "/api/fn/addAdminNote",
+          "run": {
+            "serviceId": "addadminnote",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/api/fn/approveRatedMatch",
           "run": {
             "serviceId": "approveratedmatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/banUser",
+          "run": {
+            "serviceId": "banuser",
             "region": "us-central1"
           }
         },
@@ -330,6 +723,13 @@
           }
         },
         {
+          "source": "/api/fn/countActiveSectors",
+          "run": {
+            "serviceId": "countactivesectors",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/api/fn/createCharter",
           "run": {
             "serviceId": "createcharter",
@@ -340,6 +740,34 @@
           "source": "/api/fn/createRatedMatch",
           "run": {
             "serviceId": "createratedmatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/deleteAdminNote",
+          "run": {
+            "serviceId": "deleteadminnote",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/deleteSectorMessage",
+          "run": {
+            "serviceId": "deletesectormessage",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getBan",
+          "run": {
+            "serviceId": "getban",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getCaptainDossier",
+          "run": {
+            "serviceId": "getcaptaindossier",
             "region": "us-central1"
           }
         },
@@ -365,9 +793,51 @@
           }
         },
         {
+          "source": "/api/fn/getContentReviewConfig",
+          "run": {
+            "serviceId": "getcontentreviewconfig",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getModerationEvidencePack",
+          "run": {
+            "serviceId": "getmoderationevidencepack",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getMute",
+          "run": {
+            "serviceId": "getmute",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/api/fn/getMyRoles",
           "run": {
             "serviceId": "getmyroles",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getOpsGame",
+          "run": {
+            "serviceId": "getopsgame",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getOpsHands",
+          "run": {
+            "serviceId": "getopshands",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getOpsRatedMatch",
+          "run": {
+            "serviceId": "getopsratedmatch",
             "region": "us-central1"
           }
         },
@@ -379,9 +849,51 @@
           }
         },
         {
+          "source": "/api/fn/joinSpectate",
+          "run": {
+            "serviceId": "joinspectate",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/api/fn/leaveCharter",
           "run": {
             "serviceId": "leavecharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/leaveSpectate",
+          "run": {
+            "serviceId": "leavespectate",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listActiveGames",
+          "run": {
+            "serviceId": "listactivegames",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listAdminNotes",
+          "run": {
+            "serviceId": "listadminnotes",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listBans",
+          "run": {
+            "serviceId": "listbans",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listCaptainRatingEvents",
+          "run": {
+            "serviceId": "listcaptainratingevents",
             "region": "us-central1"
           }
         },
@@ -400,9 +912,170 @@
           }
         },
         {
+          "source": "/api/fn/listMatchRatingEvents",
+          "run": {
+            "serviceId": "listmatchratingevents",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listModerationReports",
+          "run": {
+            "serviceId": "listmoderationreports",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listMutes",
+          "run": {
+            "serviceId": "listmutes",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/api/fn/listMyCharters",
           "run": {
             "serviceId": "listmycharters",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listOpsAudit",
+          "run": {
+            "serviceId": "listopsaudit",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listSectorMessages",
+          "run": {
+            "serviceId": "listsectormessages",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listStaleGames",
+          "run": {
+            "serviceId": "liststalegames",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/muteInSector",
+          "run": {
+            "serviceId": "muteinsector",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/muteUser",
+          "run": {
+            "serviceId": "muteuser",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsCascadeFromRatingEvent",
+          "run": {
+            "serviceId": "opscascadefromratingevent",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsCleanupStaleSector",
+          "run": {
+            "serviceId": "opscleanupstalesector",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsClearCharterJoinRequests",
+          "run": {
+            "serviceId": "opsclearcharterjoinrequests",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsCloseCharter",
+          "run": {
+            "serviceId": "opsclosecharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsDropSpectators",
+          "run": {
+            "serviceId": "opsdropspectators",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsGetCharter",
+          "run": {
+            "serviceId": "opsgetcharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsKickCaptain",
+          "run": {
+            "serviceId": "opskickcaptain",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsListCharters",
+          "run": {
+            "serviceId": "opslistcharters",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsRemoveCharterMember",
+          "run": {
+            "serviceId": "opsremovechartermember",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsSetCaptainRating",
+          "run": {
+            "serviceId": "opssetcaptainrating",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsSetDisplayName",
+          "run": {
+            "serviceId": "opssetdisplayname",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsTerminateSector",
+          "run": {
+            "serviceId": "opsterminatesector",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsUnrateOnlineSector",
+          "run": {
+            "serviceId": "opsunrateonlinesector",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsVoidRatedMatch",
+          "run": {
+            "serviceId": "opsvoidratedmatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/redactSectorMessage",
+          "run": {
+            "serviceId": "redactsectormessage",
             "region": "us-central1"
           }
         },
@@ -435,16 +1108,16 @@
           }
         },
         {
-          "source": "/api/fn/resolveJoinRequest",
+          "source": "/api/fn/resetGlobalOfficialSeason",
           "run": {
-            "serviceId": "resolvejoinrequest",
+            "serviceId": "resetglobalofficialseason",
             "region": "us-central1"
           }
         },
         {
-          "source": "/api/fn/resetGlobalOfficialSeason",
+          "source": "/api/fn/resolveJoinRequest",
           "run": {
-            "serviceId": "resetglobalofficialseason",
+            "serviceId": "resolvejoinrequest",
             "region": "us-central1"
           }
         },
@@ -456,9 +1129,37 @@
           }
         },
         {
+          "source": "/api/fn/searchCaptains",
+          "run": {
+            "serviceId": "searchcaptains",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/searchGames",
+          "run": {
+            "serviceId": "searchgames",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/searchMessages",
+          "run": {
+            "serviceId": "searchmessages",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/api/fn/setAcademyPlacement",
           "run": {
             "serviceId": "setacademyplacement",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/setAllowSpectate",
+          "run": {
+            "serviceId": "setallowspectate",
             "region": "us-central1"
           }
         },
@@ -477,9 +1178,662 @@
           }
         },
         {
+          "source": "/api/fn/submitModerationReport",
+          "run": {
+            "serviceId": "submitmoderationreport",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/unbanUser",
+          "run": {
+            "serviceId": "unbanuser",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/unmuteInSector",
+          "run": {
+            "serviceId": "unmuteinsector",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/unmuteUser",
+          "run": {
+            "serviceId": "unmuteuser",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/updateAdminNote",
+          "run": {
+            "serviceId": "updateadminnote",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/api/fn/updateCharterListing",
           "run": {
             "serviceId": "updatecharterlisting",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/updateContentReviewConfig",
+          "run": {
+            "serviceId": "updatecontentreviewconfig",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/updateModerationReport",
+          "run": {
+            "serviceId": "updatemoderationreport",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/verifyMatchCertificate",
+          "run": {
+            "serviceId": "verifymatchcertificate",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    {
+      "target": "ops",
+      "public": "apps/WarpOps/dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "Cross-Origin-Opener-Policy",
+              "value": "same-origin-allow-popups"
+            }
+          ]
+        },
+        {
+          "source": "/assets/**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public,max-age=31536000,immutable"
+            }
+          ]
+        },
+        {
+          "source": "/index.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
+        }
+      ],
+      "rewrites": [
+        {
+          "source": "/api/fn/addAdminNote",
+          "run": {
+            "serviceId": "addadminnote",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/approveRatedMatch",
+          "run": {
+            "serviceId": "approveratedmatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/banUser",
+          "run": {
+            "serviceId": "banuser",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/bootstrapAdmin",
+          "run": {
+            "serviceId": "bootstrapadmin",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/checkInToMatch",
+          "run": {
+            "serviceId": "checkintomatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/countActiveSectors",
+          "run": {
+            "serviceId": "countactivesectors",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/createCharter",
+          "run": {
+            "serviceId": "createcharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/createRatedMatch",
+          "run": {
+            "serviceId": "createratedmatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/deleteAdminNote",
+          "run": {
+            "serviceId": "deleteadminnote",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/deleteSectorMessage",
+          "run": {
+            "serviceId": "deletesectormessage",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getBan",
+          "run": {
+            "serviceId": "getban",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getCaptainDossier",
+          "run": {
+            "serviceId": "getcaptaindossier",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getCharter",
+          "run": {
+            "serviceId": "getcharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getCharterLeaderboard",
+          "run": {
+            "serviceId": "getcharterleaderboard",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getCharterManageInfo",
+          "run": {
+            "serviceId": "getchartermanageinfo",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getContentReviewConfig",
+          "run": {
+            "serviceId": "getcontentreviewconfig",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getModerationEvidencePack",
+          "run": {
+            "serviceId": "getmoderationevidencepack",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getMute",
+          "run": {
+            "serviceId": "getmute",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getMyRoles",
+          "run": {
+            "serviceId": "getmyroles",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getOpsGame",
+          "run": {
+            "serviceId": "getopsgame",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getOpsHands",
+          "run": {
+            "serviceId": "getopshands",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getOpsRatedMatch",
+          "run": {
+            "serviceId": "getopsratedmatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/joinCharter",
+          "run": {
+            "serviceId": "joincharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/joinSpectate",
+          "run": {
+            "serviceId": "joinspectate",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/leaveCharter",
+          "run": {
+            "serviceId": "leavecharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/leaveSpectate",
+          "run": {
+            "serviceId": "leavespectate",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listActiveGames",
+          "run": {
+            "serviceId": "listactivegames",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listAdminNotes",
+          "run": {
+            "serviceId": "listadminnotes",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listBans",
+          "run": {
+            "serviceId": "listbans",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listCaptainRatingEvents",
+          "run": {
+            "serviceId": "listcaptainratingevents",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listCharterJoinRequests",
+          "run": {
+            "serviceId": "listcharterjoinrequests",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listListedCharters",
+          "run": {
+            "serviceId": "listlistedcharters",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listMatchRatingEvents",
+          "run": {
+            "serviceId": "listmatchratingevents",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listModerationReports",
+          "run": {
+            "serviceId": "listmoderationreports",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listMutes",
+          "run": {
+            "serviceId": "listmutes",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listMyCharters",
+          "run": {
+            "serviceId": "listmycharters",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listOpsAudit",
+          "run": {
+            "serviceId": "listopsaudit",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listSectorMessages",
+          "run": {
+            "serviceId": "listsectormessages",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listStaleGames",
+          "run": {
+            "serviceId": "liststalegames",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/muteInSector",
+          "run": {
+            "serviceId": "muteinsector",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/muteUser",
+          "run": {
+            "serviceId": "muteuser",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsCascadeFromRatingEvent",
+          "run": {
+            "serviceId": "opscascadefromratingevent",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsCleanupStaleSector",
+          "run": {
+            "serviceId": "opscleanupstalesector",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsClearCharterJoinRequests",
+          "run": {
+            "serviceId": "opsclearcharterjoinrequests",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsCloseCharter",
+          "run": {
+            "serviceId": "opsclosecharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsDropSpectators",
+          "run": {
+            "serviceId": "opsdropspectators",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsGetCharter",
+          "run": {
+            "serviceId": "opsgetcharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsKickCaptain",
+          "run": {
+            "serviceId": "opskickcaptain",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsListCharters",
+          "run": {
+            "serviceId": "opslistcharters",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsRemoveCharterMember",
+          "run": {
+            "serviceId": "opsremovechartermember",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsSetCaptainRating",
+          "run": {
+            "serviceId": "opssetcaptainrating",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsSetDisplayName",
+          "run": {
+            "serviceId": "opssetdisplayname",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsTerminateSector",
+          "run": {
+            "serviceId": "opsterminatesector",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsUnrateOnlineSector",
+          "run": {
+            "serviceId": "opsunrateonlinesector",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsVoidRatedMatch",
+          "run": {
+            "serviceId": "opsvoidratedmatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/redactSectorMessage",
+          "run": {
+            "serviceId": "redactsectormessage",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/rejectRatedMatch",
+          "run": {
+            "serviceId": "rejectratedmatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/reportOnlineMatch",
+          "run": {
+            "serviceId": "reportonlinematch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/reportPracticeAiMatch",
+          "run": {
+            "serviceId": "reportpracticeaimatch",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/requestJoinCharter",
+          "run": {
+            "serviceId": "requestjoincharter",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/resetGlobalOfficialSeason",
+          "run": {
+            "serviceId": "resetglobalofficialseason",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/resolveJoinRequest",
+          "run": {
+            "serviceId": "resolvejoinrequest",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/rotateCharterInvite",
+          "run": {
+            "serviceId": "rotatecharterinvite",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/searchCaptains",
+          "run": {
+            "serviceId": "searchcaptains",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/searchGames",
+          "run": {
+            "serviceId": "searchgames",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/searchMessages",
+          "run": {
+            "serviceId": "searchmessages",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/setAcademyPlacement",
+          "run": {
+            "serviceId": "setacademyplacement",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/setAllowSpectate",
+          "run": {
+            "serviceId": "setallowspectate",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/setUserRoles",
+          "run": {
+            "serviceId": "setuserroles",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/submitMatchStandings",
+          "run": {
+            "serviceId": "submitmatchstandings",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/submitModerationReport",
+          "run": {
+            "serviceId": "submitmoderationreport",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/unbanUser",
+          "run": {
+            "serviceId": "unbanuser",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/unmuteInSector",
+          "run": {
+            "serviceId": "unmuteinsector",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/unmuteUser",
+          "run": {
+            "serviceId": "unmuteuser",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/updateAdminNote",
+          "run": {
+            "serviceId": "updateadminnote",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/updateCharterListing",
+          "run": {
+            "serviceId": "updatecharterlisting",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/updateContentReviewConfig",
+          "run": {
+            "serviceId": "updatecontentreviewconfig",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/updateModerationReport",
+          "run": {
+            "serviceId": "updatemoderationreport",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/verifyMatchCertificate",
+          "run": {
+            "serviceId": "verifymatchcertificate",
             "region": "us-central1"
           }
         },

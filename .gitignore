@@ -4,6 +4,7 @@
 # compiled output
 dist
 apps/Warp12/src-tauri/target
+apps/WarpOps/src-tauri/target
 tmp
 out-tsc
 

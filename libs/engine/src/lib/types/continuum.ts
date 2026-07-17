@@ -69,7 +69,8 @@ export const FLASH_CATALOG: readonly FlashCatalogEntry[] = [
   {
     kind: 'peek-uncharted',
     label: 'Peek Uncharted Sector',
-    description: 'Reveal the top tile in the Uncharted Sectors (invoker only).',
+    description:
+      'Reveal the next coordinate that would be drawn from Uncharted Sectors (invoker only).',
   },
   {
     kind: 'temporal-inversion',

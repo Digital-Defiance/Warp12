@@ -55,6 +55,7 @@ export function OnlineGamePage() {
   >([]);
   const [handCounts, setHandCounts] = useState<Record<string, number>>({});
   const [sectorRated, setSectorRated] = useState(true);
+  const [allowSpectate, setAllowSpectate] = useState(true);
   const [moveLog, setMoveLog] = useState<readonly FirestoreRoundMove[]>([]);
   const [aiHands, setAiHands] = useState<
     Record<string, readonly { low: number; high: number }[]>
@@ -105,6 +106,9 @@ export function OnlineGamePage() {
         aiHands: hostAiHands,
         rated,
         dissolved,
+        ejected,
+        terminated,
+        allowSpectate: spectateAllowed,
       }) => {
         if (dissolved) {
           setServerGame(null);
@@ -120,6 +124,30 @@ export function OnlineGamePage() {
           });
           return;
         }
+        if (ejected) {
+          setServerGame(null);
+          setOptimisticGame(null);
+          setHeaderStatus(null);
+          navigate('/online', {
+            replace: true,
+            state: {
+              callSignNotice: terminated
+                ? 'This sector was terminated by Ops.'
+                : 'You were removed from this sector by Ops.',
+            },
+          });
+          return;
+        }
+        if (terminated) {
+          setServerGame(null);
+          setOptimisticGame(null);
+          setHeaderStatus(null);
+          navigate('/online', {
+            replace: true,
+            state: { callSignNotice: 'This sector was terminated by Ops.' },
+          });
+          return;
+        }
         if (!state) {
           return;
         }
@@ -127,6 +155,7 @@ export function OnlineGamePage() {
         setHostId(sectorHost);
         setSectorCaptains(captains);
         setSectorRated(rated);
+        setAllowSpectate(spectateAllowed);
         setHandCounts(counts);
         setMoveLog(sharedMoveLog);
         setAiHands(hostAiHands);
@@ -376,8 +405,7 @@ export function OnlineGamePage() {
       const captainIds = serverGame.captains.map((captain) => captain.id);
       const firestore = await fetchHostDebugSnapshot(code, captainIds);
       const notes = [
-        'Host export includes all captain hands and a merged fullGameState.',
-        'Deploy updated firestore.rules for host hand reads in production.',
+        'Host export merges captain hands into fullGameState when rules allow.',
       ];
       if (Object.keys(firestore.handReadErrors).length > 0) {
         notes.push(
@@ -440,6 +468,7 @@ export function OnlineGamePage() {
         onlineCaptains={sectorCaptains}
         sectorRated={sectorRated}
         onlineMoveLog={moveLog}
+        allowSpectate={allowSpectate}
         onAction={dispatch}
         onLeave={() => navigate('/')}
         isOnlineHost={isHost}
@@ -468,6 +497,7 @@ export function OnlineGamePage() {
           viewerSquadronName={viewerSquadronName}
           muted={mutedUids}
           onMute={handleMute}
+          allowSpectate={allowSpectate}
         />
       )}
     </div>

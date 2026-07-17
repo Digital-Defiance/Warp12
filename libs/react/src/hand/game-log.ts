@@ -121,6 +121,14 @@ export interface RoundLogExport {
 
 export interface GameLogFormatOptions {
   readonly roundStartedAtMs: number;
+  /**
+   * Optional override for the elapsed-time prefix (default MM:SS).
+   * Bridge may pass BrightDate decimal spans when the player prefers them.
+   */
+  readonly formatElapsed?: (
+    entryAtIso: string,
+    roundStartedAtMs: number
+  ) => string;
 }
 
 /** Elapsed time since round start, shown as MM:SS (e.g. 05:12). */
@@ -179,9 +187,12 @@ function trainIdForRoute(round: RoundState, route: ChartRoute): number | undefin
 
 function formatLogTime(
   iso: string,
-  roundStartedAtMs: number
+  options: GameLogFormatOptions
 ): string {
-  return formatRoundElapsedTime(iso, roundStartedAtMs);
+  if (options.formatElapsed) {
+    return options.formatElapsed(iso, options.roundStartedAtMs);
+  }
+  return formatRoundElapsedTime(iso, options.roundStartedAtMs);
 }
 
 function captainLabel(
@@ -312,7 +323,7 @@ export function formatGameLogLine(
   viewerId?: string,
   ownHandSizeAfter?: number
 ): string {
-  const time = formatLogTime(entry.at, options.roundStartedAtMs);
+  const time = formatLogTime(entry.at, options);
   const name = captainLabel(entry.captainId, names);
   const prefix = `${time} - ${name}`;
   const isOwnAction = viewerId && entry.captainId === viewerId;
@@ -1040,10 +1051,19 @@ export function buildRoundLogExport(
   entries: readonly GameLogEntry[],
   roundNumber: number,
   names: Readonly<Record<string, string>>,
-  options: { sectorCode?: string; exportedAt?: string; roundStartedAtMs: number; viewerId?: string }
+  options: {
+    sectorCode?: string;
+    exportedAt?: string;
+    roundStartedAtMs: number;
+    viewerId?: string;
+    formatElapsed?: GameLogFormatOptions['formatElapsed'];
+  }
 ): RoundLogExport {
   const exportedAt = options?.exportedAt ?? new Date().toISOString();
-  const formatOptions = { roundStartedAtMs: options.roundStartedAtMs };
+  const formatOptions: GameLogFormatOptions = {
+    roundStartedAtMs: options.roundStartedAtMs,
+    formatElapsed: options.formatElapsed,
+  };
   return {
     exportedAt,
     roundNumber,

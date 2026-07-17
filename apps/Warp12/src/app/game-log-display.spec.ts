@@ -15,6 +15,13 @@ describe('splitGameLogLine', () => {
       body: 'Armstrong played 9-12 on their own Trail',
     });
   });
+
+  it('splits a BrightDate decimal duration prefix', () => {
+    expect(splitGameLogLine('3.611md - Armstrong charted 9-12')).toEqual({
+      timestamp: '3.611md',
+      body: 'Armstrong charted 9-12',
+    });
+  });
 });
 
 describe('splitBodyByNames', () => {

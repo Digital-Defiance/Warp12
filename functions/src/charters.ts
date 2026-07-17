@@ -3,6 +3,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 
 import { hasRole, requireSignedIn, requireVerifiedUser, requireAdmin } from './auth';
+import { assertNotBanned } from './bans';
 import {
   GLOBAL_OFFICIAL_PLAYER_COUNTS,
   WARP12_OFFICIAL_RULES_PROFILE_ID,
@@ -267,6 +268,7 @@ function publicCharterView(charter: CharterDocument) {
 
 export const createCharter = onCall(async (request) => {
   const uid = requireVerifiedUser(request);
+  await assertNotBanned(uid, request);
   const data = request.data as {
     name?: string;
     slug?: string;
@@ -375,6 +377,7 @@ export const createCharter = onCall(async (request) => {
 
 export const joinCharter = onCall(async (request) => {
   const uid = requireVerifiedUser(request);
+  await assertNotBanned(uid, request);
   const data = request.data as {
     charterId?: string;
     slug?: string;
@@ -696,6 +699,7 @@ export const listListedCharters = onCall(async (request) => {
 
 export const requestJoinCharter = onCall(async (request) => {
   const uid = requireVerifiedUser(request);
+  await assertNotBanned(uid, request);
   const { charterId } = request.data as { charterId?: string };
   if (!charterId) {
     throw new HttpsError('invalid-argument', 'charterId required.');

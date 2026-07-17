@@ -58,8 +58,20 @@ function mergeCaptainMetadata(
 
 export function buildPublicDoc(
   state: GameState,
-  meta: Pick<FirestoreGameDocument, 'hostId' | 'createdAt' | 'captains' | 'rated'> & {
+  meta: Pick<
+    FirestoreGameDocument,
+    'hostId' | 'createdAt' | 'captains' | 'rated'
+  > & {
     maxPlayers?: number;
+    /** Preserve gallery / ops / charter fields across full-doc rewrites. */
+    allowSpectate?: boolean;
+    spectatorIds?: string[];
+    charterId?: string;
+    rulesProfileId?: string;
+    opsTerminated?: boolean;
+    opsTerminatedAt?: string;
+    opsTerminatedBy?: string;
+    opsTerminationReason?: string;
   }
 ): FirestoreGameDocument {
   const serialized = serializePublicGame(state);
@@ -73,6 +85,28 @@ export function buildPublicDoc(
     captains,
     rated: meta.rated ?? true,
     maxPlayers: meta.maxPlayers ?? serialized.maxPlayers ?? ONLINE_MAX_PLAYERS,
+    ...(meta.allowSpectate !== undefined
+      ? { allowSpectate: meta.allowSpectate }
+      : {}),
+    ...(meta.spectatorIds !== undefined
+      ? { spectatorIds: [...meta.spectatorIds] }
+      : {}),
+    ...(meta.charterId ? { charterId: meta.charterId } : {}),
+    ...(meta.rulesProfileId ? { rulesProfileId: meta.rulesProfileId } : {}),
+    ...(meta.opsTerminated === true
+      ? {
+          opsTerminated: true,
+          ...(meta.opsTerminatedAt
+            ? { opsTerminatedAt: meta.opsTerminatedAt }
+            : {}),
+          ...(meta.opsTerminatedBy
+            ? { opsTerminatedBy: meta.opsTerminatedBy }
+            : {}),
+          ...(meta.opsTerminationReason
+            ? { opsTerminationReason: meta.opsTerminationReason }
+            : {}),
+        }
+      : {}),
   });
 }
 
@@ -131,6 +165,14 @@ export function prepareOnlineAction(
     captains: docData.captains,
     rated: docData.rated,
     maxPlayers: maxPlayersFor(docData),
+    allowSpectate: docData.allowSpectate,
+    spectatorIds: docData.spectatorIds,
+    charterId: docData.charterId,
+    rulesProfileId: docData.rulesProfileId,
+    opsTerminated: docData.opsTerminated,
+    opsTerminatedAt: docData.opsTerminatedAt,
+    opsTerminatedBy: docData.opsTerminatedBy,
+    opsTerminationReason: docData.opsTerminationReason,
   });
 
   if (publicDoc.round && docData.round && !isEndRound) {

@@ -10,6 +10,8 @@ describe('user-prefs', () => {
     const prefs = readUserPrefs();
     expect(prefs).toEqual({
       showAdvancedStats: false,
+      preferBrightDate: false,
+      brightDateTipDismissed: false,
     });
   });
 
@@ -31,6 +33,8 @@ describe('user-prefs', () => {
     const prefs = readUserPrefs();
     expect(prefs).toEqual({
       showAdvancedStats: false,
+      preferBrightDate: false,
+      brightDateTipDismissed: false,
     });
   });
 

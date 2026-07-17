@@ -1,0 +1,9 @@
+[[permission]]
+identifier = "allow-start-oauth-server"
+description = "Bind the localhost loopback server for Google OAuth."
+commands.allow = ["start_oauth_server"]
+
+[[permission]]
+identifier = "allow-await-oauth-redirect"
+description = "Await the Google OAuth redirect URL from the loopback server."
+commands.allow = ["await_oauth_redirect"]

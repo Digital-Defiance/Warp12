@@ -39,6 +39,7 @@ import { isFirebaseConfigured } from '../firebase/config.js';
 import { usePlayerStats } from '../firebase/use-player-stats.js';
 import { useCaptainProfile } from '../game/use-captain-profile.js';
 import { readUserPrefs, writeUserPrefs } from './user-prefs.js';
+import { formatDisplayDay, formatDisplayTime } from './display-time.js';
 import { AccountUpgradeFieldset } from './account-upgrade-fieldset.js';
 import { AcademyPlacementFieldset } from './academy-placement-fieldset';
 import { CaptainGenderFieldset } from './captain-gender-fieldset';
@@ -228,18 +229,27 @@ function SquadTeiTable({
   );
 }
 
-function formatSquadMatchLine(match: SquadMatchView): string {
+function formatSquadMatchLine(
+  match: SquadMatchView,
+  preferBrightDate: boolean
+): string {
   const parts = match.squadrons.map((s) => {
     const label = s.name ?? s.id;
     const members = s.memberDisplayNames.join(' & ');
     const won = match.winnerSquadIds.includes(s.id) ? '★ ' : '';
     return `${won}${label} (${members})`;
   });
-  const when = match.playedAt.slice(0, 10);
+  const when = formatDisplayDay(match.playedAt, { preferBrightDate });
   return `${when} · ${TEI_OBJECTIVE_LABEL[match.objective]} · ${parts.join(' vs ')}`;
 }
 
-function SquadMatchHistory({ uid }: { uid: string }) {
+function SquadMatchHistory({
+  uid,
+  preferBrightDate,
+}: {
+  uid: string;
+  preferBrightDate: boolean;
+}) {
   const [matches, setMatches] = useState<SquadMatchView[] | null>(null);
 
   useEffect(() => {
@@ -274,7 +284,7 @@ function SquadMatchHistory({ uid }: { uid: string }) {
   return (
     <ul className={profileStyles.historyList}>
       {matches.map((m) => (
-        <li key={m.gameId}>{formatSquadMatchLine(m)}</li>
+        <li key={m.gameId}>{formatSquadMatchLine(m, preferBrightDate)}</li>
       ))}
     </ul>
   );
@@ -346,14 +356,24 @@ function TeiTable({
 }
 
 export function ProfilePage() {
-  const [showAdvancedStats, setShowAdvancedStats] = useState(() => 
+  const [showAdvancedStats, setShowAdvancedStats] = useState(() =>
     readUserPrefs().showAdvancedStats
+  );
+  const [preferBrightDate, setPreferBrightDate] = useState(() =>
+    readUserPrefs().preferBrightDate
+  );
+  const [brightDateTipDismissed, setBrightDateTipDismissed] = useState(() =>
+    readUserPrefs().brightDateTipDismissed
   );
 
   // Persist advanced stats preference when it changes
   useEffect(() => {
     writeUserPrefs({ showAdvancedStats });
   }, [showAdvancedStats]);
+
+  useEffect(() => {
+    writeUserPrefs({ preferBrightDate });
+  }, [preferBrightDate]);
 
   const auth = useFirebaseAuth();
   const playerStats = usePlayerStats();
@@ -442,6 +462,74 @@ export function ProfilePage() {
         </label>
       </div>
 
+      <div className={profileStyles.advancedToggle}>
+        <label className={profileStyles.advancedCheck}>
+          <input
+            type="checkbox"
+            checked={preferBrightDate}
+            onChange={(e) => setPreferBrightDate(e.target.checked)}
+          />
+          <span>
+            <strong>Show BrightDates</strong>
+            <span className={profileStyles.advancedCheckHint}>
+              Prefer{' '}
+              <a
+                href="https://brightdate.org"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                BrightDate
+              </a>{' '}
+              (J2000.0 / TAI decimal days) for match times and other dates.
+              BrightDates are <em>not</em> Stardates — they are a real
+              astronomical civil time scale. You can switch back to local calendar
+              time anytime.
+            </span>
+          </span>
+        </label>
+      </div>
+
+      {!brightDateTipDismissed && !preferBrightDate ? (
+        <div className={profileStyles.brightDateTip} role="status">
+          <p>
+            Try BrightDates for a federation chronometer feel — scientifically
+            grounded (not trademark Stardates). Recommended for immersive play.
+          </p>
+          <p className={profileStyles.brightDateExample}>
+            <span>Right now:</span>{' '}
+            <code>
+              {formatDisplayTime(new Date(), { preferBrightDate: true })}
+            </code>
+          </p>
+          <div className={profileStyles.brightDateTipActions}>
+            <button
+              type="button"
+              className={styles.primary}
+              onClick={() => {
+                setPreferBrightDate(true);
+                setBrightDateTipDismissed(true);
+                writeUserPrefs({
+                  preferBrightDate: true,
+                  brightDateTipDismissed: true,
+                });
+              }}
+            >
+              Enable BrightDates
+            </button>
+            <button
+              type="button"
+              className={styles.secondary}
+              onClick={() => {
+                setBrightDateTipDismissed(true);
+                writeUserPrefs({ brightDateTipDismissed: true });
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {captainAvatarFieldset}
 
       {auth.user && (
@@ -523,7 +611,10 @@ export function ProfilePage() {
               showAdvanced={showAdvancedStats}
             />
             <h3 className={profileStyles.sectionHeading}>Squad sector archive</h3>
-            <SquadMatchHistory uid={auth.user.uid} />
+            <SquadMatchHistory
+              uid={auth.user.uid}
+              preferBrightDate={preferBrightDate}
+            />
           </fieldset>
 
           <div className={profileStyles.trendGrid}>
@@ -585,6 +676,7 @@ export function ProfilePage() {
                   
                   return (
                     <li key={entry.playedAt}>
+                      {formatDisplayDay(entry.playedAt, { preferBrightDate })} ·{' '}
                       {TEI_OBJECTIVE_LABEL[entry.objective]} vs{' '}
                       {formatMatchOpponentLabel(entry)}
                       {' — '}

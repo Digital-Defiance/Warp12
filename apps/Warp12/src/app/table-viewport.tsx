@@ -9,6 +9,13 @@ import {
 } from 'react';
 
 import { panToCenterContentPoint } from 'warp12-react';
+import {
+  FOLLOW_RETURN_EASE_MS,
+  interpolatePan,
+  pulseStartDelayMs,
+  sanitizeAutoFollowReturnDelayMs,
+  type PanVector,
+} from './follow-snap-back.js';
 import styles from './table-viewport.module.scss';
 
 const MIN_SCALE_DESKTOP = 0.35;
@@ -66,7 +73,16 @@ export interface TableViewportProps {
   logControl?: TableViewportLogControl;
   commsControl?: TableViewportCommsControl;
   autoFollowAction?: boolean;
+  /** Ease back to the pre-jump pan after a dwell. */
+  autoFollowReturn?: boolean;
+  /** Dwell before snap-back (ms). */
+  autoFollowReturnDelayMs?: number;
   actionFocus?: TableViewportFocusTarget | null;
+  /**
+   * Increment to abort a pending snap-back (e.g. Fleet Status / Sector HUD
+   * pointer interaction outside the viewport).
+   */
+  followReturnCancelSignal?: number;
   /** Phone layout: lower min zoom, pinch-to-zoom, auto-fit table in view. */
   compactLayout?: boolean;
 }
@@ -113,12 +129,16 @@ export function TableViewport({
   logControl,
   commsControl,
   autoFollowAction = false,
+  autoFollowReturn = false,
+  autoFollowReturnDelayMs = 2000,
   actionFocus = null,
+  followReturnCancelSignal = 0,
   compactLayout = false,
 }: TableViewportProps) {
   const minScale = compactLayout ? MIN_SCALE_COMPACT : MIN_SCALE_DESKTOP;
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [pulseActive, setPulseActive] = useState(false);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(
     null
@@ -131,37 +151,146 @@ export function TableViewport({
     panY: number;
   } | null>(null);
 
+  const panRef = useRef(pan);
+  const scaleRef = useRef(scale);
+  const originPanRef = useRef<PanVector | null>(null);
+  const sessionActiveRef = useRef(false);
+  const dwellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const easeRafRef = useRef<number | null>(null);
+  const lastFocusKeyRef = useRef<string | null>(null);
+  const lastCancelSignalRef = useRef(followReturnCancelSignal);
+
+  useEffect(() => {
+    panRef.current = pan;
+  }, [pan]);
+
+  useEffect(() => {
+    scaleRef.current = scale;
+  }, [scale]);
+
+  const clearFollowTimers = useCallback(() => {
+    if (dwellTimerRef.current != null) {
+      clearTimeout(dwellTimerRef.current);
+      dwellTimerRef.current = null;
+    }
+    if (pulseTimerRef.current != null) {
+      clearTimeout(pulseTimerRef.current);
+      pulseTimerRef.current = null;
+    }
+    if (easeRafRef.current != null) {
+      cancelAnimationFrame(easeRafRef.current);
+      easeRafRef.current = null;
+    }
+    setPulseActive(false);
+  }, []);
+
+  const endFollowSession = useCallback(() => {
+    clearFollowTimers();
+    originPanRef.current = null;
+    sessionActiveRef.current = false;
+  }, [clearFollowTimers]);
+
+  /** User interaction: abandon return and forget the origin. */
+  const abortFollowReturnForUser = useCallback(() => {
+    if (!sessionActiveRef.current && dwellTimerRef.current == null && easeRafRef.current == null) {
+      return;
+    }
+    endFollowSession();
+  }, [endFollowSession]);
+
+  const startEaseToOrigin = useCallback(() => {
+    const origin = originPanRef.current;
+    if (!origin) {
+      endFollowSession();
+      return;
+    }
+    clearFollowTimers();
+    const from = { ...panRef.current };
+    const startedAt = performance.now();
+
+    const frame = (now: number) => {
+      const t = Math.min(1, (now - startedAt) / FOLLOW_RETURN_EASE_MS);
+      setPan(interpolatePan(from, origin, t));
+      if (t < 1) {
+        easeRafRef.current = requestAnimationFrame(frame);
+        return;
+      }
+      easeRafRef.current = null;
+      endFollowSession();
+    };
+    easeRafRef.current = requestAnimationFrame(frame);
+  }, [clearFollowTimers, endFollowSession]);
+
+  const scheduleFollowReturn = useCallback(
+    (focus: TableViewportFocusTarget) => {
+      clearFollowTimers();
+      if (!autoFollowReturn) {
+        return;
+      }
+      const dwellMs = sanitizeAutoFollowReturnDelayMs(autoFollowReturnDelayMs);
+      const pulseDelay = pulseStartDelayMs(dwellMs);
+
+      pulseTimerRef.current = setTimeout(() => {
+        setPulseActive(true);
+      }, pulseDelay);
+
+      dwellTimerRef.current = setTimeout(() => {
+        dwellTimerRef.current = null;
+        // Keep pulse through the ease, then clear in endFollowSession.
+        startEaseToOrigin();
+      }, dwellMs);
+
+      // Silence unused focus in schedule (key already applied); kept for clarity.
+      void focus;
+    },
+    [
+      autoFollowReturn,
+      autoFollowReturnDelayMs,
+      clearFollowTimers,
+      startEaseToOrigin,
+    ]
+  );
+
   const clampScale = useCallback(
     (next: number) => Math.min(MAX_SCALE, Math.max(minScale, next)),
     [minScale]
   );
 
-  const applyFitView = useCallback(() => {
-    const surface = surfaceRef.current;
-    if (!surface) {
-      return;
-    }
-    const { width, height } = surface.getBoundingClientRect();
-    const fit = computeFitView(width, height, tableWidth, tableHeight, minScale);
-    setScale(fit.scale);
-    setPan(fit.pan);
-  }, [minScale, tableHeight, tableWidth]);
+  const applyFitView = useCallback(
+    (abortFollow = true) => {
+      if (abortFollow) {
+        abortFollowReturnForUser();
+      }
+      const surface = surfaceRef.current;
+      if (!surface) {
+        return;
+      }
+      const { width, height } = surface.getBoundingClientRect();
+      const fit = computeFitView(width, height, tableWidth, tableHeight, minScale);
+      setScale(fit.scale);
+      setPan(fit.pan);
+    },
+    [abortFollowReturnForUser, minScale, tableHeight, tableWidth]
+  );
 
   const zoomBy = useCallback(
     (delta: number) => {
+      abortFollowReturnForUser();
       setScale((current) => clampScale(Number((current + delta).toFixed(2))));
     },
-    [clampScale]
+    [abortFollowReturnForUser, clampScale]
   );
 
   const resetView = useCallback(() => {
+    abortFollowReturnForUser();
     if (compactLayout) {
       applyFitView();
       return;
     }
     setScale(1);
     setPan({ x: 0, y: 0 });
-  }, [applyFitView, compactLayout]);
+  }, [abortFollowReturnForUser, applyFitView, compactLayout]);
 
   useEffect(() => {
     if (!compactLayout) {
@@ -173,7 +302,7 @@ export function TableViewport({
       return;
     }
     const observer = new ResizeObserver(() => {
-      applyFitView();
+      applyFitView(false);
     });
     observer.observe(surface);
     return () => {
@@ -181,10 +310,17 @@ export function TableViewport({
     };
   }, [applyFitView, compactLayout]);
 
+  // Follow charted tiles + optional snap-back session.
   useEffect(() => {
     if (!autoFollowAction || !actionFocus) {
+      lastFocusKeyRef.current = null;
       return;
     }
+    if (lastFocusKeyRef.current === actionFocus.key) {
+      return;
+    }
+    lastFocusKeyRef.current = actionFocus.key;
+
     const surface = surfaceRef.current;
     if (!surface) {
       return;
@@ -193,20 +329,75 @@ export function TableViewport({
     if (width <= 0 || height <= 0) {
       return;
     }
-    setPan(panToCenterContentPoint(width, height, scale, actionFocus.x, actionFocus.y));
-  }, [actionFocus?.key, autoFollowAction, scale]);
+
+    // New chart mid-dwell: cancel pending return/ease, keep original origin.
+    clearFollowTimers();
+
+    if (!sessionActiveRef.current || originPanRef.current == null) {
+      originPanRef.current = { ...panRef.current };
+      sessionActiveRef.current = true;
+    }
+
+    setPan(
+      panToCenterContentPoint(
+        width,
+        height,
+        scaleRef.current,
+        actionFocus.x,
+        actionFocus.y
+      )
+    );
+
+    if (autoFollowReturn) {
+      scheduleFollowReturn(actionFocus);
+    } else {
+      // Follow without return — no sticky session.
+      endFollowSession();
+    }
+  }, [
+    actionFocus,
+    autoFollowAction,
+    autoFollowReturn,
+    clearFollowTimers,
+    endFollowSession,
+    scheduleFollowReturn,
+  ]);
+
+  // Follow without return — drop any pending snap-back session.
+  useEffect(() => {
+    if (!autoFollowReturn || !autoFollowAction) {
+      endFollowSession();
+    }
+  }, [autoFollowAction, autoFollowReturn, endFollowSession]);
+
+  // External cancel (Fleet Status / Sector HUD, etc.).
+  useEffect(() => {
+    if (followReturnCancelSignal === lastCancelSignalRef.current) {
+      return;
+    }
+    lastCancelSignalRef.current = followReturnCancelSignal;
+    abortFollowReturnForUser();
+  }, [abortFollowReturnForUser, followReturnCancelSignal]);
+
+  useEffect(() => {
+    return () => {
+      clearFollowTimers();
+    };
+  }, [clearFollowTimers]);
 
   const onWheel = useCallback(
     (event: ReactWheelEvent<HTMLDivElement>) => {
       event.preventDefault();
+      abortFollowReturnForUser();
       const delta = event.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
       zoomBy(delta);
     },
-    [zoomBy]
+    [abortFollowReturnForUser, zoomBy]
   );
 
   const onPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
+      abortFollowReturnForUser();
       pointersRef.current.set(event.pointerId, {
         x: event.clientX,
         y: event.clientY,
@@ -236,7 +427,7 @@ export function TableViewport({
       };
       event.currentTarget.setPointerCapture(event.pointerId);
     },
-    [pan.x, pan.y, scale]
+    [abortFollowReturnForUser, pan.x, pan.y, scale]
   );
 
   const onPointerMove = useCallback(
@@ -307,6 +498,16 @@ export function TableViewport({
             }}
           >
             {children}
+            {pulseActive && actionFocus ? (
+              <div
+                className={styles.followPulse}
+                style={{
+                  left: `${actionFocus.x}px`,
+                  top: `${actionFocus.y}px`,
+                }}
+                aria-hidden
+              />
+            ) : null}
           </div>
         </div>
       </div>

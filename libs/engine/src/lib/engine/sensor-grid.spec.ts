@@ -4,6 +4,14 @@ import { startGame } from '../setup/create-game.js';
 import { applyAction } from './apply-action.js';
 import { scoreRound } from './scoring.js';
 import { generateCoordinateSet, shuffleCoordinates } from '../domino/coordinates.js';
+import {
+  refillSensorGrid,
+  removeFromSensorGrid,
+} from './sensor-grid.js';
+import { makeGame, makeRound, T } from './test-helpers.js';
+import { resolveModules } from '../types/modules.js';
+import { createInitialTable } from '../table/table-state.js';
+import { getSpoolOptions } from './legal-moves.js';
 
 function seededRandom(seed: number): () => number {
   let value = seed;
@@ -142,31 +150,48 @@ describe('Module Gamma — Sensor Grid', () => {
   });
 
   it('refills sensor grid after a sweep', () => {
-    const coords = shuffleCoordinates(generateCoordinateSet(12), seededRandom(4));
-    const state = startGame(
-      {
-        id: 'gamma-refill-test',
-        captains: [
-          { id: 'a', displayName: 'Alpha' },
-          { id: 'b', displayName: 'Beta' },
-        ],
-        modules: { sensorGrid: true, sensorGridSize: 5 },
-        maxPip: 12,
-      },
-      { shuffledCoordinates: coords }
+    const grid = [
+      normalizeCoordinate(1, 1),
+      normalizeCoordinate(2, 2),
+      normalizeCoordinate(3, 3),
+      normalizeCoordinate(4, 4),
+      normalizeCoordinate(5, 5),
+    ];
+    const uncharted = [
+      normalizeCoordinate(6, 6),
+      normalizeCoordinate(7, 7),
+      normalizeCoordinate(8, 8),
+    ];
+    const { sensorGrid: afterRemove, found } = removeFromSensorGrid(
+      grid,
+      normalizeCoordinate(1, 1)
     );
+    expect(found).toBe(true);
+    expect(afterRemove).toHaveLength(4);
 
-    const round = state.round!;
-    const initialGridSize = round.sensorGrid.length;
-    const initialUncharted = round.unchartedSectors.length;
-
-    expect(initialGridSize).toBe(5);
-    expect(initialUncharted).toBeGreaterThan(0);
-
-    // The grid should stay at target size (5) as long as uncharted sectors exist
-    // In actual play, after a sensor sweep, the grid refills automatically
+    const { sensorGrid, unchartedSectors } = refillSensorGrid(
+      afterRemove,
+      uncharted,
+      5
+    );
+    expect(sensorGrid).toHaveLength(5);
+    expect(unchartedSectors).toHaveLength(2);
+    expect(sensorGrid[4]).toEqual(normalizeCoordinate(6, 6));
   });
 
+  it('refills an emptied sensor grid up to target size', () => {
+    const uncharted = [
+      normalizeCoordinate(1, 2),
+      normalizeCoordinate(3, 4),
+      normalizeCoordinate(5, 6),
+      normalizeCoordinate(7, 8),
+      normalizeCoordinate(9, 10),
+      normalizeCoordinate(0, 11),
+    ];
+    const { sensorGrid, unchartedSectors } = refillSensorGrid([], uncharted, 5);
+    expect(sensorGrid).toHaveLength(5);
+    expect(unchartedSectors).toHaveLength(1);
+  });
   it('handles empty sensor grid gracefully', () => {
     const coords = shuffleCoordinates(generateCoordinateSet(12), seededRandom(5));
     const state = startGame(
@@ -236,5 +261,84 @@ describe('Module Gamma — Sensor Grid', () => {
     expect(scored.state.round?.roundNumber).toBe(2);
     expect(scored.state.round?.sensorGrid.length).toBe(5);
     expect(scored.state.modules.sensorGrid.enabled).toBe(true);
+  });
+
+  it('restores the sensor grid after Warp Drive Spool drains the market', () => {
+    const round = makeRound(['a', 'b'], {
+      activePlayerId: 'a',
+      spacedockValue: 12,
+      hands: { a: [T(3, 4)], b: [] },
+      unchartedSectors: [T(12, 5), T(0, 1), T(2, 3), T(4, 5), T(6, 7), T(8, 9)],
+      sensorGrid: [T(1, 1), T(2, 2), T(3, 3), T(4, 4), T(5, 5)],
+      table: {
+        ...createInitialTable(['a', 'b'], 12, 'a'),
+        warpTrails: {
+          a: {
+            playerId: 'a',
+            tiles: [{ coordinate: T(12, 8), index: 0, openValue: 8 }],
+            distressBeacon: { active: false },
+          },
+          b: {
+            playerId: 'b',
+            tiles: [],
+            distressBeacon: { active: false },
+          },
+        },
+      },
+    });
+    const state = makeGame(round, {
+      modules: resolveModules({
+        sensorGrid: true,
+        sensorGridSize: 5,
+        warpDriveSpool: true,
+      }),
+    });
+
+    const spool = applyAction(state, {
+      type: 'SPOOL_WARP_DRIVE',
+      playerId: 'a',
+      route: { kind: 'warp-trail', playerId: 'a' },
+    });
+    expect(spool.ok).toBe(true);
+    if (!spool.ok) return;
+
+    const remaining =
+      (spool.state.round?.unchartedSectors.length ?? 0) +
+      (spool.state.round?.sensorGrid.length ?? 0);
+    if (remaining >= 5) {
+      expect(spool.state.round?.sensorGrid.length).toBe(5);
+    } else {
+      expect(spool.state.round?.sensorGrid.length).toBe(remaining);
+      expect(spool.state.round?.unchartedSectors.length).toBe(0);
+    }
+  });
+
+  it('hides Engage Warp Drive spool options when the draw pool is empty', () => {
+    const round = makeRound(['a', 'b'], {
+      activePlayerId: 'a',
+      spacedockValue: 12,
+      hands: { a: [T(3, 4)], b: [] },
+      unchartedSectors: [],
+      sensorGrid: [],
+      table: {
+        ...createInitialTable(['a', 'b'], 12, 'a'),
+        warpTrails: {
+          a: {
+            playerId: 'a',
+            tiles: [{ coordinate: T(12, 8), index: 0, openValue: 8 }],
+            distressBeacon: { active: false },
+          },
+          b: {
+            playerId: 'b',
+            tiles: [],
+            distressBeacon: { active: false },
+          },
+        },
+      },
+    });
+    const state = makeGame(round, {
+      modules: resolveModules({ warpDriveSpool: true }),
+    });
+    expect(getSpoolOptions(state, round, 'a')).toHaveLength(0);
   });
 });

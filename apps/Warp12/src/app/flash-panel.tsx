@@ -218,7 +218,7 @@ export function PeekedSectorBanner({
     <div className={className ?? styles.peek}>
       <dt>Peek:</dt>
       <dd>
-        Top Uncharted tile is {low}-{high}
+        Next Uncharted draw is {low}-{high}
       </dd>
     </div>
   );

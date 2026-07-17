@@ -2,11 +2,15 @@
 export function splitGameLogLine(
   line: string
 ): { timestamp: string; body: string } | null {
-  const match = /^(\d{2}:\d{2}) - (.*)$/s.exec(line);
-  if (!match) {
+  const sep = ' - ';
+  const idx = line.indexOf(sep);
+  if (idx <= 0) {
     return null;
   }
-  return { timestamp: match[1]!, body: match[2]! };
+  return {
+    timestamp: line.slice(0, idx),
+    body: line.slice(idx + sep.length),
+  };
 }
 
 export const CAPTAIN_LOG_COLORS = [

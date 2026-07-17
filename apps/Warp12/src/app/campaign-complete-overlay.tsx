@@ -8,6 +8,7 @@ import {
 
 import type { LocalAiMatchReport, OnlineHumanSelfReport } from '../firebase/stats-service.js';
 import type { StoredRating } from '../firebase/rating-types.js';
+import { isAiCaptainId } from '../game/ai-captain.js';
 import {
   sectorCompleteHeadline,
   sectorStandings,
@@ -72,6 +73,8 @@ export interface CampaignCompleteOverlayProps {
   ratedMatchCheckInUrl?: string;
   /** Per-round campaign point deltas (points objective) for the by-round breakdown. */
   pointsHistory?: readonly CampaignRoundPoints[];
+  /** Online go-out: public remaining-tile counts after private hands are cleared. */
+  handCounts?: Readonly<Record<string, number>>;
   performance: AdvisorPerformanceSummary | null;
   canDownloadAdvisorReport?: boolean;
   onDownloadAdvisorReport?: (
@@ -94,6 +97,7 @@ export function CampaignCompleteOverlay({
   matchReportNotice = null,
   ratedMatchCheckInUrl,
   pointsHistory,
+  handCounts,
   performance,
   canDownloadAdvisorReport = false,
   onDownloadAdvisorReport,
@@ -138,7 +142,9 @@ export function CampaignCompleteOverlay({
 
   const winnerId = sectorWinnerId(game);
   const humanWon = Boolean(humanId && winnerId === humanId);
-  const standings = sectorStandings(game, names);
+  const standings = sectorStandings(game, names, {
+    ...(handCounts ? { handCounts } : {}),
+  });
   const headline = sectorCompleteHeadline(game, names, humanId);
 
   // Per-captain by-round point deltas for the click-to-expand breakdown.
@@ -217,7 +223,10 @@ export function CampaignCompleteOverlay({
                         index + 1
                       )}
                     </td>
-                    <td className={styles.roundEndCaptain}>{entry.name}</td>
+                    <td className={styles.roundEndCaptain}>
+                      {entry.name}
+                      {isAiCaptainId(entry.id) ? ' · AI' : ''}
+                    </td>
                     <td
                       className={styles.roundEndPointsCell}
                       title={entry.label}

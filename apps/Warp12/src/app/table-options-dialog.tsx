@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   WARP_PIP_PRESET_META,
@@ -7,6 +7,9 @@ import {
   type WarpPipPreset,
   type WarpTileBg,
 } from 'warp12-theme';
+import { useAnnounce } from '../a11y/live-announcer.js';
+import { copyTextToClipboard } from '../game/deliver-file.js';
+import { sectorInviteLinks } from '../game/sector-invite-urls.js';
 import type {
   ShareRoundDelivery,
   ShareRoundImageMode,
@@ -15,6 +18,10 @@ import type {
   CaptainTailsCoordinate,
   CaptainTailsDisplay,
 } from './table-view-prefs';
+import {
+  DEFAULT_AUTO_FOLLOW_RETURN_DELAY_MS,
+  sanitizeAutoFollowReturnDelayMs,
+} from './follow-snap-back.js';
 import { RoundImageActions } from './round-image-actions';
 import { forceReloadPage } from './force-reload';
 import { formatAppVersionLabel } from './app-version';
@@ -45,6 +52,10 @@ export interface TableOptionsDialogProps {
   advisorNeuralAvailable?: boolean;
   autoFollowAction: boolean;
   onAutoFollowActionChange: (next: boolean) => void;
+  autoFollowReturn: boolean;
+  onAutoFollowReturnChange: (next: boolean) => void;
+  autoFollowReturnDelayMs: number;
+  onAutoFollowReturnDelayMsChange: (next: number) => void;
   sectorStatusHud: boolean;
   onSectorStatusHudChange: (next: boolean) => void;
   captainTailsHud: boolean;
@@ -74,6 +85,15 @@ export interface TableOptionsDialogProps {
   onOpenRoundLog?: () => void;
   onDownloadRoundLogJson?: () => void;
   roundLogBusy?: boolean;
+  /**
+   * Online spectator watch URL (Options is the mid-mission place to copy it —
+   * seats cannot join after launch; rated play has no free-text Subspace).
+   */
+  sectorInvite?: {
+    code: string;
+    allowSpectate: boolean;
+    rated: boolean;
+  } | null;
 }
 
 export function TableOptionsDialog({
@@ -93,6 +113,10 @@ export function TableOptionsDialog({
   advisorNeuralAvailable = true,
   autoFollowAction,
   onAutoFollowActionChange,
+  autoFollowReturn,
+  onAutoFollowReturnChange,
+  autoFollowReturnDelayMs,
+  onAutoFollowReturnDelayMsChange,
   sectorStatusHud,
   onSectorStatusHudChange,
   captainTailsHud,
@@ -118,7 +142,16 @@ export function TableOptionsDialog({
   onOpenRoundLog,
   onDownloadRoundLogJson,
   roundLogBusy = false,
+  sectorInvite = null,
 }: TableOptionsDialogProps) {
+  const announce = useAnnounce();
+  const [inviteStatus, setInviteStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setInviteStatus(null);
+    }
+  }, [open]);
   useEffect(() => {
     if (!open) {
       return;
@@ -228,9 +261,52 @@ export function TableOptionsDialog({
               />
               <span>Follow charted tiles</span>
             </label>
+            <label className={optionStyles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={autoFollowReturn}
+                disabled={!autoFollowAction}
+                onChange={(event) =>
+                  onAutoFollowReturnChange(event.target.checked)
+                }
+              />
+              <span>Return view after delay</span>
+            </label>
+            <label className={optionStyles.fieldRow}>
+              <span>Return view delay (ms)</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={300}
+                max={30000}
+                step={100}
+                value={autoFollowReturnDelayMs}
+                disabled={!autoFollowAction || !autoFollowReturn}
+                aria-label="Return view delay in milliseconds"
+                onChange={(event) => {
+                  const raw = event.target.value;
+                  if (raw.trim() === '') {
+                    return;
+                  }
+                  const next = Number(raw);
+                  if (!Number.isFinite(next) || next <= 0) {
+                    return;
+                  }
+                  onAutoFollowReturnDelayMsChange(Math.round(next));
+                }}
+                onBlur={(event) => {
+                  onAutoFollowReturnDelayMsChange(
+                    sanitizeAutoFollowReturnDelayMs(event.target.value) ||
+                      DEFAULT_AUTO_FOLLOW_RETURN_DELAY_MS
+                  );
+                }}
+              />
+            </label>
             <p className={optionStyles.hint}>
               {autoFollowAction
-                ? 'Panning to each new coordinate as it is charted on the table.'
+                ? autoFollowReturn
+                  ? 'Pans to each new coordinate, then eases back to your previous view after the delay. Pan, zoom, or a new chart before the delay cancels the return (a new chart keeps your original origin).'
+                  : 'Panning to each new coordinate as it is charted on the table.'
                 : 'Turn on to auto-scroll the play area to wherever tiles are placed.'}
             </p>
           </section>
@@ -473,6 +549,52 @@ export function TableOptionsDialog({
               </p>
             </section>
           )}
+
+          {sectorInvite ? (
+            <section className={optionStyles.section}>
+              <h3 className={optionStyles.sectionTitle}>Spectator link</h3>
+              <div className={optionStyles.actionRow}>
+                <button
+                  type="button"
+                  className={optionStyles.actionBtn}
+                  disabled={!sectorInvite.allowSpectate}
+                  aria-label={
+                    sectorInvite.allowSpectate
+                      ? 'Copy spectator link'
+                      : 'Copy spectator link (gallery closed)'
+                  }
+                  onClick={() => {
+                    const { watchUrl } = sectorInviteLinks(sectorInvite.code);
+                    void copyTextToClipboard(watchUrl)
+                      .then(() => {
+                        const msg = 'Spectator link copied.';
+                        setInviteStatus(msg);
+                        announce(msg, 'polite');
+                      })
+                      .catch(() => {
+                        const msg = 'Could not copy spectator link.';
+                        setInviteStatus(msg);
+                        announce(msg, 'assertive');
+                      });
+                  }}
+                >
+                  Copy spectator link
+                </button>
+              </div>
+              {inviteStatus ? (
+                <p className={optionStyles.hint} role="status">
+                  {inviteStatus}
+                </p>
+              ) : null}
+              <p className={optionStyles.hint}>
+                {sectorInvite.allowSpectate
+                  ? sectorInvite.rated
+                    ? 'Rated play keeps Subspace on quick hails — copy the watch URL here to share mid-mission. Seat invites only work in the lobby.'
+                    : 'Share the public watch URL so captains without a seat can follow the table. Seat invites only work in the lobby.'
+                  : 'Spectator gallery is closed for this sector (host or ops). Re-enable in the lobby or ask ops to reopen spectate.'}
+              </p>
+            </section>
+          ) : null}
 
           <section className={optionStyles.section}>
             <h3 className={optionStyles.sectionTitle}>Diagnostics</h3>
