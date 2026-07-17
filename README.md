@@ -9,6 +9,25 @@
 [![iOS App Store](https://img.shields.io/badge/iOS_App_Store-Coming_Soon-0D96F6?style=for-the-badge&logo=app-store&logoColor=white)](https://apps.apple.com/us/app/warp-12/id6785592929)
 [![Windows Store](https://img.shields.io/badge/Windows_Store-Coming_Soon-0D96F6?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0iI2YyNTAyMiIgZD0iTTEgMWgxMHYxMEgxeiIvPjxwYXRoIGZpbGw9IiM3ZmJhMDAiIGQ9Ik0xMyAxaDEwdjEwSDEzeiIvPjxwYXRoIGZpbGw9IiMwMGE0ZWYiIGQ9Ik0xIDEzaDEwdjEwSDF6Ii8%2BPHBhdGggZmlsbD0iI2ZmYjkwMCIgZD0iTTEzIDEzaDEwdjEwSDEzeiIvPjwvc3ZnPg%3D%3D)](https://apps.microsoft.com/detail/9MX863SLRZWM?hl=en-US&gl=US)
 
+<table border="0">
+  <tr>
+    <td align="center" width="140">
+      <a href="https://warp.iwdf.org" style="text-decoration: none;">
+        <img src="https://github.com/user-attachments/assets/d945bff2-4fe3-4f2c-8605-a14792871666" width="64" height="64" alt="Play Warp" />
+        <br />
+        Play Warp
+      </a>
+    </td>
+    <td align="center" width="160">
+      <a href="https://iwdf.org" style="text-decoration: none;">
+        <img src="https://github.com/user-attachments/assets/6f5d0591-e0e5-4695-a194-38fbfb11a5db" width="64" height="64" alt="The Federation" />
+        <br />
+        The Federation
+      </a>
+    </td>
+  </tr>
+</table>
+
 ## Warp 12 / 8p 1v7AI All Modules Demo
 
 <a href="https://youtu.be/qYvHTRTxAjM">
