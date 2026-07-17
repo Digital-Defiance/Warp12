@@ -8,12 +8,19 @@ import {
   type WarpTileBg,
 } from 'warp12-theme';
 import { useAnnounce } from '../a11y/live-announcer.js';
+import { useFirebaseAuth } from '../firebase/use-firebase-auth.js';
+import { userHasAdminRole } from '../firebase/warp-auth-roles.js';
+import { isTauriWindows } from '../firebase/platform.js';
 import { copyTextToClipboard } from '../game/deliver-file.js';
 import { sectorInviteLinks } from '../game/sector-invite-urls.js';
 import type {
   ShareRoundDelivery,
   ShareRoundImageMode,
 } from '../game/share-round.js';
+import {
+  readHideAdminBanner,
+  writeHideAdminBanner,
+} from './admin-banner-prefs.js';
 import type {
   CaptainTailsCoordinate,
   CaptainTailsDisplay,
@@ -26,7 +33,6 @@ import { RoundImageActions } from './round-image-actions';
 import { forceReloadPage } from './force-reload';
 import { formatAppVersionLabel } from './app-version';
 import { quitTauriApp } from './quit-app';
-import { isTauriWindows } from '../firebase/platform.js';
 import styles from './rules-view.module.scss';
 import optionStyles from './table-options-dialog.module.scss';
 
@@ -145,7 +151,12 @@ export function TableOptionsDialog({
   sectorInvite = null,
 }: TableOptionsDialogProps) {
   const announce = useAnnounce();
+  const auth = useFirebaseAuth();
   const [inviteStatus, setInviteStatus] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [hideAdminBanner, setHideAdminBanner] = useState(() =>
+    readHideAdminBanner()
+  );
 
   useEffect(() => {
     if (!open) {
@@ -164,6 +175,22 @@ export function TableOptionsDialog({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [open, onClose]);
+  useEffect(() => {
+    let cancelled = false;
+    void userHasAdminRole(auth.user).then((ok) => {
+      if (!cancelled) {
+        setIsAdmin(ok);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [auth.user]);
+  useEffect(() => {
+    if (open) {
+      setHideAdminBanner(readHideAdminBanner());
+    }
+  }, [open]);
 
   if (!open) {
     return null;
@@ -592,6 +619,35 @@ export function TableOptionsDialog({
                     ? 'Rated play keeps Subspace on quick hails — copy the watch URL here to share mid-mission. Seat invites only work in the lobby.'
                     : 'Share the public watch URL so captains without a seat can follow the table. Seat invites only work in the lobby.'
                   : 'Spectator gallery is closed for this sector (host or ops). Re-enable in the lobby or ask ops to reopen spectate.'}
+              </p>
+            </section>
+          ) : null}
+
+          {isAdmin ? (
+            <section className={optionStyles.section}>
+              <h3 className={optionStyles.sectionTitle}>Admin</h3>
+              <label className={optionStyles.checkboxRow}>
+                <input
+                  type="checkbox"
+                  checked={hideAdminBanner}
+                  onChange={(event) => {
+                    const next = event.target.checked;
+                    setHideAdminBanner(next);
+                    writeHideAdminBanner(next);
+                    announce(
+                      next
+                        ? 'Admin banner hidden.'
+                        : 'Admin banner visible.',
+                      'polite'
+                    );
+                  }}
+                />
+                <span>Hide admin banner</span>
+              </label>
+              <p className={optionStyles.hint}>
+                {hideAdminBanner
+                  ? 'Red ADMIN strip is off — useful for screenshots. Turn off to show it again.'
+                  : 'Hides the red ADMIN strip at the top of the Bridge (screenshots).'}
               </p>
             </section>
           ) : null}

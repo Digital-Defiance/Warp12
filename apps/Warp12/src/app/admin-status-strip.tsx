@@ -4,6 +4,10 @@ import { useFirebaseAuth } from '../firebase/use-firebase-auth.js';
 import { userHasAdminRole } from '../firebase/warp-auth-roles.js';
 import { subscribeAdminToolsLoaded } from '../game/local-game-dev-console.js';
 
+import {
+  readHideAdminBanner,
+  subscribeHideAdminBanner,
+} from './admin-banner-prefs.js';
 import styles from './admin-status-strip.module.scss';
 
 /** Fixed top strip — only renders for Firebase admin sessions. */
@@ -11,6 +15,7 @@ export function AdminStatusStrip() {
   const auth = useFirebaseAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [toolsLoaded, setToolsLoaded] = useState(false);
+  const [hidden, setHidden] = useState(() => readHideAdminBanner());
 
   useEffect(() => {
     let cancelled = false;
@@ -25,8 +30,9 @@ export function AdminStatusStrip() {
   }, [auth.user]);
 
   useEffect(() => subscribeAdminToolsLoaded(setToolsLoaded), []);
+  useEffect(() => subscribeHideAdminBanner(setHidden), []);
 
-  if (!isAdmin) {
+  if (!isAdmin || hidden) {
     return null;
   }
 

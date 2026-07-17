@@ -84,4 +84,43 @@ describe('charter lobby matching', () => {
       )
     ).toBe(true);
   });
+
+  it('rejects drafting and squadron drift', () => {
+    expect(
+      charterModulesMatch(charter, {
+        ...OFFICIAL_CHARTER_MODULES,
+        drafting: true,
+      })
+    ).toBe(false);
+    expect(
+      charterModulesMatch(charter, {
+        ...OFFICIAL_CHARTER_MODULES,
+        squadrons: true,
+        squadronSize: 2,
+      })
+    ).toBe(false);
+  });
+
+  it('defaults missing drafting/squadrons to official (off)', () => {
+    expect(
+      charterModulesMatch(
+        {
+          modules: {
+            salamanderPenalty: true,
+            continuum: true,
+            subspaceFracture: false,
+            subspaceFractureScope: 'own-trail',
+            sensorGrid: false,
+            warpDriveSpool: false,
+            temporalDebt: false,
+            longestTrail: false,
+            doubleDown: false,
+            temporalInversion: false,
+            wormholes: false,
+          },
+        },
+        { ...OFFICIAL_CHARTER_MODULES }
+      )
+    ).toBe(true);
+  });
 });

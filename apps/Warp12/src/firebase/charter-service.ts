@@ -3,11 +3,26 @@ import { isFirebaseConfigured } from './config.js';
 
 export type RatedObjective = 'go-out' | 'points';
 
+/** Frozen lobby modules returned by listMyCharters (matches charter create). */
 export type CharterModulesView = {
   salamanderPenalty: boolean;
   continuum: boolean;
   subspaceFracture: boolean;
   subspaceFractureScope: 'own-trail' | 'all-captains' | 'all-doubles';
+  sensorGrid: boolean;
+  sensorGridSize?: number;
+  warpDriveSpool: boolean;
+  temporalDebt: boolean;
+  temporalDebtCostPerToken?: number;
+  longestTrail: boolean;
+  longestTrailBonus?: number;
+  doubleDown: boolean;
+  doubleDownDrawCount?: number;
+  squadrons: boolean;
+  squadronSize?: number;
+  drafting: boolean;
+  temporalInversion: boolean;
+  wormholes: boolean;
 };
 
 export type CharterHouseRulesView = {

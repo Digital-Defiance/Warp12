@@ -20,7 +20,11 @@ export interface CharterModulesConfig {
   longestTrailBonus?: number;
   doubleDown: boolean;
   doubleDownDrawCount?: number;
-  // Warped / exhibition (Kappa, Lambda) — never rate
+  /** Module Zeta — online crew play; Squad TEI when rated (never FFA). */
+  squadrons: boolean;
+  squadronSize?: number;
+  // Warped / exhibition (Epsilon, Kappa, Lambda) — never rate
+  drafting: boolean;
   temporalInversion: boolean;
   wormholes: boolean;
 }
@@ -59,6 +63,9 @@ export const OFFICIAL_CHARTER_MODULES: CharterModulesConfig = {
   longestTrailBonus: -3,
   doubleDown: false,
   doubleDownDrawCount: 2,
+  squadrons: false,
+  squadronSize: 2,
+  drafting: false,
   temporalInversion: false,
   wormholes: false,
 };
@@ -112,6 +119,10 @@ export function resolveCharterModules(
     longestTrailBonus: input.longestTrailBonus ?? OFFICIAL_CHARTER_MODULES.longestTrailBonus,
     doubleDown: input.doubleDown ?? OFFICIAL_CHARTER_MODULES.doubleDown,
     doubleDownDrawCount: input.doubleDownDrawCount ?? OFFICIAL_CHARTER_MODULES.doubleDownDrawCount,
+    squadrons: input.squadrons ?? OFFICIAL_CHARTER_MODULES.squadrons,
+    squadronSize:
+      input.squadronSize === 3 ? 3 : OFFICIAL_CHARTER_MODULES.squadronSize,
+    drafting: input.drafting ?? OFFICIAL_CHARTER_MODULES.drafting,
     temporalInversion: input.temporalInversion ?? OFFICIAL_CHARTER_MODULES.temporalInversion,
     wormholes: input.wormholes ?? OFFICIAL_CHARTER_MODULES.wormholes,
   };
@@ -192,6 +203,9 @@ export function charterModulesMatch(
     (expected.longestTrailBonus ?? -3) === (actual.longestTrailBonus ?? -3) &&
     expected.doubleDown === actual.doubleDown &&
     (expected.doubleDownDrawCount ?? 2) === (actual.doubleDownDrawCount ?? 2) &&
+    expected.squadrons === actual.squadrons &&
+    (expected.squadronSize ?? 2) === (actual.squadronSize ?? 2) &&
+    expected.drafting === actual.drafting &&
     expected.temporalInversion === actual.temporalInversion &&
     expected.wormholes === actual.wormholes
   );
