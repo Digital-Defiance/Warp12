@@ -2,6 +2,12 @@
 
 **Interstellar Dominoes — Warp factors 9 / 12 / 15 / 18**
 
+[![YouTube](https://img.shields.io/youtube/channel/views/UCKc4Va8TmRdG9uuOPYyn6Gw?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/@GoWarp12)
+[![Google Play](https://img.shields.io/badge/Google_Play-414141?style=for-the-badge&logo=google-play&logoColor=white)](https://play.google.com/store/apps/details?id=org.digitaldefiance.app.warp12)
+[![Mac App Store](https://img.shields.io/badge/Mac_App_Store-Coming_Soon-0D96F6?style=for-the-badge&logo=app-store&logoColor=white)](https://apps.apple.com/app/id6785592929?mt=12)
+[![iOS App Store](https://img.shields.io/badge/iOS_App_Store-Coming_Soon-0D96F6?style=for-the-badge&logo=app-store&logoColor=white)](https://apps.apple.com/us/app/warp-12/id6785592929)
+[![Windows Store](https://img.shields.io/badge/Windows_Store-Coming_Soon-0D96F6?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0iI2YyNTAyMiIgZD0iTTEgMWgxMHYxMEgxeiIvPjxwYXRoIGZpbGw9IiM3ZmJhMDAiIGQ9Ik0xMyAxaDEwdjEwSDEzeiIvPjxwYXRoIGZpbGw9IiMwMGE0ZWYiIGQ9Ik0xIDEzaDEwdjEwSDF6Ii8%2BPHBhdGggZmlsbD0iI2ZmYjkwMCIgZD0iTTEzIDEzaDEwdjEwSDEzeiIvPjwvc3ZnPg%3D%3D)](https://apps.microsoft.com/detail/9MX863SLRZWM?hl=en-US&gl=US)
+
 ## Warp 12 / 8p 1v7AI All Modules Demo
 
 <a href="https://youtu.be/qYvHTRTxAjM">
