@@ -1,0 +1,15 @@
+tools/nn/data/omega-trajectories.jsonl.shard0 filter=lfs diff=lfs merge=lfs -text
+tools/nn/data/omega-trajectories.jsonl.shard1 filter=lfs diff=lfs merge=lfs -text
+tools/nn/data/omega-trajectories.jsonl.shard10 filter=lfs diff=lfs merge=lfs -text
+tools/nn/data/omega-trajectories.jsonl.shard11 filter=lfs diff=lfs merge=lfs -text
+tools/nn/data/omega-trajectories.jsonl.shard12 filter=lfs diff=lfs merge=lfs -text
+tools/nn/data/omega-trajectories.jsonl.shard13 filter=lfs diff=lfs merge=lfs -text
+tools/nn/data/omega-trajectories.jsonl.shard14 filter=lfs diff=lfs merge=lfs -text
+tools/nn/data/omega-trajectories.jsonl.shard2 filter=lfs diff=lfs merge=lfs -text
+tools/nn/data/omega-trajectories.jsonl.shard3 filter=lfs diff=lfs merge=lfs -text
+tools/nn/data/omega-trajectories.jsonl.shard4 filter=lfs diff=lfs merge=lfs -text
+tools/nn/data/omega-trajectories.jsonl.shard5 filter=lfs diff=lfs merge=lfs -text
+tools/nn/data/omega-trajectories.jsonl.shard6 filter=lfs diff=lfs merge=lfs -text
+tools/nn/data/omega-trajectories.jsonl.shard7 filter=lfs diff=lfs merge=lfs -text
+tools/nn/data/omega-trajectories.jsonl.shard8 filter=lfs diff=lfs merge=lfs -text
+tools/nn/data/omega-trajectories.jsonl.shard9 filter=lfs diff=lfs merge=lfs -text
