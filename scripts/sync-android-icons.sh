@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
-# Sync generated Android launcher icons into the Gradle res/ tree.
-# Tauri writes icons to src-tauri/icons/android/; tauri android init leaves
-# placeholder icons in gen/android/app/src/main/res/ until this runs.
+# Regenerate Android launcher icons from the Bridge source PNG.
+#
+# Current @tauri-apps/cli writes Android PNGs directly into
+#   src-tauri/gen/android/app/src/main/res/mipmap-*/
+# The legacy src-tauri/icons/android/ tree is NOT updated and must not be
+# copied over gen/ (that reverts to a stale icon — same bug as iOS).
 
-set -e
+set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BRIDGE_DIR="${ROOT}/apps/Warp12"
-TAURI_DIR="${BRIDGE_DIR}/src-tauri"
-SRC="${TAURI_DIR}/icons/android"
-DEST="${TAURI_DIR}/gen/android/app/src/main/res"
+DEST="${BRIDGE_DIR}/src-tauri/gen/android/app/src/main/res"
 SOURCE_ICON="${BRIDGE_DIR}/public/W-1-1.png"
 TAURI_BIN="${ROOT}/node_modules/.bin/tauri"
+LEGACY_ANDROID_ICONS="${BRIDGE_DIR}/src-tauri/icons/android"
 
 die() {
   echo "error: $*" >&2
@@ -20,23 +22,25 @@ die() {
 
 [ -d "$DEST" ] || die "missing Android res/: ${DEST} (run: yarn tauri android init)"
 [ -f "$SOURCE_ICON" ] || die "missing source icon: ${SOURCE_ICON}"
+[ -x "$TAURI_BIN" ] || die "missing tauri CLI at ${TAURI_BIN}"
 
-if [ -x "$TAURI_BIN" ] || command -v tauri >/dev/null 2>&1; then
-  (cd "$BRIDGE_DIR" && "${TAURI_BIN:-tauri}" icon "$SOURCE_ICON" -o src-tauri/icons) >/dev/null 2>&1
-fi
+(cd "$BRIDGE_DIR" && "$TAURI_BIN" icon "$SOURCE_ICON" -o src-tauri/icons)
 
-[ -d "$SRC" ] || die "missing generated Android icons: ${SRC}"
+[ -f "${DEST}/mipmap-xxxhdpi/ic_launcher.png" ] || die "tauri icon did not write ${DEST}/mipmap-xxxhdpi/ic_launcher.png"
 
-for dir in "${SRC}"/mipmap-*; do
-  [ -d "$dir" ] || continue
-  name="$(basename "$dir")"
-  mkdir -p "${DEST}/${name}"
-  cp "${dir}"/* "${DEST}/${name}/"
-done
-
-if [ -f "${SRC}/values/ic_launcher_background.xml" ]; then
-  mkdir -p "${DEST}/values"
-  cp "${SRC}/values/ic_launcher_background.xml" "${DEST}/values/"
+# Keep icons/android in sync for docs/tools that still look there — never the reverse.
+if [ -d "$LEGACY_ANDROID_ICONS" ]; then
+  for dir in "${DEST}"/mipmap-*; do
+    [ -d "$dir" ] || continue
+    name="$(basename "$dir")"
+    mkdir -p "${LEGACY_ANDROID_ICONS}/${name}"
+    cp "${dir}"/* "${LEGACY_ANDROID_ICONS}/${name}/"
+  done
+  if [ -f "${DEST}/values/ic_launcher_background.xml" ]; then
+    mkdir -p "${LEGACY_ANDROID_ICONS}/values"
+    cp "${DEST}/values/ic_launcher_background.xml" "${LEGACY_ANDROID_ICONS}/values/"
+  fi
 fi
 
 echo "Synced Android app icons → ${DEST}"
+echo "Source: ${SOURCE_ICON}"

@@ -195,6 +195,8 @@
     "auth:all": "firebase login --reauth && gcloud auth login && gcloud config set project warp-12 && npm login",
     "release:build": "swift build --package-path vendor/warp12-release-head -c release",
     "release:run": "swift run --package-path vendor/warp12-release-head -c release",
+    "release:app": "/usr/bin/env bash vendor/warp12-release-head/build-app.sh",
+    "release:detached": "/usr/bin/env bash vendor/warp12-release-head/run-detached.sh",
     "warp": "node scripts/warp.mjs"
   },
   "dependencies": {
