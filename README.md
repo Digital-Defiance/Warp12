@@ -3,6 +3,7 @@
 **Interstellar Dominoes — Warp factors 9 / 12 / 15 / 18**
 
 [![YouTube](https://img.shields.io/youtube/channel/views/UCKc4Va8TmRdG9uuOPYyn6Gw?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/@GoWarp12)
+[![Homebrew](https://img.shields.io/badge/Homebrew-FBB040?style=for-the-badge&logo=homebrew&logoColor=black)](#-install-macos)
 [![Google Play](https://img.shields.io/badge/Google_Play-414141?style=for-the-badge&logo=google-play&logoColor=white)](https://play.google.com/store/apps/details?id=org.digitaldefiance.app.warp12)
 [![Mac App Store](https://img.shields.io/badge/Mac_App_Store-Coming_Soon-0D96F6?style=for-the-badge&logo=app-store&logoColor=white)](https://apps.apple.com/app/id6785592929?mt=12)
 [![iOS App Store](https://img.shields.io/badge/iOS_App_Store-Coming_Soon-0D96F6?style=for-the-badge&logo=app-store&logoColor=white)](https://apps.apple.com/us/app/warp-12/id6785592929)
