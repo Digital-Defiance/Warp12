@@ -25,6 +25,53 @@
 > Also accessible at [warp12.app](https://warp12.app), available on Google Play, and coming soon to Apple and Windows.
 >
 
+## Warp 12 @ W18 / 18p 1v17AI Wormholes & Longest Trail Demo
+
+<a href="https://youtu.be/yIMr1udKvTA">
+  <img
+    src="https://img.youtube.com/vi/yIMr1udKvTA/maxresdefault.jpg"
+    alt="Watch the Warp 12 eighteen-player, one-versus-seventeen AI, wormholes and longest trail modules demo on YouTube"
+    width="960"
+  />
+</a>
+
+> [Watch on YouTube](https://youtu.be/yIMr1udKvTA)
+>
+> Playing Warp 12 at [warp.iwdf.org](https://warp.iwdf.org) against seventeen AI players with wormholes and longest trail modules enabled.
+>
+> Warp 12 is an open-source, federation-themed “Mexican Train” (Interstellar Warp Dominoes) game with several novel add-on modules that enhance gameplay. [Every module](https://warp.iwdf.org/modules) has been battle-tested across 285,000 games, as detailed in our [40-page research paper](https://warp.iwdf.org/research), and carefully balanced either for demonstrable skill or to flip the game on its head with more luck-dominant “Warped” play.
+>
+> Warp supports online squads through **Module Zeta**.
+>
+> Warp is what the night shift plays on the bridge of a federation starship. Come captain your own ship and leave your own trail.
+>
+> Also accessible at [warp12.app](https://warp12.app), available on Google Play, and coming soon to Apple and Windows.
+>
+
+## Warp 12 @ W9 / 4p 1v3AI Wormholes + Longest Trail Demo + Drafting + Double Down Demo
+
+<a href="https://youtu.be/xDiQx0jeHC4">
+  <img
+    src="https://img.youtube.com/vi/xDiQx0jeHC4/maxresdefault.jpg"
+    alt="Watch the Warp 12 four-player, one-versus-three AI, wormholes, longest trail, drafting, double down, and hot potato modules demo on YouTube"
+    width="960"
+  />
+</a>
+
+> [Watch on YouTube](https://youtu.be/xDiQx0jeHC4)
+>
+> Playing Warp 12 at [warp.iwdf.org](https://warp.iwdf.org) against seventeen AI players with wormholes, longest trail, double down, and hot potato modules enabled.
+>
+> Warp 12 is an open-source, federation-themed “Mexican Train” (Interstellar Warp Dominoes) game with several novel add-on modules that enhance gameplay. [Every module](https://warp.iwdf.org/modules) has been battle-tested across 285,000 games, as detailed in our [40-page research paper](https://warp.iwdf.org/research), and carefully balanced either for demonstrable skill or to flip the game on its head with more luck-dominant “Warped” play.
+>
+> Warp supports online squads through **Module Zeta**.
+>
+> Warp is what the night shift plays on the bridge of a federation starship. Come captain your own ship and leave your own trail.
+>
+> Also accessible at [warp12.app](https://warp12.app), available on Google Play, and coming soon to Apple and Windows.
+>
+
+
 Warp 12 is multiplayer, federation-themed **multi-trail Interstellar Dominoes**. The Bridge client supports **double-9, double-12, double-15, and double-18** sets (choose a Warp factor on first launch or from the home screen). This repository contains the game engine, client UI, domino rendering library, and Firebase-backed multiplayer infrastructure in a TypeScript Nx monorepo.
 
 Online sectors include **subspace messaging** — quick-phrase hails (always available, even during rated play) plus free-form text and DMs (lobby, casual, and post-game). Rated sectors restrict comms to hails to prevent collusion. See [Subspace messaging in RULES.md](RULES.md#ix-subspace-messaging-digital--online-sectors).
