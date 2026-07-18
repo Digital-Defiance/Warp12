@@ -30,15 +30,15 @@
 
 ## Warp 12 / 8p 1v7AI All Modules Demo
 
-<a href="https://youtu.be/qYvHTRTxAjM">
+<a href="https://youtu.be/JtgJ5-1eNH0">
   <img
-    src="https://img.youtube.com/vi/qYvHTRTxAjM/maxresdefault.jpg"
+    src="https://img.youtube.com/vi/JtgJ5-1eNH0/maxresdefault.jpg"
     alt="Watch the Warp 12 eight-player, one-versus-seven AI, all-modules demo on YouTube"
     width="960"
   />
 </a>
 
-> [Watch on YouTube](https://youtu.be/qYvHTRTxAjM)
+> [Watch on YouTube](https://youtu.be/JtgJ5-1eNH0)
 >
 > Playing Warp 12 at [warp.iwdf.org](https://warp.iwdf.org) against seven AI players with all available modules enabled.
 >
