@@ -74,9 +74,9 @@ Implementation: `apps/Warp12/src/firebase/google-oauth-native.ts` +
 
 ### 1. Create the Google OAuth clients (Google Cloud → APIs & Services → Credentials)
 
-Use the **same GCP project as Firebase** (`warp-12`) so Firebase trusts the tokens.
+Use the **same GCP project as Firebase** (your `FIREBASE_PROJECT` / `VITE_FIREBASE_PROJECT_ID`) so Firebase trusts the tokens.
 
-- **iOS client** — type *iOS*, bundle id `org.digitaldefiance.app.warp12`. Note the client id
+- **iOS client** — type *iOS*, bundle id matching `APPLE_BUNDLE_ID` from the repo-root `.env`. Note the client id
   (`NNN-xxxx.apps.googleusercontent.com`) and its **reversed** form
   (`com.googleusercontent.apps.NNN-xxxx`).
 - **Desktop client** (serves both **desktop** and **Android**) — type *Desktop app*. This one client

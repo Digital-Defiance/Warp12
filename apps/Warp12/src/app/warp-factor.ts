@@ -32,10 +32,15 @@ export function requireWarpFactor(): WarpFactor {
   return normalizeWarpFactor(getWarpFactor() ?? 12);
 }
 
+/** Remove the saved factor (chooser / recording reset). */
+export function clearWarpFactor(): void {
+  localStorage.removeItem('warp-factor');
+}
+
 export function setWarpFactor(factor: number): void {
   if (isWarpFactor(factor)) {
     localStorage.setItem('warp-factor', factor.toString());
   } else {
-    localStorage.removeItem('warp-factor');
+    clearWarpFactor();
   }
 }

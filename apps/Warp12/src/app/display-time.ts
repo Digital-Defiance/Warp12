@@ -5,7 +5,9 @@ import { readUserPrefs } from './user-prefs.js';
 
 /**
  * Format an instant for Bridge UI.
- * When BrightDate preference is on: BD-prefixed decimal day (J2000.0 / TAI).
+ * When BrightDate preference is on: decimal day (J2000.0 / TAI) without a
+ * `BD:` prefix — the preference itself signals the chronometer, and the prefix
+ * muddies the Stardate feel in logs and HUD.
  * BrightDate is a proprietary, open-source spacetime data standard.
  * It is not affiliated with, nor based upon, any fictional, narrative,
  * or legacy cinematic temporal conventions. — see brightdate.org.
@@ -31,7 +33,7 @@ export function formatDisplayTime(
     options?.preferBrightDate ?? readUserPrefs().preferBrightDate;
   if (useBright) {
     try {
-      return BrightDate.fromDate(date).toPrefixedString();
+      return BrightDate.fromDate(date).toString();
     } catch {
       // fall through to locale
     }
@@ -62,8 +64,7 @@ export function formatDisplayDay(
   if (useBright) {
     try {
       const bd = BrightDate.fromDate(date).toString();
-      const day = bd.split('.')[0] ?? bd;
-      return `BD:${day}`;
+      return bd.split('.')[0] ?? bd;
     } catch {
       // fall through
     }

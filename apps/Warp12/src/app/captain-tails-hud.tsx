@@ -286,7 +286,7 @@ export function CaptainTailsHud({
       storageKey={STORAGE_KEY}
       defaultAnchor="bottom-right"
       title="Fleet Status"
-      width={260}
+      width={300}
       resizableWidth
       accent="cyan"
     >
@@ -319,9 +319,6 @@ export function CaptainTailsHud({
               <span className={styles.nameCell} title={nameTitle}>
                 <span className={styles.name}>
                   {row.label}
-                  {row.teiGrade && (
-                    <TeiGradeBadge grade={row.teiGrade} size="small" />
-                  )}
                   <span className={styles.stateIndicators}>
                     {row.state === 'open' && (
                       <span className={styles.shieldIcon} title="Shields down (trail open)">◉</span>
@@ -336,43 +333,61 @@ export function CaptainTailsHud({
                     )}
                   </span>
                 </span>
-                {display === 'domino' && (
-                  <span className={styles.nameMetadata}>
-                    {row.tacticalClassAbbrev && (
-                      <span className={styles.tacticalClass}>
-                        {row.tacticalClassAbbrev}
-                      </span>
-                    )}
-                    {showTrailLength && row.trailLength !== undefined && row.trailLength > 0 && (
-                      <span className={styles.trailLength} title={`Trail length: ${row.trailLength} tiles`}>
-                        {row.trailLength}
-                      </span>
-                    )}
-                  </span>
-                )}
                 {display !== 'domino' && (
                   <>
+                    {row.teiGrade && (
+                      <TeiGradeBadge grade={row.teiGrade} size="small" />
+                    )}
                     {row.tacticalClassAbbrev && (
                       <span className={styles.tacticalClass}>
                         {row.tacticalClassAbbrev}
                       </span>
                     )}
-                    {showTrailLength && row.trailLength !== undefined && row.trailLength > 0 && (
-                      <span className={styles.trailLength} title={`Trail length: ${row.trailLength} tiles`}>
-                        {row.trailLength}
-                      </span>
-                    )}
+                    {showTrailLength &&
+                      row.trailLength !== undefined &&
+                      row.trailLength > 0 && (
+                        <span
+                          className={styles.trailLength}
+                          title={`Trail length: ${row.trailLength} tiles`}
+                        >
+                          {row.trailLength}
+                        </span>
+                      )}
                   </>
                 )}
               </span>
-              {display === 'domino' && (
-                <TailDomino
-                  anchor={anchor}
-                  tail={tail}
-                  tileBg={tileBg}
-                  maxPip={maxPip}
-                />
-              )}
+              {display === 'domino' ? (
+                <>
+                  <span className={styles.rankCell}>
+                    {row.teiGrade ? (
+                      <TeiGradeBadge grade={row.teiGrade} size="small" />
+                    ) : null}
+                    {row.tacticalClassAbbrev ? (
+                      <span className={styles.tacticalClass}>
+                        {row.tacticalClassAbbrev}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className={styles.trailCell}>
+                    {showTrailLength &&
+                    row.trailLength !== undefined &&
+                    row.trailLength > 0 ? (
+                      <span
+                        className={styles.trailLength}
+                        title={`Trail length: ${row.trailLength} tiles`}
+                      >
+                        {row.trailLength}
+                      </span>
+                    ) : null}
+                  </span>
+                  <TailDomino
+                    anchor={anchor}
+                    tail={tail}
+                    tileBg={tileBg}
+                    maxPip={maxPip}
+                  />
+                </>
+              ) : null}
               {coordinate !== 'off' && (
                 <TailCoordinateText
                   anchor={anchor}

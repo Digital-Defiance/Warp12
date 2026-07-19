@@ -25,6 +25,13 @@ export interface TableOptionsPrefs {
   autoFollowReturn: boolean;
   /** Dwell before snap-back, in milliseconds. */
   autoFollowReturnDelayMs: number;
+  /**
+   * Where “follow charted tiles” aims within the viewport (0–1 fractions).
+   * Default 0.5/0.5 is geometric center; Set Focus lets captains account for
+   * HUD chrome or off-center window layouts.
+   */
+  followFocusNormX: number;
+  followFocusNormY: number;
   /** Round / Spacedock / Uncharted / alerts floating panel. */
   sectorStatusHud: boolean;
   captainTailsHud: boolean;
@@ -37,6 +44,11 @@ export interface TableOptionsPrefs {
   bridgeSoundsEnabled: boolean;
   /** When true, advisor report reviews every captain's charts (not just yours). */
   advisorIncludeAllCaptains: boolean;
+  /**
+   * Persist full-match debug recording across sessions. When on, every local
+   * match accumulates an AI-digestible action log until turned off.
+   */
+  recordMatchDebug: boolean;
 }
 
 const STORAGE_KEY = 'warp12-table-options';
@@ -52,6 +64,8 @@ export const DEFAULT_TABLE_OPTIONS: TableOptionsPrefs = {
   autoFollowAction: false,
   autoFollowReturn: false,
   autoFollowReturnDelayMs: DEFAULT_AUTO_FOLLOW_RETURN_DELAY_MS,
+  followFocusNormX: 0.5,
+  followFocusNormY: 0.5,
   // Desktop default on. Phone uses resolveSectorStatusHud() → off until toggled
   // (opaque panel was too heavy; hologram is opt-in). Module Gamma still gets
   // its own Sensor Grid panel either way.
@@ -63,6 +77,7 @@ export const DEFAULT_TABLE_OPTIONS: TableOptionsPrefs = {
   turnBeepsEnabled: false,
   bridgeSoundsEnabled: true,
   advisorIncludeAllCaptains: false,
+  recordMatchDebug: false,
 };
 
 const PIP_PRESETS = new Set<WarpPipPreset>([
@@ -92,6 +107,20 @@ function readLegacyCaptainTailsDisplay(): CaptainTailsDisplay {
     return 'number';
   }
   return 'number';
+}
+
+/** Clamp follow-focus fractions so the aim stays inside the playable viewport. */
+export function sanitizeFollowFocusNorm(value: unknown, fallback = 0.5): number {
+  const n =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number(value)
+        : Number.NaN;
+  if (!Number.isFinite(n)) {
+    return fallback;
+  }
+  return Math.min(0.92, Math.max(0.08, n));
 }
 
 function sanitizePartial(raw: unknown): Partial<TableOptionsPrefs> {
@@ -133,6 +162,18 @@ function sanitizePartial(raw: unknown): Partial<TableOptionsPrefs> {
       value.autoFollowReturnDelayMs
     );
   }
+  if (
+    typeof value.followFocusNormX === 'number' ||
+    typeof value.followFocusNormX === 'string'
+  ) {
+    next.followFocusNormX = sanitizeFollowFocusNorm(value.followFocusNormX);
+  }
+  if (
+    typeof value.followFocusNormY === 'number' ||
+    typeof value.followFocusNormY === 'string'
+  ) {
+    next.followFocusNormY = sanitizeFollowFocusNorm(value.followFocusNormY);
+  }
   if (typeof value.sectorStatusHud === 'boolean') {
     next.sectorStatusHud = value.sectorStatusHud;
   }
@@ -160,6 +201,9 @@ function sanitizePartial(raw: unknown): Partial<TableOptionsPrefs> {
   }
   if (typeof value.advisorIncludeAllCaptains === 'boolean') {
     next.advisorIncludeAllCaptains = value.advisorIncludeAllCaptains;
+  }
+  if (typeof value.recordMatchDebug === 'boolean') {
+    next.recordMatchDebug = value.recordMatchDebug;
   }
 
   return next;

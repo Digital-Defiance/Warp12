@@ -5,10 +5,9 @@
   <key>ITSAppUsesNonExemptEncryption</key>
   <false/>
   <!--
-    Google sign-in redirect scheme. Replace the value below with your iOS OAuth
-    client's REVERSED client id (Google Cloud → Credentials → your iOS client).
-    Example: com.googleusercontent.apps.1234567890-abcdefg
-    Must match VITE_GOOGLE_IOS_CLIENT_ID. See docs/mobile-google-signin.md.
+    Google sign-in redirect scheme. Filled at build time by
+    scripts/inject-ios-oauth-plist.sh from VITE_GOOGLE_IOS_CLIENT_ID /
+    VITE_GOOGLE_OAUTH_REDIRECT_SCHEME (see .env.example).
   -->
   <key>CFBundleURLTypes</key>
   <array>

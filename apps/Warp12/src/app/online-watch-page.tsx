@@ -44,6 +44,8 @@ export function OnlineWatchPage() {
   const [serverGame, setServerGame] = useState<GameState | null>(null);
   const [sectorCaptains, setSectorCaptains] = useState<FirestoreCaptain[]>([]);
   const [sectorRated, setSectorRated] = useState(true);
+  const [sectorPaused, setSectorPaused] = useState(false);
+  const [pauseReason, setPauseReason] = useState<string | undefined>();
   const [handCounts, setHandCounts] = useState<Record<string, number>>({});
   const [moveLog, setMoveLog] = useState<FirestoreRoundMove[]>([]);
   const [connected, setConnected] = useState(false);
@@ -137,6 +139,8 @@ export function OnlineWatchPage() {
         ejected,
         terminated,
         spectatorCount: gallery,
+        paused,
+        pauseReason: pauseNote,
       }) => {
         if (dissolved || terminated) {
           navigate('/online', {
@@ -167,6 +171,8 @@ export function OnlineWatchPage() {
         }
         setServerGame(state);
         setSectorCaptains(captains);
+        setSectorPaused(paused);
+        setPauseReason(pauseNote);
         setSectorRated(rated);
         setHandCounts(counts);
         setMoveLog(sharedMoveLog);
@@ -210,7 +216,6 @@ export function OnlineWatchPage() {
 
   useEffect(() => {
     if (!auth.ready || !serverGame || !code) {
-      setHeaderStatus(null);
       return;
     }
     setHeaderStatus({
@@ -228,7 +233,6 @@ export function OnlineWatchPage() {
           : 'Resyncing…',
       connectionState: !connected ? 'pending' : synced ? 'live' : 'stale',
     });
-    return () => setHeaderStatus(null);
   }, [
     auth.ready,
     code,
@@ -333,6 +337,8 @@ export function OnlineWatchPage() {
         handCounts={handCounts}
         onlineCaptains={sectorCaptains}
         sectorRated={sectorRated}
+        sectorPaused={sectorPaused}
+        pauseReason={pauseReason}
         onlineMoveLog={moveLog}
         coachPresence={mode === 'supervise' ? coachPresence : {}}
       />

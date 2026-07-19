@@ -69,7 +69,7 @@ export interface SquadronsModule {
   readonly squadronRosters?: readonly (readonly string[])[];
 }
 
-/** Module Theta: Longest Trail Bonus — captain with longest trail gets bonus, includes spool mechanic for strategic resource draw. */
+/** Module Theta: Longest Trail Bonus — captain with longest trail gets a scoring bonus. */
 export interface LongestTrailModule {
   readonly enabled: boolean;
   readonly bonus: number; // Negative value (e.g., -3)

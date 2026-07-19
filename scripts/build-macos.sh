@@ -14,9 +14,13 @@
 
 set -e
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT"
+# shellcheck source=scripts/lib/warp-env.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/warp-env.sh"
+warp_env_load macos
+warp_env_validate macos
+warp_env_cd_root
 
+ROOT="$WARP12_ROOT"
 BRIDGE_DIR="${ROOT}/apps/Warp12"
 TAURI_DIR="${BRIDGE_DIR}/src-tauri"
 PKG_JSON="${BRIDGE_DIR}/package.json"
@@ -26,7 +30,7 @@ DMG_DIR="${TAURI_DIR}/target/universal-apple-darwin/release/bundle/dmg"
 TAURI_BIN="${ROOT}/node_modules/.bin/tauri"
 ENTITLEMENTS_DEVELOPER_ID_TEMPLATE="${TAURI_DIR}/Entitlements.DeveloperID.plist.in"
 ENTITLEMENTS_PLIST="${TAURI_DIR}/Entitlements.plist"
-DEFAULT_DEVELOPER_ID_TEAM="${DEFAULT_DEVELOPER_ID_TEAM:-J6887N729S}"
+DEFAULT_DEVELOPER_ID_TEAM="${DEFAULT_DEVELOPER_ID_TEAM:-${APPLE_TEAM_ID}}"
 
 SKIP_NOTARIZE=0
 EXTRA_TAURI_ARGS=""
@@ -35,8 +39,10 @@ PUBLISH=0
 PUSH_TAP=0
 PUSH_GIT_TAG=1
 RELEASE_TAG=""
-GITHUB_REPO="${GITHUB_REPO:-Digital-Defiance/Warp12}"
-HOMEBREW_TAP_DIR="${HOMEBREW_TAP_DIR:-${HOME}/Code/homebrew-tap}"
+# Required for --publish; validated when publish runs
+GITHUB_REPO="${GITHUB_REPO:-}"
+HOMEBREW_TAP_DIR="${HOMEBREW_TAP_DIR:-}"
+TAURI_LOCAL_CONF=""
 
 die() {
   echo "error: $*" >&2
@@ -56,7 +62,7 @@ Usage: bash scripts/build-macos.sh [OPTIONS] [VERSION] [-- extra tauri build arg
   --release-tag TAG
                    Git tag for GitHub release (default: v<VERSION>, e.g. v0.2.0)
   --publish        Create GitHub release, upload DMG, update homebrew-tap cask
-  --push-tap       After --publish, commit and push ~/Code/homebrew-tap (implies --publish)
+  --push-tap       After --publish, commit and push HOMEBREW_TAP_DIR (implies --publish)
   --no-push-tag    Do not create/push a git tag before gh release (tag must exist)
 
 Environment (set before build or enter when prompted):
@@ -72,8 +78,11 @@ Environment (set before build or enter when prompted):
     WARP12_CREATE_GIT_TAG=0     Skip creating a new local tag (needs existing tag)
     WARP12_PUSH_HOMEBREW_TAP=0  Commit cask only; do not push homebrew-tap
     gh                  GitHub CLI (gh auth login)
-    GITHUB_REPO         default Digital-Defiance/Warp12
-    HOMEBREW_TAP_DIR    default ~/Code/homebrew-tap
+    GITHUB_REPO         owner/repo (required for --publish; see .env.example)
+    HOMEBREW_TAP_DIR    path to homebrew tap checkout (required for --publish)
+
+Org identity (required; process ENV or repo-root .env):
+    APPLE_TEAM_ID, APPLE_BUNDLE_ID, APPLE_PUBLISHER_NAME
 EOF
   exit 1
 }
@@ -258,6 +267,7 @@ ensure_git_release_tag() {
 }
 
 publish_github_and_homebrew() {
+  warp_env_require GITHUB_REPO HOMEBREW_TAP_DIR
   _src_dmg="$(find_built_dmg)" || die "DMG not found under ${DMG_DIR}/"
   command -v gh >/dev/null 2>&1 || die "gh CLI not found (brew install gh && gh auth login)"
 
@@ -400,7 +410,7 @@ validate_developer_id_signing_identity() {
     "Apple Distribution:"*)
       die "APPLE_SIGNING_IDENTITY is an App Store certificate (Apple Distribution).
 Notarized DMGs require Developer ID Application, e.g.:
-  Developer ID Application: Digital Defiance (${DEFAULT_DEVELOPER_ID_TEAM})
+  Developer ID Application: ${APPLE_PUBLISHER_NAME} (${DEFAULT_DEVELOPER_ID_TEAM})
 Unset APPLE_SIGNING_IDENTITY and re-run, or export the Developer ID identity name (not the App Store hash)."
       ;;
     "3rd Party Mac Developer Application:"*)
@@ -654,6 +664,8 @@ print_release_env_summary
 echo "Building frontend..."
 yarn build:all
 
+TAURI_LOCAL_CONF="$(warp_env_write_tauri_local_config)"
+
 echo "Building universal DMG (Tauri)..."
 cd "$BRIDGE_DIR"
 # shellcheck disable=SC2086
@@ -661,6 +673,7 @@ cd "$BRIDGE_DIR"
   --target universal-apple-darwin \
   --bundles dmg \
   --config '{"build":{"beforeBuildCommand":""}}' \
+  --config "$TAURI_LOCAL_CONF" \
   ${EXTRA_TAURI_ARGS}
 
 echo "Done. DMG under ${DMG_DIR}/"

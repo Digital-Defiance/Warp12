@@ -16,10 +16,16 @@ import {
  */
 export type BridgeConnectionState = 'live' | 'stale' | 'pending';
 
+/** TEI eligibility badge in the header center. */
+export type BridgeRatingState = 'rated' | 'unrated' | 'exhibition';
+
 export interface BridgeHeaderStatus {
   sectorLabel?: string;
-  connectionLabel: string;
+  connectionLabel?: string;
   connectionState?: BridgeConnectionState;
+  /** Colorized Rated / Unrated / Exhibition in the header center. */
+  ratingLabel?: string;
+  ratingState?: BridgeRatingState;
 }
 
 interface BridgeHeaderStatusRegistration {
@@ -49,7 +55,9 @@ function statusEqual(
   return (
     current.sectorLabel === next.sectorLabel &&
     current.connectionLabel === next.connectionLabel &&
-    current.connectionState === next.connectionState
+    current.connectionState === next.connectionState &&
+    current.ratingLabel === next.ratingLabel &&
+    current.ratingState === next.ratingState
   );
 }
 
@@ -59,9 +67,15 @@ export function BridgeHeaderStatusProvider({ children }: { children: ReactNode }
   );
 
   const setHeaderStatus = useCallback((next: BridgeHeaderStatus | null) => {
-    setHeaderStatusState((current) =>
-      statusEqual(current, next) ? current : next
-    );
+    setHeaderStatusState((current) => {
+      if (next === null) {
+        return null;
+      }
+      // Merge so connection (online page) and rating (BridgeTable) can update
+      // independently without wiping each other.
+      const merged: BridgeHeaderStatus = { ...(current ?? {}), ...next };
+      return statusEqual(current, merged) ? current : merged;
+    });
   }, []);
 
   const registration = useMemo(() => ({ setHeaderStatus }), [setHeaderStatus]);

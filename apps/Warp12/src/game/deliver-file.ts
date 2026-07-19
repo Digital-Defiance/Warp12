@@ -1,8 +1,14 @@
-import { isTauriMobile } from '../firebase/platform.js';
+import { invoke } from '@tauri-apps/api/core';
+
+import { isTauriDesktop, isTauriMobile } from '../firebase/platform.js';
 
 /**
  * Platforms where `<a download>` + blob: URLs are ignored (WKWebView / iOS).
  * On those, prefer the system share sheet or clipboard instead of a silent no-op.
+ *
+ * Important: do not treat desktop macOS (including Tauri) as iPad. Trackpads often
+ * report `maxTouchPoints > 1`, which falsely matched the old iPadOS desktop-UA check
+ * and broke Save / Download on Mac.
  */
 export function canUseAnchorDownload(): boolean {
   if (typeof navigator === 'undefined') {
@@ -11,12 +17,23 @@ export function canUseAnchorDownload(): boolean {
   if (isTauriMobile()) {
     return false;
   }
+  // Desktop Tauri still reports canUseAnchorDownload for tests / web fallbacks,
+  // but deliverBlob prefers the native save dialog (WKWebView ignores download).
+  if (isTauriDesktop()) {
+    return true;
+  }
   const ua = navigator.userAgent;
   if (/iPhone|iPad|iPod/i.test(ua)) {
     return false;
   }
-  // iPadOS 13+ desktop UA still has touch
-  if (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) {
+  // iPadOS 13+ desktop UA: MacIntel + touch, without a fine pointer (trackpad Macs
+  // also have maxTouchPoints > 1, so require coarse/touch-primary to avoid false hits).
+  if (
+    navigator.platform === 'MacIntel' &&
+    navigator.maxTouchPoints > 1 &&
+    typeof matchMedia === 'function' &&
+    matchMedia('(pointer: coarse)').matches
+  ) {
     return false;
   }
   return true;
@@ -33,6 +50,19 @@ export function downloadBlobViaAnchor(blob: Blob, filename: string): void {
   anchor.download = filename;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+/** Native OS save picker — required on Tauri desktop (WKWebView no-ops download). */
+export async function saveBlobViaTauriDialog(
+  blob: Blob,
+  filename: string
+): Promise<'downloaded' | 'cancelled'> {
+  const bytes = Array.from(new Uint8Array(await blob.arrayBuffer()));
+  const saved = await invoke<boolean>('save_download', {
+    defaultName: filename,
+    contents: bytes,
+  });
+  return saved ? 'downloaded' : 'cancelled';
 }
 
 async function shareBlobAsFile(
@@ -67,7 +97,7 @@ async function shareBlobAsFile(
   });
   const payload: ShareData = {
     files: [file],
-    ...(options?.title ? { title: options.title } : {}),
+    ...(options.title ? { title: options.title } : {}),
     ...(options?.text ? { text: options.text } : {}),
   };
   if (navigator.canShare && !navigator.canShare({ files: [file] })) {
@@ -85,7 +115,7 @@ export async function copyTextToClipboard(text: string): Promise<'copied'> {
   return 'copied';
 }
 
-export type DeliverFileResult = 'downloaded' | 'shared' | 'copied';
+export type DeliverFileResult = 'downloaded' | 'shared' | 'copied' | 'cancelled';
 
 /**
  * Deliver a blob to the captain: download when the webview supports it, else
@@ -100,6 +130,15 @@ export async function deliverBlob(options: {
   preferShare?: boolean;
 }): Promise<DeliverFileResult> {
   const { blob, filename, title, text, preferShare = false } = options;
+
+  if (!preferShare && isTauriDesktop()) {
+    try {
+      return await saveBlobViaTauriDialog(blob, filename);
+    } catch (err) {
+      console.warn('[deliver-file] Tauri save dialog failed; trying anchor', err);
+      // Fall through to anchor / share / clipboard.
+    }
+  }
 
   if (!preferShare && canUseAnchorDownload()) {
     downloadBlobViaAnchor(blob, filename);

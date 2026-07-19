@@ -4,16 +4,23 @@
 
 set -e
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TAURI_DIR="${ROOT}/apps/Warp12/src-tauri"
-TAURI_CONF="${TAURI_DIR}/tauri.conf.json"
+# shellcheck source=scripts/lib/warp-env.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/warp-env.sh"
+warp_env_load ios
+warp_env_validate ios
+warp_env_cd_root
+
+TAURI_DIR="${WARP12_ROOT}/apps/Warp12/src-tauri"
 PBXPROJ="${TAURI_DIR}/gen/apple/warp12.xcodeproj/project.pbxproj"
-PROVISION_PROFILE="${APPLE_IOS_PROVISIONING_PROFILE:-${TAURI_DIR}/Warp_12_iOS.mobileprovision}"
-APPLE_TEAM_ID="$(node -e "
-  const j = require(process.argv[1]);
-  process.stdout.write(String(j.bundle?.iOS?.developmentTeam || 'J6887N729S'));
-" "$TAURI_CONF")"
-SIGN_IDENTITY="${APPLE_IOS_SIGN_IDENTITY:-Apple Distribution: Digital Defiance (${APPLE_TEAM_ID})}"
+if [ -n "${APPLE_IOS_PROVISIONING_PROFILE:-}" ]; then
+  PROVISION_PROFILE="$(warp_env_abs_path "$APPLE_IOS_PROVISIONING_PROFILE")"
+else
+  PROVISION_PROFILE="${TAURI_DIR}/Warp_12_iOS.mobileprovision"
+fi
+APPLE_TEAM_ID="${APPLE_TEAM_ID}"
+BUNDLE_ID="${APPLE_BUNDLE_ID}"
+SIGN_IDENTITY="${APPLE_IOS_SIGN_IDENTITY:-Apple Distribution: ${APPLE_PUBLISHER_NAME} (${APPLE_TEAM_ID})}"
+PRODUCT_NAME="${APPLE_PRODUCT_NAME:-Warp 12}"
 
 die() {
   echo "error: $*" >&2
@@ -22,15 +29,17 @@ die() {
 
 [ -f "$PBXPROJ" ] || die "missing ${PBXPROJ}"
 [ -f "$PROVISION_PROFILE" ] || die "missing iOS profile: ${PROVISION_PROFILE}"
+[ -n "$APPLE_TEAM_ID" ] || die "APPLE_TEAM_ID is required"
+[ -n "$BUNDLE_ID" ] || die "APPLE_BUNDLE_ID is required"
 
 PROFILE_SPEC="$(security cms -D -i "$PROVISION_PROFILE" 2>/dev/null | plutil -extract Name raw - 2>/dev/null || true)"
 [ -n "$PROFILE_SPEC" ] || die "could not read profile name from ${PROVISION_PROFILE}"
 
-python3 - "$PBXPROJ" "$PROFILE_SPEC" "$APPLE_TEAM_ID" "$SIGN_IDENTITY" <<'PY'
+python3 - "$PBXPROJ" "$PROFILE_SPEC" "$APPLE_TEAM_ID" "$SIGN_IDENTITY" "$BUNDLE_ID" "$PRODUCT_NAME" <<'PY'
 import re
 import sys
 
-pbxproj_path, profile_spec, team_id, sign_identity = sys.argv[1:5]
+pbxproj_path, profile_spec, team_id, sign_identity, bundle_id, product_name = sys.argv[1:7]
 
 with open(pbxproj_path, "r", encoding="utf-8") as f:
     content = f.read()
@@ -76,8 +85,8 @@ def target_config(config_id, name):
 \t\t\t\t);
 \t\t\t\t"LIBRARY_SEARCH_PATHS[arch=arm64]" = {LIB_ARM64};
 \t\t\t\t"LIBRARY_SEARCH_PATHS[arch=x86_64]" = {LIB_X86};
-\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = org.digitaldefiance.app.warp12;
-\t\t\t\tPRODUCT_NAME = "Warp 12";
+\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = {bundle_id};
+\t\t\t\tPRODUCT_NAME = "{product_name}";
 \t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "{profile_spec}";
 \t\t\t\t"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "{profile_spec}";
 \t\t\t\tSDKROOT = iphoneos;
@@ -99,25 +108,16 @@ pattern = re.compile(
 replacement = debug_block + "\n" + release_block
 new_content, count = pattern.subn(replacement, content, count=1)
 if count != 1:
-    sys.stderr.write("error: could not locate warp12_iOS build configurations in project.pbxproj\n")
+    sys.stderr.write(
+        "error: could not locate warp12_iOS debug/release buildSettings blocks to inject\n"
+    )
     sys.exit(1)
-
-# Remove orphan provisioning keys Tauri may leave between target and project configs.
-new_content = re.sub(
-    r"\};\n[\t ]+PROVISIONING_PROFILE_SPECIFIER = \"[^\"]*\";\n(\t\t7EAB0898275457867EF84E41)",
-    r"};\n\1",
-    new_content,
-)
-new_content = re.sub(
-    r"(\t\t7EAB0898275457867EF84E41 /\* debug \*/ = \{\n)[\t ]+\"PROVISIONING_PROFILE_SPECIFIER\[sdk=iphoneos\*\]\" = \"[^\"]*\";\n",
-    r"\1",
-    new_content,
-)
 
 with open(pbxproj_path, "w", encoding="utf-8") as f:
     f.write(new_content)
-PY
 
-echo "Injected iOS signing into ${PBXPROJ}" >&2
-echo "  PROVISIONING_PROFILE_SPECIFIER=${PROFILE_SPEC}" >&2
-echo "  CODE_SIGN_IDENTITY=${SIGN_IDENTITY}" >&2
+print(
+    f"Injected iOS signing: team={team_id} bundle={bundle_id} profile={profile_spec}",
+    file=sys.stderr,
+)
+PY

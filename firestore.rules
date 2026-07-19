@@ -291,6 +291,13 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys()
                  .hasOnly(['allowSpectate', 'spectatorIds', 'updatedAt']))
           ||
+          // Host pauses / resumes an active sector (temporary spectator mode).
+          (isHost(resource.data)
+            && resource.data.phase == 'active'
+            && request.resource.data.phase == 'active'
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['paused', 'pausedAt', 'pausedBy', 'pauseReason', 'updatedAt']))
+          ||
           // Host resets an active/completed sector back to lobby.
           (isHost(resource.data)
             && resource.data.phase in ['active', 'complete', 'round-end']
@@ -299,6 +306,7 @@ service cloud.firestore {
           // Captain submits a move (engine validates inside the transaction).
           (isMember(resource.data)
             && resource.data.phase == 'active'
+            && resource.data.paused != true
             && request.resource.data.phase in ['active', 'complete', 'round-end'])
           ||
           // New captain joins a lobby.

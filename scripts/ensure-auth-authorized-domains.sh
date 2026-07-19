@@ -2,14 +2,31 @@
 # Add custom hosting domains to Firebase Auth authorized domains (required for Google sign-in).
 set -euo pipefail
 
-PROJECT="${FIREBASE_PROJECT:-warp-12}"
-DOMAINS=(
-  "iwdf.org"
-  "warp-12-leaderboard.web.app"
-  "leaderboard.warp12.app"
-  "warp12.app"
-  "warp.iwdf.org"
-)
+# shellcheck source=scripts/lib/warp-env.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/warp-env.sh"
+warp_env_load deploy
+warp_env_validate deploy
+warp_env_require FIREBASE_AUTH_AUTHORIZED_DOMAINS
+
+PROJECT="${FIREBASE_PROJECT}"
+
+# Parse comma-separated domains into a Bash array (Bash 3.2-safe).
+DOMAINS=()
+_old_ifs="$IFS"
+IFS=','
+# shellcheck disable=SC2086
+set -- ${FIREBASE_AUTH_AUTHORIZED_DOMAINS}
+IFS="$_old_ifs"
+for d in "$@"; do
+  # trim whitespace
+  d="$(printf '%s' "$d" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+  [ -n "$d" ] && DOMAINS+=("$d")
+done
+
+if [ "${#DOMAINS[@]}" -eq 0 ]; then
+  echo "error: FIREBASE_AUTH_AUTHORIZED_DOMAINS is empty (see .env.example)" >&2
+  exit 1
+fi
 
 if ! command -v gcloud >/dev/null 2>&1; then
   echo "gcloud not found — install google-cloud-sdk or add it to PATH" >&2

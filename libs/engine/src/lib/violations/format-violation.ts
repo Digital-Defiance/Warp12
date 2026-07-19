@@ -15,6 +15,8 @@ export function formatViolation(violation: string): string {
       return 'Pass helm or adjust shields before charting again';
     case 'DRAW_NOT_ALLOWED':
       return 'You can only draw once when unable to chart';
+    case 'SECTOR_PAUSED':
+      return 'Sector is paused — wait for the host to resume';
     default:
       return violation.replaceAll('_', ' ').toLowerCase();
   }

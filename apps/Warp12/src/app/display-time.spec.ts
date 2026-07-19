@@ -23,23 +23,25 @@ describe('display-time', () => {
     expect(formatDisplayTime(iso, { preferBrightDate: false })).toContain('2026');
   });
 
-  it('formats BrightDate when preferred', () => {
+  it('formats BrightDate when preferred (no BD: prefix)', () => {
     const iso = '2026-07-16T12:00:00.000Z';
     const out = formatDisplayTime(iso, { preferBrightDate: true });
-    expect(out.startsWith('BD:')).toBe(true);
+    expect(out.startsWith('BD:')).toBe(false);
+    expect(out).toMatch(/^\d+\.\d+$/);
   });
 
-  it('formats BrightDate day label', () => {
+  it('formats BrightDate day label without BD: prefix', () => {
     const out = formatDisplayDay('2026-07-16T12:00:00.000Z', {
       preferBrightDate: true,
     });
-    expect(out).toMatch(/^BD:\d+$/);
+    expect(out).toMatch(/^\d+$/);
   });
 
   it('reads preference from user prefs', () => {
     writeUserPrefs({ preferBrightDate: true });
     const out = formatDisplayTime('2026-07-16T12:00:00.000Z');
-    expect(out.startsWith('BD:')).toBe(true);
+    expect(out.startsWith('BD:')).toBe(false);
+    expect(out).toMatch(/^\d+\.\d+$/);
   });
 
   it('formats game-log elapsed time as a BrightDate decimal span', () => {

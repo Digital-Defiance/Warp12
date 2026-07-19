@@ -16,6 +16,7 @@ import {
   sanitizeAutoFollowReturnDelayMs,
   type PanVector,
 } from './follow-snap-back.js';
+import { RoundLogIcon } from './round-image-icons';
 import styles from './table-viewport.module.scss';
 
 const MIN_SCALE_DESKTOP = 0.35;
@@ -63,6 +64,23 @@ export interface TableViewportCommsControl {
   onToggle: () => void;
 }
 
+export interface TableViewportHostModControl {
+  onOpen: () => void;
+}
+
+export interface TableViewportLogDialogControl {
+  onOpen: () => void;
+}
+
+/** Pick where follow-chart pans should aim (crosshair on the table). */
+export interface TableViewportSetFollowFocusControl {
+  /** Currently waiting for a table click. */
+  active: boolean;
+  /** False when follow-charted-tiles is off. */
+  enabled: boolean;
+  onToggle: () => void;
+}
+
 export interface TableViewportProps {
   tableWidth: number;
   tableHeight: number;
@@ -71,12 +89,28 @@ export interface TableViewportProps {
   focusControl?: TableViewportFocusControl;
   soundControl?: TableViewportSoundControl;
   logControl?: TableViewportLogControl;
+  /** Opens the full sector / round log dialog (book icon). */
+  logDialogControl?: TableViewportLogDialogControl;
+  /** Online host: opens host moderation controls (after set-focus when shown). */
+  hostModControl?: TableViewportHostModControl;
+  /** Set follow focus point (crosshair; leftmost when follow-chart is on). */
+  setFollowFocusControl?: TableViewportSetFollowFocusControl;
   commsControl?: TableViewportCommsControl;
   autoFollowAction?: boolean;
   /** Ease back to the pre-jump pan after a dwell. */
   autoFollowReturn?: boolean;
   /** Dwell before snap-back (ms). */
   autoFollowReturnDelayMs?: number;
+  /** Viewport focus for auto-follow (0–1). Default center. */
+  followFocusNormX?: number;
+  followFocusNormY?: number;
+  /**
+   * When true, the next click on the surface sets follow focus and calls
+   * `onFollowFocusNormChange`, then exits pick mode via `onSetFocusModeChange(false)`.
+   */
+  setFocusMode?: boolean;
+  onSetFocusModeChange?: (active: boolean) => void;
+  onFollowFocusNormChange?: (norm: { x: number; y: number }) => void;
   actionFocus?: TableViewportFocusTarget | null;
   /**
    * Increment to abort a pending snap-back (e.g. Fleet Status / Sector HUD
@@ -127,10 +161,18 @@ export function TableViewport({
   focusControl,
   soundControl,
   logControl,
+  logDialogControl,
+  hostModControl,
+  setFollowFocusControl,
   commsControl,
   autoFollowAction = false,
   autoFollowReturn = false,
   autoFollowReturnDelayMs = 2000,
+  followFocusNormX = 0.5,
+  followFocusNormY = 0.5,
+  setFocusMode = false,
+  onSetFocusModeChange,
+  onFollowFocusNormChange,
   actionFocus = null,
   followReturnCancelSignal = 0,
   compactLayout = false,
@@ -344,7 +386,9 @@ export function TableViewport({
         height,
         scaleRef.current,
         actionFocus.x,
-        actionFocus.y
+        actionFocus.y,
+        followFocusNormX,
+        followFocusNormY
       )
     );
 
@@ -360,6 +404,8 @@ export function TableViewport({
     autoFollowReturn,
     clearFollowTimers,
     endFollowSession,
+    followFocusNormX,
+    followFocusNormY,
     scheduleFollowReturn,
   ]);
 
@@ -397,6 +443,25 @@ export function TableViewport({
 
   const onPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (setFocusMode) {
+        const surface = surfaceRef.current;
+        if (surface && event.button === 0) {
+          const rect = surface.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0) {
+            const x = (event.clientX - rect.left) / rect.width;
+            const y = (event.clientY - rect.top) / rect.height;
+            onFollowFocusNormChange?.({
+              x: Math.min(0.92, Math.max(0.08, x)),
+              y: Math.min(0.92, Math.max(0.08, y)),
+            });
+            onSetFocusModeChange?.(false);
+          }
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
       abortFollowReturnForUser();
       pointersRef.current.set(event.pointerId, {
         x: event.clientX,
@@ -427,7 +492,15 @@ export function TableViewport({
       };
       event.currentTarget.setPointerCapture(event.pointerId);
     },
-    [abortFollowReturnForUser, pan.x, pan.y, scale]
+    [
+      abortFollowReturnForUser,
+      onFollowFocusNormChange,
+      onSetFocusModeChange,
+      pan.x,
+      pan.y,
+      scale,
+      setFocusMode,
+    ]
   );
 
   const onPointerMove = useCallback(
@@ -472,8 +545,30 @@ export function TableViewport({
     }
   }, []);
 
+  useEffect(() => {
+    if (!setFocusMode) {
+      return;
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onSetFocusModeChange?.(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onSetFocusModeChange, setFocusMode]);
+
   return (
-    <div className={styles.viewport} data-compact={compactLayout ? 'true' : undefined}>
+    <div
+      className={styles.viewport}
+      data-compact={compactLayout ? 'true' : undefined}
+      data-set-focus={setFocusMode ? 'true' : undefined}
+    >
+      {setFocusMode ? (
+        <p className={styles.setFocusBanner} role="status">
+          Click the table to set follow focus. Escape cancels.
+        </p>
+      ) : null}
       <div
         ref={surfaceRef}
         className={styles.viewportSurface}
@@ -513,8 +608,52 @@ export function TableViewport({
       </div>
 
       <div className={styles.viewportHud}>
-        {soundControl || focusControl || logControl || commsControl ? (
+        {soundControl ||
+        focusControl ||
+        logControl ||
+        logDialogControl ||
+        hostModControl ||
+        setFollowFocusControl ||
+        commsControl ? (
           <div className={styles.viewportToolbar}>
+            {setFollowFocusControl?.enabled ? (
+              <button
+                type="button"
+                className={`${styles.hudIconToggle} ${styles.hudIconToggleGhost}`}
+                aria-pressed={setFollowFocusControl.active}
+                aria-label={
+                  setFollowFocusControl.active
+                    ? 'Cancel set follow focus'
+                    : 'Set follow focus — click the table'
+                }
+                title={
+                  setFollowFocusControl.active
+                    ? 'Cancel set focus'
+                    : 'Set follow focus'
+                }
+                onClick={setFollowFocusControl.onToggle}
+              >
+                <span className={styles.hudCrosshair} aria-hidden />
+              </button>
+            ) : null}
+            {hostModControl ? (
+              <button
+                type="button"
+                className={styles.hudIconToggle}
+                aria-label="Open host controls"
+                title="Host controls"
+                onClick={hostModControl.onOpen}
+              >
+                <span
+                  className={styles.hudIconToggleMask}
+                  style={{
+                    maskImage: 'url(/user-headset-duotone-solid-full.svg)',
+                    WebkitMaskImage: 'url(/user-headset-duotone-solid-full.svg)',
+                  }}
+                  aria-hidden
+                />
+              </button>
+            ) : null}
             {logControl ? (
               <button
                 type="button"
@@ -527,6 +666,17 @@ export function TableViewport({
                 <span className={styles.hudIconToggleGlyph} aria-hidden>
                   {LOG_CONTROL_GLYPH[logControl.mode]}
                 </span>
+              </button>
+            ) : null}
+            {logDialogControl ? (
+              <button
+                type="button"
+                className={styles.hudIconToggle}
+                aria-label="Open sector log"
+                title="Sector log"
+                onClick={logDialogControl.onOpen}
+              >
+                <RoundLogIcon className={styles.hudIconToggleSvg} />
               </button>
             ) : null}
             {soundControl ? (

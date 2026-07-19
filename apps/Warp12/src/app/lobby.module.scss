@@ -65,6 +65,51 @@
   margin: 0 0 1rem;
 }
 
+// Shared dark control chrome — native selects need appearance:none or macOS
+// keeps the system white popup look regardless of background/color.
+@mixin lobbyControl {
+  box-sizing: border-box;
+  font-family: var(--font-federation);
+  letter-spacing: 0.06em;
+  padding: 0.65rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background-color: #050816;
+  color: #e2e8f0;
+  color-scheme: dark;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover:not(:disabled) {
+    border-color: #475569;
+  }
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@mixin lobbySelect {
+  @include lobbyControl;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2rem;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%2394a3b8' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 0.85rem;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -75,13 +120,11 @@
   color: #94a3b8;
 
   input {
-    font-family: var(--font-federation);
-    letter-spacing: 0.06em;
-    padding: 0.65rem 0.75rem;
-    border-radius: 6px;
-    border: 1px solid #334155;
-    background: #050816;
-    color: #e2e8f0;
+    @include lobbyControl;
+  }
+
+  select {
+    @include lobbySelect;
   }
 }
 
@@ -163,51 +206,25 @@
 
 .presetSelect,
 .presetInput {
+  @include lobbyControl;
   flex: 1;
   min-width: 0;
-  box-sizing: border-box;
-  font-family: var(--font-federation);
   font-size: 0.82rem;
   letter-spacing: 0.04em;
   padding: 0.6rem 0.75rem;
   border-radius: 8px;
-  border: 1px solid #334155;
-  background: #050816;
-  color: #e2e8f0;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
 
   &::placeholder {
     color: #64748b;
   }
-
-  &:hover:not(:disabled) {
-    border-color: #475569;
-  }
-
-  &:focus,
-  &:focus-visible {
-    outline: none;
-    border-color: #38bdf8;
-    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 }
 
 .presetSelect {
-  appearance: none;
-  -webkit-appearance: none;
-  padding-right: 2rem;
-  cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%2394a3b8' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.7rem center;
-  background-size: 0.85rem;
+  @include lobbySelect;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  padding: 0.6rem 2rem 0.6rem 0.75rem;
+  border-radius: 8px;
 }
 
 .presetSave,
@@ -474,13 +491,12 @@
   color: #94a3b8;
 
   select {
-    font-family: var(--font-federation);
+    @include lobbySelect;
     font-size: 0.75rem;
-    padding: 0.35rem 0.5rem;
+    padding: 0.35rem 1.75rem 0.35rem 0.5rem;
     border-radius: 4px;
-    border: 1px solid #334155;
-    background: #050816;
-    color: #e2e8f0;
+    background-position: right 0.45rem center;
+    background-size: 0.75rem;
   }
 }
 
@@ -507,15 +523,14 @@
   color: #e2e8f0;
 
   select {
+    @include lobbySelect;
     min-width: 0;
     max-width: 100%;
-    font-family: var(--font-federation);
     font-size: 0.75rem;
-    padding: 0.35rem 0.5rem;
+    padding: 0.35rem 1.75rem 0.35rem 0.5rem;
     border-radius: 4px;
-    border: 1px solid #334155;
-    background: #050816;
-    color: #e2e8f0;
+    background-position: right 0.45rem center;
+    background-size: 0.75rem;
   }
 
   .checkboxRow {

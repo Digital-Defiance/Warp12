@@ -13,26 +13,38 @@
 # Prompts for the .p12 password (hidden). Set APPLE_IOS_CERTIFICATE_PASSWORD for CI.
 #
 # Prerequisites (Apple Developer):
-#   - App ID org.digitaldefiance.app.warp12 (iOS)
-#   - iOS App Store provisioning profile → Warp_12_iOS.mobileprovision
-#   - Apple Distribution .p12 exported from Keychain → Warp_12_iOS.p12
+#   - App ID matching APPLE_BUNDLE_ID (from .env)
+#   - iOS App Store provisioning profile (APPLE_IOS_PROVISIONING_PROFILE)
+#   - Apple Distribution .p12 (APPLE_IOS_CERTIFICATE)
 
 set -e
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT"
+# shellcheck source=scripts/lib/warp-env.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/warp-env.sh"
+warp_env_load ios
+warp_env_validate ios
+warp_env_cd_root
+
+ROOT="$WARP12_ROOT"
 
 BRIDGE_DIR="${ROOT}/apps/Warp12"
 TAURI_DIR="${BRIDGE_DIR}/src-tauri"
 APPLE_GEN_DIR="${TAURI_DIR}/gen/apple"
 IPA_DIR="${APPLE_GEN_DIR}/build/arm64"
 TAURI_BIN="${ROOT}/node_modules/.bin/tauri"
-APPLE_TEAM_ID="$(node -e "
-  const j = require(process.argv[1]);
-  process.stdout.write(String(j.bundle?.iOS?.developmentTeam || 'J6887N729S'));
-" "${TAURI_DIR}/tauri.conf.json")"
-PROVISION_PROFILE="${APPLE_IOS_PROVISIONING_PROFILE:-${TAURI_DIR}/Warp_12_iOS.mobileprovision}"
-CERTIFICATE_P12="${APPLE_IOS_CERTIFICATE:-${TAURI_DIR}/Warp_12_iOS.p12}"
+# Prefer process/.env APPLE_TEAM_ID (do not overwrite from tauri.conf).
+APPLE_TEAM_ID="${APPLE_TEAM_ID}"
+if [ -n "${APPLE_IOS_PROVISIONING_PROFILE:-}" ]; then
+  PROVISION_PROFILE="$(warp_env_abs_path "$APPLE_IOS_PROVISIONING_PROFILE")"
+else
+  PROVISION_PROFILE="${TAURI_DIR}/Warp_12_iOS.mobileprovision"
+fi
+if [ -n "${APPLE_IOS_CERTIFICATE:-}" ]; then
+  CERTIFICATE_P12="$(warp_env_abs_path "$APPLE_IOS_CERTIFICATE")"
+else
+  CERTIFICATE_P12="${TAURI_DIR}/Warp_12_iOS.p12"
+fi
+TAURI_LOCAL_CONF=""
 
 UPLOAD=0
 EXTRA_TAURI_ARGS=""
@@ -78,13 +90,13 @@ Optional environment:
 Optional overrides:
   APPLE_IOS_PROVISIONING_PROFILE    Path to .mobileprovision
   APPLE_IOS_CERTIFICATE             Path to .p12
-  APPLE_TEAM_ID                     Default J6887N729S
+  APPLE_TEAM_ID / APPLE_BUNDLE_ID / APPLE_PUBLISHER_NAME  (required; see .env.example)
 
 Upload (--upload) also requires:
   APPLE_API_KEY, APPLE_API_ISSUER, APPLE_API_KEY_PATH
 
 Output:
-  apps/Warp12/src-tauri/gen/apple/build/arm64/Warp 12.ipa
+  apps/Warp12/src-tauri/gen/apple/build/arm64/<Product Name>.ipa
 EOF
   exit 1
 }
@@ -97,10 +109,11 @@ read_product_name() {
 }
 
 read_bundle_identifier() {
-  node -e "
-    const j = require(process.argv[1]);
-    process.stdout.write(String(j.identifier || 'org.digitaldefiance.app.warp12'));
-  " "${TAURI_DIR}/tauri.conf.json"
+  if [ -n "${APPLE_BUNDLE_ID:-}" ]; then
+    printf '%s' "$APPLE_BUNDLE_ID"
+    return 0
+  fi
+  die "APPLE_BUNDLE_ID is required (set in process ENV or .env — see .env.example)"
 }
 
 SIGNING_KEYCHAIN=""
@@ -204,12 +217,12 @@ ensure_provisioning_profile() {
 
 Create one at https://developer.apple.com/account/resources/profiles/list
   1. Profiles → + → Distribution → App Store Connect (iOS — not Mac)
-  2. App ID → org.digitaldefiance.app.warp12
-  3. Certificate → Apple Distribution: Digital Defiance
+  2. App ID → ${APPLE_BUNDLE_ID}
+  3. Certificate → Apple Distribution: ${APPLE_PUBLISHER_NAME}
   4. Download and save as:
        ${PROVISION_PROFILE}
 
-This is separate from Warp_12.provisionprofile (Mac App Store only)."
+This is separate from the Mac App Store provisioning profile."
 
   local platforms app_id name uuid dest
   platforms="$(profile_platforms "$PROVISION_PROFILE")"
@@ -228,9 +241,9 @@ Platforms: ${platforms:-unknown}"
   esac
 
   case "$app_id" in
-    *org.digitaldefiance.app.warp12) ;;
+    *"${APPLE_BUNDLE_ID}") ;;
     *)
-      die "Profile App ID mismatch (expected org.digitaldefiance.app.warp12): ${app_id:-unknown}"
+      die "Profile App ID mismatch (expected ${APPLE_BUNDLE_ID}): ${app_id:-unknown}"
       ;;
   esac
 
@@ -276,7 +289,7 @@ Set APPLE_IOS_CERTIFICATE_PASSWORD for non-interactive builds."
 
 Common fixes:
   - Re-export: select the certificate AND its private key (both rows) before Export
-  - Use Apple Distribution: Digital Defiance (${APPLE_TEAM_ID}), not iOS Distribution
+  - Use Apple Distribution: ${APPLE_PUBLISHER_NAME} (${APPLE_TEAM_ID}), not iOS Distribution
   - Try a simpler export password (letters/numbers only), then re-export
   - Skip this check: APPLE_IOS_SKIP_P12_VERIFY=1 yarn build:ios-appstore"
 }
@@ -341,7 +354,7 @@ ensure_distribution_certificate() {
 
 Export from Keychain Access (one-time):
   1. Keychain Access → My Certificates
-  2. Expand \"Apple Distribution: Digital Defiance (${APPLE_TEAM_ID})\"
+  2. Expand \"Apple Distribution: ${APPLE_PUBLISHER_NAME} (${APPLE_TEAM_ID})\"
   3. Select the certificate AND its private key (both highlighted)
   4. File → Export Items… → Personal Information Exchange (.p12)
   5. Save as: ${CERTIFICATE_P12}
@@ -447,12 +460,15 @@ echo "" >&2
 echo "Building frontend..." >&2
 yarn build:all
 
+TAURI_LOCAL_CONF="$(warp_env_write_tauri_local_config)"
+
 echo "Syncing iOS app icons..." >&2
 bash "${ROOT}/scripts/sync-ios-icons.sh"
 bash "${ROOT}/scripts/ensure-tauri-cli-links.sh"
 
 echo "Injecting iOS code signing into Xcode project..." >&2
 bash "${ROOT}/scripts/inject-ios-signing.sh"
+bash "${ROOT}/scripts/inject-ios-oauth-plist.sh"
 
 echo "Archiving and exporting iOS .ipa (manual signing)..." >&2
 cd "$BRIDGE_DIR"
@@ -464,6 +480,7 @@ _tauri_status=0
 # shellcheck disable=SC2086
 "$TAURI_BIN" ios build \
   --export-method app-store-connect \
+  --config "$TAURI_LOCAL_CONF" \
   ${EXTRA_TAURI_ARGS} || _tauri_status=$?
 restore_ios_cloud_signing_env
 [ "$_tauri_status" -eq 0 ] || exit "$_tauri_status"

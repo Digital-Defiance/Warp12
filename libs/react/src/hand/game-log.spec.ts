@@ -59,7 +59,7 @@ describe('game-log', () => {
       formatOptions
     );
     expect(caution).toMatch(
-      /^00:03 - Armstrong played a Double 5-5 on Captain Lovell's Trail, raising Yellow alert$/
+      /^00:03 - Armstrong charted a Double 5-5 on Captain Lovell's Trail, raising Yellow alert$/
     );
 
     const clear = gameLogEntryToString(
@@ -75,7 +75,7 @@ describe('game-log', () => {
       formatOptions
     );
     expect(clear).toMatch(
-      /^01:45 - Earhart played a 12:7 on Captain Lovell's Trail, clearing the Red Alert$/
+      /^01:45 - Earhart charted a 12:7 on Captain Lovell's Trail, clearing the Red Alert$/
     );
   });
 
@@ -121,7 +121,7 @@ describe('game-log', () => {
       formatOptions
     );
     expect(flash).toMatch(
-      /^03:00 - Armstrong played a Double 0-0 on the Neutral Zone, causing a Continuum Flash$/
+      /^03:00 - Armstrong charted a Double 0-0 on the Neutral Zone, causing a Continuum Flash$/
     );
   });
 
@@ -188,7 +188,7 @@ describe('game-log', () => {
     expect(
       formatGameLogLine(entry!, { a: 'Alpha', b: 'Beta' }, formatOptions)
     ).toMatch(
-      /played a 5:12 on their own Trail, deploying a Distress Beacon$/
+      /charted a 5:12 on their own Trail, deploying a Distress Beacon$/
     );
   });
 
@@ -224,7 +224,7 @@ describe('game-log', () => {
       formatOptions
     );
     expect(ratings).toBe(
-      '00:00 - Ratings · Armstrong I15 · Lovell ~C27 · Lieutenant'
+      '00:00 - Ratings · Armstrong I15 · Lovell ref C27 · Lieutenant'
     );
 
     // hideTei renders captain classes without the TEI portion.
@@ -635,7 +635,7 @@ describe('game-log', () => {
       formatOptions
     );
     expect(line).toBe(
-      '00:23 - Armstrong played a Double 12-12 on the Neutral Zone, the Double is dead — no cover required'
+      '00:23 - Armstrong charted a Double 12-12 on the Neutral Zone, the Double is dead — no cover required'
     );
   });
 
@@ -661,7 +661,7 @@ describe('game-log', () => {
     expect(payload.sectorCode).toBe('8SU55R');
     expect(payload.entries).toHaveLength(1);
     expect(payload.lines[0]).toBe(
-      '00:08 - Armstrong played a Double 0-0 on the Neutral Zone, causing a Continuum Flash'
+      '00:08 - Armstrong charted a Double 0-0 on the Neutral Zone, causing a Continuum Flash'
     );
   });
 
@@ -1018,7 +1018,7 @@ describe('game-log', () => {
           formatOptions
         )
       ).toBe(
-        '00:26 - Glenn played a 2:9 on a Subspace Fracture stabilizer, clearing the Subspace Fracture, clearing the Red Alert'
+        '00:26 - Glenn charted a 2:9 on a Subspace Fracture stabilizer, clearing the Subspace Fracture, clearing the Red Alert'
       );
     });
 

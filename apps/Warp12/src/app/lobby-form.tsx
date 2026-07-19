@@ -28,6 +28,7 @@ import {
   type WarpSetupPreset,
 } from '../game/setup-presets.js';
 import styles from './lobby.module.scss';
+import { Link } from 'react-router-dom';
 
 interface LobbyProps {
   gameCode: string;
@@ -114,6 +115,9 @@ export function LobbyForm({
 
   return (
     <section className={`${styles.lobby} ${styles.lobbyWide}`}>
+      <p className={styles.backLink}>
+        <Link to="/">← Back to bridge</Link>
+      </p>
       <h2 className={styles.title}>Fleet muster</h2>
       <p className={styles.subtitle}>
         Open a sector for up to {fleetCeiling} captains, or join with a sector

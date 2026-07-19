@@ -10,8 +10,8 @@
 #   NONINTERACTIVE=1 bash scripts/build-macos-appstore.sh 0.1.0
 #
 # Prerequisites (Apple Developer):
-#   - App ID org.digitaldefiance.app.warp12 with App Sandbox
-#   - Mac App Store provisioning profile → apps/Warp12/src-tauri/Warp_12.provisionprofile
+#   - App ID matching APPLE_BUNDLE_ID (from .env) with App Sandbox
+#   - Mac App Store provisioning profile (APPLE_PROVISIONING_PROFILE)
 #   - Apple Distribution certificate (codesign .app)
 #   - 3rd Party Mac Developer Installer certificate (productbuild .pkg)
 #
@@ -20,8 +20,13 @@
 
 set -e
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT"
+# shellcheck source=scripts/lib/warp-env.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/warp-env.sh"
+warp_env_load macos-appstore
+warp_env_validate macos-appstore
+warp_env_cd_root
+
+ROOT="$WARP12_ROOT"
 
 # Stashed notarization env (restored after tauri build; needed again for --upload).
 _SAVED_APPLE_ID=""
@@ -40,16 +45,22 @@ APP_BUNDLE_DIR="${TAURI_DIR}/target/universal-apple-darwin/release/bundle/macos"
 PKG_OUT_DIR="${TAURI_DIR}/target/universal-apple-darwin/release/bundle/pkg"
 ENTITLEMENTS_TEMPLATE="${TAURI_DIR}/Entitlements.AppStore.plist.in"
 ENTITLEMENTS_PLIST="${TAURI_DIR}/Entitlements.plist"
-PROVISION_PROFILE="${APPLE_PROVISIONING_PROFILE:-${TAURI_DIR}/Warp_12.provisionprofile}"
+_default_provision="${TAURI_DIR}/Warp_12.provisionprofile"
+if [ -n "${APPLE_PROVISIONING_PROFILE:-}" ]; then
+  PROVISION_PROFILE="$(warp_env_abs_path "$APPLE_PROVISIONING_PROFILE")"
+else
+  PROVISION_PROFILE="$_default_provision"
+fi
 TAURI_BIN="${ROOT}/node_modules/.bin/tauri"
-# Warp 12 org team; override with APPLE_TEAM_ID if needed.
-APPLE_TEAM_ID="${APPLE_TEAM_ID:-J6887N729S}"
+# Required via warp_env_validate; do not hardcode a team id.
+APPLE_TEAM_ID="${APPLE_TEAM_ID}"
 
 EXTRA_TAURI_ARGS=""
 APP_VERSION=""
 UPLOAD=0
 SKIP_BUILD=0
 SKIP_RESIGN=0
+TAURI_LOCAL_CONF=""
 
 die() {
   echo "error: $*" >&2
@@ -106,10 +117,19 @@ read_product_name() {
 }
 
 read_bundle_identifier() {
+  if [ -n "${APPLE_BUNDLE_ID:-}" ]; then
+    printf '%s' "$APPLE_BUNDLE_ID"
+    return 0
+  fi
   [ -f "$TAURI_CONF" ] || die "missing ${TAURI_CONF}"
   node -e "
     const j = require(process.argv[1]);
-    process.stdout.write(String(j.identifier || 'org.digitaldefiance.app.warp12'));
+    const id = String(j.identifier || '');
+    if (!id || id === 'com.example.warp12') {
+      console.error('error: set APPLE_BUNDLE_ID in .env (see .env.example)');
+      process.exit(1);
+    }
+    process.stdout.write(id);
   " "$TAURI_CONF"
 }
 
@@ -851,6 +871,8 @@ if [ "$SKIP_BUILD" -eq 0 ]; then
   echo "Building frontend..." >&2
   yarn build:all
 
+  TAURI_LOCAL_CONF="$(warp_env_write_tauri_local_config)"
+
   echo "Building universal .app (Tauri, Mac App Store)..." >&2
   cd "$BRIDGE_DIR"
   disable_tauri_notarization_env
@@ -860,6 +882,7 @@ if [ "$SKIP_BUILD" -eq 0 ]; then
     --target universal-apple-darwin \
     --bundles app \
     --config "$_TAURI_BUILD_CONFIG" \
+    --config "$TAURI_LOCAL_CONF" \
     ${EXTRA_TAURI_ARGS} || _tauri_status=$?
   restore_notarization_env
   [ "$_tauri_status" -eq 0 ] || exit "$_tauri_status"

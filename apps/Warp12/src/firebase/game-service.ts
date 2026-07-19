@@ -405,6 +405,27 @@ export async function kickCaptain(
   });
 }
 
+/** Host clears the public spectator gallery without disabling spectate. */
+export async function clearSpectatorGallery(
+  gameId: string,
+  hostId: string
+): Promise<void> {
+  await runTransaction(getFirestoreDb()!, async (tx) => {
+    const snap = await tx.get(gameRef(gameId));
+    if (!snap.exists()) {
+      throw new Error('Game not found');
+    }
+    const data = snap.data() as FirestoreGameDocument;
+    if (data.hostId !== hostId) {
+      throw new Error('Only the host can clear the spectator gallery');
+    }
+    tx.update(gameRef(gameId), {
+      spectatorIds: [],
+      updatedAt: new Date().toISOString(),
+    });
+  });
+}
+
 export async function updateLobbySettings(
   gameId: string,
   hostId: string,
@@ -666,6 +687,9 @@ export interface OnlineGameSnapshot {
   ejected: boolean;
   /** Ops soft-terminated the sector. */
   terminated: boolean;
+  /** Host pause — temporary spectator mode for everyone. */
+  paused: boolean;
+  pauseReason?: string;
   allowSpectate: boolean;
   spectatorCount: number;
   /** Viewer is listed in spectatorIds. */
@@ -792,6 +816,10 @@ export function subscribeOnlineGame(
       allowSpectate: latestDoc?.allowSpectate !== false,
       spectatorCount: spectatorIds.length,
       isSpectator: spectatorIds.includes(viewerId),
+      paused: latestDoc?.paused === true,
+      ...(latestDoc?.pauseReason
+        ? { pauseReason: latestDoc.pauseReason }
+        : {}),
     };
 
     if (!latestDoc) {
@@ -814,6 +842,7 @@ export function subscribeOnlineGame(
         dissolved: true,
         ejected: false,
         terminated: false,
+        paused: false,
         allowSpectate: true,
         spectatorCount: 0,
         isSpectator: false,

@@ -56,25 +56,33 @@ import {
   searchMessages,
 } from './ops/messages';
 import {
-  getMute,
-  listMutes,
-  muteInSector,
-  muteUser,
-  unmuteInSector,
-  unmuteUser,
-} from './ops/mutes';
-import {
   listStaleGames,
   opsCleanupStaleSector,
+  hostDropCaptain,
   opsKickCaptain,
   opsTerminateSector,
 } from './ops/sector-actions';
+import {
+  hostLeaveWithAi,
+  hostReplaceCaptainWithAi,
+  hostTransferHost,
+} from './ops/host-continuity';
 import {
   joinSpectate,
   leaveSpectate,
   opsDropSpectators,
   setAllowSpectate,
 } from './ops/spectate';
+import {
+  getMute,
+  listMutes,
+  muteInSector,
+  muteUser,
+  hostMuteInSector,
+  hostUnmuteInSector,
+  unmuteInSector,
+  unmuteUser,
+} from './ops/mutes';
 import {
   getOpsRatedMatch,
   listCaptainRatingEvents,
@@ -99,9 +107,10 @@ import { onRatingEventAbuseReview } from './moderation/rating-abuse';
 import { onMessageShadowMute } from './moderation/shadow-mute';
 import { opsUnrateOnlineSector } from './ops/unrate-online';
 
-// Public callable access is applied post-deploy via scripts/ensure-functions-public-invoker.sh
-// (--no-invoker-iam-check). invoker: 'public' fails here when org policy blocks allUsers.
-setGlobalOptions({ region: 'us-central1' });
+// Org policy blocks allUsers, so never use invoker: 'public' (Firebase deploy would fail
+// setting IAM). Deploy as private; scripts/ensure-functions-public-invoker.sh then disables
+// the Cloud Run invoker IAM check so browser + Hosting rewrites can reach callables.
+setGlobalOptions({ region: 'us-central1', invoker: 'private' });
 
 export {
   addAdminNote,
@@ -126,6 +135,12 @@ export {
   getOpsHands,
   getOpsRatedMatch,
   getModerationEvidencePack,
+  hostDropCaptain,
+  hostLeaveWithAi,
+  hostMuteInSector,
+  hostReplaceCaptainWithAi,
+  hostTransferHost,
+  hostUnmuteInSector,
   joinCharter,
   joinSpectate,
   leaveCharter,

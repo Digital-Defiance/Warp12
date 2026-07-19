@@ -14,16 +14,25 @@
 
 set -e
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT"
+# shellcheck source=scripts/lib/warp-env.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/warp-env.sh"
+warp_env_load android
+warp_env_validate android
+warp_env_cd_root
 
+ROOT="$WARP12_ROOT"
 BRIDGE_DIR="${ROOT}/apps/Warp12"
 TAURI_DIR="${BRIDGE_DIR}/src-tauri"
 ANDROID_DIR="${TAURI_DIR}/gen/android"
-KEYSTORE="${ANDROID_KEYSTORE:-${TAURI_DIR}/Warp_12_upload.jks}"
+if [ -n "${ANDROID_KEYSTORE:-}" ]; then
+  KEYSTORE="$(warp_env_abs_path "$ANDROID_KEYSTORE")"
+else
+  KEYSTORE="${TAURI_DIR}/Warp_12_upload.jks"
+fi
 KEY_ALIAS="${ANDROID_KEY_ALIAS:-upload}"
 KEYSTORE_PROPS="${ANDROID_DIR}/keystore.properties"
 TAURI_BIN="${ROOT}/node_modules/.bin/tauri"
+TAURI_LOCAL_CONF=""
 
 BUILD_APK=0
 EXTRA_TAURI_ARGS=""
@@ -63,6 +72,14 @@ detect_android_home() {
   fi
   if [ -d "${HOME}/Library/Android/sdk" ]; then
     printf '%s' "${HOME}/Library/Android/sdk"
+    return 0
+  fi
+  if [ -d "${HOME}/Android/Sdk" ]; then
+    printf '%s' "${HOME}/Android/Sdk"
+    return 0
+  fi
+  if [ -d "/usr/lib/android-sdk" ]; then
+    printf '%s' "/usr/lib/android-sdk"
     return 0
   fi
   return 1
@@ -310,6 +327,8 @@ echo "Syncing Android app icons..." >&2
 bash "${ROOT}/scripts/sync-android-icons.sh"
 write_keystore_properties
 
+TAURI_LOCAL_CONF="$(warp_env_write_tauri_local_config)"
+
 echo "" >&2
 echo "Android release build:" >&2
 echo "  ANDROID_HOME=${ANDROID_HOME}" >&2
@@ -317,6 +336,7 @@ echo "  NDK_HOME=${NDK_HOME}" >&2
 echo "  ANDROID_NDK_VERSION=${ANDROID_NDK_VERSION}" >&2
 echo "  KEYSTORE=${KEYSTORE}" >&2
 echo "  KEY_ALIAS=${KEY_ALIAS}" >&2
+echo "  BUNDLE_ID=${APPLE_BUNDLE_ID}" >&2
 echo "" >&2
 
 cd "$BRIDGE_DIR"
@@ -326,7 +346,7 @@ if [ "$BUILD_APK" -eq 1 ]; then
 fi
 
 # shellcheck disable=SC2086
-"$TAURI_BIN" android build ${_tauri_args} ${EXTRA_TAURI_ARGS}
+"$TAURI_BIN" android build ${_tauri_args} --config "$TAURI_LOCAL_CONF" ${EXTRA_TAURI_ARGS}
 
 AAB_PATH="$(find_aab)"
 [ -n "${AAB_PATH:-}" ] && [ -f "$AAB_PATH" ] || die "AAB not found under ${ANDROID_DIR}/app/build/outputs/bundle/"

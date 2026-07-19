@@ -3,7 +3,12 @@
 # so browser + Firebase Hosting can reach Gen2 callable functions.
 set -euo pipefail
 
-PROJECT="${FIREBASE_PROJECT:-warp-12}"
+# shellcheck source=scripts/lib/warp-env.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/warp-env.sh"
+warp_env_load deploy
+warp_env_validate deploy
+
+PROJECT="${FIREBASE_PROJECT}"
 REGION="${FUNCTIONS_REGION:-us-central1}"
 
 if ! command -v gcloud >/dev/null 2>&1; then

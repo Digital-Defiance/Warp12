@@ -55,6 +55,11 @@ test-output
 .env
 .env.local
 .env.*.local
+!.env.example
+
+# Generated Tauri merge fragment (from scripts/tauri-config-from-env.mjs)
+apps/Warp12/src-tauri/tauri.conf.local.json
+apps/WarpOps/src-tauri/tauri.conf.local.json
 
 # Firebase CLI local cache (regenerated on deploy)
 .firebase/

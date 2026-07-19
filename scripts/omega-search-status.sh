@@ -4,12 +4,16 @@ set -euo pipefail
 echo "=== processes ==="
 pgrep -fl 'omega-train-loop|collect-omega|bench-omega|train-omega' 2>/dev/null || true
 
-echo "=== elo log ==="
+echo "=== rating log ==="
 python3 <<'PY'
 import json
 import os
 
-p = os.environ.get("OMEGA_ELO_LOG", "tools/nn/data/omega-elo-log.jsonl")
+p = (
+    os.environ.get("OMEGA_RATING_LOG")
+    or os.environ.get("OMEGA_ELO_LOG")
+    or "tools/nn/data/omega-rating-log.jsonl"
+)
 if os.path.exists(p) and os.path.getsize(p) > 0:
     rows = [json.loads(line) for line in open(p, encoding="utf-8") if line.strip()]
     for r in rows:

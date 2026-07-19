@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, Route, Routes, useLocation } from 'react-router-dom';
 
 import { useOfflineMatchSync } from '../firebase/use-offline-match-sync.js';
@@ -40,6 +40,11 @@ import { FactorLanding } from './factor-landing';
 import { HubHarnessPage } from './hub-harness-page';
 import { getWarpFactor } from './warp-factor';
 import { LiveAnnouncerProvider } from '../a11y/live-announcer';
+import {
+  shouldShowNativeSplash,
+  SplashScreen,
+  SPLASH_REPLAY_EVENT,
+} from './splash-screen';
 
 const warpFactor = getWarpFactor();
 
@@ -57,6 +62,14 @@ function AppShell() {
   const [rulesOpen, setRulesOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [researchOpen, setResearchOpen] = useState(false);
+  const [showSplash, setShowSplash] = useState(shouldShowNativeSplash);
+  const finishSplash = useCallback(() => setShowSplash(false), []);
+
+  useEffect(() => {
+    const onReplay = () => setShowSplash(true);
+    window.addEventListener(SPLASH_REPLAY_EVENT, onReplay);
+    return () => window.removeEventListener(SPLASH_REPLAY_EVENT, onReplay);
+  }, []);
 
   return (
     <div
@@ -71,8 +84,12 @@ function AppShell() {
         ['--warp-panel-border' as string]: '#334155',
       }}
     >
+      {showSplash ? <SplashScreen onFinished={finishSplash} /> : null}
       <AdminStatusStrip />
-      <header className={`${styles.header} ${layoutFocus ? styles.headerFocus : ''}`}>
+      <header
+        className={`${styles.header} ${layoutFocus ? styles.headerFocus : ''}`}
+        data-has-game-actions={headerActions.length > 0 ? 'true' : 'false'}
+      >
         <div className={styles.headerStart}>
           <Link to="/" className={styles.logo}>
             <div>
@@ -80,92 +97,128 @@ function AppShell() {
               <p className={styles.subtitle}>The Bridge — Navigational Operations</p>
             </div>
           </Link>
-          {headerActions.length > 0 && (
-            <div className={styles.headerGameActions} aria-label="Game actions">
-              {headerActions.map((action) => (
-                <button
-                  key={action.id}
-                  type="button"
-                  className={styles.headerActionBtn}
-                  onClick={() => invokeAction(action.id)}
-                >
-                  {action.label}
-                </button>
-              ))}
-            </div>
-          )}
-          {headerStatus && (
-            <div className={styles.headerStatus} role="status">
-              {headerStatus.sectorLabel ? (
-                <span className={styles.headerSector}>
-                  {headerStatus.sectorLabel}
-                </span>
-              ) : null}
-              <span
-                className={styles.headerConnection}
-                data-connection={headerStatus.connectionState}
-              >
-                {headerStatus.connectionLabel}
-              </span>
-            </div>
-          )}
         </div>
-        <nav className={styles.nav}>
-          {overlayDocs ? (
-            <>
+        {headerActions.length > 0 ? (
+          <div className={styles.headerGameActions} aria-label="Game actions">
+            {headerActions.map((action) => (
               <button
+                key={action.id}
                 type="button"
-                className={styles.navLink}
-                onClick={() => setRulesOpen(true)}
+                className={styles.headerActionBtn}
+                onClick={() => invokeAction(action.id)}
               >
-                Manual
+                {action.label}
               </button>
-              <button
-                type="button"
-                className={styles.navLink}
-                onClick={() => setResearchOpen(true)}
+            ))}
+          </div>
+        ) : null}
+        {headerStatus?.ratingLabel ? (
+          <div
+            className={styles.headerRating}
+            role="status"
+            data-rating={headerStatus.ratingState}
+          >
+            {headerStatus.ratingLabel}
+          </div>
+        ) : (
+          <div className={styles.headerRatingSpacer} aria-hidden="true" />
+        )}
+        <div className={styles.headerEnd}>
+          {headerStatus &&
+            (headerStatus.sectorLabel || headerStatus.connectionLabel) && (
+              <div className={styles.headerStatus} role="status">
+                {headerStatus.sectorLabel ? (
+                  <span className={styles.headerSector}>
+                    {headerStatus.sectorLabel}
+                  </span>
+                ) : null}
+                {headerStatus.connectionLabel ? (
+                  <span
+                    className={styles.headerConnection}
+                    data-connection={headerStatus.connectionState}
+                  >
+                    {headerStatus.connectionLabel}
+                  </span>
+                ) : null}
+              </div>
+            )}
+          <nav className={styles.nav} aria-label="Site">
+            {/* Phone + table focus: Rules/Options live in game actions — keep IWDF only. */}
+            {layoutTier === 'phone' && layoutFocus ? (
+              <Link
+                to="https://iwdf.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.iwdfLink}
               >
-                Research
-              </button>
-              <button
-                type="button"
-                className={styles.navLink}
-                onClick={() => setPrivacyOpen(true)}
-              >
-                Privacy
-              </button>
-              <Link to="https://iwdf.org" target='_blank' rel='noopener noreferrer' className={styles.iwdfLink}>
                 IWDF
               </Link>
-            </>
-          ) : (
-            <>
-              <Link to="/about" className={styles.navLink}>
-                About
-              </Link>
-              <Link to="/modules" className={styles.navLink}>
-                Modules
-              </Link>
-              {layoutTier !== 'phone' && (
-                <Link to="/research" className={styles.navLink}>
+            ) : overlayDocs ? (
+              <>
+                <button
+                  type="button"
+                  className={styles.navLink}
+                  onClick={() => setRulesOpen(true)}
+                >
+                  Manual
+                </button>
+                <button
+                  type="button"
+                  className={styles.navLink}
+                  onClick={() => setResearchOpen(true)}
+                >
                   Research
+                </button>
+                <button
+                  type="button"
+                  className={styles.navLink}
+                  onClick={() => setPrivacyOpen(true)}
+                >
+                  Privacy
+                </button>
+                <Link
+                  to="https://iwdf.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.iwdfLink}
+                >
+                  IWDF
                 </Link>
-              )}
-              <Link to="/rules" className={styles.navLink}>
-                Manual
-              </Link>
-              <Link to="/privacy" className={styles.navLink}>
-                Privacy
-              </Link>
-              <Link to="/profile" className={styles.navLink}>
-                Profile
-              </Link>
-              <Link to="https://iwdf.org" target='_blank' rel='noopener noreferrer' className={styles.iwdfLink}>
-                IWDF
-              </Link>
-            </>
-          )}
-        </nav>
+              </>
+            ) : (
+              <>
+                <Link to="/about" className={styles.navLink}>
+                  About
+                </Link>
+                <Link to="/modules" className={styles.navLink}>
+                  Modules
+                </Link>
+                {layoutTier !== 'phone' && (
+                  <Link to="/research" className={styles.navLink}>
+                    Research
+                  </Link>
+                )}
+                <Link to="/rules" className={styles.navLink}>
+                  Manual
+                </Link>
+                <Link to="/privacy" className={styles.navLink}>
+                  Privacy
+                </Link>
+                <Link to="/profile" className={styles.navLink}>
+                  Profile
+                </Link>
+                <Link
+                  to="https://iwdf.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.iwdfLink}
+                >
+                  IWDF
+                </Link>
+              </>
+            )}
+          </nav>
+        </div>
       </header>
 
       <main className={`${styles.main} ${layoutFocus ? styles.mainFocus : ''}`}>

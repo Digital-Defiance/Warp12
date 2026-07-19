@@ -10,19 +10,37 @@ import {
 } from 'warp12-engine';
 
 import {
+  clearSpectatorGallery,
   dissolveLobby,
   fetchHostDebugSnapshot,
+  hostDropCaptain,
+  hostLeaveWithAi,
+  hostMuteInSector,
+  hostReplaceCaptainWithAi,
+  hostTransferHost,
+  pauseSector,
+  pingSeatPresence,
   resetSectorToLobby,
+  resumeSector,
+  SEAT_HEARTBEAT_MS,
+  isSeatStale,
   signalCoachRequest,
   subscribeCoachPresence,
   subscribeOnlineGame,
   submitOnlineAction,
+  updateLobbySettings,
   useFirebaseAuth,
   type CoachPresence,
   type FirestoreCaptain,
   type FirestoreRoundMove,
 } from '../firebase';
+import {
+  reportSectorCaptain,
+  type PlayerReportCategory,
+} from '../firebase/moderation-reports.js';
 import { isAiCaptain } from '../game/ai-captain.js';
+import { HostMissingCaptainDialog } from './host-missing-captain-dialog.js';
+import { HostModDialog } from './host-mod-dialog.js';
 import {
   subscribeMessages,
   type SubspaceMessage,
@@ -36,7 +54,7 @@ import { downloadDebugExport } from '../game/debug-export.js';
 import { useBridgeHeaderStatusRegistration } from './bridge-header-status-context';
 import { BridgeTable } from './bridge-table';
 import { useHostAiRunner } from './use-host-ai-runner';
-import { formatViolation } from 'warp12-engine';
+import { formatViolation, type WarpSkillLevel } from 'warp12-engine';
 import styles from './lobby.module.scss';
 
 function violationMessage(violation: string): string {
@@ -56,6 +74,13 @@ export function OnlineGamePage() {
   const [handCounts, setHandCounts] = useState<Record<string, number>>({});
   const [sectorRated, setSectorRated] = useState(true);
   const [allowSpectate, setAllowSpectate] = useState(true);
+  const [spectatorCount, setSpectatorCount] = useState(0);
+  const [sectorPaused, setSectorPaused] = useState(false);
+  const [pauseReason, setPauseReason] = useState<string | undefined>();
+  const [missingCaptainId, setMissingCaptainId] = useState<string | null>(null);
+  const [missingBusy, setMissingBusy] = useState(false);
+  const dismissedMissingRef = useRef(new Set<string>());
+  const seatGraceStartedRef = useRef<Record<string, number>>({});
   const [moveLog, setMoveLog] = useState<readonly FirestoreRoundMove[]>([]);
   const [aiHands, setAiHands] = useState<
     Record<string, readonly { low: number; high: number }[]>
@@ -69,6 +94,8 @@ export function OnlineGamePage() {
   const [commsMessages, setCommsMessages] = useState<SubspaceMessage[]>([]);
   const [mutedUids, setMutedUids] = useState<Set<string>>(new Set());
   const [commsOpen, setCommsOpen] = useState(false);
+  const [hostModOpen, setHostModOpen] = useState(false);
+  const [hostModBusy, setHostModBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exportBusy, setExportBusy] = useState(false);
   const actionLogRef = useRef(createActionLog());
@@ -109,6 +136,9 @@ export function OnlineGamePage() {
         ejected,
         terminated,
         allowSpectate: spectateAllowed,
+        spectatorCount: galleryCount,
+        paused,
+        pauseReason: pauseNote,
       }) => {
         if (dissolved) {
           setServerGame(null);
@@ -156,6 +186,9 @@ export function OnlineGamePage() {
         setSectorCaptains(captains);
         setSectorRated(rated);
         setAllowSpectate(spectateAllowed);
+        setSpectatorCount(galleryCount);
+        setSectorPaused(paused);
+        setPauseReason(pauseNote);
         setHandCounts(counts);
         setMoveLog(sharedMoveLog);
         setAiHands(hostAiHands);
@@ -191,6 +224,66 @@ export function OnlineGamePage() {
 
     return subscribeCoachPresence(code, setCoachPresence);
   }, [code]);
+
+  // Seat heartbeat — every human pings so the host can spot dropouts.
+  useEffect(() => {
+    if (!code || !uid || !serverGame || serverGame.phase !== 'active') {
+      return;
+    }
+    void pingSeatPresence(code, uid).catch(() => undefined);
+    const timer = window.setInterval(() => {
+      void pingSeatPresence(code, uid).catch(() => undefined);
+    }, SEAT_HEARTBEAT_MS);
+    return () => window.clearInterval(timer);
+  }, [code, uid, serverGame?.phase]);
+
+  // Host: prompt when a human seat goes silent.
+  useEffect(() => {
+    if (
+      !isHost ||
+      !uid ||
+      !serverGame ||
+      serverGame.phase !== 'active' ||
+      sectorPaused
+    ) {
+      return;
+    }
+    const now = Date.now();
+    for (const captain of sectorCaptains) {
+      if (isAiCaptain(captain) || captain.id === uid) {
+        continue;
+      }
+      if (!seatGraceStartedRef.current[captain.id]) {
+        seatGraceStartedRef.current[captain.id] = now;
+      }
+      if (now - seatGraceStartedRef.current[captain.id]! < SEAT_HEARTBEAT_MS * 2) {
+        continue;
+      }
+      if (dismissedMissingRef.current.has(captain.id)) {
+        if (!isSeatStale(coachPresence[captain.id], now)) {
+          dismissedMissingRef.current.delete(captain.id);
+        }
+        continue;
+      }
+      if (isSeatStale(coachPresence[captain.id], now)) {
+        setMissingCaptainId(captain.id);
+        return;
+      }
+    }
+    setMissingCaptainId((current) => {
+      if (!current) {
+        return null;
+      }
+      return isSeatStale(coachPresence[current], now) ? current : null;
+    });
+  }, [
+    coachPresence,
+    isHost,
+    sectorCaptains,
+    sectorPaused,
+    serverGame,
+    uid,
+  ]);
 
   useEffect(() => {
     if (!code) {
@@ -281,7 +374,7 @@ export function OnlineGamePage() {
   );
 
   useHostAiRunner({
-    enabled: isHost,
+    enabled: isHost && !sectorPaused,
     code,
     hostUid: uid,
     hostId,
@@ -295,7 +388,6 @@ export function OnlineGamePage() {
 
   useEffect(() => {
     if (!auth.ready || !game || !uid) {
-      setHeaderStatus(null);
       return;
     }
 
@@ -324,8 +416,6 @@ export function OnlineGamePage() {
       connectionLabel,
       connectionState,
     });
-
-    return () => setHeaderStatus(null);
   }, [
     auth.ready,
     code,
@@ -395,6 +485,273 @@ export function OnlineGamePage() {
     }
   }, [code, navigate, setHeaderStatus, uid]);
 
+  const missingCaptainName =
+    sectorCaptains.find((c) => c.id === missingCaptainId)?.displayName ??
+    'Captain';
+
+  const hostPauseSector = useCallback(
+    async (reason?: string) => {
+      if (!code || !uid) {
+        return;
+      }
+      setError(null);
+      try {
+        await pauseSector(code, uid, reason);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Could not pause sector');
+      }
+    },
+    [code, uid]
+  );
+
+  const hostResumeSector = useCallback(async () => {
+    if (!code) {
+      return;
+    }
+    setError(null);
+    try {
+      await resumeSector(code);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not resume sector');
+    }
+  }, [code]);
+
+  const handleMissingPause = useCallback(async () => {
+    if (!missingCaptainId) {
+      return;
+    }
+    setMissingBusy(true);
+    try {
+      await hostPauseSector(`Waiting for ${missingCaptainName}`);
+      setMissingCaptainId(null);
+    } finally {
+      setMissingBusy(false);
+    }
+  }, [hostPauseSector, missingCaptainId, missingCaptainName]);
+
+  const handleMissingDrop = useCallback(async () => {
+    if (!code || !missingCaptainId) {
+      return;
+    }
+    setMissingBusy(true);
+    setError(null);
+    try {
+      await hostDropCaptain(
+        code,
+        missingCaptainId,
+        `Offline: ${missingCaptainName}`
+      );
+      dismissedMissingRef.current.add(missingCaptainId);
+      setMissingCaptainId(null);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Could not drop captain seat'
+      );
+    } finally {
+      setMissingBusy(false);
+    }
+  }, [code, missingCaptainId, missingCaptainName]);
+
+  const handleMissingAbort = useCallback(async () => {
+    setMissingBusy(true);
+    try {
+      await hostAbandonSector();
+    } finally {
+      setMissingBusy(false);
+    }
+  }, [hostAbandonSector]);
+
+  const handleMissingDismiss = useCallback(() => {
+    if (missingCaptainId) {
+      dismissedMissingRef.current.add(missingCaptainId);
+    }
+    setMissingCaptainId(null);
+  }, [missingCaptainId]);
+
+  const hostClearSpectators = useCallback(async () => {
+    if (!code || !uid) {
+      return;
+    }
+    setHostModBusy(true);
+    setError(null);
+    try {
+      await clearSpectatorGallery(code, uid);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Could not clear spectator gallery'
+      );
+    } finally {
+      setHostModBusy(false);
+    }
+  }, [code, uid]);
+
+  const hostSetAllowSpectate = useCallback(
+    async (allow: boolean) => {
+      if (!code || !uid) {
+        return;
+      }
+      setHostModBusy(true);
+      setError(null);
+      try {
+        await updateLobbySettings(code, uid, { allowSpectate: allow });
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Could not update spectator access'
+        );
+      } finally {
+        setHostModBusy(false);
+      }
+    },
+    [code, uid]
+  );
+
+  const hostReportCaptain = useCallback(
+    async (input: {
+      targetUid: string;
+      category: PlayerReportCategory;
+      reason: string;
+    }) => {
+      if (!code) {
+        throw new Error('Sector code unavailable');
+      }
+      return reportSectorCaptain({
+        gameId: code,
+        ...input,
+      });
+    },
+    [code]
+  );
+
+  const hostDropSelectedCaptain = useCallback(
+    async (targetUid: string) => {
+      if (!code) {
+        return;
+      }
+      const name =
+        sectorCaptains.find((captain) => captain.id === targetUid)
+          ?.displayName ?? 'Captain';
+      setHostModBusy(true);
+      setError(null);
+      try {
+        await hostDropCaptain(code, targetUid, `Host drop: ${name}`);
+        setHostModOpen(false);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : 'Could not drop captain seat'
+        );
+      } finally {
+        setHostModBusy(false);
+      }
+    },
+    [code, sectorCaptains]
+  );
+
+  const hostReplaceSelectedWithAi = useCallback(
+    async (targetUid: string, skill: WarpSkillLevel) => {
+      if (!code) {
+        return;
+      }
+      setHostModBusy(true);
+      setError(null);
+      try {
+        await hostReplaceCaptainWithAi(code, targetUid, skill);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Could not replace seat with AI'
+        );
+      } finally {
+        setHostModBusy(false);
+      }
+    },
+    [code]
+  );
+
+  const hostMuteSelected = useCallback(
+    async (targetUid: string, reason: string) => {
+      if (!code) {
+        return;
+      }
+      setHostModBusy(true);
+      setError(null);
+      try {
+        await hostMuteInSector(code, targetUid, reason);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : 'Could not mute captain'
+        );
+      } finally {
+        setHostModBusy(false);
+      }
+    },
+    [code]
+  );
+
+  const hostTransferSelected = useCallback(
+    async (newHostId: string) => {
+      if (!code) {
+        return;
+      }
+      setHostModBusy(true);
+      setError(null);
+      try {
+        await hostTransferHost(code, newHostId);
+        setHostModOpen(false);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : 'Could not transfer host'
+        );
+      } finally {
+        setHostModBusy(false);
+      }
+    },
+    [code]
+  );
+
+  const hostLeaveContinue = useCallback(
+    async (input: { newHostId: string; skill: WarpSkillLevel }) => {
+      if (!code) {
+        return;
+      }
+      setHostModBusy(true);
+      setError(null);
+      try {
+        abandoningRef.current = true;
+        await hostLeaveWithAi(code, input);
+        setHeaderStatus(null);
+        navigate('/', {
+          replace: true,
+          state: {
+            callSignNotice:
+              'You left the sector — an AI took your seat and host transferred.',
+          },
+        });
+      } catch (err) {
+        abandoningRef.current = false;
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Could not leave with AI replacement'
+        );
+      } finally {
+        setHostModBusy(false);
+      }
+    },
+    [code, navigate, setHeaderStatus]
+  );
+
+  const hostDissolveFromMod = useCallback(async () => {
+    setHostModBusy(true);
+    try {
+      await hostAbandonSector();
+    } finally {
+      setHostModBusy(false);
+    }
+  }, [hostAbandonSector]);
+
   const exportDebug = async () => {
     if (!code || !uid || !serverGame) {
       return;
@@ -459,6 +816,54 @@ export function OnlineGamePage() {
           {error}
         </p>
       )}
+      <HostMissingCaptainDialog
+        open={Boolean(missingCaptainId) && isHost && !sectorPaused}
+        captainName={missingCaptainName}
+        onClose={handleMissingDismiss}
+        onPause={() => void handleMissingPause()}
+        onDropSeat={() => void handleMissingDrop()}
+        onAbortSector={() => void handleMissingAbort()}
+        busy={missingBusy}
+      />
+      <HostModDialog
+        open={hostModOpen && isHost}
+        onClose={() => setHostModOpen(false)}
+        sectorCode={code}
+        sectorPaused={sectorPaused}
+        allowSpectate={allowSpectate}
+        spectatorCount={spectatorCount}
+        captains={sectorCaptains}
+        hostId={hostId}
+        busy={hostModBusy}
+        onPause={async () => {
+          setHostModBusy(true);
+          try {
+            await hostPauseSector();
+          } finally {
+            setHostModBusy(false);
+          }
+        }}
+        onResume={async () => {
+          setHostModBusy(true);
+          try {
+            await hostResumeSector();
+          } finally {
+            setHostModBusy(false);
+          }
+        }}
+        onDissolve={() => void hostDissolveFromMod()}
+        onClearSpectators={() => void hostClearSpectators()}
+        onSetAllowSpectate={(allow) => void hostSetAllowSpectate(allow)}
+        onReportCaptain={hostReportCaptain}
+        onDropCaptain={(targetUid) => void hostDropSelectedCaptain(targetUid)}
+        onReplaceWithAi={(targetUid, skill) =>
+          void hostReplaceSelectedWithAi(targetUid, skill)
+        }
+        onMuteCaptain={(targetUid, reason) =>
+          void hostMuteSelected(targetUid, reason)
+        }
+        onTransferHost={(newHostId) => void hostTransferSelected(newHostId)}
+      />
       <BridgeTable
         mode="online"
         game={game}
@@ -467,6 +872,8 @@ export function OnlineGamePage() {
         onlineAiCaptainIds={onlineAiCaptainIds}
         onlineCaptains={sectorCaptains}
         sectorRated={sectorRated}
+        sectorPaused={sectorPaused}
+        pauseReason={pauseReason}
         onlineMoveLog={moveLog}
         allowSpectate={allowSpectate}
         onAction={dispatch}
@@ -474,6 +881,11 @@ export function OnlineGamePage() {
         isOnlineHost={isHost}
         onHostAbandonSector={isHost ? hostAbandonSector : undefined}
         onHostResetSector={isHost ? hostResetSector : undefined}
+        onHostLeaveWithAi={isHost ? hostLeaveContinue : undefined}
+        hostLeaveBusy={hostModBusy}
+        hostModControl={
+          isHost ? { onOpen: () => setHostModOpen(true) } : undefined
+        }
         onExportDebug={isHost ? exportDebug : undefined}
         debugExportBusy={exportBusy}
         sectorCode={code}

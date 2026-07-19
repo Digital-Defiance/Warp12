@@ -378,12 +378,8 @@ export function getSpoolOptions(
     return [];
   }
 
-  // Spool draws from Uncharted (+ Sensor Grid when Gamma is on). Nothing to
-  // engage when that pool is empty.
-  const spoolDrawPoolSize =
-    round.unchartedSectors.length +
-    (state.modules.sensorGrid?.enabled ? round.sensorGrid.length : 0);
-  if (spoolDrawPoolSize === 0) {
+  // Spool draws from Uncharted Sectors only (never the Sensor Grid).
+  if (round.unchartedSectors.length === 0) {
     return [];
   }
 

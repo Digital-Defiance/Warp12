@@ -1,0 +1,32 @@
+.splashScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding:
+    max(1.5rem, env(safe-area-inset-top, 0px))
+    max(1.5rem, env(safe-area-inset-right, 0px))
+    max(1.5rem, env(safe-area-inset-bottom, 0px))
+    max(1.5rem, env(safe-area-inset-left, 0px));
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(56, 189, 248, 0.12), transparent 55%),
+    var(--warp-void, #050816);
+  color: var(--warp-text, #e2e8f0);
+}
+
+.logoContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(72vw, 28rem);
+  max-width: 100%;
+}
+
+.logo {
+  display: block;
+  width: 100%;
+  height: auto;
+}

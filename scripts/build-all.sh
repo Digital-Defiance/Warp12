@@ -16,8 +16,11 @@
 
 set -e
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT"
+# shellcheck source=scripts/lib/warp-env.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/warp-env.sh"
+warp_env_load macos
+warp_env_cd_root
+ROOT="$WARP12_ROOT"
 
 NEXT_BUILD=0
 NEXT_MINOR=0

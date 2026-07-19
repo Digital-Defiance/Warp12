@@ -88,6 +88,30 @@
     "serviceId": "getopsratedmatch"
   },
   {
+    "name": "hostDropCaptain",
+    "serviceId": "hostdropcaptain"
+  },
+  {
+    "name": "hostLeaveWithAi",
+    "serviceId": "hostleavewithai"
+  },
+  {
+    "name": "hostMuteInSector",
+    "serviceId": "hostmuteinsector"
+  },
+  {
+    "name": "hostReplaceCaptainWithAi",
+    "serviceId": "hostreplacecaptainwithai"
+  },
+  {
+    "name": "hostTransferHost",
+    "serviceId": "hosttransferhost"
+  },
+  {
+    "name": "hostUnmuteInSector",
+    "serviceId": "hostunmuteinsector"
+  },
+  {
     "name": "joinCharter",
     "serviceId": "joincharter"
   },

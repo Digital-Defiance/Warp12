@@ -4,7 +4,12 @@
 # - datastore.user: Admin SDK Firestore reads/writes (playerStats, ratedMatches, …)
 set -euo pipefail
 
-PROJECT="${FIREBASE_PROJECT:-warp-12}"
+# shellcheck source=scripts/lib/warp-env.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/warp-env.sh"
+warp_env_load deploy
+warp_env_validate deploy
+
+PROJECT="${FIREBASE_PROJECT}"
 ROLES=(
   "roles/firebaseauth.admin"
   "roles/datastore.user"

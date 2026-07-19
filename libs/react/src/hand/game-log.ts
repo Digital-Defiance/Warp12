@@ -30,7 +30,9 @@ export type GameLogKind =
   | 'ROUND_STARTED'
   | 'ROUND_RATINGS'
   | 'MODULE_LOADOUT'
-  | 'DEV_CONSOLE';
+  | 'DEV_CONSOLE'
+  | 'SECTOR_PAUSED'
+  | 'SECTOR_RESUMED';
 
 
 export type GameLogEffect =
@@ -102,6 +104,8 @@ export interface GameLogEntry {
   readonly debtTokens?: number;
   /** MODULE_LOADOUT: enabled module labels for this round (parity-aware). */
   readonly moduleLabels?: readonly string[];
+  /** SECTOR_PAUSED: optional host note (e.g. missing captain). */
+  readonly pauseReason?: string;
 }
 
 export interface GameLog {
@@ -129,6 +133,11 @@ export interface GameLogFormatOptions {
     entryAtIso: string,
     roundStartedAtMs: number
   ) => string;
+  /**
+   * Absolute wall / BrightDate stamp for round-begin lines (instead of 00:00 /
+   * 0.000nd elapsed).
+   */
+  readonly formatAbsolute?: (entryAtIso: string) => string;
 }
 
 /** Elapsed time since round start, shown as MM:SS (e.g. 05:12). */
@@ -307,9 +316,13 @@ function rosterPhrase(
       }
       
       // Format TEI grade
-      const teiPart = tei == null 
-        ? 'TEI unrated' 
-        : reference ? `~${tei}` : tei;
+      // `ref` marks fixed AI OpenSkill anchors (not a provisional/estimate tilde).
+      const teiPart =
+        tei == null
+          ? 'TEI unrated'
+          : reference
+            ? `ref ${tei}`
+            : tei;
       
       return `${name} ${teiPart}${classPart}`;
     })
@@ -323,7 +336,10 @@ export function formatGameLogLine(
   viewerId?: string,
   ownHandSizeAfter?: number
 ): string {
-  const time = formatLogTime(entry.at, options);
+  const time =
+    entry.kind === 'ROUND_STARTED' && options.formatAbsolute
+      ? options.formatAbsolute(entry.at)
+      : formatLogTime(entry.at, options);
   const name = captainLabel(entry.captainId, names);
   const prefix = `${time} - ${name}`;
   const isOwnAction = viewerId && entry.captainId === viewerId;
@@ -331,6 +347,10 @@ export function formatGameLogLine(
   switch (entry.kind) {
     case 'ROUND_STARTED':
       return `${time} - Round ${entry.roundNumber ?? '?'} begins · Spacedock ${entry.spacedockValue ?? '?'}`;
+    case 'SECTOR_PAUSED':
+      return `${time} - Sector paused${entry.pauseReason ? ` · ${entry.pauseReason}` : ''}`;
+    case 'SECTOR_RESUMED':
+      return `${time} - Sector resumed`;
     case 'DEV_CONSOLE':
       return `${time} - CHEATER — bridge console unlocked`;
     case 'ROUND_RATINGS': {
@@ -345,7 +365,7 @@ export function formatGameLogLine(
       return `${time} - Modules · ${labels.join(', ')}`;
     }
     case 'CHART_COORDINATE': {
-      const base = `${prefix} played ${tilePhrase(entry.coordinate)} on ${trailPhrase(entry.route, entry.captainId, names)}${effectsPhrase(entry.effects)}`;
+      const base = `${prefix} charted ${tilePhrase(entry.coordinate)} on ${trailPhrase(entry.route, entry.captainId, names)}${effectsPhrase(entry.effects)}`;
       if (!entry.doubleDown) {
         return base;
       }
@@ -1057,12 +1077,14 @@ export function buildRoundLogExport(
     roundStartedAtMs: number;
     viewerId?: string;
     formatElapsed?: GameLogFormatOptions['formatElapsed'];
+    formatAbsolute?: GameLogFormatOptions['formatAbsolute'];
   }
 ): RoundLogExport {
   const exportedAt = options?.exportedAt ?? new Date().toISOString();
   const formatOptions: GameLogFormatOptions = {
     roundStartedAtMs: options.roundStartedAtMs,
     formatElapsed: options.formatElapsed,
+    formatAbsolute: options.formatAbsolute,
   };
   return {
     exportedAt,

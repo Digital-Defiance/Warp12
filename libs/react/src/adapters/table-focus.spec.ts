@@ -111,4 +111,11 @@ describe('panToCenterContentPoint', () => {
       y: 200,
     });
   });
+
+  it('honors a custom focus point', () => {
+    expect(panToCenterContentPoint(800, 600, 1, 400, 300, 0.25, 0.75)).toEqual({
+      x: -200,
+      y: 150,
+    });
+  });
 });

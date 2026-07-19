@@ -943,13 +943,11 @@ function handleWarpDriveSpool(
     return fail('INVALID_ROUTE');
   }
 
-  // Execute the warp drive spool
-  // IMPORTANT: Combine uncharted sectors AND sensor grid for spool draw pool
-  // The sensor grid tiles should be available for spooling
-  const drawPool = [...round.unchartedSectors, ...round.sensorGrid];
+  // Execute the warp drive spool from Uncharted Sectors only.
+  // Sensor Grid (Module Gamma) is a separate take — not part of spool.
   const spoolResult = executeWarpDriveSpool(
     startEndpoint,
-    drawPool,
+    round.unchartedSectors,
     state.modules,
     route,
     playerId,
@@ -1040,22 +1038,12 @@ function handleWarpDriveSpool(
     ]);
   }
 
-  // Spool drew from uncharted + sensor grid as one pool; restore the market
-  // from whatever remains (RULES §VI Gamma — refreshing Sensor Grid).
-  {
-    const refilled = refillSensorGrid(
-      [],
-      spoolResult.unchartedRemaining,
-      state.modules.sensorGrid?.enabled
-        ? state.modules.sensorGrid.gridSize
-        : 0
-    );
-    nextRound = {
-      ...nextRound,
-      unchartedSectors: refilled.unchartedSectors,
-      sensorGrid: refilled.sensorGrid,
-    };
-  }
+  // Restore Uncharted from the spool remainder. Leave Sensor Grid untouched
+  // (Gamma market is not drained by Engage Warp Drive).
+  nextRound = {
+    ...nextRound,
+    unchartedSectors: spoolResult.unchartedRemaining,
+  };
 
   // Handle Red Alert state if spool ended with uncovered double
   if (spoolResult.redAlertActive && spoolResult.tilesPlayed.length > 0) {

@@ -78,6 +78,101 @@ describe('online AI move proxy', () => {
     expect(assertActorMaySubmit(doc, 'host-uid', action)).toBeNull();
   });
 
+  it('allows PICK_FROM_PACK during drafting for the current drafter', () => {
+    const doc = lobbyDoc({
+      round: {
+        ...lobbyDoc().round!,
+        phase: 'drafting',
+        activePlayerId: 'host-uid',
+        draftState: {
+          currentDrafter: 'host-uid',
+          draftOrder: ['host-uid', 'ai:lovell'],
+          pickNumber: 1,
+          currentPacks: {
+            'host-uid': [{ low: 0, high: 1 }],
+            'ai:lovell': [{ low: 2, high: 3 }],
+          },
+          pickedTiles: { 'host-uid': [], 'ai:lovell': [] },
+        },
+      },
+    });
+
+    expect(
+      assertActorMaySubmit(doc, 'host-uid', {
+        type: 'PICK_FROM_PACK',
+        playerId: 'host-uid',
+        coordinate: { low: 0, high: 1 },
+      })
+    ).toBeNull();
+  });
+
+  it('lets the host proxy AI draft picks', () => {
+    const doc = lobbyDoc({
+      round: {
+        ...lobbyDoc().round!,
+        phase: 'drafting',
+        activePlayerId: 'ai:lovell',
+        draftState: {
+          currentDrafter: 'ai:lovell',
+          draftOrder: ['host-uid', 'ai:lovell'],
+          pickNumber: 1,
+          currentPacks: {
+            'host-uid': [{ low: 0, high: 1 }],
+            'ai:lovell': [{ low: 2, high: 3 }],
+          },
+          pickedTiles: { 'host-uid': [], 'ai:lovell': [] },
+        },
+      },
+    });
+
+    expect(
+      assertActorMaySubmit(doc, 'host-uid', {
+        type: 'PICK_FROM_PACK',
+        playerId: 'ai:lovell',
+        coordinate: { low: 2, high: 3 },
+      })
+    ).toBeNull();
+  });
+
+  it('rejects PICK_FROM_PACK when the round is playing', () => {
+    const doc = lobbyDoc();
+
+    expect(
+      assertActorMaySubmit(doc, 'host-uid', {
+        type: 'PICK_FROM_PACK',
+        playerId: 'host-uid',
+        coordinate: { low: 0, high: 1 },
+      })
+    ).toBe('ROUND_NOT_DRAFTING');
+  });
+
+  it('rejects non-draft actions while drafting', () => {
+    const doc = lobbyDoc({
+      round: {
+        ...lobbyDoc().round!,
+        phase: 'drafting',
+        activePlayerId: 'host-uid',
+        draftState: {
+          currentDrafter: 'host-uid',
+          draftOrder: ['host-uid', 'ai:lovell'],
+          pickNumber: 1,
+          currentPacks: {
+            'host-uid': [{ low: 0, high: 1 }],
+            'ai:lovell': [{ low: 2, high: 3 }],
+          },
+          pickedTiles: { 'host-uid': [], 'ai:lovell': [] },
+        },
+      },
+    });
+
+    expect(
+      assertActorMaySubmit(doc, 'host-uid', {
+        type: 'PASS_TURN',
+        playerId: 'host-uid',
+      })
+    ).toBe('ROUND_NOT_PLAYING');
+  });
+
   it('rejects a guest submitting for an AI captain', () => {
     const base = lobbyDoc();
     const doc = lobbyDoc({

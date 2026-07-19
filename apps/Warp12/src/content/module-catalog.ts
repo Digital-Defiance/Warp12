@@ -212,7 +212,7 @@ export const MODULE_CATALOG: readonly ModuleStatRow[] = [
     gist: 'Hazard Marker on Neutral Zone contact (+5 per pass while holding) plus optional Engaging Warp Drive draws.',
     operate: [
       'Hot Potato: round starter holds the Hazard Marker; charting to Neutral Zone takes the marker; each pass while holding it adds +5 to your round score (stacks).',
-      'Warp Drive Spool: on your turn (not blocked by Red Alert / Fracture), engage to draw until a mismatch for a chosen route — matches chart, mismatch + leftovers to hand.',
+      'Warp Drive Spool: on your turn (not blocked by Red Alert / Fracture), engage to draw one-at-a-time until a mismatch (or Uncharted empties) — matches chart; the mismatch goes to hand and the spool stops (undrawn stay in Uncharted). If a matching double is drawn and the next tile cannot cover it (or Fracture cannot finish), retrieve the double to hand with the failed draw(s); no Red Alert / Fracture remains.',
       'Opposes Theta’s longest-trail race: NZ is convenient but radioactive; spooling stretches trails at hand-bloat risk.',
     ],
   },

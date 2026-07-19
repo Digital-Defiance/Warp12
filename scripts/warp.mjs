@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Warp ops CLI — quick Admin SDK commands against project warp-12.
+ * Warp ops CLI — Admin SDK commands against FIREBASE_PROJECT (from ENV / .env).
  *
  * Usage:
  *   yarn warp ban [<uid>] --reason "…" [--ipv4 A.B.C.D] [--ipv6 …] [--days N] [--notes "…"] [--keep-auth]
@@ -17,12 +17,50 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isIP } from 'node:net';
+import { existsSync, readFileSync } from 'node:fs';
+import process from 'node:process';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(join(root, 'functions/package.json'));
 const admin = require('firebase-admin');
 
-const PROJECT_ID = 'warp-12';
+function loadDotEnv(filePath) {
+  if (!existsSync(filePath)) return;
+  for (const raw of readFileSync(filePath, 'utf8').split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eq = line.indexOf('=');
+    if (eq < 0) continue;
+    const key = line.slice(0, eq).trim();
+    let value = line.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (!key || Object.prototype.hasOwnProperty.call(process.env, key)) continue;
+    process.env[key] = value;
+  }
+}
+
+loadDotEnv(join(root, '.env'));
+loadDotEnv(join(root, '.env.local'));
+
+const PROJECT_ID = process.env.FIREBASE_PROJECT;
+if (!PROJECT_ID) {
+  console.error(
+    'error: FIREBASE_PROJECT is required (set in process ENV or repo-root .env — see .env.example)',
+  );
+  process.exit(1);
+}
+if (PROJECT_ID.startsWith('demo-')) {
+  console.error(
+    `error: FIREBASE_PROJECT=${PROJECT_ID} looks like an emulator project; refusing`,
+  );
+  process.exit(1);
+}
+
 const BANS = 'bans';
 const OPS_AUDIT = 'opsAudit';
 const ACTOR = { uid: 'cli:warp', label: 'cli:warp' };

@@ -35,6 +35,7 @@ export {
 export {
   createLobby,
   addAiCaptain,
+  clearSpectatorGallery,
   dissolveLobby,
   generateGameCode,
   joinLobby,
@@ -55,6 +56,22 @@ export {
   type OnlineGameSnapshot,
   type UpdateAiCaptainPatch,
 } from './game-service.js';
+
+export { pauseSector, resumeSector } from './sector-pause.js';
+export {
+  SEAT_HEARTBEAT_MS,
+  SEAT_STALE_MS,
+  isSeatStale,
+  pingSeatPresence,
+} from './seat-presence.js';
+export { hostDropCaptain } from './host-drop-captain.js';
+export {
+  hostLeaveWithAi,
+  hostMuteInSector,
+  hostReplaceCaptainWithAi,
+  hostTransferHost,
+  hostUnmuteInSector,
+} from './host-continuity.js';
 
 export { subscribeAiHands, subscribeHostAiHands, fetchAiCaptainHand } from './ai-hands.js';
 export { canHostProxyAiMove, assertActorMaySubmit } from './ai-proxy.js';

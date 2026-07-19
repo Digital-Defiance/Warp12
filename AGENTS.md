@@ -47,14 +47,17 @@ Scripts call Vite/Vitest **directly** and avoid `nx run` orchestration (which ca
 
 **Test:**
 - `yarn test:engine | test:react | test:bridge`
-- `yarn test:e2e` (builds bridge, then Playwright)
-- `yarn test:all`
+- `yarn test:functions` — pure unit (no Firebase SDK side effects)
+- `yarn test:functions:emulator` — callable integration vs Auth+Firestore+Functions emulators
+- `yarn test:e2e` (builds bridge, then Playwright; Chromium only — set `PLAYWRIGHT_ALL_BROWSERS=1` for Firefox/WebKit)
+- `yarn test:e2e:firebase` — Playwright lobby/play smoke vs Auth+Firestore emulators
+- `yarn test:all` — libs + functions unit + **functions emulator callables** + UI e2e + leaderboard e2e + firebase Playwright
 
 **Serve / preview:** `yarn serve:bridge` (Vite dev :4200), `yarn preview:bridge` (:4300).
 
 **Tauri:** `tauri:dev`, `tauri:build`, `tauri:ios:dev/build`, `tauri:android:dev/build`; packaged `build:mac`, `build:android`.
 
-**Deploy** (Firebase project `warp-12`): `deploy:firestore | deploy:functions | deploy:hosting | deploy:firebase`.
+**Deploy** (requires `FIREBASE_PROJECT` in `.env` or ENV): `deploy:firestore | deploy:functions | deploy:hosting | deploy:firebase`.
 
 **AI training/calibration:** 
 - `calibrate:ai-tei` — AI tier calibration (points objective, 200 games)
@@ -92,22 +95,21 @@ MODULE_CALIBRATION_REPORT=1 yarn calibrate:modules
 yarn calibrate:modules:quick
 ```
 
-**Luck/skill analysis** uses explicit worker pools (15 default, configurable):
+**Luck/skill analysis** uses CPU-aware worker pools (default: cores − 2):
 ```bash
-# Full study (500 games × 38 configs = 19K games, ~40 min with 15 workers)
-COMPREHENSIVE_GAMES=500 COMPREHENSIVE_WORKERS=15 \
-  bash tools/nn/run-comprehensive-parallel-fine.sh
+# Full study (500 games × 38 configs). Workers auto-detect unless overridden.
+COMPREHENSIVE_GAMES=500 bash tools/nn/run-comprehensive-parallel-fine.sh
 
 # Adjust worker count for your hardware
 COMPREHENSIVE_WORKERS=8 bash tools/nn/run-comprehensive-parallel-fine.sh  # conservative
-COMPREHENSIVE_WORKERS=32 bash tools/nn/run-comprehensive-parallel-fine.sh  # high-end
+COMPREHENSIVE_WORKERS=32 bash tools/nn/run-comprehensive-parallel-fine.sh # high-end
 ```
 
 **Thread pool configuration:**
 - Module tests: Edit `libs/engine/vite.config.mts` → `test.minThreads` and `test.maxThreads` (Vitest 4 top-level API)
-- Luck/skill: Use `COMPREHENSIVE_WORKERS` environment variable
+- Luck/skill: Use `COMPREHENSIVE_WORKERS` / `MODULE_WORKERS` (or leave unset for cores − 2)
 - Rule of thumb: Use (CPU cores - 2) for worker count to avoid thrashing
-- M4 Max: 12-16 cores → use 14 maxThreads for calibration
+- Org/signing/deploy settings live in repo-root `.env` (see `.env.example`); never commit secrets
 
 ---
 

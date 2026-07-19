@@ -106,6 +106,16 @@ import {
 import { downloadDebugExport } from '../game/debug-export.js';
 import { deliverBlob } from '../game/deliver-file.js';
 import {
+  appendMatchDebugAction,
+  appendMatchDebugRoundSnapshot,
+  createEmptyMatchDebugRecording,
+  disableMatchDebugRecording,
+  enableMatchDebugRecording,
+  matchDebugExportPayload,
+  shouldResetMatchDebugOnRound,
+  type MatchDebugRecording,
+} from '../game/match-debug-recording.js';
+import {
   buildRoundLogFilename,
   downloadRoundLog,
   downloadRoundLogJson,
@@ -222,14 +232,10 @@ import spokeStyles from './trail-spoke-indicators.module.scss';
 import { TableViewport, type LogVisibilityMode } from './table-viewport';
 import { TableOptionsDialog } from './table-options-dialog';
 import { SectorSettingsDialog } from './sector-settings-dialog';
-import {
-  readTableOptions,
-  resolveSectorStatusHud,
-  writeTableOptions,
-} from './table-view-prefs';
 import { sanitizeAutoFollowReturnDelayMs } from './follow-snap-back.js';
 import { ConfirmDialog } from './confirm-dialog';
 import { HostLeaveSectorDialog } from './host-leave-sector-dialog';
+import { useCampaignCompleteSplashEgg } from './use-campaign-complete-splash-egg';
 import { RoundImageActions } from './round-image-actions';
 import { SectorStatusHud } from './sector-status-hud';
 import { SectorStatusHolo } from './sector-status-holo';
@@ -238,7 +244,17 @@ import { GameLogTicker } from './game-log-ticker';
 import { GameLogDialog } from './game-log-dialog';
 import { AdvisorReportDialog } from './advisor-report-dialog.js';
 import { buildCaptainNameColors } from './game-log-display';
-import { formatElapsedLogTime } from './display-time.js';
+import { formatDisplayTime, formatElapsedLogTime } from './display-time.js';
+import {
+  useBridgeHeaderStatusRegistration,
+  type BridgeRatingState,
+} from './bridge-header-status-context';
+import {
+  readTableOptions,
+  resolveSectorStatusHud,
+  sanitizeFollowFocusNorm,
+  writeTableOptions,
+} from './table-view-prefs';
 
 const HAND_TILE_WIDTH = 36;
 const HAND_TILE_HEIGHT = 72;
@@ -664,15 +680,26 @@ export interface BridgeTableProps {
   onlineCaptains?: readonly FirestoreCaptain[];
   /** Online: host intent to play for TEI (default true). */
   sectorRated?: boolean;
+  /** Online: host pause — everyone spectator-like until resume. */
+  sectorPaused?: boolean;
+  pauseReason?: string;
   /** Online: shared per-round applied-action history (full log + advisor). */
   onlineMoveLog?: readonly FirestoreRoundMove[];
   /** Online: host allowSpectate (default true). */
   allowSpectate?: boolean;
+  /** Online host: opens the host-controls dialog (headset icon on the table toolbar). */
+  hostModControl?: { onOpen: () => void };
   onAction?: (action: GameAction) => Promise<ActionResult>;
   onLeave?: () => void;
   isOnlineHost?: boolean;
   onHostAbandonSector?: () => void | Promise<void>;
   onHostResetSector?: () => void;
+  /** Mid-mission: replace host seat with AI and transfer command. */
+  onHostLeaveWithAi?: (input: {
+    newHostId: string;
+    skill: import('warp12-engine').WarpSkillLevel;
+  }) => void | Promise<void>;
+  hostLeaveBusy?: boolean;
   onExportDebug?: () => void | Promise<void>;
   debugExportBusy?: boolean;
   sectorCode?: string;
@@ -703,13 +730,18 @@ export function BridgeTable({
   onlineAiCaptainIds,
   onlineCaptains,
   sectorRated = true,
+  sectorPaused = false,
+  pauseReason,
   onlineMoveLog,
   allowSpectate = true,
+  hostModControl,
   onAction,
   onLeave,
   isOnlineHost = false,
   onHostAbandonSector,
   onHostResetSector,
+  onHostLeaveWithAi,
+  hostLeaveBusy = false,
   onExportDebug,
   debugExportBusy = false,
   sectorCode,
@@ -1010,6 +1042,16 @@ export function BridgeTable({
         // Allow a retry only when auth/config actually changes (deps), not on
         // every render — resetting here previously caused a re-report storm.
         reportedLocalMatchRef.current = null;
+        // Casual / unrated sectors still call the practice reporter for localAi
+        // counters; a replay miss must not look like a TEI failure.
+        if (localConfig && !isRatedLocalGame(localConfig)) {
+          setMatchReportNotice(
+            advisorUsed || devToolsUsed
+              ? 'Unrated match complete — Advisor or bridge console was enabled, so TEI was not tracked.'
+              : 'Casual match complete — TEI was not updated (sector was unrated).'
+          );
+          return;
+        }
         const code = (error as { code?: string })?.code;
         const message =
           error instanceof Error
@@ -1114,6 +1156,8 @@ export function BridgeTable({
     autoFollowAction,
     autoFollowReturn,
     autoFollowReturnDelayMs,
+    followFocusNormX,
+    followFocusNormY,
     sectorStatusHud,
     captainTailsHud,
     captainTailsDisplay,
@@ -1122,7 +1166,17 @@ export function BridgeTable({
     turnBeepsEnabled,
     bridgeSoundsEnabled,
     advisorIncludeAllCaptains,
+    recordMatchDebug: recordMatchDebugPref,
   } = tablePrefs;
+
+  const [setFocusMode, setSetFocusMode] = useState(false);
+  const onCampaignCompleteEgg = useCampaignCompleteSplashEgg();
+
+  useEffect(() => {
+    if (!autoFollowAction && setFocusMode) {
+      setSetFocusMode(false);
+    }
+  }, [autoFollowAction, setFocusMode]);
 
   const showSectorStatusHud = resolveSectorStatusHud(
     tablePrefs,
@@ -1159,6 +1213,13 @@ export function BridgeTable({
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [gameLogDialogOpen, setGameLogDialogOpen] = useState(false);
+  const [matchDebugRecording, setMatchDebugRecording] =
+    useState<MatchDebugRecording>(() =>
+      createEmptyMatchDebugRecording(recordMatchDebugPref)
+    );
+  const matchDebugRecordingRef = useRef(matchDebugRecording);
+  matchDebugRecordingRef.current = matchDebugRecording;
+  const matchDebugPrevRoundRef = useRef<number | null>(null);
   const [pendingRoundImageShare, setPendingRoundImageShare] =
     useState<PendingRoundImageShare | null>(null);
   const [logMode, setLogMode] = useState<LogVisibilityMode>(() =>
@@ -1198,6 +1259,13 @@ export function BridgeTable({
     game.phase === 'active' &&
     round?.phase === 'ended' &&
     Boolean(round.roundWinnerId || round.roundBlocked);
+  /** Last round stays on the table after the sector completes — still reviewable. */
+  const canReviewFinalRound =
+    game.phase === 'complete' &&
+    round?.phase === 'ended' &&
+    Boolean(round.roundWinnerId || round.roundBlocked);
+  const canShowRoundEndSummary =
+    (roundAwaitingScore || canReviewFinalRound) && Boolean(round);
   const activePlayerIsAi =
     isVsAi ||
     Boolean(
@@ -1245,6 +1313,7 @@ export function BridgeTable({
             {
               roundStartedAtMs: roundStartedAtRef.current,
               formatElapsed: formatElapsedLogTime,
+              formatAbsolute: formatDisplayTime,
             },
             humanCaptainId,
             ownHandSizeAfter
@@ -1305,6 +1374,26 @@ export function BridgeTable({
       roundStartStateRef.current = structuredClone(gameRef.current);
       actionLogRoundStartIndexRef.current =
         actionLogRef.current.snapshot().length;
+
+      const prevRound = matchDebugPrevRoundRef.current;
+      matchDebugPrevRoundRef.current = round.roundNumber;
+      if (matchDebugRecordingRef.current.enabled) {
+        const snapshot = {
+          roundNumber: round.roundNumber,
+          at: startedAt,
+          kind: 'round-start' as const,
+          gameState: structuredClone(gameRef.current),
+        };
+        setMatchDebugRecording((current) => {
+          const base =
+            shouldResetMatchDebugOnRound(prevRound, round.roundNumber) &&
+            current.enabled
+              ? enableMatchDebugRecording(current)
+              : current;
+          return appendMatchDebugRoundSnapshot(base, snapshot);
+        });
+      }
+
       gameLogRef.current.append(buildRoundStartedEntry(round, startedAt));
       gameLogRef.current.append(
         buildModuleLoadoutEntry(
@@ -1453,13 +1542,15 @@ export function BridgeTable({
     : isOnline
       ? (viewerId ?? '')
       : activePlayerId;
-  const isMyTurn = isVsAi
-    ? activePlayerId === humanId
-    : isOnline
-      ? viewerId === activePlayerId
-      : isLocalPassAndPlay
-        ? activeIsHumanSeat && !handoffPending
-        : true;
+  const isMyTurn =
+    !sectorPaused &&
+    (isVsAi
+      ? activePlayerId === humanId
+      : isOnline
+        ? viewerId === activePlayerId
+        : isLocalPassAndPlay
+          ? activeIsHumanSeat && !handoffPending
+          : true);
 
   // Online: toast/banner when Double Down or spool entries sync from move log.
   useEffect(() => {
@@ -1697,6 +1788,52 @@ export function BridgeTable({
     return !!localConfig && isRatedLocalGame(localConfig);
   }, [isOnline, sectorRated, game.maxPip, localConfig]);
 
+  const headerRating = useMemo((): {
+    ratingLabel: string;
+    ratingState: BridgeRatingState;
+  } => {
+    const maxPip = game.maxPip ?? localConfig?.maxPip ?? 12;
+    if (maxPip !== 12) {
+      return { ratingLabel: 'Exhibition', ratingState: 'exhibition' };
+    }
+    if (isOnline) {
+      return sectorRated
+        ? { ratingLabel: 'Rated', ratingState: 'rated' }
+        : { ratingLabel: 'Unrated', ratingState: 'unrated' };
+    }
+    if (localConfig && isRatedLocalGame(localConfig)) {
+      return { ratingLabel: 'Rated', ratingState: 'rated' };
+    }
+    return { ratingLabel: 'Unrated', ratingState: 'unrated' };
+  }, [game.maxPip, isOnline, localConfig, sectorRated]);
+
+  const { setHeaderStatus } = useBridgeHeaderStatusRegistration();
+  useEffect(() => {
+    setHeaderStatus(headerRating);
+  }, [headerRating, setHeaderStatus]);
+  useEffect(() => {
+    return () => setHeaderStatus(null);
+  }, [setHeaderStatus]);
+
+  const prevSectorPausedRef = useRef(sectorPaused);
+  useEffect(() => {
+    if (!isOnline) {
+      prevSectorPausedRef.current = sectorPaused;
+      return;
+    }
+    if (prevSectorPausedRef.current === sectorPaused) {
+      return;
+    }
+    prevSectorPausedRef.current = sectorPaused;
+    gameLogRef.current.append({
+      kind: sectorPaused ? 'SECTOR_PAUSED' : 'SECTOR_RESUMED',
+      captainId: viewerId ?? 'host',
+      effects: [],
+      ...(sectorPaused && pauseReason ? { pauseReason } : {}),
+    });
+    setGameLogVersion((version) => version + 1);
+  }, [isOnline, pauseReason, sectorPaused, viewerId]);
+
   const showAdvisorControls = coachAvailable && !advisorSuppressedForRated;
 
   useEffect(() => {
@@ -1873,6 +2010,8 @@ export function BridgeTable({
       'LONGEST_TRAIL_BONUS',
       'TEMPORAL_DEBT_PENALTY',
       'DEV_CONSOLE',
+      'SECTOR_PAUSED',
+      'SECTOR_RESUMED',
     ]);
     return gameLogEntries
       .filter(
@@ -1894,6 +2033,7 @@ export function BridgeTable({
           {
             roundStartedAtMs: roundStartedAtRef.current,
             formatElapsed: formatElapsedLogTime,
+            formatAbsolute: formatDisplayTime,
           },
           humanCaptainId,
           ownHandSizeAfter
@@ -2100,12 +2240,19 @@ export function BridgeTable({
           // captains' moves. Do NOT record locally here or the local player's
           // own actions would be double-logged.
           void before;
-          actionLogRef.current.append({
+          const logEntry = {
             playerId: playerIdForAction(action),
             action,
-            ok: true,
+            ok: true as const,
             source,
-          });
+          };
+          actionLogRef.current.append(logEntry);
+          setMatchDebugRecording((current) =>
+            appendMatchDebugAction(current, {
+              ...logEntry,
+              at: new Date().toISOString(),
+            })
+          );
         }
         return;
       }
@@ -2115,16 +2262,43 @@ export function BridgeTable({
       // the seeded stream (reproducible by the verification replay); all other
       // actions behave exactly like applyAction.
       const result = applyMatchAction(before, action, ensureRoundReshuffle());
-      actionLogRef.current.append({
+      const localLogEntry = {
         playerId: playerIdForAction(action),
         action,
         ok: result.ok,
         violation: result.ok ? undefined : result.violation,
         source,
-      });
+      };
+      actionLogRef.current.append(localLogEntry);
+      setMatchDebugRecording((current) =>
+        appendMatchDebugAction(current, {
+          ...localLogEntry,
+          at: new Date().toISOString(),
+        })
+      );
       if (!result.ok) {
         setLastMessage(formatViolation(result.violation));
         return;
+      }
+      // Round-end must clone `before`: applyMatchAction/scoreRound already
+      // redeals the next hand into `result.state`, which made prior exports look
+      // like post-shuffle "end" snapshots (full hands, cleared winner).
+      if (
+        action.type === 'END_ROUND' &&
+        matchDebugRecordingRef.current.enabled
+      ) {
+        const endedRound = before.round?.roundNumber;
+        if (typeof endedRound === 'number') {
+          const endedAt = new Date().toISOString();
+          setMatchDebugRecording((current) =>
+            appendMatchDebugRoundSnapshot(current, {
+              roundNumber: endedRound,
+              at: endedAt,
+              kind: 'round-end',
+              gameState: structuredClone(before),
+            })
+          );
+        }
       }
       setLastMessage(null);
       setSelectedTile(null);
@@ -2472,18 +2646,36 @@ export function BridgeTable({
   const exportLocalDebug = async () => {
     setLocalExportBusy(true);
     try {
-      const result = await downloadDebugExport({
-        exportedAt: new Date().toISOString(),
-        mode: 'local',
-        sectorCode: 'local',
-        viewerId: humanId,
-        client: {
-          gameState: game,
-          localConfig,
-          actionLog: actionLogRef.current.snapshot(),
-        },
-        notes: ['Local simulation — full hands included in gameState.'],
-      });
+      const recording = matchDebugRecordingRef.current;
+      const clientSnapshot = {
+        gameState: game,
+        localConfig,
+        actionLog: actionLogRef.current.snapshot(),
+      };
+      const basePayload = recording.enabled
+        ? {
+            ...matchDebugExportPayload(recording, {
+              exportedAt: new Date().toISOString(),
+              mode: 'local',
+              sectorCode: 'local',
+              viewerId: humanId,
+            }),
+            client: clientSnapshot,
+            notes: [
+              'Match debug recording — full-match actionLog + round snapshots.',
+              `Actions: ${recording.actionLog.length}; round snapshots: ${recording.rounds.length}.`,
+            ],
+          }
+        : {
+            exportedAt: new Date().toISOString(),
+            mode: 'local' as const,
+            sectorCode: 'local',
+            viewerId: humanId,
+            client: clientSnapshot,
+            notes: ['Local simulation — full hands included in gameState.'],
+          };
+
+      const result = await downloadDebugExport(basePayload);
       if (result === 'copied') {
         setLastMessage('Debug log copied to clipboard');
       } else if (result === 'shared') {
@@ -2549,6 +2741,16 @@ export function BridgeTable({
     setLeaveConfirmOpen(false);
     void onHostAbandonSector?.();
   }, [onHostAbandonSector]);
+
+  const confirmLeaveWithAi = useCallback(
+    (input: {
+      newHostId: string;
+      skill: import('warp12-engine').WarpSkillLevel;
+    }) => {
+      void onHostLeaveWithAi?.(input);
+    },
+    [onHostLeaveWithAi]
+  );
 
   useEffect(() => {
     const actions: {
@@ -2759,7 +2961,7 @@ export function BridgeTable({
     setGameLogVersion((version) => version + 1);
   }, [game, round, roundAwaitingScore]);
 
-  const canShareRound = Boolean(round && roundAwaitingScore);
+  const canShareRound = Boolean(round && canShowRoundEndSummary);
 
   const captainOrder = useMemo(
     () => round?.turnOrder ?? game.captains.map((captain) => captain.id),
@@ -2768,10 +2970,6 @@ export function BridgeTable({
   const gameLogNameColors = useMemo(
     () => buildCaptainNameColors(names, captainOrder),
     [captainOrder, names]
-  );
-  const gameLogReviewable = Boolean(
-    gameLogLines.length > 0 &&
-      ((roundAwaitingScore && round) || game.phase === 'complete')
   );
   const roundLogFilename = useMemo(() => {
     if (!round) {
@@ -2812,6 +3010,7 @@ export function BridgeTable({
         sectorCode: sectorCode ?? (isOnline ? undefined : 'local'),
         roundStartedAtMs: roundStartedAtRef.current,
         formatElapsed: formatElapsedLogTime,
+        formatAbsolute: formatDisplayTime,
       }
     );
   }, [isOnline, names, round, sectorCode]);
@@ -2877,14 +3076,14 @@ export function BridgeTable({
   }, [game.captains, humanId, isOnline, isVsAi, viewerId]);
 
   const canOpenAdvisorReport = useMemo(() => {
-    if (!roundAwaitingScore || !roundStartStateRef.current) {
+    if (!canShowRoundEndSummary || !roundStartStateRef.current) {
       return false;
     }
     return (
       actionLogRef.current.snapshot().length >
       actionLogRoundStartIndexRef.current
     );
-  }, [gameLogVersion, roundAwaitingScore]);
+  }, [gameLogVersion, canShowRoundEndSummary]);
 
   const advisorOpponentLabel = useMemo(
     () => tableOpponentLabelForAdvisor(localConfig),
@@ -3135,14 +3334,14 @@ export function BridgeTable({
   ]);
 
   const roundOutcome = useMemo(() => {
-    if (!round || !roundAwaitingScore) {
+    if (!round || !canShowRoundEndSummary) {
       return null;
     }
     return summarizeRoundOutcome(game, round);
-  }, [game, round, roundAwaitingScore]);
+  }, [game, round, canShowRoundEndSummary]);
 
   const roundPenaltySummary = useMemo(() => {
-    if (!round || !roundAwaitingScore || game.objective !== 'points') {
+    if (!round || !canShowRoundEndSummary || game.objective !== 'points') {
       return [];
     }
     const rows = buildRoundEndScoreRows(game, round, {
@@ -3160,7 +3359,7 @@ export function BridgeTable({
   }, [
     game,
     round,
-    roundAwaitingScore,
+    canShowRoundEndSummary,
     roundOutcome,
     isOnline,
     handCounts,
@@ -3168,7 +3367,7 @@ export function BridgeTable({
 
   // Itemized "why did I score that?" receipt for each captain, keyed by id.
   const roundPointBreakdowns = useMemo(() => {
-    if (!round || !roundAwaitingScore || game.objective !== 'points') {
+    if (!round || !canShowRoundEndSummary || game.objective !== 'points') {
       return new Map<string, RoundPointBreakdown>();
     }
     return new Map(
@@ -3176,7 +3375,7 @@ export function BridgeTable({
         (breakdown) => [breakdown.playerId, breakdown] as const
       )
     );
-  }, [game, round, roundAwaitingScore]);
+  }, [game, round, canShowRoundEndSummary]);
 
   const [expandedBreakdownId, setExpandedBreakdownId] = useState<string | null>(
     null
@@ -3191,30 +3390,30 @@ export function BridgeTable({
     }
     lastScoredRoundRef.current = round.roundNumber;
     appendRoundAdvisorReviews();
+    const appendAutoAction = (action: GameAction) => {
+      const entry = {
+        playerId: playerIdForAction(action),
+        action,
+        ok: true as const,
+        source: 'auto' as const,
+      };
+      actionLogRef.current.append(entry);
+      setMatchDebugRecording((current) =>
+        appendMatchDebugAction(current, {
+          ...entry,
+          at: new Date().toISOString(),
+        })
+      );
+    };
     const salamander = salamanderPenaltyAction(game, round);
     if (salamander) {
-      actionLogRef.current.append({
-        playerId: playerIdForAction(salamander),
-        action: salamander,
-        ok: true,
-        source: 'auto',
-      });
+      appendAutoAction(salamander);
     }
     for (const bonus of longestTrailBonusActions(game, round)) {
-      actionLogRef.current.append({
-        playerId: playerIdForAction(bonus),
-        action: bonus,
-        ok: true,
-        source: 'auto',
-      });
+      appendAutoAction(bonus);
     }
     for (const debt of temporalDebtPenaltyActions(game, round)) {
-      actionLogRef.current.append({
-        playerId: playerIdForAction(debt),
-        action: debt,
-        ok: true,
-        source: 'auto',
-      });
+      appendAutoAction(debt);
     }
     void dispatch(
       {
@@ -3237,6 +3436,7 @@ export function BridgeTable({
         )
       );
       setCampaignCompleteOpen(true);
+      setRoundEndSummaryOpen(false);
     }
   }, [game.phase]);
 
@@ -3509,7 +3709,7 @@ export function BridgeTable({
   
   const portraitSummaryNudge =
     shouldNudgePortraitForSummary(layoutTier, orientation) &&
-    ((roundAwaitingScore && roundEndSummaryOpen) ||
+    ((canShowRoundEndSummary && roundEndSummaryOpen) ||
       (game.phase === 'complete' && campaignCompleteOpen));
 
   const handSortButtons = (
@@ -3626,8 +3826,7 @@ export function BridgeTable({
         {logMode !== 'off' && !compactLayout && (
           <GameLogTicker
             lines={tickerLogLines}
-            clickable={gameLogReviewable}
-            onOpen={handleOpenRoundLog}
+            nameColors={gameLogNameColors}
           />
         )}
 
@@ -3809,7 +4008,7 @@ export function BridgeTable({
             pendingRoundImageShare !== null ||
             showSpoolPicker ||
             continuumModalOpen ||
-            (roundAwaitingScore && roundEndSummaryOpen) ||
+            (canShowRoundEndSummary && roundEndSummaryOpen) ||
             (game.phase === 'complete' && campaignCompleteOpen);
           const showSectorHud = showSectorStatusHud && !bridgeModalOpen;
           const showFleetHud = captainTailsHud && Boolean(round) && !bridgeModalOpen;
@@ -3956,6 +4155,16 @@ export function BridgeTable({
           autoFollowAction={autoFollowAction}
           autoFollowReturn={autoFollowReturn}
           autoFollowReturnDelayMs={autoFollowReturnDelayMs}
+          followFocusNormX={followFocusNormX}
+          followFocusNormY={followFocusNormY}
+          setFocusMode={setFocusMode}
+          onSetFocusModeChange={setSetFocusMode}
+          onFollowFocusNormChange={({ x, y }) =>
+            patchTablePrefs({
+              followFocusNormX: sanitizeFollowFocusNorm(x),
+              followFocusNormY: sanitizeFollowFocusNorm(y),
+            })
+          }
           actionFocus={actionFocus}
           followReturnCancelSignal={followReturnCancelSignal}
           compactLayout={compactLayout}
@@ -3974,6 +4183,15 @@ export function BridgeTable({
           logControl={{
             mode: logMode,
             onCycle: handleLogControl,
+          }}
+          logDialogControl={{
+            onOpen: () => setGameLogDialogOpen(true),
+          }}
+          hostModControl={hostModControl}
+          setFollowFocusControl={{
+            active: setFocusMode,
+            enabled: autoFollowAction,
+            onToggle: () => setSetFocusMode((current) => !current),
           }}
           commsControl={commsControl}
         >
@@ -4010,7 +4228,7 @@ export function BridgeTable({
           )}
         </TableViewport>
 
-        {roundAwaitingScore && round && roundEndSummaryOpen && !portraitSummaryNudge && (
+        {canShowRoundEndSummary && round && roundEndSummaryOpen && !portraitSummaryNudge && (
           <div
             className={styles.roundEndOverlay}
             role="dialog"
@@ -4132,17 +4350,35 @@ export function BridgeTable({
                 <button
                   type="button"
                   className={styles.roundEndBtnSecondary}
-                  onClick={() => setRoundEndSummaryOpen(false)}
+                  onClick={() => {
+                    setRoundEndSummaryOpen(false);
+                    if (canReviewFinalRound) {
+                      setCampaignCompleteOpen(false);
+                    }
+                  }}
                 >
                   View board
                 </button>
-                <button
-                  type="button"
-                  className={styles.roundEndBtn}
-                  onClick={scoreCurrentRound}
-                >
-                  {roundEndContinueLabel(game, round)}
-                </button>
+                {roundAwaitingScore ? (
+                  <button
+                    type="button"
+                    className={styles.roundEndBtn}
+                    onClick={scoreCurrentRound}
+                  >
+                    {roundEndContinueLabel(game, round)}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className={styles.roundEndBtn}
+                    onClick={() => {
+                      setRoundEndSummaryOpen(false);
+                      setCampaignCompleteOpen(true);
+                    }}
+                  >
+                    Match summary
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -4250,7 +4486,12 @@ export function BridgeTable({
         )}
 
         <CampaignCompleteOverlay
-          open={game.phase === 'complete' && campaignCompleteOpen && !portraitSummaryNudge}
+          open={
+            game.phase === 'complete' &&
+            campaignCompleteOpen &&
+            !roundEndSummaryOpen &&
+            !portraitSummaryNudge
+          }
           game={game}
           names={names}
           humanId={isVsAi ? humanId : viewerId}
@@ -4267,8 +4508,58 @@ export function BridgeTable({
           pilotIconSrc={pilotIconSrc}
           onRematch={onRematch}
           onLeaveSetup={onLeaveSetup}
-          onClose={() => setCampaignCompleteOpen(false)}
+          onClose={() => {
+            setCampaignCompleteOpen(false);
+            setRoundEndSummaryOpen(false);
+          }}
         />
+
+        {game.phase === 'complete' &&
+          !campaignCompleteOpen &&
+          !roundEndSummaryOpen &&
+          !portraitSummaryNudge && (
+          <div className={styles.roundEndDock} role="status">
+            <div className={styles.roundEndDockText}>
+              <strong onClick={onCampaignCompleteEgg}>
+                {game.objective === 'go-out' ? 'Sector complete' : 'Campaign complete'}
+              </strong>
+              <span>Pan and zoom to review the final board.</span>
+            </div>
+            <div className={styles.roundEndActions}>
+              {canReviewFinalRound && (
+                <button
+                  type="button"
+                  className={styles.roundEndBtnSecondary}
+                  onClick={() => {
+                    setCampaignCompleteOpen(false);
+                    setRoundEndSummaryOpen(true);
+                  }}
+                >
+                  Round summary
+                </button>
+              )}
+              <button
+                type="button"
+                className={styles.roundEndBtnSecondary}
+                onClick={() => {
+                  setRoundEndSummaryOpen(false);
+                  setCampaignCompleteOpen(true);
+                }}
+              >
+                Match summary
+              </button>
+              {onRematch && (
+                <button
+                  type="button"
+                  className={styles.roundEndBtn}
+                  onClick={onRematch}
+                >
+                  Rematch
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         <ContinuumFlashPanel
           game={game}
@@ -4320,6 +4611,14 @@ export function BridgeTable({
               : 'Stand by'}
           </span>
         </header>
+
+        {sectorPaused && (
+          <p className={styles.feedback} role="status">
+            ⏸ Sector paused
+            {pauseReason ? ` — ${pauseReason}` : ''}. Helm controls are locked
+            until the host resumes.
+          </p>
+        )}
 
         {sectorAdvisorVoided && (
           <p className={styles.feedback} role="status">
@@ -4720,6 +5019,16 @@ export function BridgeTable({
         showDebugExport={showDebugExport}
         debugExportBusy={debugBusy}
         onExportDebug={handleExportDebug}
+        recordMatchDebug={matchDebugRecording.enabled}
+        onRecordMatchDebugChange={(next) => {
+          patchTablePrefs({ recordMatchDebug: next });
+          setMatchDebugRecording((current) =>
+            next
+              ? enableMatchDebugRecording(current)
+              : disableMatchDebugRecording()
+          );
+        }}
+        recordMatchDebugActionCount={matchDebugRecording.actionLog.length}
         showShareRound={canShareRound}
         systemShareAvailable={systemShareAvailable}
         roundImageBusy={roundImageBusy}
@@ -4769,6 +5078,14 @@ export function BridgeTable({
         onClose={() => setLeaveConfirmOpen(false)}
         onReturnToWaitingRoom={confirmReturnToWaitingRoom}
         onDissolveSector={confirmDissolveSector}
+        onLeaveWithAi={
+          isOnline && isOnlineHost && onHostLeaveWithAi
+            ? confirmLeaveWithAi
+            : undefined
+        }
+        captains={onlineCaptains}
+        hostId={viewerId ?? ''}
+        busy={hostLeaveBusy}
       />
 
       <PortraitLockOverlay

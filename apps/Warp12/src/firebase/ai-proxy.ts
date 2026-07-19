@@ -130,6 +130,29 @@ export function assertActorMaySubmit(
     return null;
   }
 
+  // Module Epsilon: pack-and-pass draft picks happen before the playing phase.
+  if (action.type === 'PICK_FROM_PACK') {
+    if (!docData.round || docData.round.phase !== 'drafting') {
+      return 'ROUND_NOT_DRAFTING';
+    }
+    if (!docData.round.draftState) {
+      return 'MODULE_NOT_ENABLED';
+    }
+
+    const pickingPlayerId = action.playerId;
+    const isSelf = pickingPlayerId === actorId;
+    const isHostProxy =
+      !isSelf && canHostProxyAiMove(docData, actorId, pickingPlayerId);
+    if (!isSelf && !isHostProxy) {
+      return 'NOT_YOUR_TURN';
+    }
+
+    if (docData.round.draftState.currentDrafter !== pickingPlayerId) {
+      return 'NOT_YOUR_TURN';
+    }
+    return null;
+  }
+
   const actingPlayerId = action.playerId;
   if (actingPlayerId !== actorId) {
     if (!canHostProxyAiMove(docData, actorId, actingPlayerId)) {

@@ -644,6 +644,48 @@
           }
         },
         {
+          "source": "/api/fn/hostDropCaptain",
+          "run": {
+            "serviceId": "hostdropcaptain",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/hostLeaveWithAi",
+          "run": {
+            "serviceId": "hostleavewithai",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/hostMuteInSector",
+          "run": {
+            "serviceId": "hostmuteinsector",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/hostReplaceCaptainWithAi",
+          "run": {
+            "serviceId": "hostreplacecaptainwithai",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/hostTransferHost",
+          "run": {
+            "serviceId": "hosttransferhost",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/hostUnmuteInSector",
+          "run": {
+            "serviceId": "hostunmuteinsector",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "**",
           "destination": "/index.html"
         }
@@ -1241,6 +1283,48 @@
           }
         },
         {
+          "source": "/api/fn/hostDropCaptain",
+          "run": {
+            "serviceId": "hostdropcaptain",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/hostLeaveWithAi",
+          "run": {
+            "serviceId": "hostleavewithai",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/hostMuteInSector",
+          "run": {
+            "serviceId": "hostmuteinsector",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/hostReplaceCaptainWithAi",
+          "run": {
+            "serviceId": "hostreplacecaptainwithai",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/hostTransferHost",
+          "run": {
+            "serviceId": "hosttransferhost",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/hostUnmuteInSector",
+          "run": {
+            "serviceId": "hostunmuteinsector",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "**",
           "destination": "/index.html"
         }
@@ -1834,6 +1918,48 @@
           "source": "/api/fn/verifyMatchCertificate",
           "run": {
             "serviceId": "verifymatchcertificate",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/hostDropCaptain",
+          "run": {
+            "serviceId": "hostdropcaptain",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/hostLeaveWithAi",
+          "run": {
+            "serviceId": "hostleavewithai",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/hostMuteInSector",
+          "run": {
+            "serviceId": "hostmuteinsector",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/hostReplaceCaptainWithAi",
+          "run": {
+            "serviceId": "hostreplacecaptainwithai",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/hostTransferHost",
+          "run": {
+            "serviceId": "hosttransferhost",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/hostUnmuteInSector",
+          "run": {
+            "serviceId": "hostunmuteinsector",
             "region": "us-central1"
           }
         },

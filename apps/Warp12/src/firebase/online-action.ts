@@ -72,6 +72,10 @@ export function buildPublicDoc(
     opsTerminatedAt?: string;
     opsTerminatedBy?: string;
     opsTerminationReason?: string;
+    paused?: boolean;
+    pausedAt?: string;
+    pausedBy?: string;
+    pauseReason?: string;
   }
 ): FirestoreGameDocument {
   const serialized = serializePublicGame(state);
@@ -105,6 +109,14 @@ export function buildPublicDoc(
           ...(meta.opsTerminationReason
             ? { opsTerminationReason: meta.opsTerminationReason }
             : {}),
+        }
+      : {}),
+    ...(meta.paused === true
+      ? {
+          paused: true,
+          ...(meta.pausedAt ? { pausedAt: meta.pausedAt } : {}),
+          ...(meta.pausedBy ? { pausedBy: meta.pausedBy } : {}),
+          ...(meta.pauseReason ? { pauseReason: meta.pauseReason } : {}),
         }
       : {}),
   });
@@ -145,6 +157,10 @@ export function prepareOnlineAction(
   action: GameAction,
   handsByPlayer: Readonly<Record<string, readonly Coordinate[]>>
 ): OnlineActionPlan {
+  if (docData.paused === true) {
+    return { ok: false, violation: 'SECTOR_PAUSED' };
+  }
+
   const authViolation = assertActorMaySubmit(docData, actorId, action);
   if (authViolation) {
     return { ok: false, violation: authViolation };
@@ -173,6 +189,10 @@ export function prepareOnlineAction(
     opsTerminatedAt: docData.opsTerminatedAt,
     opsTerminatedBy: docData.opsTerminatedBy,
     opsTerminationReason: docData.opsTerminationReason,
+    paused: docData.paused,
+    pausedAt: docData.pausedAt,
+    pausedBy: docData.pausedBy,
+    pauseReason: docData.pauseReason,
   });
 
   if (publicDoc.round && docData.round && !isEndRound) {

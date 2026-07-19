@@ -13,7 +13,11 @@ import { playerIdForAction } from 'warp12-react';
 import { buildAiRosterFromConfigsAsync } from '../game/create-local-game.js';
 import type { AiCaptainConfig } from '../game/local-game-config.js';
 import { mergeAiHandsIntoGame } from '../game/merge-ai-hands.js';
-import { formatViolation, type WarpAiPlayer } from 'warp12-engine';
+import {
+  formatViolation,
+  pickBalancedTile,
+  type WarpAiPlayer,
+} from 'warp12-engine';
 import type { FirestoreCaptain } from '../firebase/schema.js';
 
 function violationMessage(violation: string): string {
@@ -208,6 +212,137 @@ export function useHostAiRunner(options: {
     options.code,
     options.syncPending,
     options.onError,
+  ]);
+
+  // Module Epsilon: host proxies AI pack picks while the round is drafting.
+  useEffect(() => {
+    const {
+      enabled,
+      code,
+      hostUid,
+      hostId,
+      syncPending,
+      onError,
+    } = options;
+
+    if (
+      !enabled ||
+      !hostUid ||
+      hostUid !== hostId ||
+      syncPending ||
+      !activePlayerId ||
+      roundPhase !== 'drafting'
+    ) {
+      return;
+    }
+
+    const activeCaptain = sectorCaptainsRef.current.find(
+      (captain) => captain.id === activePlayerId
+    );
+    if (!activeCaptain || !isAiCaptain(activeCaptain)) {
+      return;
+    }
+
+    if (aiBusy.current) {
+      return;
+    }
+
+    const currentRun = ++runId.current;
+    aiBusy.current = true;
+
+    const runAiDraftPick = async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, AI_TURN_DELAY_MS));
+      if (currentRun !== runId.current) {
+        return;
+      }
+
+      const game = gameRef.current;
+      const round = game?.round;
+      if (
+        !game ||
+        !round ||
+        round.phase !== 'drafting' ||
+        !round.draftState ||
+        round.activePlayerId !== activePlayerId
+      ) {
+        return;
+      }
+
+      const pack = round.draftState.currentPacks[activePlayerId];
+      if (!pack || pack.length === 0) {
+        onError(`${activeCaptain.displayName} has an empty draft pack`);
+        return;
+      }
+
+      const action = {
+        type: 'PICK_FROM_PACK' as const,
+        playerId: activePlayerId,
+        coordinate: pickBalancedTile(activePlayerId, pack),
+      };
+
+      try {
+        const result = await submitOnlineAction(code, hostUid, action);
+        if (currentRun !== runId.current) {
+          return;
+        }
+        options.onActionLogged?.({
+          playerId: playerIdForAction(action),
+          action,
+          ok: result.ok,
+          violation: result.ok ? undefined : result.violation,
+          source: 'ai',
+        });
+        if (!result.ok) {
+          if (submitRetries.current < AI_MAX_SUBMIT_RETRIES) {
+            submitRetries.current += 1;
+            window.setTimeout(
+              () => setAiRetryTick((tick) => tick + 1),
+              AI_RETRY_DELAY_MS
+            );
+            return;
+          }
+          onError(violationMessage(result.violation));
+          return;
+        }
+        submitRetries.current = 0;
+      } catch (err) {
+        if (currentRun !== runId.current) {
+          return;
+        }
+        if (submitRetries.current < AI_MAX_SUBMIT_RETRIES) {
+          submitRetries.current += 1;
+          window.setTimeout(
+            () => setAiRetryTick((tick) => tick + 1),
+            AI_RETRY_DELAY_MS
+          );
+          return;
+        }
+        onError(
+          err instanceof Error ? err.message : 'Could not transmit AI draft pick'
+        );
+      }
+    };
+
+    void runAiDraftPick().finally(() => {
+      if (currentRun === runId.current) {
+        aiBusy.current = false;
+      }
+    });
+
+    return () => {
+      runId.current += 1;
+      aiBusy.current = false;
+    };
+  }, [
+    activePlayerId,
+    aiRetryTick,
+    options.hostId,
+    options.enabled,
+    options.hostUid,
+    options.code,
+    options.syncPending,
+    options.onError,
+    roundPhase,
   ]);
 
   useEffect(() => {

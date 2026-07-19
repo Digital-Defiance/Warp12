@@ -18,23 +18,18 @@
   font-size: 0.68rem;
   line-height: 1.2;
 
-  // Three grid items in domino mode: name cell (with rank/length inside),
-  // the mini-domino (44px), and the coordinate. Keep exactly three columns so
-  // the tile + coordinate hug the right edge instead of leaving a phantom
-  // trailing column (which pushed them left, into the names).
+  // Domino mode: name | rank (+ TEI chip) | trail | tile | coordinate —
+  // fixed tracks so missing trail badges / ranks don't shift later columns.
   &[data-display='domino'] {
-    grid-template-columns: minmax(0, 1fr) 44px 3.1rem;
-    column-gap: 0.4rem;
+    grid-template-columns: minmax(0, 1fr) 3.6rem 1.55rem 44px 2.1rem;
+    column-gap: 0.3rem;
 
-    // Tail-only reads as a single digit, so let the column hug and hand the
-    // freed width back to the name.
     &[data-coord='tail'] {
-      grid-template-columns: minmax(0, 1fr) 44px auto;
+      grid-template-columns: minmax(0, 1fr) 3.6rem 1.55rem 44px 1.35rem;
     }
 
-    // Coordinate hidden: drop the trailing column entirely (tile hugs right).
     &[data-coord='off'] {
-      grid-template-columns: minmax(0, 1fr) 44px;
+      grid-template-columns: minmax(0, 1fr) 3.6rem 1.55rem 44px;
     }
   }
 
@@ -64,7 +59,6 @@
 .nameCell {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.5rem;
   min-width: 0;
 }
@@ -79,20 +73,24 @@
   gap: 0.25rem;
   flex: 1;
   min-width: 0;
-
-  // TEI grade badge should be compact and inline
-  :global(.tei-badge) {
-    flex-shrink: 0;
-    margin-left: 0.15rem;
-  }
 }
 
-.nameMetadata {
-  display: flex;
+.rankCell,
+.trailCell {
+  display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  flex-shrink: 0;
-  margin-left: auto;
+  justify-content: center;
+  gap: 0.2rem;
+  min-width: 0;
+  min-height: 1.25rem;
+}
+
+.rankCell {
+  justify-content: flex-end;
+
+  :global(.tei-badge) {
+    flex-shrink: 0;
+  }
 }
 
 .stateIndicators {
@@ -122,6 +120,8 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--warp-accent-warm, #fbbf24);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .hazardMarker {
@@ -151,7 +151,6 @@
   min-width: 1.4rem;
   height: 1.25rem;
   padding: 0 0.3rem;
-  margin-left: 0.2rem;
   font-size: 0.58rem;
   font-weight: 700;
   line-height: 1;
@@ -187,12 +186,13 @@
 .coordinateInline {
   display: inline-flex;
   align-items: center;
-  justify-self: end;
+  justify-content: flex-end;
+  justify-self: stretch;
+  width: 100%;
   font-family: var(--font-federation);
   font-size: 0.68rem;
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
-  margin-left: 0.5rem;
 }
 
 .coordinateAnchor {

@@ -87,7 +87,7 @@ export function resolveCoachIndicator(
     return null;
   }
 
-  const requestedAt = Date.parse(presence.coachRequestedAt);
+  const requestedAt = Date.parse(presence.coachRequestedAt ?? '');
   const flash =
     Number.isFinite(requestedAt) && now - requestedAt < COACH_FLASH_MS;
 
@@ -97,6 +97,6 @@ export function resolveCoachIndicator(
 
   return {
     flash,
-    usedThisRound: presence.coachUsedThisRound,
+    usedThisRound: presence.coachUsedThisRound === true,
   };
 }

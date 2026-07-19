@@ -263,7 +263,7 @@ describe('Module Gamma — Sensor Grid', () => {
     expect(scored.state.modules.sensorGrid.enabled).toBe(true);
   });
 
-  it('restores the sensor grid after Warp Drive Spool drains the market', () => {
+  it('leaves Sensor Grid intact when Engage Warp Drive draws from Uncharted only', () => {
     const round = makeRound(['a', 'b'], {
       activePlayerId: 'a',
       spacedockValue: 12,
@@ -294,6 +294,7 @@ describe('Module Gamma — Sensor Grid', () => {
       }),
     });
 
+    const beforeGrid = round.sensorGrid.map((c) => `${c.low}-${c.high}`);
     const spool = applyAction(state, {
       type: 'SPOOL_WARP_DRIVE',
       playerId: 'a',
@@ -302,18 +303,59 @@ describe('Module Gamma — Sensor Grid', () => {
     expect(spool.ok).toBe(true);
     if (!spool.ok) return;
 
-    const remaining =
-      (spool.state.round?.unchartedSectors.length ?? 0) +
-      (spool.state.round?.sensorGrid.length ?? 0);
-    if (remaining >= 5) {
-      expect(spool.state.round?.sensorGrid.length).toBe(5);
-    } else {
-      expect(spool.state.round?.sensorGrid.length).toBe(remaining);
-      expect(spool.state.round?.unchartedSectors.length).toBe(0);
+    const afterGrid = (spool.state.round?.sensorGrid ?? []).map(
+      (c) => `${c.low}-${c.high}`
+    );
+    expect(afterGrid).toEqual(beforeGrid);
+    expect(spool.state.round?.unchartedSectors.length).toBeLessThan(
+      round.unchartedSectors.length
+    );
+  });
+
+  it('hides Engage Warp Drive when Uncharted is empty even if Sensor Grid has tiles', () => {
+    const round = makeRound(['a', 'b'], {
+      activePlayerId: 'a',
+      spacedockValue: 12,
+      hands: { a: [T(3, 4)], b: [] },
+      unchartedSectors: [],
+      sensorGrid: [T(1, 1), T(2, 2), T(3, 3), T(4, 4), T(5, 5)],
+      table: {
+        ...createInitialTable(['a', 'b'], 12, 'a'),
+        warpTrails: {
+          a: {
+            playerId: 'a',
+            tiles: [{ coordinate: T(12, 8), index: 0, openValue: 8 }],
+            distressBeacon: { active: false },
+          },
+          b: {
+            playerId: 'b',
+            tiles: [],
+            distressBeacon: { active: false },
+          },
+        },
+      },
+    });
+    const state = makeGame(round, {
+      modules: resolveModules({
+        sensorGrid: true,
+        sensorGridSize: 5,
+        warpDriveSpool: true,
+      }),
+    });
+    expect(getSpoolOptions(state, round, 'a')).toHaveLength(0);
+
+    const spool = applyAction(state, {
+      type: 'SPOOL_WARP_DRIVE',
+      playerId: 'a',
+      route: { kind: 'warp-trail', playerId: 'a' },
+    });
+    expect(spool.ok).toBe(false);
+    if (!spool.ok) {
+      expect(spool.violation).toBe('EMPTY_UNCHARTED');
     }
   });
 
-  it('hides Engage Warp Drive spool options when the draw pool is empty', () => {
+  it('hides Engage Warp Drive spool options when Uncharted is empty', () => {
     const round = makeRound(['a', 'b'], {
       activePlayerId: 'a',
       spacedockValue: 12,

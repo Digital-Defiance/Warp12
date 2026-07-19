@@ -100,6 +100,13 @@ describe('table-view-prefs', () => {
     expect(resolveSectorStatusHud(readTableOptions(), true)).toBe(false);
   });
 
+  it('defaults Record Match Debug off and persists toggling it on', () => {
+    expect(readTableOptions().recordMatchDebug).toBe(false);
+
+    writeTableOptions({ recordMatchDebug: true });
+    expect(readTableOptions().recordMatchDebug).toBe(true);
+  });
+
   it('ignores invalid stored values', () => {
     localStorage.setItem(
       'warp12-table-options',

@@ -55,6 +55,15 @@ export interface FirestoreGameDocument {
   allowSpectate?: boolean;
   /** Uids watching without a fleet seat. Not used for TEI / hands / moves. */
   spectatorIds?: string[];
+  /**
+   * Host pause — all captains become spectator-like until resumed.
+   * Orthogonal to `phase` so engine state stays intact.
+   */
+  paused?: boolean;
+  pausedAt?: string;
+  pausedBy?: string;
+  /** Optional note (e.g. missing captain display name). */
+  pauseReason?: string;
   /** Fleet capacity (3–8). */
   maxPlayers: number;
   /** Denormalized uid list for security rules. */
@@ -215,9 +224,11 @@ export interface FirestorePlayerHandDocument {
 
 /** Visible to all sector captains when someone consults the tactical advisor. */
 export interface FirestoreCoachPresence {
-  coachRequestedAt: string;
-  coachRoundNumber: number;
-  coachUsedThisRound: boolean;
+  coachRequestedAt?: string;
+  coachRoundNumber?: number;
+  coachUsedThisRound?: boolean;
+  /** Seat heartbeat — ISO time of last client ping (online connectivity). */
+  lastSeenAt?: string;
 }
 
 export interface FirestoreActionDocument {

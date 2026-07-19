@@ -81,6 +81,10 @@ export interface TableOptionsDialogProps {
   showDebugExport?: boolean;
   debugExportBusy?: boolean;
   onExportDebug?: () => void | Promise<void>;
+  /** Accumulate full-match action + round snapshots for AI-digestible exports. */
+  recordMatchDebug?: boolean;
+  onRecordMatchDebugChange?: (next: boolean) => void;
+  recordMatchDebugActionCount?: number;
   showShareRound?: boolean;
   systemShareAvailable?: boolean;
   roundImageBusy?: string | null;
@@ -141,6 +145,9 @@ export function TableOptionsDialog({
   showDebugExport = false,
   debugExportBusy = false,
   onExportDebug,
+  recordMatchDebug = false,
+  onRecordMatchDebugChange,
+  recordMatchDebugActionCount = 0,
   showShareRound = false,
   systemShareAvailable = false,
   roundImageBusy = null,
@@ -332,8 +339,8 @@ export function TableOptionsDialog({
             <p className={optionStyles.hint}>
               {autoFollowAction
                 ? autoFollowReturn
-                  ? 'Pans to each new coordinate, then eases back to your previous view after the delay. Pan, zoom, or a new chart before the delay cancels the return (a new chart keeps your original origin).'
-                  : 'Panning to each new coordinate as it is charted on the table.'
+                  ? 'Pans to each new coordinate, then eases back to your previous view after the delay. Pan, zoom, or a new chart before the delay cancels the return (a new chart keeps your original origin). Use the crosshair on the table toolbar to set where follow should aim.'
+                  : 'Panning to each new coordinate as it is charted on the table. Use the crosshair on the table toolbar to set where follow should aim.'
                 : 'Turn on to auto-scroll the play area to wherever tiles are placed.'}
             </p>
           </section>
@@ -654,6 +661,38 @@ export function TableOptionsDialog({
 
           <section className={optionStyles.section}>
             <h3 className={optionStyles.sectionTitle}>Diagnostics</h3>
+            {onRecordMatchDebugChange ? (
+              <>
+                <label className={optionStyles.checkboxRow}>
+                  <input
+                    type="checkbox"
+                    checked={recordMatchDebug}
+                    onChange={(event) => {
+                      const next = event.target.checked;
+                      onRecordMatchDebugChange(next);
+                      announce(
+                        next
+                          ? 'Match debug recording on. Full match will be kept until Round 1 resets.'
+                          : 'Match debug recording off.',
+                        'polite'
+                      );
+                    }}
+                  />
+                  <span>Record Match Debug</span>
+                </label>
+                <p className={optionStyles.hint}>
+                  Sticky local setting — stays on across matches until you turn
+                  it off. When on, Warp accumulates every action and round
+                  snapshot so Export debug log is AI-digestible. Collection
+                  clears automatically on a new Round 1.
+                  {recordMatchDebug
+                    ? ` Recording… ${recordMatchDebugActionCount} action${
+                        recordMatchDebugActionCount === 1 ? '' : 's'
+                      }.`
+                    : ''}
+                </p>
+              </>
+            ) : null}
             <div className={optionStyles.actionRow}>
               <button
                 type="button"

@@ -151,32 +151,6 @@ export const reportPracticeAiMatch = onCall(
       throw new HttpsError('invalid-argument', 'humanActions required.');
     }
 
-    const replay = await replayLocalAiHumanActions({
-      config: data.config,
-      seed: data.seed,
-      humanActions: data.humanActions,
-    });
-
-    if (!replay.ok) {
-      logger.warn('reportPracticeAiMatch replay failed', {
-        uid,
-        violation: replay.violation,
-        steps: replay.steps,
-        objective: data.objective,
-        skill: data.skill,
-      });
-      throw new HttpsError(
-        'failed-precondition',
-        `Match verification failed: ${replay.violation}`
-      );
-    }
-
-    const won = replay.humanWon;
-
-    if (!data.advisorUsed) {
-      requireVerifiedUser(request);
-    }
-
     const teiEligible = practiceMatchTeiEligible({
       configEligible: isTeiEligiblePracticeConfig(data.config),
       advisorUsed: data.advisorUsed,
@@ -190,6 +164,45 @@ export const reportPracticeAiMatch = onCall(
         teiEligible,
         isAdmin: hasRole(request, 'admin'),
       });
+    }
+
+    const replay = await replayLocalAiHumanActions({
+      config: data.config,
+      seed: data.seed,
+      humanActions: data.humanActions,
+    });
+
+    if (!replay.ok) {
+      logger.warn('reportPracticeAiMatch replay failed', {
+        uid,
+        violation: replay.violation,
+        steps: replay.steps,
+        objective: data.objective,
+        skill: data.skill,
+        teiEligible,
+      });
+      // Casual / exhibition / advisor-voided matches still hit this callable for
+      // localAi counters. Do not scare the captain with a TEI verification error
+      // when the sector was never eligible for rating.
+      if (!teiEligible) {
+        return {
+          rated: false,
+          won: false,
+          ratingBefore: null,
+          ratingAfter: null,
+          muDelta: null,
+        };
+      }
+      throw new HttpsError(
+        'failed-precondition',
+        `Match verification failed: ${replay.violation}`
+      );
+    }
+
+    const won = replay.humanWon;
+
+    if (!data.advisorUsed) {
+      requireVerifiedUser(request);
     }
 
     const ref = db.collection('playerStats').doc(uid);

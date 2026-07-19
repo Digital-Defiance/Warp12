@@ -44,6 +44,44 @@ describe('deliver-file', () => {
     expect(click).toHaveBeenCalled();
   });
 
+  it('still downloads on desktop Mac when the trackpad reports multi-touch', () => {
+    vi.stubGlobal('navigator', {
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+      platform: 'MacIntel',
+      maxTouchPoints: 5,
+    });
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query.includes('pointer: coarse') ? false : true,
+      media: query,
+      onchange: null,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      dispatchEvent: () => false,
+    }));
+    expect(canUseAnchorDownload()).toBe(true);
+  });
+
+  it('blocks anchor download for iPadOS desktop-UA with coarse pointer', () => {
+    vi.stubGlobal('navigator', {
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+      platform: 'MacIntel',
+      maxTouchPoints: 5,
+    });
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query.includes('pointer: coarse'),
+      media: query,
+      onchange: null,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      dispatchEvent: () => false,
+    }));
+    expect(canUseAnchorDownload()).toBe(false);
+  });
+
   it('shares then falls back to clipboard on iPad-like UA', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     const share = vi.fn().mockRejectedValue(new Error('share failed'));

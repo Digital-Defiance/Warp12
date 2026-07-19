@@ -6,6 +6,8 @@ test.describe('exhibition Warp factor', () => {
   test('Warp 9 local simulation deals a Double-9 spacedock', async ({
     page,
   }) => {
+    test.setTimeout(90_000);
+
     await selectWarpFactor(page, 9);
 
     await page.getByRole('button', { name: /Local simulation/i }).click();
@@ -13,8 +15,8 @@ test.describe('exhibition Warp factor', () => {
       page.getByRole('heading', { name: 'Local simulation' })
     ).toBeVisible();
 
-    const notice = page.getByRole('status');
-    await expect(notice).toContainText(/Exhibition set/i);
+    const notice = page.getByRole('status').filter({ hasText: /Exhibition set/i });
+    await expect(notice).toBeVisible();
     await expect(notice).toContainText(/Warp 9/);
     await expect(notice).toContainText(/heuristics only/i);
     await expect(
@@ -26,10 +28,10 @@ test.describe('exhibition Warp factor', () => {
     const spacedock = page
       .locator('dt', { hasText: 'Spacedock' })
       .locator('xpath=following-sibling::dd[1]');
-    await expect(spacedock).toHaveText('Double-9', { timeout: 60_000 });
+    await expect(spacedock).toHaveText('Double-9', { timeout: 45_000 });
 
     await expect(
       page.locator('button[aria-label^="Coordinate"]').first()
-    ).toBeVisible({ timeout: 30_000 });
+    ).toBeVisible({ timeout: 20_000 });
   });
 });

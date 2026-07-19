@@ -29776,10 +29776,10 @@ __metadata:
 
 "warp12-engine@file:vendor/warp12-engine::locator=%40warp12%2Ffunctions%40workspace%3Afunctions":
   version: 0.4.26
-  resolution: "warp12-engine@file:vendor/warp12-engine#vendor/warp12-engine::hash=c64b5a&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
+  resolution: "warp12-engine@file:vendor/warp12-engine#vendor/warp12-engine::hash=b97fb2&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
   peerDependencies:
     double-eighteen: ">=0.4.0"
-  checksum: 10c0/33871cce5f18f7dab373cf2eb5d8087ac536d5f09735923ab0cbc8b44370a3cb956d46ffe3dc60b336966524b3e5779066864bbed6c06c88cb609e1e2fec0b49
+  checksum: 10c0/56c3fc8a4be1372a4348c6df83260e366b184004cbc5fe4781dc50faedd4f4087a1eca05d735e9f3c60c6c612bcd2057bd20cc1b26740c7c4e8f187f62693072
   languageName: node
   linkType: hard
 

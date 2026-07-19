@@ -246,7 +246,7 @@ describe('resolveHelmControls', () => {
     );
   });
 
-  it('hides Engage Warp Drive when Uncharted (and Sensor Grid) are empty', () => {
+  it('hides Engage Warp Drive when Uncharted is empty', () => {
     const round = trailReadyRound();
     const empty = {
       ...round,
@@ -260,6 +260,35 @@ describe('resolveHelmControls', () => {
 
     const helm = resolveHelmControls({
       round: empty,
+      handOwnerId: 'a',
+      isMyTurn: true,
+      houseRules: manual,
+      dropToImpulsePending: false,
+      legalMovesCount: 0,
+      gameState: game,
+    });
+
+    expect(helm.spoolOptions).toHaveLength(0);
+  });
+
+  it('hides Engage Warp Drive when Uncharted is empty even if Sensor Grid has tiles', () => {
+    const round = trailReadyRound();
+    const unchartedEmpty = {
+      ...round,
+      unchartedSectors: [],
+      sensorGrid: [T(1, 1), T(2, 2), T(3, 3)],
+    };
+    const game = makeGame(unchartedEmpty, {
+      modules: resolveModules({
+        warpDriveSpool: true,
+        sensorGrid: true,
+        sensorGridSize: 3,
+      }),
+      houseRules: manual,
+    });
+
+    const helm = resolveHelmControls({
+      round: unchartedEmpty,
       handOwnerId: 'a',
       isMyTurn: true,
       houseRules: manual,

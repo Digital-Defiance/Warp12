@@ -21,6 +21,7 @@ import {
 import { AdvisorReportDownloadButtons } from './advisor-report-download-buttons';
 import { TeiChange } from './components/tei-change.js';
 import { useConfettiOnPromotion } from './use-confetti.js';
+import { useCampaignCompleteSplashEgg } from './use-campaign-complete-splash-egg.js';
 import dialogStyles from './rules-view.module.scss';
 import styles from './bridge-table.module.scss';
 import type { CampaignRoundPoints } from './campaign-points-history.js';
@@ -132,6 +133,7 @@ export function CampaignCompleteOverlay({
   const anyPromotion = gradeChange.promoted || charterGradeChange.promoted;
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const onCampaignCompleteEgg = useCampaignCompleteSplashEgg();
 
   // Trigger confetti on grade promotion
   useConfettiOnPromotion(anyPromotion && open);
@@ -180,7 +182,10 @@ export function CampaignCompleteOverlay({
       aria-labelledby="warp12-campaign-complete-title"
     >
       <div className={styles.roundEndCard}>
-        <p className={styles.roundEndEyebrow}>
+        <p
+          className={styles.roundEndEyebrow}
+          onClick={onCampaignCompleteEgg}
+        >
           {game.objective === 'go-out' ? 'Sector complete' : 'Campaign complete'}
         </p>
         <h3 id="warp12-campaign-complete-title" className={styles.roundEndTitle}>

@@ -6,7 +6,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase-admin/firestore';
 
-import { requireAdmin, requireModerator } from '../auth';
+import { requireAdmin, requireModerator, requireSignedIn } from '../auth';
 import { OPS_AUDIT_COLLECTION } from './mute-schema';
 
 const db = admin.firestore();
@@ -46,10 +46,11 @@ async function deleteCollectionDocs(
 
 function pickNewHost(captains: Captain[], oldHostId: string): string {
   const remaining = captains.filter((c) => c.id !== oldHostId);
-  const human = remaining.find((c) => !c.isAi);
+  const human = remaining.find((c) => !c.isAi && !String(c.id).startsWith('ai:'));
   if (human) {
     return human.id;
   }
+  // Prefer soft-terminate paths over AI host; still return something for typing.
   if (remaining[0]) {
     return remaining[0].id;
   }
@@ -113,7 +114,7 @@ function stripPlayerFromRound(
     hazardMarkerHolder = null;
   }
 
-  return {
+  const next: DocumentData = {
     ...round,
     turnOrder,
     activePlayerId,
@@ -125,17 +126,24 @@ function stripPlayerFromRound(
     dropToImpulseCallPending:
       round.dropToImpulseCallPending === targetUid
         ? null
-        : round.dropToImpulseCallPending,
+        : (round.dropToImpulseCallPending ?? null),
     dropToImpulseCatchable:
       round.dropToImpulseCatchable === targetUid
         ? null
-        : round.dropToImpulseCatchable,
+        : (round.dropToImpulseCatchable ?? null),
     mandatoryPlay:
       round.mandatoryPlay &&
       (round.mandatoryPlay as { playerId?: string }).playerId === targetUid
         ? null
-        : round.mandatoryPlay,
+        : (round.mandatoryPlay ?? null),
   };
+  // Firestore rejects undefined; sparse round docs omit many optional fields.
+  for (const key of Object.keys(next)) {
+    if (next[key] === undefined) {
+      delete next[key];
+    }
+  }
+  return next;
 }
 
 function softTerminatePatch(
@@ -174,22 +182,21 @@ async function writeAudit(entry: {
  * Mid-mission: strip seat + turn state, force unrated; if fleet would drop
  * below min players, soft-terminate instead.
  */
-export const opsKickCaptain = onCall(async (request) => {
-  const actorUid = requireModerator(request);
-  const data = request.data as {
-    gameId?: string;
-    targetUid?: string;
-    reason?: string;
-  };
-  const gameId = data.gameId?.trim();
-  const targetUid = data.targetUid?.trim();
-  const reason = data.reason?.trim() || 'ops kick';
-  if (!gameId || !targetUid) {
-    throw new HttpsError('invalid-argument', 'gameId and targetUid required.');
-  }
-
+async function applyCaptainKick(input: {
+  gameId: string;
+  actorUid: string;
+  targetUid: string;
+  reason: string;
+  /** When true, actor must be the current host (not ops). */
+  requireHost: boolean;
+}): Promise<{
+  mode: 'terminated' | 'kicked';
+  hostId: string;
+  remaining: number;
+}> {
+  const { gameId, actorUid, targetUid, reason, requireHost } = input;
   const ref = db.collection('games').doc(gameId);
-  const result = await db.runTransaction(async (tx) => {
+  return db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) {
       throw new HttpsError('not-found', 'Sector not found.');
@@ -199,21 +206,45 @@ export const opsKickCaptain = onCall(async (request) => {
       throw new HttpsError('failed-precondition', 'Sector already terminated.');
     }
 
+    if (requireHost && String(game.hostId ?? '') !== actorUid) {
+      throw new HttpsError(
+        'permission-denied',
+        'Only the sector host can drop a seat.'
+      );
+    }
+
     const captains = (Array.isArray(game.captains) ? game.captains : []) as Captain[];
     if (!captains.some((c) => c.id === targetUid)) {
       throw new HttpsError('not-found', 'Captain not aboard this sector.');
     }
 
+    if (requireHost && targetUid === actorUid) {
+      throw new HttpsError(
+        'failed-precondition',
+        'Host cannot drop their own seat — dissolve or transfer first.'
+      );
+    }
+
     const phase = String(game.phase ?? 'lobby');
+    if (requireHost && phase === 'lobby') {
+      throw new HttpsError(
+        'failed-precondition',
+        'Use lobby remove for waiting-room seats.'
+      );
+    }
+
     const remaining = captains.filter((c) => c.id !== targetUid);
     const now = new Date().toISOString();
 
     // Mid-mission: too few seats left → terminate instead of a broken table.
-    if (
-      phase !== 'lobby' &&
-      remaining.length < MIN_PLAYERS
-    ) {
-      tx.update(ref, softTerminatePatch(actorUid, `${reason} (fleet below minimum after kick)`));
+    if (phase !== 'lobby' && remaining.length < MIN_PLAYERS) {
+      tx.update(
+        ref,
+        softTerminatePatch(
+          actorUid,
+          `${reason} (fleet below minimum after kick)`
+        )
+      );
       tx.delete(ref.collection('hands').doc(targetUid));
       tx.delete(ref.collection('presence').doc(targetUid));
       return {
@@ -234,12 +265,23 @@ export const opsKickCaptain = onCall(async (request) => {
       hostId,
       updatedAt: now,
       rated: false,
+      // Dropping a seat clears pause so the remaining fleet can play.
+      paused: false,
     };
 
     if (phase !== 'lobby' && game.round) {
-      const nextRound = stripPlayerFromRound(game.round as DocumentData, targetUid);
+      const nextRound = stripPlayerFromRound(
+        game.round as DocumentData,
+        targetUid
+      );
       if (!nextRound) {
-        Object.assign(patch, softTerminatePatch(actorUid, `${reason} (no seats left in turn order)`));
+        Object.assign(
+          patch,
+          softTerminatePatch(
+            actorUid,
+            `${reason} (no seats left in turn order)`
+          )
+        );
       } else {
         patch.round = nextRound;
       }
@@ -255,9 +297,73 @@ export const opsKickCaptain = onCall(async (request) => {
       remaining: remaining.length,
     };
   });
+}
+
+/**
+ * Force-remove a captain. Lobby: same as host kick.
+ * Mid-mission: strip seat + turn state, force unrated; if fleet would drop
+ * below min players, soft-terminate instead.
+ */
+export const opsKickCaptain = onCall(async (request) => {
+  const actorUid = requireModerator(request);
+  const data = request.data as {
+    gameId?: string;
+    targetUid?: string;
+    reason?: string;
+  };
+  const gameId = data.gameId?.trim();
+  const targetUid = data.targetUid?.trim();
+  const reason = data.reason?.trim() || 'ops kick';
+  if (!gameId || !targetUid) {
+    throw new HttpsError('invalid-argument', 'gameId and targetUid required.');
+  }
+
+  const result = await applyCaptainKick({
+    gameId,
+    actorUid,
+    targetUid,
+    reason,
+    requireHost: false,
+  });
 
   await writeAudit({
     action: result.mode === 'terminated' ? 'ops_terminate' : 'ops_kick',
+    actorUid,
+    targetUid,
+    detail: { gameId, reason, ...result },
+  });
+
+  return { ok: true, gameId, targetUid, ...result };
+});
+
+/**
+ * Host mid-mission seat drop when a captain goes offline. Mirrors ops kick
+ * stripping, but requires sector host (not moderator).
+ */
+export const hostDropCaptain = onCall(async (request) => {
+  const actorUid = requireSignedIn(request);
+  const data = request.data as {
+    gameId?: string;
+    targetUid?: string;
+    reason?: string;
+  };
+  const gameId = data.gameId?.trim();
+  const targetUid = data.targetUid?.trim();
+  const reason = data.reason?.trim() || 'host drop seat';
+  if (!gameId || !targetUid) {
+    throw new HttpsError('invalid-argument', 'gameId and targetUid required.');
+  }
+
+  const result = await applyCaptainKick({
+    gameId,
+    actorUid,
+    targetUid,
+    reason,
+    requireHost: true,
+  });
+
+  await writeAudit({
+    action: result.mode === 'terminated' ? 'host_terminate' : 'host_drop',
     actorUid,
     targetUid,
     detail: { gameId, reason, ...result },

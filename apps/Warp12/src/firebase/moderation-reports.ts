@@ -22,3 +22,19 @@ export async function reportSectorMessage(input: {
     subjectType: 'message',
   });
 }
+
+export async function reportSectorCaptain(input: {
+  gameId: string;
+  targetUid: string;
+  category: PlayerReportCategory;
+  reason: string;
+}): Promise<{
+  ok: true;
+  reportId: string;
+  alreadySubmitted: boolean;
+}> {
+  return callFunction('submitModerationReport', {
+    ...input,
+    subjectType: 'captain',
+  });
+}

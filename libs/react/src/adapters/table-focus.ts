@@ -190,16 +190,25 @@ export function computeTableFocusPoint(
   return { x: entry.x, y: entry.y, key };
 }
 
-/** Pan offset so content point sits at the viewport center at the given scale. */
+/**
+ * Pan offset so a content point sits at a viewport focus (default: geometric
+ * center). `focusNormX` / `focusNormY` are fractions of the viewport size
+ * (0–1); captains can set these via Set Focus when HUD chrome shifts the
+ * comfortable “center.”
+ */
 export function panToCenterContentPoint(
   viewportWidth: number,
   viewportHeight: number,
   scale: number,
   contentX: number,
-  contentY: number
+  contentY: number,
+  focusNormX = 0.5,
+  focusNormY = 0.5
 ): { x: number; y: number } {
+  const fx = Number.isFinite(focusNormX) ? focusNormX : 0.5;
+  const fy = Number.isFinite(focusNormY) ? focusNormY : 0.5;
   return {
-    x: viewportWidth / 2 - contentX * scale,
-    y: viewportHeight / 2 - contentY * scale,
+    x: viewportWidth * fx - contentX * scale,
+    y: viewportHeight * fy - contentY * scale,
   };
 }

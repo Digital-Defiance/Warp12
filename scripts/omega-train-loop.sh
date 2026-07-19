@@ -19,11 +19,12 @@
 #   OMEGA_OBJECTIVE    points | go-out                   (default points)
 #   OMEGA_EPOCHS       training epochs per iteration     (default 4)
 #   OMEGA_BENCH_GAMES  bench games per slice             (default 200)
-#   OMEGA_ELO_LOG      Elo log path (JSONL)              (default tools/nn/data/omega-elo-log.jsonl)
+#   OMEGA_RATING_LOG   Rating log path (JSONL)           (default tools/nn/data/omega-rating-log.jsonl)
+#   OMEGA_ELO_LOG      Alias for OMEGA_RATING_LOG (legacy)
 #   OMEGA_PROMOTE_MARGIN  min aggregate win-rate gain to promote (default 0.0)
-#   OMEGA_BATCH           PyTorch batch size (default 512; M4 Max can use 1024+)
+#   OMEGA_BATCH           PyTorch batch size (default 512)
 #   OMEGA_SEARCH_ITERS    ISMCTS iters/decision during collection (default 0)
-#   OMEGA_WORKERS         parallel collection workers (default cores − 1)
+#   OMEGA_WORKERS         parallel collection workers (default cores − 2)
 #   OMEGA_BENCH_PARALLEL  set 0 to disable parallel bench (default on)
 #   OMEGA_BENCH_WORKERS   bench worker count (defaults to OMEGA_WORKERS)
 #   OMEGA_BENCH_PLAYERS   bench/gate table sizes, e.g. "3,4,6,8" (default 2,3,4)
@@ -39,6 +40,16 @@
 #   OMEGA_GATE_REBASE     set 1 to bench champion and seed gate score before loop
 #
 set -euo pipefail
+
+# shellcheck source=scripts/lib/warp-env.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/warp-env.sh"
+warp_env_load train
+warp_env_cd_root
+
+# Legacy alias
+if [ -n "${OMEGA_ELO_LOG:-}" ] && [ -z "${OMEGA_RATING_LOG:-}" ]; then
+  export OMEGA_RATING_LOG="$OMEGA_ELO_LOG"
+fi
 
 ITERATIONS="${OMEGA_ITERATIONS:-15}"
 export OMEGA_GAMES="${OMEGA_GAMES:-1500}"
@@ -57,7 +68,7 @@ CANDIDATE_DIR="${OMEGA_CANDIDATE_DIR:-tools/nn/data/omega-candidate}"
 CHAMPION_SCORE_FILE="${OMEGA_CHAMPION_SCORE:-tools/nn/data/omega-champion-score.txt}"
 GATE_METRIC="${OMEGA_GATE_METRIC:-mean}"
 
-mkdir -p "$(dirname "$ELO_LOG")" "$CANDIDATE_DIR"
+mkdir -p "$(dirname "$OMEGA_RATING_LOG")" "$CANDIDATE_DIR"
 
 echo "Class Ω GATED training loop: ${ITERATIONS} iterations, ${OMEGA_GAMES} games/iter, ${OMEGA_PLAYERS}p ${OMEGA_OBJECTIVE}"
 echo "Champion: ${CHAMPION}   Rating log: ${OMEGA_RATING_LOG}   promote margin: ${PROMOTE_MARGIN}"

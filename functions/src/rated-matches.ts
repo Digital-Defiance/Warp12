@@ -43,6 +43,7 @@ import {
   validateCharterRatedMatch,
   assertCharterMember,
 } from './charters';
+import { omitUndefinedFields } from './ops/host-continuity-helpers.js';
 
 const db = admin.firestore();
 
@@ -483,7 +484,9 @@ export const createRatedMatch = onCall(async (request) => {
     playerCount,
   };
 
-  await matchRef(matchCode).set(doc);
+  await matchRef(matchCode).set(
+    omitUndefinedFields(doc as unknown as Record<string, unknown>)
+  );
   return { matchCode, status: doc.status };
 });
 

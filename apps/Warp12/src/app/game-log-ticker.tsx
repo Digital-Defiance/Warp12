@@ -1,60 +1,30 @@
-import type { KeyboardEvent } from 'react';
+import type { NameColorEntry } from './game-log-display.js';
+import { GameLogLine } from './game-log-line.js';
 import styles from './game-log-ticker.module.scss';
 
 export interface GameLogTickerProps {
   lines: readonly string[];
-  clickable?: boolean;
-  onOpen?: () => void;
+  nameColors?: readonly NameColorEntry[];
 }
 
-export function GameLogTicker({
-  lines,
-  clickable = false,
-  onOpen,
-}: GameLogTickerProps) {
+/** Visual-only scrolling feed — open the log via the book HUD control. */
+export function GameLogTicker({ lines, nameColors = [] }: GameLogTickerProps) {
   if (lines.length === 0) {
     return null;
   }
 
-  const handleClick = () => {
-    if (clickable && onOpen) {
-      onOpen();
-    }
-  };
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (!clickable || !onOpen) {
-      return;
-    }
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      onOpen();
-    }
-  };
-
   return (
-    <div
-      className={`${styles.bridgeLog}${clickable ? ` ${styles.bridgeLogClickable}` : ''}`}
-      {...(clickable
-        ? {
-            role: 'button' as const,
-            tabIndex: 0,
-            'aria-label': 'Open round log',
-          }
-        : { 'aria-hidden': true as const })}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
-    >
+    <div className={styles.bridgeLog} aria-hidden>
       <div className={styles.feed}>
         {lines.map((line, index) => (
-          <p
+          <GameLogLine
             key={`${index}-${line}`}
+            line={line}
+            nameColors={nameColors}
             className={`${styles.line}${
               index === lines.length - 1 ? ` ${styles.lineLatest}` : ''
             }`}
-          >
-            {line}
-          </p>
+          />
         ))}
       </div>
     </div>
