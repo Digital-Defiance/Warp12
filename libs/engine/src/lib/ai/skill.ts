@@ -113,6 +113,11 @@ const GO_OUT_PRESETS: Record<
       H.dropToImpulseCatch,
       H.dropToImpulseForget,
       H.squadCoordination,
+      H.handExchangeGiveback,
+      H.spoolStrategy,
+      H.hotPotatoPass,
+      H.salamanderSurge,
+      H.trailMomentum,
     ]),
     weights: {
       [H.preferChart]: 1,
@@ -122,6 +127,11 @@ const GO_OUT_PRESETS: Record<
       [H.dropToImpulseForget]: 0.5,
       // Module Zeta: low coordination — Ensign barely favors the squad trail.
       [H.squadCoordination]: 0.2,
+      [H.handExchangeGiveback]: 1,
+      [H.spoolStrategy]: 0.6,
+      [H.hotPotatoPass]: 0.8,
+      [H.salamanderSurge]: 0.7,
+      [H.trailMomentum]: 0.7,
     },
     goOutTuning: {
       drawReluctanceHandSize: 6,
@@ -149,6 +159,11 @@ const GO_OUT_PRESETS: Record<
       H.dropToImpulseDeclare,
       H.dropToImpulseCatch,
       H.squadCoordination,
+      H.handExchangeGiveback,
+      H.spoolStrategy,
+      H.hotPotatoPass,
+      H.salamanderSurge,
+      H.trailMomentum,
     ]),
     weights: {
       [H.preferChart]: 1,
@@ -169,6 +184,11 @@ const GO_OUT_PRESETS: Record<
       [H.dropToImpulseCatch]: 1.2,
       // Module Zeta: medium coordination.
       [H.squadCoordination]: 0.5,
+      [H.handExchangeGiveback]: 1.5,
+      [H.spoolStrategy]: 1,
+      [H.hotPotatoPass]: 1.2,
+      [H.salamanderSurge]: 1.2,
+      [H.trailMomentum]: 1.3,
     },
   },
   commander: {
@@ -195,6 +215,11 @@ const GO_OUT_PRESETS: Record<
       H.dropToImpulseDeclare,
       H.dropToImpulseCatch,
       H.squadCoordination,
+      H.handExchangeGiveback,
+      H.spoolStrategy,
+      H.hotPotatoPass,
+      H.salamanderSurge,
+      H.trailMomentum,
     ]),
     weights: {
       [H.preferChart]: 1,
@@ -216,6 +241,11 @@ const GO_OUT_PRESETS: Record<
       [H.dropToImpulseCatch]: 1.5,
       // Module Zeta: high coordination — Commander actively favors the squad trail.
       [H.squadCoordination]: 0.8,
+      [H.handExchangeGiveback]: 2,
+      [H.spoolStrategy]: 1.2,
+      [H.hotPotatoPass]: 1.5,
+      [H.salamanderSurge]: 1.5,
+      [H.trailMomentum]: 1.8,
     },
     goOutTuning: {
       blockLeaderHandSize: 3,
@@ -395,7 +425,8 @@ export function getWarpSkillProfile(
   level: WarpSkillLevel,
   objective: GameObjective = 'points',
   playerCount?: number,
-  tableRole?: WarpTableRole
+  tableRole?: WarpTableRole,
+  modules?: GameModules
 ): WarpSkillProfile {
   const presets =
     objective === 'go-out'
@@ -411,21 +442,19 @@ export function getWarpSkillProfile(
     goOutTuning: base.goOutTuning ? { ...base.goOutTuning } : undefined,
   };
   
-  if (objective !== 'go-out' || playerCount === undefined) {
-    return cloned;
-  }
-  return applyGoOutTableSize(cloned, level, playerCount, tableRole);
+  const sized =
+    objective !== 'go-out' || playerCount === undefined
+      ? cloned
+      : applyGoOutTableSize(cloned, level, playerCount, tableRole);
+
+  return modules ? augmentSkillProfileForModules(sized, modules) : sized;
 }
 
 /**
- * Enable the opt-in module strategy heuristics that are dormant in the base
- * commander preset, so advisor ratings and reasons reflect the modules actually
- * in play. Advisor-only — this never touches the AI-play presets used for
- * calibration / TEI. Each module heuristic is itself gated (it returns 0 when
- * its module is off or the round parity does not apply), so enabling them here
- * is inert for sectors that do not run the module.
+ * Enable opt-in module strategy heuristics for play AI and advisor.
+ * Each heuristic is itself gated (returns 0 when its module is off).
  */
-function augmentAdvisorProfileForModules(
+export function augmentSkillProfileForModules(
   profile: WarpSkillProfile,
   modules: GameModules
 ): WarpSkillProfile {
@@ -440,21 +469,32 @@ function augmentAdvisorProfileForModules(
 
   if (modules.temporalInversion.enabled) {
     enable(H.temporalInversion, 2);
+    enable(H.handExchangeGiveback, 2);
   }
   if (modules.longestTrail.enabled) {
     enable(H.longestTrailBonus, 1.2);
+    enable(H.trailMomentum, 1.5);
   }
   if (modules.warpDriveSpool.enabled) {
     enable(H.spoolStrategy, 1);
+    enable(H.hotPotatoPass, 1.2);
   }
   if (modules.doubleDown.enabled) {
     enable(H.doubleDownTiming, 1);
   }
   if (modules.salamanderPenalty.enabled) {
     enable(H.salamanderDump, 2);
+    enable(H.salamanderSurge, 1.5);
   }
 
   return { ...profile, enabled, weights };
+}
+
+function augmentAdvisorProfileForModules(
+  profile: WarpSkillProfile,
+  modules: GameModules
+): WarpSkillProfile {
+  return augmentSkillProfileForModules(profile, modules);
 }
 
 /**

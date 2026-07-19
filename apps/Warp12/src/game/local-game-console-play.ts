@@ -74,7 +74,9 @@ export function suggestConsoleHumanAction(
     skill: getWarpSkillProfile(
       'ensign',
       state.objective,
-      observation.captains.length
+      observation.captains.length,
+      undefined,
+      state.modules
     ),
     objective: state.objective,
   }).decide(observation);

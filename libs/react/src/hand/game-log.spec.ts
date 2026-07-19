@@ -1267,4 +1267,426 @@ describe('game-log', () => {
       );
     });
   });
+
+  it('logs spool abort retrieve — unfinished double, no Red Alert', () => {
+    const line = formatGameLogLine(
+      {
+        at: '2026-06-28T21:02:00.000Z',
+        kind: 'SPOOL_WARP_DRIVE',
+        captainId: 'armstrong',
+        route: { kind: 'warp-trail', trailCaptainId: 'armstrong' },
+        effects: ['spool-abort-retrieve'],
+        spoolDetails: {
+          tilesPlayed: 3,
+          tilesToHand: 2,
+          abortedUnfinishedDouble: true,
+        },
+      },
+      names,
+      formatOptions
+    );
+    expect(line).toBe(
+      '02:00 - Armstrong engaged warp drive on their own Trail (played 3 tiles), retrieving an unfinished double to hand — no Red Alert'
+    );
+  });
+
+  it('logs spool mismatch with public tiles-to-hand count', () => {
+    const line = formatGameLogLine(
+      {
+        at: '2026-06-28T21:02:05.000Z',
+        kind: 'SPOOL_WARP_DRIVE',
+        captainId: 'armstrong',
+        route: { kind: 'warp-trail', trailCaptainId: 'armstrong' },
+        effects: [],
+        spoolDetails: {
+          tilesPlayed: 2,
+          tilesToHand: 1,
+        },
+      },
+      names,
+      formatOptions
+    );
+    expect(line).toBe(
+      '02:05 - Armstrong engaged warp drive on their own Trail (played 2 tiles, drew 1 to hand)'
+    );
+  });
+
+  it('builds spool abort entry from engine spoolAbortRetrieve pulse', () => {
+    const table = createInitialTable(['a', 'b'], 12, 'a');
+    const before = makeGame(
+      makeRound(['a', 'b'], {
+        activePlayerId: 'a',
+        hands: {
+          a: [T(5, 4)],
+          b: [T(3, 2)],
+        },
+        // Matching double then mismatch cover → abort retrieve
+        unchartedSectors: [T(12, 12), T(8, 7)],
+        table: {
+          ...table,
+          warpTrails: {
+            ...table.warpTrails,
+            a: {
+              ...table.warpTrails.a,
+              tiles: [],
+            },
+          },
+        },
+      }),
+      { modules: resolveModules({ warpDriveSpool: true }) }
+    );
+
+    const action = {
+      type: 'SPOOL_WARP_DRIVE' as const,
+      playerId: 'a',
+      route: { kind: 'warp-trail' as const, playerId: 'a' },
+    };
+    const result = applyAction(before, action);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.round?.spoolAbortRetrieve).toBe(true);
+    expect(result.state.round?.table.redAlert?.active).toBeFalsy();
+
+    const entry = buildGameLogEntry(before, result.state, action);
+    expect(entry?.effects).toContain('spool-abort-retrieve');
+    expect(entry?.spoolDetails?.abortedUnfinishedDouble).toBe(true);
+    expect(entry?.spoolDetails?.tilesPlayed).toBe(0);
+    expect(entry?.spoolDetails?.tilesToHand).toBe(2); // 12-12 + 8-7
+  });
+
+  it('logs Hand Exchange open on chart without revealing tiles', () => {
+    const base = makeRound(['a', 'b', 'c'], {
+      spacedockValue: 12,
+      activePlayerId: 'a',
+    });
+    const double = T(5, 5);
+    const before = makeGame(
+      makeRound(['a', 'b', 'c'], {
+        spacedockValue: 12,
+        activePlayerId: 'a',
+        hands: {
+          a: [double, T(1, 2), T(2, 3)],
+          b: [T(3, 4), T(6, 7), T(8, 9)],
+          c: [T(0, 1)],
+        },
+        table: {
+          ...base.table,
+          warpTrails: {
+            ...base.table.warpTrails,
+            a: {
+              ...base.table.warpTrails.a!,
+              tiles: [placed(T(12, 5), 0, 5)],
+              distressBeacon: { active: false },
+            },
+          },
+        },
+      }),
+      {
+        objective: 'go-out',
+        modules: resolveModules({ temporalInversion: true }),
+        captains: [
+          { id: 'a', displayName: 'A', pointsScore: 0 },
+          { id: 'b', displayName: 'B', pointsScore: 0 },
+          { id: 'c', displayName: 'C', pointsScore: 0 },
+        ],
+      }
+    );
+
+    const action = {
+      type: 'CHART_COORDINATE' as const,
+      playerId: 'a',
+      coordinate: double,
+      route: { kind: 'warp-trail' as const, playerId: 'a' },
+    };
+    const chart = applyAction(before, action);
+    expect(chart.ok).toBe(true);
+    if (!chart.ok) return;
+
+    const entry = buildGameLogEntry(before, chart.state, action);
+    expect(entry?.effects).toContain('hand-exchange-opened');
+    expect(entry?.handExchange).toEqual({
+      largerCaptainId: 'b',
+      smallerCaptainId: 'c',
+    });
+    expect(entry?.coordinate).toEqual(double);
+    const line = formatGameLogLine(
+      {
+        ...entry!,
+        at: '2026-06-28T21:03:00.000Z',
+        captainId: 'armstrong',
+        handExchange: {
+          largerCaptainId: 'lovell',
+          smallerCaptainId: 'earhart',
+        },
+      },
+      names,
+      formatOptions
+    );
+    expect(line).toContain('Hand Exchange! Lovell takes from Earhart');
+    expect(line).not.toMatch(/\btakes 0-1\b|\bgive\b/i);
+  });
+
+  it('logs Hand Exchange give-back without revealing the coordinate', () => {
+    const line = formatGameLogLine(
+      {
+        at: '2026-06-28T21:03:10.000Z',
+        kind: 'RESOLVE_HAND_EXCHANGE',
+        captainId: 'lovell',
+        targetCaptainId: 'earhart',
+        effects: [],
+        handExchange: {
+          largerCaptainId: 'lovell',
+          smallerCaptainId: 'earhart',
+        },
+      },
+      names,
+      formatOptions
+    );
+    expect(line).toBe(
+      '03:10 - Lovell completed Hand Exchange with Earhart'
+    );
+  });
+
+  it('logs Desperation Dig strike vs miss without tile identities', () => {
+    expect(
+      formatGameLogLine(
+        {
+          at: '2026-06-28T21:04:00.000Z',
+          kind: 'DESPERATION_DIG',
+          captainId: 'armstrong',
+          effects: [],
+          desperationDig: { draws: 2, charted: true },
+        },
+        names,
+        formatOptions
+      )
+    ).toBe(
+      '04:00 - Armstrong dug Desperation Dig and charted a strike'
+    );
+    expect(
+      formatGameLogLine(
+        {
+          at: '2026-06-28T21:04:05.000Z',
+          kind: 'DESPERATION_DIG',
+          captainId: 'armstrong',
+          effects: [],
+          desperationDig: { draws: 3, charted: false },
+        },
+        names,
+        formatOptions
+      )
+    ).toBe('04:05 - Armstrong dug Desperation Dig — no strike');
+  });
+
+  it('builds Desperation Dig entry from engine state (public counts only)', () => {
+    const base = makeRound(['a', 'b'], { spacedockValue: 12, activePlayerId: 'a' });
+    const before = makeGame(
+      makeRound(['a', 'b'], {
+        spacedockValue: 12,
+        activePlayerId: 'a',
+        hands: { a: [T(9, 9)], b: [T(2, 2)] },
+        unchartedSectors: [T(0, 1), T(8, 4), T(3, 4)],
+        table: {
+          ...base.table,
+          warpTrails: {
+            ...base.table.warpTrails,
+            a: {
+              ...base.table.warpTrails.a!,
+              tiles: [placed(T(12, 8), 0, 8)],
+              distressBeacon: { active: false },
+            },
+          },
+        },
+      }),
+      {
+        objective: 'go-out',
+        modules: resolveModules({ temporalDebt: true }),
+        captains: [
+          { id: 'a', displayName: 'A', pointsScore: 0 },
+          { id: 'b', displayName: 'B', pointsScore: 0 },
+        ],
+      }
+    );
+
+    const action = { type: 'DESPERATION_DIG' as const, playerId: 'a' };
+    const result = applyAction(before, action);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const entry = buildGameLogEntry(before, result.state, action);
+    expect(entry?.kind).toBe('DESPERATION_DIG');
+    expect(entry?.desperationDig?.charted).toBe(true);
+    expect(entry?.desperationDig?.draws).toBeGreaterThanOrEqual(1);
+    // SECURITY: no stolen/drawn tile identity on the public log entry.
+    expect(entry?.coordinate).toBeUndefined();
+  });
+
+  it('formats Sensor Sweep, Salamander Surge, and Hot Potato streamer lines', () => {
+    expect(
+      formatGameLogLine(
+        {
+          at: '2026-06-28T21:05:00.000Z',
+          kind: 'SENSOR_SWEEP',
+          captainId: 'armstrong',
+          coordinate: { low: 6, high: 6 },
+          effects: [],
+        },
+        names,
+        formatOptions
+      )
+    ).toBe(
+      '05:00 - Armstrong sensor swept a Double 6-6 from the Sensor Grid'
+    );
+
+    expect(
+      formatGameLogLine(
+        {
+          at: '2026-06-28T21:05:10.000Z',
+          kind: 'CHART_COORDINATE',
+          captainId: 'armstrong',
+          coordinate: { low: 12, high: 12 },
+          route: { kind: 'warp-trail', trailCaptainId: 'armstrong' },
+          effects: [],
+          salamanderSurge: { opponentDraws: 2 },
+        },
+        names,
+        formatOptions
+      )
+    ).toContain('→ Salamander Surge! fleet draws 2');
+
+    expect(
+      formatGameLogLine(
+        {
+          at: '2026-06-28T21:05:20.000Z',
+          kind: 'CHART_COORDINATE',
+          captainId: 'lovell',
+          coordinate: { low: 5, high: 3 },
+          route: { kind: 'neutral-zone', neutralZone: true },
+          effects: [],
+          hotPotato: { taken: true },
+        },
+        names,
+        formatOptions
+      )
+    ).toContain('→ takes the Hot Potato');
+
+    expect(
+      formatGameLogLine(
+        {
+          at: '2026-06-28T21:05:30.000Z',
+          kind: 'PASS_TURN',
+          captainId: 'lovell',
+          effects: [],
+          hotPotato: { passDraws: 2 },
+        },
+        names,
+        formatOptions
+      )
+    ).toBe(
+      '05:30 - Lovell passed turn while holding the Hot Potato — draws 2'
+    );
+
+    expect(
+      formatGameLogLine(
+        {
+          at: '2026-06-28T21:05:40.000Z',
+          kind: 'PASS_TURN',
+          captainId: 'earhart',
+          effects: [],
+          hotPotato: { passPenalty: true },
+        },
+        names,
+        formatOptions
+      )
+    ).toBe(
+      '05:40 - Earhart passed turn while holding the Hot Potato (+5)'
+    );
+  });
+
+  it('labels Module Kappa as Hand Exchange under go-out', () => {
+    const line = formatGameLogLine(
+      buildModuleLoadoutEntry(
+        resolveModules({ temporalInversion: true }),
+        2,
+        '2026-06-28T21:00:00.000Z',
+        'go-out'
+      ),
+      names,
+      formatOptions
+    );
+    expect(line).toBe('00:00 - Modules · Module Kappa · Hand Exchange');
+  });
+
+  it('logs Hot Potato take on Neutral Zone chart', () => {
+    const before = makeGame(
+      makeRound(['a', 'b'], {
+        spacedockValue: 12,
+        activePlayerId: 'a',
+        hands: { a: [T(5, 3)], b: [T(2, 2)] },
+      }),
+      {
+        modules: resolveModules({ warpDriveSpool: true }),
+        captains: [
+          { id: 'a', displayName: 'A', pointsScore: 0 },
+          { id: 'b', displayName: 'B', pointsScore: 0 },
+        ],
+      }
+    );
+
+    const action = {
+      type: 'CHART_COORDINATE' as const,
+      playerId: 'a',
+      coordinate: T(5, 3),
+      route: { kind: 'neutral-zone' as const },
+    };
+    // Detection is route + module gated (engine applies the marker transfer).
+    const entry = buildGameLogEntry(before, before, action);
+    expect(entry?.hotPotato?.taken).toBe(true);
+    expect(
+      formatGameLogLine(entry!, { a: 'Armstrong', b: 'Lovell' }, formatOptions)
+    ).toContain('takes the Hot Potato');
+  });
+
+  it('logs Hot Potato go-out pass draws from engine state', () => {
+    const baseTable = makeRound(['a', 'b'], { spacedockValue: 12 }).table;
+    const before = makeGame(
+      makeRound(['a', 'b'], {
+        spacedockValue: 12,
+        activePlayerId: 'a',
+        hands: { a: [], b: [] },
+        unchartedSectors: [T(1, 1), T(2, 2), T(3, 3)],
+        hazardMarkerHolder: 'a',
+        hazardMarkerPassCount: 0,
+        drewThisTurn: true,
+        table: {
+          ...baseTable,
+          warpTrails: {
+            ...baseTable.warpTrails,
+            a: {
+              ...baseTable.warpTrails.a!,
+              tiles: [placed(T(12, 8), 0, 8)],
+              distressBeacon: { active: true },
+            },
+          },
+        },
+      }),
+      {
+        objective: 'go-out',
+        modules: resolveModules({ warpDriveSpool: true }),
+        captains: [
+          { id: 'a', displayName: 'A', pointsScore: 0 },
+          { id: 'b', displayName: 'B', pointsScore: 0 },
+        ],
+      }
+    );
+
+    const action = { type: 'PASS_TURN' as const, playerId: 'a' };
+    const result = applyAction(before, action);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const entry = buildGameLogEntry(before, result.state, action);
+    expect(entry?.hotPotato?.passDraws).toBe(2);
+    expect(entry?.coordinate).toBeUndefined();
+  });
 });

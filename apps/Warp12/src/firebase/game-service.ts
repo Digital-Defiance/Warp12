@@ -3,11 +3,14 @@ import {
   DEFAULT_GAME_OBJECTIVE,
   generateCoordinateSet,
   hasWarpedModules,
+  sanitizeModuleConfigForObjective,
   shuffleCoordinates,
   startGame,
   warpSetProfile,
   type GameAction,
   type GameObjective,
+  type GoOutOvertimePolicy,
+  type GoOutStructure,
   type HouseRulesConfig,
   type GameState,
   type WarpSkillLevel,
@@ -24,6 +27,7 @@ import {
 
 import { FIRESTORE_COLLECTIONS, getFirestoreDb } from './config.js';
 import { extractHands, mergeHandsIntoGame } from './serialize.js';
+import { stripUndefined } from './strip-undefined.js';
 import {
   isAiCaptain,
   isAiCaptainId,
@@ -105,6 +109,11 @@ export interface CreateLobbyOptions {
   objective?: GameObjective;
   maxPlayers?: number;
   campaignRounds?: number;
+  goOutStructure?: GoOutStructure;
+  goOutWinsToWin?: number;
+  goOutOvertime?: GoOutOvertimePolicy;
+  /** Index into fleet for the match's first-round starter (-1 = engine picks). */
+  matchStarterIndex?: number;
   maxPip?: number;
   modules?: OnlineLobbySettings['modules'];
   houseRules?: HouseRulesConfig;
@@ -132,7 +141,11 @@ export async function createLobby(
       ...(options.verified !== undefined ? { verified: options.verified } : {}),
     },
   ];
-  const modules = options.modules ?? {};
+  const objective = options.objective ?? DEFAULT_GAME_OBJECTIVE;
+  const modules = sanitizeModuleConfigForObjective(
+    options.modules ?? {},
+    objective
+  );
   const maxPip = options.maxPip ?? 12;
   // Warped modules (Epsilon/Kappa/Lambda) never rate — force casual.
   const rated =
@@ -145,15 +158,21 @@ export async function createLobby(
     hostId,
     createdAt: now,
     updatedAt: now,
-    objective: options.objective ?? DEFAULT_GAME_OBJECTIVE,
+    objective,
     campaignRounds: options.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS,
+    ...(options.goOutStructure ? { goOutStructure: options.goOutStructure } : {}),
+    ...(options.goOutWinsToWin != null ? { goOutWinsToWin: options.goOutWinsToWin } : {}),
+    ...(options.goOutOvertime ? { goOutOvertime: options.goOutOvertime } : {}),
+    ...(options.matchStarterIndex != null && options.matchStarterIndex >= 0
+      ? { matchStarterIndex: options.matchStarterIndex }
+      : {}),
     maxPip,
     rated,
     maxPlayers: clampOnlineMaxPlayers(
       options.maxPlayers ?? ONLINE_MAX_PLAYERS,
       warpSetProfile(maxPip).maxPlayers
     ),
-    modules: { ...modules },
+    modules: stripUndefined({ ...modules }),
     houseRules: options.houseRules,
     ...(options.charterId
       ? {
@@ -467,7 +486,12 @@ export async function updateLobbySettings(
     }
 
     const nextMaxPip = settings.maxPip ?? data.maxPip ?? 12;
-    const nextModules = settings.modules ?? data.modules;
+    const nextObjective = settings.objective ?? data.objective ?? 'points';
+    const modulesSource = settings.modules ?? data.modules;
+    const nextModules = sanitizeModuleConfigForObjective(
+      modulesSource,
+      nextObjective
+    );
     let nextRated: boolean | undefined =
       nextMaxPip !== 12
         ? false
@@ -486,9 +510,25 @@ export async function updateLobbySettings(
       ...(settings.campaignRounds !== undefined
         ? { campaignRounds: settings.campaignRounds }
         : {}),
+      ...(settings.goOutStructure !== undefined
+        ? { goOutStructure: settings.goOutStructure }
+        : {}),
+      ...(settings.goOutWinsToWin !== undefined
+        ? { goOutWinsToWin: settings.goOutWinsToWin }
+        : {}),
+      ...(settings.goOutOvertime !== undefined
+        ? { goOutOvertime: settings.goOutOvertime }
+        : {}),
+      ...(settings.matchStarterIndex !== undefined
+        ? settings.matchStarterIndex >= 0
+          ? { matchStarterIndex: settings.matchStarterIndex }
+          : { matchStarterIndex: deleteField() }
+        : {}),
       ...(settings.maxPip !== undefined ? { maxPip: settings.maxPip } : {}),
       ...(nextRated !== undefined ? { rated: nextRated } : {}),
-      ...(settings.modules !== undefined ? { modules: settings.modules } : {}),
+      ...(settings.modules !== undefined || nextModules !== modulesSource
+        ? { modules: stripUndefined(nextModules) }
+        : {}),
       ...(settings.houseRules !== undefined
         ? { houseRules: settings.houseRules }
         : {}),
@@ -544,20 +584,35 @@ export async function launchOnlineGame(
     const maxPip = lobby.maxPip ?? 12;
     const shuffled = shuffleCoordinates(generateCoordinateSet(maxPip));
 
+    const captainList = lobby.captains.map((c) => ({
+      id: c.id,
+      displayName: c.displayName,
+    }));
+    const matchStarterIndex = lobby.matchStarterIndex;
+    const roundStarterId =
+      matchStarterIndex != null &&
+      matchStarterIndex >= 0 &&
+      matchStarterIndex < captainList.length
+        ? captainList[matchStarterIndex]?.id
+        : hostId;
+
     const game = startGame(
       {
         id: gameId,
-        captains: lobby.captains.map((c) => ({
-          id: c.id,
-          displayName: c.displayName,
-        })),
+        captains: captainList,
         modules: lobby.modules ?? {},
         houseRules: lobby.houseRules,
         objective: lobby.objective ?? 'points',
         campaignRounds: lobby.campaignRounds ?? DEFAULT_CAMPAIGN_ROUNDS,
+        ...(lobby.goOutStructure ? { goOutStructure: lobby.goOutStructure } : {}),
+        ...(lobby.goOutWinsToWin != null ? { goOutWinsToWin: lobby.goOutWinsToWin } : {}),
+        ...(lobby.goOutOvertime ? { goOutOvertime: lobby.goOutOvertime } : {}),
+        ...(matchStarterIndex != null && matchStarterIndex >= 0
+          ? { matchStarterIndex }
+          : {}),
         maxPip,
       },
-      { shuffledCoordinates: shuffled, roundStarterId: hostId }
+      { shuffledCoordinates: shuffled, roundStarterId: roundStarterId ?? hostId }
     );
 
     const publicDoc = buildPublicDoc(game, {
@@ -602,10 +657,11 @@ export async function resetSectorToLobby(
       throw new Error('Only the host can reset the sector');
     }
 
-    const resetCaptains =
-      data.objective === 'go-out'
-        ? data.captains.map((c) => ({ ...c, pointsScore: 0 }))
-        : data.captains;
+    const resetCaptains = data.captains.map((c) => ({
+      ...c,
+      pointsScore: 0,
+      goOutWins: 0,
+    }));
 
     const now = new Date().toISOString();
     tx.update(gameRef(gameId), {
@@ -615,6 +671,8 @@ export async function resetSectorToLobby(
       captainIds: captainIds(resetCaptains),
       completedRounds: 0,
       flash: null,
+      goOutOvertimePending: deleteField(),
+      goOutInOvertime: deleteField(),
       updatedAt: now,
     });
 

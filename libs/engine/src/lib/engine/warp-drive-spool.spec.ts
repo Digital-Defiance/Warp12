@@ -97,15 +97,16 @@ describe('Module Delta — Warp Drive Spooling', () => {
       expect(result.tilesPlayed).toHaveLength(4); // 11-9, 9-9, 9-7, 7-5
       expect(result.tilesSentToHand).toHaveLength(1); // 2-11
       expect(result.redAlertActive).toBe(false);
+      expect(result.abortedUnfinishedDouble).toBe(false);
     });
 
-    it('fails when double cannot be covered', () => {
+    it('retrieves uncovered double when cover mismatches (no Red Alert)', () => {
       const uncharted = [
         normalizeCoordinate(11, 9),
-        normalizeCoordinate(9, 9),  // DOUBLE - Red Alert
+        normalizeCoordinate(9, 9),  // DOUBLE
         normalizeCoordinate(9, 3),  // covers → endpoint 3
         normalizeCoordinate(3, 3),  // ANOTHER DOUBLE
-        normalizeCoordinate(11, 8),  // MISMATCH - fails to cover (neither 11 nor 8 matches 3)
+        normalizeCoordinate(11, 8),  // MISMATCH — fails to cover
       ];
 
       const result = executeWarpDriveSpool(
@@ -118,16 +119,18 @@ describe('Module Delta — Warp Drive Spooling', () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.tilesPlayed).toHaveLength(4); // 11-9, 9-9, 9-3, 3-3
-      expect(result.tilesSentToHand).toHaveLength(1); // 8-11 (failed cover)
-      expect(result.redAlertActive).toBe(true); // Double 3-3 uncovered
-      expect(result.finalEndpoint).toBe(null);
+      // 11-9, 9-9, 9-3 charted; 3-3 retrieved with failed cover
+      expect(result.tilesPlayed).toHaveLength(3);
+      expect(result.tilesSentToHand).toHaveLength(2); // 3-3 + 8-11
+      expect(result.redAlertActive).toBe(false);
+      expect(result.abortedUnfinishedDouble).toBe(true);
+      expect(result.finalEndpoint).toBe(3);
     });
 
-    it('fails when hitting double at end of pile', () => {
+    it('retrieves double when pile empties before cover (no Red Alert)', () => {
       const uncharted = [
         normalizeCoordinate(11, 9),
-        normalizeCoordinate(9, 9),  // DOUBLE - Red Alert, no more tiles
+        normalizeCoordinate(9, 9),  // DOUBLE - no more tiles
       ];
 
       const result = executeWarpDriveSpool(
@@ -140,10 +143,11 @@ describe('Module Delta — Warp Drive Spooling', () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.tilesPlayed).toHaveLength(2);
-      expect(result.tilesSentToHand).toHaveLength(0);
-      expect(result.redAlertActive).toBe(true);
-      expect(result.finalEndpoint).toBe(null);
+      expect(result.tilesPlayed).toHaveLength(1); // 11-9 only
+      expect(result.tilesSentToHand).toHaveLength(1); // 9-9 retrieved
+      expect(result.redAlertActive).toBe(false);
+      expect(result.abortedUnfinishedDouble).toBe(true);
+      expect(result.finalEndpoint).toBe(9);
     });
   });
 
@@ -178,9 +182,10 @@ describe('Module Delta — Warp Drive Spooling', () => {
       expect(result.tilesSentToHand).toHaveLength(1); // 8-11
       expect(result.fractureActive).toBe(false);
       expect(result.redAlertActive).toBe(false);
+      expect(result.abortedUnfinishedDouble).toBe(false);
     });
 
-    it('fails when fracture cannot be satisfied', () => {
+    it('retrieves double and failed stabilizer when Fracture cannot finish', () => {
       const modules = {
         ...DEFAULT_MODULES,
         subspaceFracture: { enabled: true, scope: 'own-trail' as const },
@@ -194,8 +199,8 @@ describe('Module Delta — Warp Drive Spooling', () => {
         normalizeCoordinate(9, 2),  // stabilizer 3 → endpoint 2
         normalizeCoordinate(2, 2),  // ANOTHER FRACTURE
         normalizeCoordinate(2, 1),  // stabilizer 1
-        normalizeCoordinate(2, 3),  // stabilizer 2  
-        normalizeCoordinate(11, 8),  // MISMATCH on 3rd stabilizer attempt (neither 11 nor 8 matches 2)
+        normalizeCoordinate(2, 3),  // stabilizer 2
+        normalizeCoordinate(11, 8),  // MISMATCH on 3rd stabilizer
       ];
 
       const result = executeWarpDriveSpool(
@@ -208,10 +213,15 @@ describe('Module Delta — Warp Drive Spooling', () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.tilesPlayed).toHaveLength(8); // Up to 2-2 + 2 stabilizers
-      expect(result.tilesSentToHand).toHaveLength(1); // Failed 3rd stabilizer
-      expect(result.fractureActive).toBe(true);
-      expect(result.fractureStabilizersPlaced).toBe(2);
+      // Through first fracture + continue 3-1… wait sequence:
+      // 11-9, 9-9, three stabs, then 2-2 starts second fracture, 2-1, 2-3 charted,
+      // then 11-8 fails → retrieve 2-2 + two stabs + failed 11-8
+      expect(result.tilesPlayed).toHaveLength(5); // 11-9 + first fracture (9-9+3 stabs) = 5
+      expect(result.tilesSentToHand).toHaveLength(4); // 2-2, 2-1, 2-3, 8-11
+      expect(result.fractureActive).toBe(false);
+      expect(result.redAlertActive).toBe(false);
+      expect(result.abortedUnfinishedDouble).toBe(true);
+      expect(result.finalEndpoint).toBe(2);
     });
   });
 

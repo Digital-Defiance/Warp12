@@ -152,3 +152,41 @@ describe('redealLocalRoundWithSeed', () => {
     expect(a.round!.hands['you']).toEqual(b.round!.hands['you']);
   });
 });
+
+describe('createLocalGame go-out campaign + starter', () => {
+  it('honors matchStarterIndex for an AI seat', () => {
+    const config = {
+      ...defaultLocalGameConfig('You', 3),
+      objective: 'go-out' as const,
+      goOutStructure: 'first-to' as const,
+      goOutWinsToWin: 2,
+      goOutOvertime: 'force' as const,
+      matchStarterIndex: 1,
+    };
+    const game = createLocalGame(config, 55);
+    expect(game.objective).toBe('go-out');
+    expect(game.goOutStructure).toBe('first-to');
+    expect(game.goOutWinsToWin).toBe(2);
+    expect(game.matchStarterIndex).toBe(1);
+    expect(game.round?.activePlayerId).toBe(game.captains[1]!.id);
+    expect(game.round?.table.spacedock.placedBy).toBe(game.captains[1]!.id);
+    expect(game.captains.every((c) => (c.goOutWins ?? 0) === 0)).toBe(true);
+  });
+
+  it('starts a fixed-rounds go-out campaign with Spacedock maxPip', () => {
+    const config = {
+      ...defaultLocalGameConfig('You', 2),
+      objective: 'go-out' as const,
+      goOutStructure: 'fixed-rounds' as const,
+      goOutOvertime: 'offer' as const,
+      campaignRounds: 3,
+      matchStarterIndex: 0,
+    };
+    const game = createLocalGame(config, 7);
+    expect(game.goOutStructure).toBe('fixed-rounds');
+    expect(game.goOutOvertime).toBe('offer');
+    expect(game.campaignRounds).toBe(3);
+    expect(game.round?.spacedockValue).toBe(12);
+    expect(game.phase).toBe('active');
+  });
+});

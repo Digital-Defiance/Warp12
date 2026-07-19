@@ -170,7 +170,8 @@ export function CampaignCompleteOverlay({
     ? coachingMessageForTeiDelta(
         matchReport.teiDelta ?? null,
         matchReport.rated,
-        matchReport.won
+        matchReport.won,
+        { advisorUsed: matchReport.advisorUsed }
       )
     : null;
 

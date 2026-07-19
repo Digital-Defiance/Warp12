@@ -200,7 +200,8 @@ describe('Setup — Spacedock descends 12-12 → 0-0 over 13 rounds [W]', () => 
     expect(spacedockValueForRound(1)).toBe(12);
     expect(spacedockValueForRound(2)).toBe(11);
     expect(spacedockValueForRound(13)).toBe(0);
-    expect(() => spacedockValueForRound(14)).toThrow();
+    // Go-out overtime (and any round past the natural ladder) wraps to maxPip.
+    expect(spacedockValueForRound(14)).toBe(12);
   });
 });
 

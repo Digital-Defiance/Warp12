@@ -1,0 +1,28 @@
+{
+  "warpFactor": 12,
+  "playerCount": 4,
+  "moduleConfig": "eta",
+  "moduleLabel": "Module Eta (Temporal Debt)",
+  "zetaOmitted": false,
+  "games": 500,
+  "objective": "points",
+  "summary": {
+    "games": 500,
+    "playerCount": 4,
+    "maxPip": 12,
+    "objective": "points",
+    "avgLegalMovesPerTurn": 2.2587302098818105,
+    "avgUniqueTrainsPerTurn": 1.0582978792769273,
+    "avgConstrainedTileFraction": 0.638969764786017,
+    "avgUniquePipsInHand": 7.7097585519791,
+    "avgMaxPipCluster": 2.872489697290196,
+    "avgHandEntropy": 2.5908903337057625,
+    "avgMoveValueSpread": 3.401135225585279,
+    "avgNearOptimalFraction": 0.7389387157419015,
+    "avgOwnTrailPlayRate": 0,
+    "avgShieldsDownRate": 0.056336168534160964
+  },
+  "skillIndicators": 3,
+  "timestamp": "2026-07-19T01:32:03.687Z",
+  "durationSeconds": 31.076
+}

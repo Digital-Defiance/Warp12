@@ -19,7 +19,16 @@ import type { Captain, PlayerId } from '../types/player.js';
 import type { Squadron } from '../types/squadrons.js';
 import { formSquadrons } from '../engine/squadrons.js';
 import { DEFAULT_GAME_OBJECTIVE } from '../types/objective.js';
-import { resolveModules } from '../types/modules.js';
+import {
+  clampGoOutWinsToWin,
+  DEFAULT_GO_OUT_WINS_TO_WIN,
+  resolveGoOutOvertime,
+  resolveGoOutStructure,
+} from '../types/go-out-campaign.js';
+import {
+  resolveModules,
+  sanitizeModuleConfigForObjective,
+} from '../types/modules.js';
 import { resolveHouseRules } from '../types/house-rules.js';
 import { applySensorGridToRound } from '../engine/sensor-grid.js';
 import {
@@ -28,29 +37,61 @@ import {
   initializeDraftState,
 } from '../engine/drafting.js';
 
+export function clampMatchStarterIndex(
+  index: number,
+  captainCount: number
+): number {
+  if (captainCount <= 0) {
+    return 0;
+  }
+  const rounded = Math.round(index);
+  if (!Number.isFinite(rounded)) {
+    return 0;
+  }
+  return ((rounded % captainCount) + captainCount) % captainCount;
+}
+
 export function createCaptain(
   id: string,
   displayName: string
 ): Captain {
-  return { id, displayName, pointsScore: 0 };
+  return { id, displayName, pointsScore: 0, goOutWins: 0 };
 }
 
 export function createLobbyState(input: CreateGameInput): GameState {
   const maxPip = normalizeWarpFactor(input.maxPip ?? DOUBLE_TWELVE_MAX_PIPS);
+  const objective = input.objective ?? DEFAULT_GAME_OBJECTIVE;
+  const captainCount = input.captains.length;
+  const matchStarterIndex = clampMatchStarterIndex(
+    input.matchStarterIndex ?? 0,
+    captainCount
+  );
   return {
     id: input.id,
     phase: 'lobby',
     captains: input.captains.map((c) => createCaptain(c.id, c.displayName)),
     round: null,
     completedRounds: 0,
-    modules: resolveModules(input.modules),
+    modules: resolveModules(
+      sanitizeModuleConfigForObjective(input.modules, objective)
+    ),
     houseRules: resolveHouseRules(input.houseRules),
-    objective: input.objective ?? DEFAULT_GAME_OBJECTIVE,
+    objective,
     maxPip,
     campaignRounds: clampCampaignRounds(
       input.campaignRounds ?? defaultCampaignRounds(maxPip),
       maxPip
     ),
+    matchStarterIndex,
+    ...(objective === 'go-out'
+      ? {
+          goOutStructure: resolveGoOutStructure(input.goOutStructure),
+          goOutWinsToWin: clampGoOutWinsToWin(
+            input.goOutWinsToWin ?? DEFAULT_GO_OUT_WINS_TO_WIN
+          ),
+          goOutOvertime: resolveGoOutOvertime(input.goOutOvertime),
+        }
+      : {}),
   };
 }
 
@@ -65,15 +106,17 @@ export interface RoundDealResult {
   readonly maxPip: number;
 }
 
-/** Round starter rotates clockwise through turn order (standard multi-trail). */
+/** Round starter rotates clockwise from {@link matchStarterIndex}. */
 export function roundStarterForRound(
   turnOrder: readonly PlayerId[],
-  roundNumber: number
+  roundNumber: number,
+  matchStarterIndex = 0
 ): PlayerId {
   if (turnOrder.length === 0) {
     throw new RangeError('Turn order must include at least one captain.');
   }
-  return turnOrder[(roundNumber - 1) % turnOrder.length];
+  const start = clampMatchStarterIndex(matchStarterIndex, turnOrder.length);
+  return turnOrder[(start + roundNumber - 1) % turnOrder.length]!;
 }
 
 /**
@@ -388,7 +431,10 @@ export function createRoundState(input: DealRoundInput): RoundState {
 
 export interface StartGameInput {
   shuffledCoordinates: readonly Coordinate[];
-  /** Round-one starter; defaults to the first captain in turn order. */
+  /**
+   * Round-one starter override. When set, updates matchStarterIndex to that
+   * captain's seat. Prefer setting matchStarterIndex on CreateGameInput.
+   */
   roundStarterId?: PlayerId;
 }
 
@@ -426,6 +472,21 @@ export function startGame(
     };
   }
 
+  let matchStarterIndex = clampMatchStarterIndex(
+    lobby.matchStarterIndex ?? 0,
+    turnOrder.length
+  );
+  let roundStarterId = deal.roundStarterId;
+  if (roundStarterId) {
+    const idx = turnOrder.indexOf(roundStarterId);
+    if (idx >= 0) {
+      matchStarterIndex = idx;
+    }
+  } else {
+    roundStarterId = roundStarterForRound(turnOrder, 1, matchStarterIndex);
+  }
+  lobby = { ...lobby, matchStarterIndex };
+
   // Module Epsilon: Drafting
   if (lobby.modules.drafting.enabled) {
     const draftRound = createRoundStateWithDraft({
@@ -433,7 +494,7 @@ export function startGame(
       roundNumber: 1,
       captains: lobby.captains,
       turnOrder,
-      roundStarterId: deal.roundStarterId,
+      roundStarterId,
       maxPip: lobby.maxPip,
       largeFleetHandSize: lobby.houseRules.largeFleetHandSize,
       packSize: lobby.modules.drafting.packSize,
@@ -442,17 +503,14 @@ export function startGame(
 
     let roundWithModules = draftRound;
 
-    // Module Delta: Initialize hazard marker with round starter
     if (lobby.modules.warpDriveSpool.enabled) {
-      const starterId = deal.roundStarterId ?? roundStarterForRound(turnOrder, 1);
       roundWithModules = {
         ...roundWithModules,
-        hazardMarkerHolder: starterId,
+        hazardMarkerHolder: roundStarterId,
         hazardMarkerPassCount: 0,
       };
     }
 
-    // Module Eta: Initialize debt tokens for all captains
     if (lobby.modules.temporalDebt.enabled) {
       const debtTokens: Record<string, number> = {};
       for (const captain of lobby.captains) {
@@ -477,7 +535,7 @@ export function startGame(
     roundNumber: 1,
     captains: lobby.captains,
     turnOrder,
-    roundStarterId: deal.roundStarterId,
+    roundStarterId,
     largeFleetHandSize: lobby.houseRules.largeFleetHandSize,
     maxPip: lobby.maxPip,
   });
@@ -485,7 +543,6 @@ export function startGame(
   const baseRound = createRoundStateFromDeal(roundDeal, squadrons);
   let roundWithModules = applySensorGridToRound(baseRound, lobby.modules);
 
-  // Module Delta: Initialize hazard marker with round starter
   if (lobby.modules.warpDriveSpool.enabled) {
     roundWithModules = {
       ...roundWithModules,
@@ -494,7 +551,6 @@ export function startGame(
     };
   }
 
-  // Module Eta: Initialize debt tokens for all captains
   if (lobby.modules.temporalDebt.enabled) {
     const debtTokens: Record<string, number> = {};
     for (const captain of lobby.captains) {

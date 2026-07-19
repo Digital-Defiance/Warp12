@@ -14,12 +14,17 @@
  *      next visit with a cross-type fallback chain ({@link resolveLastUsedPreset}).
  */
 import {
+  DEFAULT_GO_OUT_OVERTIME,
+  DEFAULT_GO_OUT_STRUCTURE,
+  DEFAULT_GO_OUT_WINS_TO_WIN,
   DEFAULT_SUBSPACE_FRACTURE_SCOPE,
   defaultCampaignRounds,
   normalizeWarpFactor,
   resolveHouseRules,
   type GameModuleConfig,
   type GameObjective,
+  type GoOutOvertimePolicy,
+  type GoOutStructure,
   type HouseRulesConfig,
   type WarpFactor,
   type WarpSkillLevel,
@@ -63,6 +68,14 @@ export interface WarpSetupPreset {
   readonly objective: GameObjective;
   /** Points campaigns only; carried through even for go-out so a switch back keeps it. */
   readonly campaignRounds: number;
+  /** Go-out sector structure. */
+  readonly goOutStructure?: GoOutStructure;
+  /** Go-out first-to wins. */
+  readonly goOutWinsToWin?: number;
+  /** Go-out fixed-rounds overtime policy. */
+  readonly goOutOvertime?: GoOutOvertimePolicy;
+  /** Index into fleet for the match's first-round starter (-1 = engine picks). */
+  readonly matchStarterIndex?: number;
   /** Total captains at the table (maps to online maxPlayers / local playerCount). */
   readonly fleetSize: number;
   readonly modules: GameModuleConfig;
@@ -103,6 +116,10 @@ export interface LocalSetupSnapshot {
   playerCount: number;
   objective: GameObjective;
   campaignRounds: number;
+  goOutStructure: GoOutStructure;
+  goOutWinsToWin: number;
+  goOutOvertime: GoOutOvertimePolicy;
+  matchStarterIndex: number;
   modules: GameModuleConfig;
   houseRules: HouseRulesConfig;
   aiTiers: Record<string, WarpSkillLevel>;
@@ -116,6 +133,10 @@ export interface PassAndPlaySetupSnapshot {
   humanNames: string[];
   objective: GameObjective;
   campaignRounds: number;
+  goOutStructure: GoOutStructure;
+  goOutWinsToWin: number;
+  goOutOvertime: GoOutOvertimePolicy;
+  matchStarterIndex: number;
   modules: GameModuleConfig;
   houseRules: HouseRulesConfig;
   aiTiers: Record<string, WarpSkillLevel>;
@@ -222,6 +243,10 @@ export function localSnapshotToPreset(
     maxPip: normalizeWarpFactor(maxPip),
     objective: snapshot.objective,
     campaignRounds: snapshot.campaignRounds,
+    goOutStructure: snapshot.goOutStructure,
+    goOutWinsToWin: snapshot.goOutWinsToWin,
+    goOutOvertime: snapshot.goOutOvertime,
+    matchStarterIndex: snapshot.matchStarterIndex,
     fleetSize: snapshot.playerCount,
     modules: normalizeModuleConfig(snapshot.modules),
     houseRules: normalizeHouseRulesConfig(snapshot.houseRules),
@@ -243,6 +268,10 @@ export function presetToLocalSnapshot(
     playerCount: clampLocalPlayerCount(base.fleetSize, factor),
     objective: base.objective,
     campaignRounds: resolveCampaignRounds(base.campaignRounds, factor),
+    goOutStructure: resolveGoOutStructurePreset(base.goOutStructure),
+    goOutWinsToWin: resolveGoOutWinsToWin(base.goOutWinsToWin),
+    goOutOvertime: resolveGoOutOvertimePreset(base.goOutOvertime),
+    matchStarterIndex: resolveMatchStarterIndex(base.matchStarterIndex),
     modules: normalizeModuleConfig(base.modules),
     houseRules: normalizeHouseRulesConfig(base.houseRules),
     aiTiers: { ...(base.aiTiers ?? {}) },
@@ -265,6 +294,10 @@ export function passAndPlaySnapshotToPreset(
     maxPip: normalizeWarpFactor(maxPip),
     objective: snapshot.objective,
     campaignRounds: snapshot.campaignRounds,
+    goOutStructure: snapshot.goOutStructure,
+    goOutWinsToWin: snapshot.goOutWinsToWin,
+    goOutOvertime: snapshot.goOutOvertime,
+    matchStarterIndex: snapshot.matchStarterIndex,
     fleetSize: snapshot.playerCount,
     modules: normalizeModuleConfig(snapshot.modules),
     houseRules: normalizeHouseRulesConfig(snapshot.houseRules),
@@ -291,6 +324,10 @@ export function presetToPassAndPlaySnapshot(
     humanNames: buildHumanNames(base.humanNames, playerCount),
     objective: base.objective,
     campaignRounds: resolveCampaignRounds(base.campaignRounds, factor),
+    goOutStructure: resolveGoOutStructurePreset(base.goOutStructure),
+    goOutWinsToWin: resolveGoOutWinsToWin(base.goOutWinsToWin),
+    goOutOvertime: resolveGoOutOvertimePreset(base.goOutOvertime),
+    matchStarterIndex: resolveMatchStarterIndex(base.matchStarterIndex),
     modules: normalizeModuleConfig(base.modules),
     houseRules: normalizeHouseRulesConfig(base.houseRules),
     aiTiers: { ...(base.aiTiers ?? {}) },
@@ -312,6 +349,10 @@ export function createLobbyOptionsToPreset(
     maxPip: factor,
     objective: options.objective ?? WARP12_OFFICIAL_OBJECTIVE,
     campaignRounds: options.campaignRounds ?? defaultCampaignRounds(factor),
+    goOutStructure: resolveGoOutStructurePreset(options.goOutStructure),
+    goOutWinsToWin: resolveGoOutWinsToWin(options.goOutWinsToWin),
+    goOutOvertime: resolveGoOutOvertimePreset(options.goOutOvertime),
+    matchStarterIndex: resolveMatchStarterIndex(options.matchStarterIndex),
     fleetSize: options.maxPlayers ?? 4,
     modules: normalizeModuleConfig(options.modules ?? WARP12_OFFICIAL_MODULES),
     houseRules: normalizeHouseRulesConfig(
@@ -339,6 +380,10 @@ export function presetToCreateLobbyOptions(
     ...base,
     objective: source.objective,
     campaignRounds: resolveCampaignRounds(source.campaignRounds, factor),
+    goOutStructure: resolveGoOutStructurePreset(source.goOutStructure),
+    goOutWinsToWin: resolveGoOutWinsToWin(source.goOutWinsToWin),
+    goOutOvertime: resolveGoOutOvertimePreset(source.goOutOvertime),
+    matchStarterIndex: resolveMatchStarterIndex(source.matchStarterIndex),
     maxPlayers: source.fleetSize,
     maxPip: factor,
     modules: normalizeModuleConfig(source.modules),
@@ -494,6 +539,18 @@ export function sanitizeSetupPreset(raw: unknown): WarpSetupPreset | null {
   if (isWarpFactorLike(raw.maxPip)) {
     preset.maxPip = normalizeWarpFactor(raw.maxPip);
   }
+  if (raw.goOutStructure === 'sudden-death' || raw.goOutStructure === 'fixed-rounds' || raw.goOutStructure === 'first-to') {
+    preset.goOutStructure = raw.goOutStructure;
+  }
+  if (typeof raw.goOutWinsToWin === 'number' && Number.isFinite(raw.goOutWinsToWin)) {
+    preset.goOutWinsToWin = Math.max(1, Math.floor(raw.goOutWinsToWin));
+  }
+  if (raw.goOutOvertime === 'force' || raw.goOutOvertime === 'offer') {
+    preset.goOutOvertime = raw.goOutOvertime;
+  }
+  if (typeof raw.matchStarterIndex === 'number' && Number.isFinite(raw.matchStarterIndex)) {
+    preset.matchStarterIndex = Math.floor(raw.matchStarterIndex);
+  }
   if (typeof raw.rated === 'boolean') {
     preset.rated = raw.rated;
   }
@@ -576,6 +633,32 @@ function resolveCampaignRounds(value: number, maxPip: number): number {
   return value > 0 && Number.isFinite(value)
     ? Math.floor(value)
     : defaultCampaignRounds(maxPip);
+}
+
+function resolveGoOutStructurePreset(
+  value: GoOutStructure | undefined
+): GoOutStructure {
+  return value === 'sudden-death' || value === 'fixed-rounds' || value === 'first-to'
+    ? value
+    : DEFAULT_GO_OUT_STRUCTURE;
+}
+
+function resolveGoOutOvertimePreset(
+  value: GoOutOvertimePolicy | undefined
+): GoOutOvertimePolicy {
+  return value === 'offer' ? 'offer' : DEFAULT_GO_OUT_OVERTIME;
+}
+
+function resolveGoOutWinsToWin(value: number | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 1
+    ? Math.floor(value)
+    : DEFAULT_GO_OUT_WINS_TO_WIN;
+}
+
+function resolveMatchStarterIndex(value: number | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? Math.floor(value)
+    : -1;
 }
 
 function resolveFractureScope(modules: GameModuleConfig) {

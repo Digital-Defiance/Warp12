@@ -1,0 +1,28 @@
+{
+  "warpFactor": 9,
+  "playerCount": 3,
+  "moduleConfig": "all",
+  "moduleLabel": "All Modules (stress test) (Zeta omitted — fleet too small/uneven)",
+  "zetaOmitted": true,
+  "games": 500,
+  "objective": "points",
+  "summary": {
+    "games": 500,
+    "playerCount": 3,
+    "maxPip": 9,
+    "objective": "points",
+    "avgLegalMovesPerTurn": 1.957569745133344,
+    "avgUniqueTrainsPerTurn": 0.9182136764640726,
+    "avgConstrainedTileFraction": 0.5818434049451996,
+    "avgUniquePipsInHand": 6.348720442557551,
+    "avgMaxPipCluster": 2.7391728059742095,
+    "avgHandEntropy": 2.3417933950805536,
+    "avgMoveValueSpread": 2.0724876574785682,
+    "avgNearOptimalFraction": 0.7921266842443181,
+    "avgOwnTrailPlayRate": 0,
+    "avgShieldsDownRate": 0.08243120045201971
+  },
+  "skillIndicators": 3,
+  "timestamp": "2026-07-19T01:30:13.950Z",
+  "durationSeconds": 6.549
+}

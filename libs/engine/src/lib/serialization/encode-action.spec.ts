@@ -340,6 +340,27 @@ describe('Binary Action Encoding', () => {
       expect(decoded).toEqual(action);
     });
 
+    it('encodes and decodes RESOLVE_GO_OUT_OVERTIME', () => {
+      const accept: GameAction = {
+        type: 'RESOLVE_GO_OUT_OVERTIME',
+        playerId: 'player-0',
+        accept: true,
+      };
+      const decline: GameAction = {
+        type: 'RESOLVE_GO_OUT_OVERTIME',
+        playerId: 'player-2',
+        accept: false,
+      };
+
+      for (const action of [accept, decline]) {
+        const encoded = encodeAction(action, ctx);
+        expect(encoded.length).toBe(3);
+        const { action: decoded, bytesRead } = decodeAction(encoded, 0, ctx);
+        expect(bytesRead).toBe(3);
+        expect(decoded).toEqual(action);
+      }
+    });
+
     it('round-trips LONGEST_TRAIL_BONUS through encodeActions/decodeActions', () => {
       const actions: GameAction[] = [
         {

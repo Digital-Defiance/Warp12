@@ -4,7 +4,7 @@ export type GameObjective = 'points' | 'go-out';
 export const DEFAULT_GAME_OBJECTIVE: GameObjective = 'points';
 
 export const GAME_OBJECTIVE_LABELS: Record<GameObjective, string> = {
-  'go-out': 'Go out — first empty hand wins the sector',
+  'go-out': 'Go out — empty hand wins the round (sudden death or campaign)',
   points: 'Points — lowest cumulative total wins the campaign',
 };
 

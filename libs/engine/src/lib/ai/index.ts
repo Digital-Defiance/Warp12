@@ -60,6 +60,7 @@ export {
 } from './tactical-class.js';
 export {
   WARP_SKILL_PRESETS,
+  augmentSkillProfileForModules,
   cloneGoOutPresets,
   getAdvisorSkillProfile,
   getWarpSkillProfile,
@@ -297,7 +298,7 @@ export {
   warpAiActionKey,
 } from './from-game-action.js';
 
-export { chooseQFlashEffect, chooseQGambleKeepIndex } from './flash.js';
+export { chooseQFlashEffect, chooseForceDrawTarget, chooseQGambleKeepIndex } from './flash.js';
 
 export {
   createWarpSearchModel,

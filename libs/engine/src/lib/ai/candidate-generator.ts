@@ -1,15 +1,18 @@
 import {
   canDeployDistressBeacon,
+  canDesperationDig,
   canDrawFromUncharted,
   canPassRedAlert,
   canPassTurn,
   canRaiseShieldsManually,
 } from '../engine/beacon.js';
+import { getLegalMoves, getSpoolOptions } from '../engine/legal-moves.js';
 import { isRedAlertBlocking } from '../types/anomalies.js';
-import { getLegalMoves } from '../engine/legal-moves.js';
 import type { WarpAiAction } from './actions.js';
 import type { WarpAiObservation } from './observation.js';
-import { chooseQFlashEffect, chooseQGambleKeepIndex } from './flash.js';
+import { chooseQFlashEffect, chooseForceDrawTarget, chooseQGambleKeepIndex } from './flash.js';
+import { observationToState } from './observation.js';
+import { shouldConsiderSpool } from './spool-strategy.js';
 
 function catchDropToImpulseCandidate(
   round: WarpAiObservation['round'],
@@ -62,6 +65,16 @@ function resolutionCandidates(
   if (canDrawFromUncharted(round, playerId, houseRules)) {
     candidates.push({ kind: 'draw' });
   }
+  if (
+    canDesperationDig(
+      { objective: obs.objective, modules: obs.modules },
+      round,
+      playerId,
+      houseRules
+    )
+  ) {
+    candidates.push({ kind: 'desperation-dig' });
+  }
 
   if (canPassRedAlert(round, playerId, { houseRules })) {
     candidates.push({ kind: 'pass-red-alert' });
@@ -92,19 +105,33 @@ export function warpOffTurnCandidateGenerator(
   return catchAction ? [catchAction] : [];
 }
 
+function appendSpoolCandidates(
+  obs: WarpAiObservation,
+  candidates: WarpAiAction[]
+): void {
+  if (!shouldConsiderSpool(obs)) {
+    return;
+  }
+  const state = observationToState(obs);
+  for (const option of getSpoolOptions(
+    state,
+    obs.round,
+    obs.playerId,
+    obs.houseRules
+  )) {
+    candidates.push({ kind: 'spool', option });
+  }
+}
+
 /**
  * Builds the considered actions for a Warp 12 turn, deferring all rules gating
  * (Distress Beacon access, Red Alert cover, Subspace Fracture stabilization) to
  * the engine's {@link getLegalMoves}. Precedence:
  *
- * 1. Continuum Flash / Continuum Wager resolution when pending.
+ * 1. Hand Exchange give-back / Continuum Flash / Continuum Wager when pending.
  * 2. Catch a missed Drop to Impulse when the window is open.
- * 3. Any legal chart move → chart candidates (canonical "play if you can"), plus
- *    Drop to Impulse declare and pass when pending at one tile (no chart while pending).
- * 4. Otherwise draw (if Uncharted Sectors remain).
- * 5. Otherwise pass the Red Alert (if responsible) or deploy the Distress Beacon.
- *
- * House-rule variants can replace this generator wholesale.
+ * 3. Legal chart moves (+ Engage Warp Drive when Delta is on) and related helm.
+ * 4. Otherwise draw / Desperation Dig / pass Red Alert / deploy beacon.
  */
 export function warpCandidateGenerator(
   obs: WarpAiObservation,
@@ -114,6 +141,18 @@ export function warpCandidateGenerator(
   }
 ): WarpAiAction[] {
   const { round, playerId, houseRules } = obs;
+
+  // Module Kappa (Go-out): larger hand must give one tile back before anything else.
+  if (round.handExchangePending) {
+    if (round.handExchangePending.largerPlayerId !== playerId) {
+      return [];
+    }
+    const hand = round.hands[playerId] ?? [];
+    return hand.map((coordinate) => ({
+      kind: 'resolve-hand-exchange' as const,
+      coordinate,
+    }));
+  }
 
   // Module Epsilon: Drafting phase
   if (round.phase === 'drafting' && round.draftState) {
@@ -130,10 +169,14 @@ export function warpCandidateGenerator(
   }
 
   if (round.continuumPendingInvoker === playerId) {
+    const effect = chooseQFlashEffect(obs, obs.captains, { rng: options?.rng });
     return [
       {
-        kind: 'invoke-continuum-flash',
-        effect: chooseQFlashEffect(obs, obs.captains, { rng: options?.rng }),
+        kind: 'invoke-continuum-flash' as const,
+        effect,
+        ...(effect === 'force-draw'
+          ? { targetPlayerId: chooseForceDrawTarget(obs, obs.captains) }
+          : {}),
       },
     ];
   }
@@ -160,17 +203,9 @@ export function warpCandidateGenerator(
       kind: 'chart' as const,
       move,
     }));
-    
-    // Module Delta (Simplified): Spool mechanic removed
-    // Only hot potato remains (hazard marker transfers on NZ play, +5 penalty per pass)
-    // const spoolOptions = getSpoolOptions(obs as GameState, round, playerId, houseRules);
-    // for (const option of spoolOptions) {
-    //   candidates.push({
-    //     kind: 'spool' as const,
-    //     option,
-    //   });
-    // }
-    
+
+    appendSpoolCandidates(obs, candidates);
+
     const declare = dropToImpulseDeclareCandidate(round, playerId, houseRules);
     if (declare) {
       candidates.push(declare);
@@ -191,6 +226,15 @@ export function warpCandidateGenerator(
       }
     }
     return candidates;
+  }
+
+  // No chart from hand — still allow Engage Warp Drive when legal (often
+  // better than a blind draw under Delta).
+  const stuckCandidates: WarpAiAction[] = [];
+  appendSpoolCandidates(obs, stuckCandidates);
+  if (stuckCandidates.length > 0) {
+    const resolution = resolutionCandidates(obs);
+    return [...stuckCandidates, ...resolution];
   }
 
   const resolution = resolutionCandidates(obs);

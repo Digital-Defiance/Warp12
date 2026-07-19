@@ -1,0 +1,28 @@
+{
+  "warpFactor": 15,
+  "playerCount": 5,
+  "moduleConfig": "lambda",
+  "moduleLabel": "Module Lambda (Wormholes)",
+  "zetaOmitted": false,
+  "games": 500,
+  "objective": "points",
+  "summary": {
+    "games": 500,
+    "playerCount": 5,
+    "maxPip": 15,
+    "objective": "points",
+    "avgLegalMovesPerTurn": 1.9128700401464065,
+    "avgUniqueTrainsPerTurn": 0.9000812547956796,
+    "avgConstrainedTileFraction": 0.57836930024195,
+    "avgUniquePipsInHand": 7.7715658687466735,
+    "avgMaxPipCluster": 2.4774855393383195,
+    "avgHandEntropy": 2.6093298183196065,
+    "avgMoveValueSpread": 3.083345555101762,
+    "avgNearOptimalFraction": 0.810057825214285,
+    "avgOwnTrailPlayRate": 0,
+    "avgShieldsDownRate": 0.07387192274004864
+  },
+  "skillIndicators": 3,
+  "timestamp": "2026-07-19T01:39:39.669Z",
+  "durationSeconds": 71.844
+}

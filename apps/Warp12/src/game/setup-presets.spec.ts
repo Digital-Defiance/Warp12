@@ -26,6 +26,10 @@ const localSnapshot: LocalSetupSnapshot = {
   playerCount: 5,
   objective: 'go-out',
   campaignRounds: 13,
+  goOutStructure: 'first-to',
+  goOutWinsToWin: 4,
+  goOutOvertime: 'force',
+  matchStarterIndex: 2,
   modules: {
     salamanderPenalty: true,
     continuum: false,
@@ -76,11 +80,45 @@ describe('local adapter round-trip', () => {
     expect(restored.callSign).toBe('Riker');
     expect(restored.playerCount).toBe(5);
     expect(restored.objective).toBe('go-out');
+    expect(restored.goOutStructure).toBe('first-to');
+    expect(restored.goOutWinsToWin).toBe(4);
+    expect(restored.goOutOvertime).toBe('force');
+    expect(restored.matchStarterIndex).toBe(2);
     expect(restored.modules.longestTrail).toBe(true);
     expect(restored.modules.subspaceFractureScope).toBe('all-captains');
     expect(restored.houseRules.doubleZeroScore).toBe(25);
     expect(restored.aiTiers).toEqual({ chen: 'commander', nguyen: 'ensign' });
     expect(restored.aiExtendedThinking).toEqual({ chen: true });
+  });
+
+  it('round-trips go-out campaign fields through lobby options', () => {
+    const preset = localSnapshotToPreset(localSnapshot, 12);
+    const lobby = presetToCreateLobbyOptions(preset, 12);
+    expect(lobby.objective).toBe('go-out');
+    expect(lobby.goOutStructure).toBe('first-to');
+    expect(lobby.goOutWinsToWin).toBe(4);
+    expect(lobby.matchStarterIndex).toBe(2);
+    const back = createLobbyOptionsToPreset(lobby, 12);
+    expect(back.goOutStructure).toBe('first-to');
+    expect(back.goOutWinsToWin).toBe(4);
+    expect(back.matchStarterIndex).toBe(2);
+  });
+
+  it('round-trips pass-and-play go-out + starter fields', () => {
+    const pnp: PassAndPlaySetupSnapshot = {
+      ...pnpSnapshot,
+      objective: 'go-out',
+      goOutStructure: 'fixed-rounds',
+      goOutOvertime: 'offer',
+      campaignRounds: 5,
+      matchStarterIndex: 1,
+    };
+    const preset = passAndPlaySnapshotToPreset(pnp, 12);
+    const restored = presetToPassAndPlaySnapshot(preset, 12);
+    expect(restored.goOutStructure).toBe('fixed-rounds');
+    expect(restored.goOutOvertime).toBe('offer');
+    expect(restored.campaignRounds).toBe(5);
+    expect(restored.matchStarterIndex).toBe(1);
   });
 
   it('never rates on an exhibition factor', () => {

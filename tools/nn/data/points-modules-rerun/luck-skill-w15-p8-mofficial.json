@@ -1,0 +1,28 @@
+{
+  "warpFactor": 15,
+  "playerCount": 8,
+  "moduleConfig": "official",
+  "moduleLabel": "Official Warp 12 Preset",
+  "zetaOmitted": false,
+  "games": 500,
+  "objective": "points",
+  "summary": {
+    "games": 500,
+    "playerCount": 8,
+    "maxPip": 15,
+    "objective": "points",
+    "avgLegalMovesPerTurn": 2.2415663577177583,
+    "avgUniqueTrainsPerTurn": 0.9597694479399735,
+    "avgConstrainedTileFraction": 0.5626844136170381,
+    "avgUniquePipsInHand": 7.603038120240875,
+    "avgMaxPipCluster": 2.3593028704914265,
+    "avgHandEntropy": 2.575572166589435,
+    "avgMoveValueSpread": 3.480842419527292,
+    "avgNearOptimalFraction": 0.7894182319461914,
+    "avgOwnTrailPlayRate": 0,
+    "avgShieldsDownRate": 0.1307735307788546
+  },
+  "skillIndicators": 3,
+  "timestamp": "2026-07-19T01:43:35.413Z",
+  "durationSeconds": 92.891
+}

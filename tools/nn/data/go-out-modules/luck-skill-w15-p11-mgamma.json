@@ -1,0 +1,28 @@
+{
+  "warpFactor": 15,
+  "playerCount": 11,
+  "moduleConfig": "gamma",
+  "moduleLabel": "Module Gamma (Sensor Grid)",
+  "zetaOmitted": false,
+  "games": 500,
+  "objective": "go-out",
+  "summary": {
+    "games": 500,
+    "playerCount": 11,
+    "maxPip": 15,
+    "objective": "go-out",
+    "avgLegalMovesPerTurn": 2.476506175495863,
+    "avgUniqueTrainsPerTurn": 1.0592229273279294,
+    "avgConstrainedTileFraction": 0.5487900035864685,
+    "avgUniquePipsInHand": 7.714143469334973,
+    "avgMaxPipCluster": 2.2219262674263387,
+    "avgHandEntropy": 2.649738922334322,
+    "avgMoveValueSpread": 3.7276495822891085,
+    "avgNearOptimalFraction": 0.791699067860902,
+    "avgOwnTrailPlayRate": 0,
+    "avgShieldsDownRate": 0.27213660822138436
+  },
+  "skillIndicators": 3,
+  "timestamp": "2026-07-19T02:32:16.074Z",
+  "durationSeconds": 3.399
+}

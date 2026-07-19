@@ -512,4 +512,84 @@ describe('serialize red alert passed flag', () => {
     expect(merged.round?.wormholeOpened).toBe(true);
     expect(merged.round?.squadrons?.[1]?.trailKey).toBe('c');
   });
+
+  it('round-trips go-out campaign fields and goOutWins through serialize/merge', () => {
+    const state = {
+      id: 'go-out-campaign',
+      phase: 'active',
+      objective: 'go-out',
+      campaignRounds: 5,
+      completedRounds: 2,
+      goOutStructure: 'fixed-rounds',
+      goOutWinsToWin: 3,
+      goOutOvertime: 'offer',
+      matchStarterIndex: 1,
+      goOutInOvertime: true,
+      goOutOvertimePending: false,
+      trailMomentumClaimedBy: null,
+      handExchangeResolved: false,
+      houseRules: resolveHouseRules(),
+      captains: [
+        { id: 'a', displayName: 'A', pointsScore: 0, goOutWins: 2 },
+        { id: 'b', displayName: 'B', pointsScore: 0, goOutWins: 1 },
+      ],
+      modules: resolveModules({
+        continuum: false,
+        salamanderPenalty: false,
+        subspaceFracture: false,
+      }),
+      round: {
+        roundNumber: 3,
+        spacedockValue: 10,
+        phase: 'playing',
+        activePlayerId: 'b',
+        turnOrder: ['a', 'b'],
+        hands: { a: [], b: [] },
+        unchartedSectors: [],
+        sensorGrid: [],
+        draftState: null,
+        allStopRequired: false,
+        allStopDeclared: false,
+        roundWinnerId: null,
+        continuumPendingInvoker: null,
+        continuumEffects: null,
+        continuumWagerPending: null,
+        mandatoryPlay: null,
+        pendingRoundWin: null,
+        roundBlocked: false,
+        roundStarterOpening: null,
+        roundStarterOpeningResolved: false,
+        dropToImpulseCallPending: null,
+        dropToImpulseCatchable: null,
+        playedThisTurn: false,
+        drewThisTurn: false,
+        table: {
+          spacedock: { value: 10, placedBy: 'b' },
+          warpTrails: {
+            a: { playerId: 'a', tiles: [], distressBeacon: { active: false } },
+            b: { playerId: 'b', tiles: [], distressBeacon: { active: false } },
+          },
+          neutralZone: { tiles: [] },
+          subspaceFracture: null,
+          redAlert: null,
+        },
+      },
+    } satisfies GameState;
+
+    const doc = serializePublicGame(state);
+    expect(doc.goOutStructure).toBe('fixed-rounds');
+    expect(doc.goOutWinsToWin).toBe(3);
+    expect(doc.goOutOvertime).toBe('offer');
+    expect(doc.matchStarterIndex).toBe(1);
+    expect(doc.goOutInOvertime).toBe(true);
+    expect(doc.captains.find((c) => c.id === 'a')?.goOutWins).toBe(2);
+
+    const merged = mergeHandsIntoGame(doc, {});
+    expect(merged.goOutStructure).toBe('fixed-rounds');
+    expect(merged.goOutWinsToWin).toBe(3);
+    expect(merged.matchStarterIndex).toBe(1);
+    expect(merged.goOutInOvertime).toBe(true);
+    expect(merged.captains.find((c) => c.id === 'a')?.goOutWins).toBe(2);
+    expect(merged.captains.find((c) => c.id === 'b')?.goOutWins).toBe(1);
+  });
 });

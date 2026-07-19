@@ -12,10 +12,11 @@ Warning--I didn't find a database entry for "bowling2015heads"
 Warning--I didn't find a database entry for "elo1978rating"
 Warning--I didn't find a database entry for "glickman1999glicko"
 Warning--I didn't find a database entry for "herbrich2006trueskill"
+Warning--I didn't find a database entry for "wenglin2011"
 Warning--I didn't find a database entry for "frank1996determinization"
 You've used 0 entries,
             2118 wiz_defined-function locations,
-            506 strings with 4243 characters,
+            507 strings with 4254 characters,
 and the built_in function-call counts, 18 in all, are:
 = -- 0
 > -- 0

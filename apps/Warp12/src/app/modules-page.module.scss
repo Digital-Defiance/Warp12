@@ -7,6 +7,58 @@
   color: #64748b;
 }
 
+.instrumentTabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.75rem 0 0.5rem;
+  padding: 0.25rem;
+  border-radius: 6px;
+  border: 1px solid rgba(51, 65, 85, 0.9);
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.instrumentTab {
+  appearance: none;
+  margin: 0;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #94a3b8;
+  font: inherit;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+
+  &:hover {
+    color: #e2e8f0;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
+  }
+}
+
+.instrumentTabActive {
+  color: #e2e8f0;
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(14, 165, 233, 0.14);
+}
+
+.instrumentMeta {
+  margin: 0 0 0.85rem;
+  color: #94a3b8;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.na {
+  color: #64748b;
+  font-style: italic;
+}
+
 .badge {
   display: inline-block;
   font-size: 0.68rem;

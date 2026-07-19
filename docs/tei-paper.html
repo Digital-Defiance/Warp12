@@ -212,19 +212,20 @@ higher variance</strong> and compressed skill gaps. We demonstrate that
 search algorithms provide different advantages depending on context:
 expectimax wins in 2-player points (64% vs heuristics), while ISMCTS
 excels in 4+ player go-out (31% vs 23% baseline).</p>
-<p>A <strong>285<span>,</span>000-game</strong> points self-play
-campaign across <strong>570 configuration cells</strong> (4 Warp factors
+<p>A <strong>274<span>,</span>500-game</strong> points self-play
+campaign across <strong>549 configuration cells</strong> (4 Warp factors
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
 every legal fleet size
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
-15 module configs) is our sole skill/luck instrument for board choice
-and module taxonomy. From the <strong>baseline</strong> cells alone we
+module configs, with Zeta only on eligible even fleets) is the
+skill/luck instrument for <strong>board choice and points-module
+taxonomy</strong>. From the <strong>baseline</strong> cells alone we
 find that <strong>skill expression increases with both tile set size and
 player count</strong>, contradicting the intuition that larger games
 devolve into luck, and that Warp factor 12 is the empirically optimal
-choice for competitive rating. Across the full matrix, most optional
-modules preserve the baseline skill ceiling; <strong>Module Iota (Double
-Down) slightly raises it</strong>. <strong>Module Epsilon
+choice for competitive rating. Across the full points matrix, most
+optional modules preserve the baseline skill ceiling; <strong>Module
+Iota (Double Down) slightly raises it</strong>. <strong>Module Epsilon
 (Drafting)</strong> collapses it (1.08/4 indicators) —
 counter-intuitively, choosing your hand makes outcomes <em>more</em>
 luck-dominated mid-game — and is therefore designated <strong>Warped /
@@ -234,6 +235,15 @@ crew sectors update a dedicated <strong>Squad TEI</strong> track
 (<code>squadRating</code>) after team-track calibration
 (<code>SQUADRONS_RATING_CALIBRATED</code>), not because Zeta is
 luck-dominant.</p>
+<p>A <strong>separate</strong>
+<strong>255<span>,</span>500-game</strong> go-out campaign (511 cells;
+Epsilon omitted) evaluates go-out module forks (Salamander Surge, Trail
+Momentum, Desperation Dig, Hand Exchange, Hot Potato pass). Those
+mechanics are <em>not</em> apples-to-apples with points; we report them
+in their own figures and do not merge
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>S</mi><annotation encoding="application/x-tex">S</annotation></semantics></math>
+averages across objectives except in one deliberate shared-ID contrast
+plot.</p>
 <p>Finally, we report on <strong>Class
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math></strong>,
 a neural self-play agent that achieves parity with heuristic baselines
@@ -361,12 +371,16 @@ different search methods (expectimax, ISMCTS) provide advantages in
 different contexts: expectimax excels in 2-player points (64% win rate),
 while ISMCTS works better in 4+ player go-out (31% vs 23%
 baseline).</p></li>
-<li><p><strong>Luck vs skill and module integrity</strong> — A single
-<strong>285<span>,</span>000-game</strong> matrix (570 cells) measures
-skill expression across Warp factors, fleet sizes, and 15 module
-configs. Baseline cells justify rating W12; Iota slightly raises the
-ceiling; Epsilon collapses it (Warped/party); Zeta preserves skill and
-rates on a dedicated Squad TEI track (never free-for-all /
+<li><p><strong>Luck vs skill and module integrity</strong> — A
+<strong>274<span>,</span>500-game</strong> points matrix (549 cells)
+measures skill expression across Warp factors, fleet sizes, and module
+configs for TEI taxonomy. A <strong>separate</strong> go-out matrix
+(255<span>,</span>500 games / 511 cells) evaluates forked go-out modules
+without conflating
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>S</mi><annotation encoding="application/x-tex">S</annotation></semantics></math>
+averages. Baseline cells justify rating W12; Iota slightly raises the
+points ceiling; Epsilon collapses it (Warped/party); Zeta preserves
+skill and rates on a dedicated Squad TEI track (never free-for-all /
 FFA).</p></li>
 <li><p><strong>Neural self-play agent (Class
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Ω</mi><annotation encoding="application/x-tex">\Omega</annotation></semantics></math>)</strong>
@@ -484,13 +498,14 @@ calibration focuses on 2-player matchups. We include 3–8 player
 configurations and focus matchups (one strong player vs multiple weaker
 opponents) to validate skill expression in realistic play
 scenarios.</p></li>
-<li><p><strong>Luck vs skill empirics:</strong> The
-285<span>,</span>000-game module matrix (Section <a
-href="#sec:module-balance" data-reference-type="ref"
-data-reference="sec:module-balance">9</a>) is the systematic measurement
-of how tile set size, player count, and optional modules affect skill
-expression — including Warped/party designation for Epsilon and
-Warp-factor board choice from baseline cells.</p></li>
+<li><p><strong>Luck vs skill empirics:</strong> The points module matrix
+(Section <a href="#sec:module-balance" data-reference-type="ref"
+data-reference="sec:module-balance">9</a>) measures how tile set size,
+player count, and optional modules affect skill expression for TEI —
+including Warped/party designation for Epsilon. The go-out module matrix
+(Section <a href="#sec:goout-module-balance" data-reference-type="ref"
+data-reference="sec:goout-module-balance">10</a>) is a separate
+instrument for forked go-out modules.</p></li>
 <li><p><strong>Open-source implementation:</strong> All code (rules
 engine, AI agents, calibration scripts) and data are publicly available
 for reproduction and extension.</p></li>
@@ -1186,8 +1201,8 @@ single-module pilot collections (including broken Drafting runs) are
 <strong>not</strong> treated as evidence; all claims in this section
 come from that integrated matrix:</p>
 <table>
-<caption>Baseline cells within the 285<span>,</span>000-game matrix (no
-modules) used for Warp-factor / fleet analysis</caption>
+<caption>Baseline cells within the 274<span>,</span>500-game points
+matrix (no modules) used for Warp-factor / fleet analysis</caption>
 <thead>
 <tr>
 <th style="text-align: left;"><strong>Warp Factor</strong></th>
@@ -1834,20 +1849,30 @@ class="header-section-number">8.6.3</span> Go-Out Objective</h3>
 <p>This study used <strong>points only</strong>. Go-out exhibits higher
 variance (Section 7.2), suggesting:</p>
 <ul>
-<li><p>Skill/luck ratios may differ under go-out objective (worth a
-follow-up module-matrix pass under go-out).</p></li>
-<li><p>W12/2–4p may remain optimal, but large-fleet go-out (8+ players)
-could show different patterns due to race dynamics.</p></li>
+<li><p>Skill/luck under go-out is reported in Section <a
+href="#sec:goout-module-balance" data-reference-type="ref"
+data-reference="sec:goout-module-balance">10</a> as a separate
+module-matrix instrument (not pooled with points).</p></li>
+<li><p>W12/2–4p may remain optimal for points TEI; large-fleet go-out
+(8+ players) still shows high
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>S</mi><annotation encoding="application/x-tex">S</annotation></semantics></math>
+on the go-out instrument but race variance is a separate TEI-calibration
+concern.</p></li>
 </ul>
 <h1 data-number="9" id="sec:module-balance"><span
-class="header-section-number">9</span> Module Balance: A
-285<span>,</span>000-Game Competitive-Integrity Study</h1>
+class="header-section-number">9</span> Module Balance (Points): A
+274<span>,</span>500-Game Competitive-Integrity Study</h1>
 <p>Section <a href="#sec:luck-skill-boards" data-reference-type="ref"
 data-reference="sec:luck-skill-boards">8</a> used the
-<strong>baseline</strong> slice of this campaign to show that W12 is the
-right <em>board</em> for rating. The full matrix answers the product
-question: which <em>optional modules</em> preserve that skill signal,
-and which should be barred from TEI?</p>
+<strong>baseline</strong> slice of this <strong>points</strong> campaign
+to show that W12 is the right <em>board</em> for rating. The full points
+matrix answers the product question: which <em>optional modules</em>
+preserve that skill signal, and which should be barred from TEI? Go-out
+module forks are evaluated separately in Section <a
+href="#sec:goout-module-balance" data-reference-type="ref"
+data-reference="sec:goout-module-balance">10</a>; we do not pool
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>S</mi><annotation encoding="application/x-tex">S</annotation></semantics></math>
+averages across objectives.</p>
 <h2 data-number="9.1" id="design-questions"><span
 class="header-section-number">9.1</span> Design questions</h2>
 <ul>
@@ -1862,16 +1887,18 @@ be?</p></li>
 <h2 data-number="9.2" id="sec:module-instrument"><span
 class="header-section-number">9.2</span> Method</h2>
 <p>We collected <strong>500 Commander self-play games</strong> on each
-of <strong>570 configuration cells</strong> — Warp factor
+of <strong>549 configuration cells</strong> — Warp factor
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">{</mo><mn>9</mn><mo>,</mo><mn>12</mn><mo>,</mo><mn>15</mn><mo>,</mo><mn>18</mn><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">\{9,12,15,18\}</annotation></semantics></math>
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
 every legal fleet size
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
-15 module configs (baseline, Alpha–Mu, Official Warp 12, “all”, and
-Zeta) — for <strong>285<span>,</span>000 games</strong> under the points
-objective, using the same <code>LuckSkillMetricsSampler</code> as
-Section <a href="#sec:luck-skill-instrument" data-reference-type="ref"
-data-reference="sec:luck-skill-instrument">8.2</a>.</p>
+module configs (baseline, Alpha–Mu, Official Warp 12, “all”, and Zeta on
+eligible fleets only) — for <strong>274<span>,</span>500 games</strong>
+under the <strong>points</strong> objective, using the same
+<code>LuckSkillMetricsSampler</code> as Section <a
+href="#sec:luck-skill-instrument" data-reference-type="ref"
+data-reference="sec:luck-skill-instrument">8.2</a>. (Earlier drafts that
+counted Zeta on ineligible fleets as 570 cells are superseded.)</p>
 <p><strong>Module ranking instrument (distinct from §8
 composites).</strong> For each cell we average the raw telemetries, then
 score four absolute pass/fail indicators (implemented in
@@ -1918,14 +1945,12 @@ id="results-most-modules-preserve-the-ceiling"><span
 class="header-section-number">9.3</span> Results: most modules preserve
 the ceiling</h2>
 <table id="tab:module-ranking">
-<caption>Module skill ranking from the 285<span>,</span>000-game study
-(Commander self-play, points objective, 500 games/cell). Zeta metrics
-restricted to even fleets
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>≥</mo><annotation encoding="application/x-tex">\geq</annotation></semantics></math>4.
-<em>Rec</em> is the product call: Promote = eligible for rated presets
-(Zeta gameplay included; Squad TEI on rated Warp 12, never free-for-all
-<code>humanRating</code>); Warped = exhibition only (Epsilon = party
-luck; Kappa = intentional score inversion).</caption>
+<caption>Module skill ranking — <strong>points</strong> instrument
+(274,500 Commander self-play games, 500/cell; Zeta on even fleets
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>≥</mo><annotation encoding="application/x-tex">\geq</annotation></semantics></math>4
+only). Go-out forks are <em>not</em> in this table. <em>Rec</em>:
+Promote = rated-eligible; Warped/party = Epsilon; Warped = Kappa (score
+inversion).</caption>
 <thead>
 <tr>
 <th style="text-align: left;"><strong>Module</strong></th>
@@ -1945,7 +1970,7 @@ luck; Kappa = intentional score inversion).</caption>
 <td style="text-align: right;">3.00</td>
 <td style="text-align: right;">2.24</td>
 <td style="text-align: right;">59%</td>
-<td style="text-align: right;">3.65</td>
+<td style="text-align: right;">3.64</td>
 <td style="text-align: right;">8.1</td>
 <td style="text-align: left;">38/0/0</td>
 </tr>
@@ -1953,10 +1978,10 @@ luck; Kappa = intentional score inversion).</caption>
 <td style="text-align: left;">All modules</td>
 <td style="text-align: left;">Promote</td>
 <td style="text-align: right;">2.95</td>
-<td style="text-align: right;">2.05</td>
+<td style="text-align: right;">2.06</td>
 <td style="text-align: right;">57%</td>
-<td style="text-align: right;">3.34</td>
-<td style="text-align: right;">8.3</td>
+<td style="text-align: right;">3.37</td>
+<td style="text-align: right;">8.4</td>
 <td style="text-align: left;">36/2/0</td>
 </tr>
 <tr>
@@ -1992,12 +2017,12 @@ luck; Kappa = intentional score inversion).</caption>
 <tr>
 <td style="text-align: left;">Delta (Spool)</td>
 <td style="text-align: left;">Promote</td>
-<td style="text-align: right;">2.89</td>
+<td style="text-align: right;">2.92</td>
 <td style="text-align: right;">2.09</td>
 <td style="text-align: right;">57%</td>
 <td style="text-align: right;">3.19</td>
 <td style="text-align: right;">7.7</td>
-<td style="text-align: left;">34/4/0</td>
+<td style="text-align: left;">35/3/0</td>
 </tr>
 <tr>
 <td style="text-align: left;">Eta (Temporal Debt)</td>
@@ -2013,10 +2038,10 @@ luck; Kappa = intentional score inversion).</caption>
 <td style="text-align: left;">Gamma (Sensor Grid)</td>
 <td style="text-align: left;">Promote</td>
 <td style="text-align: right;">2.89</td>
-<td style="text-align: right;">2.09</td>
+<td style="text-align: right;">2.10</td>
 <td style="text-align: right;">57%</td>
-<td style="text-align: right;">3.19</td>
-<td style="text-align: right;">7.7</td>
+<td style="text-align: right;">3.21</td>
+<td style="text-align: right;">7.8</td>
 <td style="text-align: left;">34/4/0</td>
 </tr>
 <tr>
@@ -2036,7 +2061,7 @@ luck; Kappa = intentional score inversion).</caption>
 <td style="text-align: right;">2.09</td>
 <td style="text-align: right;">57%</td>
 <td style="text-align: right;">3.17</td>
-<td style="text-align: right;">7.7</td>
+<td style="text-align: right;">7.8</td>
 <td style="text-align: left;">34/4/0</td>
 </tr>
 <tr>
@@ -2045,7 +2070,7 @@ luck; Kappa = intentional score inversion).</caption>
 <td style="text-align: right;">2.89</td>
 <td style="text-align: right;">2.09</td>
 <td style="text-align: right;">57%</td>
-<td style="text-align: right;">3.19</td>
+<td style="text-align: right;">3.20</td>
 <td style="text-align: right;">7.7</td>
 <td style="text-align: left;">34/4/0</td>
 </tr>
@@ -2075,7 +2100,7 @@ luck; Kappa = intentional score inversion).</caption>
 <td style="text-align: right;">2.82</td>
 <td style="text-align: right;">2.12</td>
 <td style="text-align: right;">54%</td>
-<td style="text-align: right;">3.07</td>
+<td style="text-align: right;">3.06</td>
 <td style="text-align: right;">7.5</td>
 <td style="text-align: left;">32/5/1</td>
 </tr>
@@ -2094,17 +2119,19 @@ luck; Kappa = intentional score inversion).</caption>
 <figure id="fig:module-ranking" data-latex-placement="htbp">
 <img src="/figures/figure11-module-skill-ranking.png"
 style="width:92.0%" />
-<figcaption>Module skill ceiling across Warp factors and fleet sizes.
-Nearly every module sits at or above the baseline Promote line (2.5).
-Epsilon is the sole collapse (Warped/party). Zeta remains high-skill
-(Promote; Squad TEI, never FFA).</figcaption>
+<figcaption><strong>Points instrument.</strong> Module skill ceiling
+across Warp factors and fleet sizes. Nearly every module sits at or
+above the baseline Promote line (2.5). Epsilon is the sole collapse
+(Warped/party). Zeta remains high-skill (Promote; Squad TEI, never
+FFA).</figcaption>
 </figure>
 <figure id="fig:module-heatmap" data-latex-placement="htbp">
 <img src="/figures/figure12-module-warp-heatmap.png"
 style="width:78.0%" />
-<figcaption>Mean skill indicators by module and Warp factor. Epsilon is
-red across the board; the Official preset and single-module variants
-stay skill-stable, especially on W12+.</figcaption>
+<figcaption><strong>Points instrument.</strong> Mean skill indicators by
+module and Warp factor. Epsilon is red across the board; the Official
+preset and single-module variants stay skill-stable, especially on
+W12+.</figcaption>
 </figure>
 <figure id="fig:module-profiles" data-latex-placement="htbp">
 <img src="/figures/figure14-module-metric-profiles.png"
@@ -2260,10 +2287,254 @@ inversion).</p></li>
 FFA TEI; keep exhibition ledgers separate when Warped modules
 run.</p></li>
 </ul>
-<h1 data-number="10" id="discussion"><span
-class="header-section-number">10</span> Discussion</h1>
-<h2 data-number="10.1" id="what-calibration-teaches"><span
-class="header-section-number">10.1</span> What Calibration Teaches</h2>
+<h1 data-number="10" id="sec:goout-module-balance"><span
+class="header-section-number">10</span> Go-out Module Balance: A
+Separate 255<span>,</span>500-Game Instrument</h1>
+<p>Go-out rewrites several modules (Salamander Surge, Hot Potato pass
+draws, Trail Momentum, Desperation Dig, Hand Exchange). Those forks
+change mid-game pressure relative to the points campaign, so this
+section is a <strong>separate instrument</strong>: same sampler and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo>∈</mo><mo stretchy="false" form="prefix">{</mo><mn>0</mn><mi>.</mi><mn>.4</mn><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">S\in\{0..4\}</annotation></semantics></math>
+indicators, but <strong>not</strong> an apples-to-apples comparison of
+module means to Section <a href="#sec:module-balance"
+data-reference-type="ref" data-reference="sec:module-balance">9</a>. We
+never plot forked modules on a shared points/go-out taxonomy bar except
+where noted below.</p>
+<h2 data-number="10.1" id="method-go-out"><span
+class="header-section-number">10.1</span> Method (go-out)</h2>
+<p><strong>511 cells</strong>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+500 Commander games = <strong>255<span>,</span>500 games</strong> under
+go-out. Epsilon is omitted (unavailable under go-out). Zeta remains
+eligible-fleet-only (17 cells). Figure generation uses go-out display
+names and writes distinct assets
+(<code>figure21</code>–<code>figure28</code>, Table <a
+href="#tab:goout-module-ranking" data-reference-type="ref"
+data-reference="tab:goout-module-ranking">4</a>).</p>
+<table id="tab:goout-module-ranking">
+<caption>Module skill ranking — <strong>go-out</strong> instrument
+(255,500 Commander self-play games, 500/cell; Epsilon omitted). Labels
+use go-out forks (Surge, Trail Momentum, Dig, Hand Exchange). Do
+<em>not</em> compare
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>S</mi><annotation encoding="application/x-tex">S</annotation></semantics></math>
+averages to the points table — mechanics differ. <em>Rec</em>: Promote =
+skill-preserving under go-out; Warped = Kappa (Hand Exchange) by product
+policy.</caption>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Module</strong></th>
+<th style="text-align: left;"><strong>Rec</strong></th>
+<th style="text-align: right;"><strong>Skill</strong></th>
+<th style="text-align: right;"><strong>Legal</strong></th>
+<th style="text-align: right;"><strong>Constr.</strong></th>
+<th style="text-align: right;"><strong>Spread</strong></th>
+<th style="text-align: right;"><strong>Pips</strong></th>
+<th style="text-align: left;"><strong>Skill/Luck</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Iota (Double Down)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">3.00</td>
+<td style="text-align: right;">2.31</td>
+<td style="text-align: right;">58%</td>
+<td style="text-align: right;">3.83</td>
+<td style="text-align: right;">8.3</td>
+<td style="text-align: left;">38/0/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Alpha (Continuum)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.97</td>
+<td style="text-align: right;">2.19</td>
+<td style="text-align: right;">56%</td>
+<td style="text-align: right;">3.46</td>
+<td style="text-align: right;">8.0</td>
+<td style="text-align: left;">37/1/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Beta (Salamander Surge)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.97</td>
+<td style="text-align: right;">2.20</td>
+<td style="text-align: right;">56%</td>
+<td style="text-align: right;">3.47</td>
+<td style="text-align: right;">8.0</td>
+<td style="text-align: left;">37/1/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Delta (Spool / Hot Potato)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.97</td>
+<td style="text-align: right;">2.22</td>
+<td style="text-align: right;">57%</td>
+<td style="text-align: right;">3.57</td>
+<td style="text-align: right;">8.0</td>
+<td style="text-align: left;">37/1/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Eta (Desperation Dig)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.97</td>
+<td style="text-align: right;">2.20</td>
+<td style="text-align: right;">56%</td>
+<td style="text-align: right;">3.47</td>
+<td style="text-align: right;">8.0</td>
+<td style="text-align: left;">37/1/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Gamma (Sensor Grid)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.97</td>
+<td style="text-align: right;">2.20</td>
+<td style="text-align: right;">56%</td>
+<td style="text-align: right;">3.47</td>
+<td style="text-align: right;">8.0</td>
+<td style="text-align: left;">37/1/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Lambda (Wormholes)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.97</td>
+<td style="text-align: right;">2.19</td>
+<td style="text-align: right;">57%</td>
+<td style="text-align: right;">3.46</td>
+<td style="text-align: right;">8.0</td>
+<td style="text-align: left;">37/1/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Baseline</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.97</td>
+<td style="text-align: right;">2.19</td>
+<td style="text-align: right;">56%</td>
+<td style="text-align: right;">3.45</td>
+<td style="text-align: right;">8.0</td>
+<td style="text-align: left;">37/1/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Theta (Trail Momentum)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.97</td>
+<td style="text-align: right;">2.20</td>
+<td style="text-align: right;">56%</td>
+<td style="text-align: right;">3.48</td>
+<td style="text-align: right;">8.0</td>
+<td style="text-align: left;">37/1/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Zeta (Squadrons)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.94</td>
+<td style="text-align: right;">1.88</td>
+<td style="text-align: right;">60%</td>
+<td style="text-align: right;">3.26</td>
+<td style="text-align: right;">7.6</td>
+<td style="text-align: left;">16/1/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Kappa (Hand Exchange)</td>
+<td style="text-align: left;">Warped</td>
+<td style="text-align: right;">2.89</td>
+<td style="text-align: right;">2.41</td>
+<td style="text-align: right;">54%</td>
+<td style="text-align: right;">3.73</td>
+<td style="text-align: right;">8.8</td>
+<td style="text-align: left;">35/2/1</td>
+</tr>
+<tr>
+<td style="text-align: left;">Mu (Fracture)</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.84</td>
+<td style="text-align: right;">2.22</td>
+<td style="text-align: right;">54%</td>
+<td style="text-align: right;">3.49</td>
+<td style="text-align: right;">8.0</td>
+<td style="text-align: left;">32/6/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Official Warp 12</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.84</td>
+<td style="text-align: right;">2.21</td>
+<td style="text-align: right;">54%</td>
+<td style="text-align: right;">3.32</td>
+<td style="text-align: right;">7.7</td>
+<td style="text-align: left;">32/6/0</td>
+</tr>
+<tr>
+<td style="text-align: left;">All modules</td>
+<td style="text-align: left;">Promote</td>
+<td style="text-align: right;">2.82</td>
+<td style="text-align: right;">2.41</td>
+<td style="text-align: right;">55%</td>
+<td style="text-align: right;">4.05</td>
+<td style="text-align: right;">9.4</td>
+<td style="text-align: left;">29/9/0</td>
+</tr>
+</tbody>
+</table>
+<figure id="fig:goout-module-ranking" data-latex-placement="htbp">
+<img src="/figures/figure21-goout-module-skill-ranking.png"
+style="width:92.0%" />
+<figcaption><strong>Go-out instrument only.</strong> Module skill
+ceiling under go-out forks. Do not compare bar heights to Figure <a
+href="#fig:module-ranking" data-reference-type="ref"
+data-reference="fig:module-ranking">11</a> as a single
+ranking.</figcaption>
+</figure>
+<figure id="fig:goout-module-heatmap" data-latex-placement="htbp">
+<img src="/figures/figure22-goout-module-warp-heatmap.png"
+style="width:78.0%" />
+<figcaption><strong>Go-out instrument.</strong> Mean skill indicators by
+module and Warp factor under go-out.</figcaption>
+</figure>
+<h2 data-number="10.2" id="results-go-out"><span
+class="header-section-number">10.2</span> Results (go-out)</h2>
+<ul>
+<li><p>Most go-out configs remain skill-dominant (baseline and most
+singles
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>≈</mo><annotation encoding="application/x-tex">\approx</annotation></semantics></math>
+2.97/4).</p></li>
+<li><p><strong>Iota</strong> still tops the go-out instrument at 3.00/4
+(38/38 skill-dominant).</p></li>
+<li><p>Forked modules (Surge, Dig, Momentum, Hot Potato) do <em>not</em>
+collapse
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>S</mi><annotation encoding="application/x-tex">S</annotation></semantics></math>
+under Commander play.</p></li>
+<li><p><strong>Kappa (Hand Exchange)</strong> stays Warped by product
+policy despite a high
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>S</mi><annotation encoding="application/x-tex">S</annotation></semantics></math>
+(2.89/4) — exhibition / non-FFA, parallel to points Kappa’s Warped
+designation for a different mechanical reason.</p></li>
+<li><p>Stacked “all” is slightly softer (2.82/4; more mixed cells) but
+not luck-dominant.</p></li>
+</ul>
+<h2 data-number="10.3"
+id="deliberate-contrast-shared-module-ids-only"><span
+class="header-section-number">10.3</span> Deliberate contrast: shared
+module IDs only</h2>
+<p>Figure <a href="#fig:objective-module-contrast"
+data-reference-type="ref"
+data-reference="fig:objective-module-contrast">23</a> is the
+<em>only</em> dual-objective module plot. It includes modules whose
+<strong>rules are shared</strong> across objectives (baseline, Iota,
+Official, Zeta, Gamma, Lambda, Mu) and <strong>excludes</strong> forks
+(Beta/Delta/Eta/Theta/Kappa). The point is compare/contrast of
+instruments on comparable rules — not a merged taxonomy.</p>
+<figure id="fig:objective-module-contrast" data-latex-placement="htbp">
+<img
+src="/figures/figure29-points-vs-goout-shared-modules-contrast.png"
+style="width:95.0%" />
+<figcaption>Compare/contrast only: average skill indicators for shared
+module IDs under the points vs go-out instruments. Forked modules
+omitted.</figcaption>
+</figure>
+<h1 data-number="11" id="discussion"><span
+class="header-section-number">11</span> Discussion</h1>
+<h2 data-number="11.1" id="what-calibration-teaches"><span
+class="header-section-number">11.1</span> What Calibration Teaches</h2>
 <ul>
 <li><p><strong>Points</strong> behaves like a smooth skill ladder — good
 fit for OpenSkill
@@ -2305,8 +2576,8 @@ picks, following principles similar to AlphaZero’s self-play
 approach <span class="citation"
 data-cites="silver2017alphazero"></span>.</p></li>
 <li><p><strong>Larger fleets increase skill, not noise</strong> —
-baseline cells of the 285K-game matrix show skill index rises with
-player count
+baseline cells of the 274.5K-game points matrix show skill index rises
+with player count
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>&gt;</mo><mn>0.84</mn></mrow><annotation encoding="application/x-tex">r &gt; 0.84</annotation></semantics></math>
 for W12/15/18), contradicting the “more players = crapshoot”
 intuition.</p></li>
@@ -2324,8 +2595,8 @@ Module Zeta preserves skill (2.94/4); rated crew sectors update
 — Double Down is the only single module with 38/38 skill-dominant
 cells.</p></li>
 </ul>
-<h2 data-number="10.2" id="design-recommendations"><span
-class="header-section-number">10.2</span> Design Recommendations</h2>
+<h2 data-number="11.2" id="design-recommendations"><span
+class="header-section-number">11.2</span> Design Recommendations</h2>
 <ul>
 <li><p>Never merge points and go-out TEI.</p></li>
 <li><p>Show percentile on go-out boards.</p></li>
@@ -2350,8 +2621,8 @@ expression increases, not variance.</p></li>
 promote Iota and Official for rated presets; treat Zeta as skill-promote
 with live Squad TEI (never FFA).</p></li>
 </ul>
-<h2 data-number="10.3" id="limitations"><span
-class="header-section-number">10.3</span> Limitations</h2>
+<h2 data-number="11.3" id="limitations"><span
+class="header-section-number">11.3</span> Limitations</h2>
 <ul>
 <li><p>Heuristic agents, not equilibrium solvers.</p></li>
 <li><p>Calibration seed and game count sensitivity.</p></li>
@@ -2370,8 +2641,8 @@ count as the same quantity.</p></li>
 <li><p>Composite weights and indicator thresholds are fixed heuristic
 guards, not cross-validated predictors of human TEI.</p></li>
 </ul>
-<h1 data-number="11" id="conclusion"><span
-class="header-section-number">11</span> Conclusion</h1>
+<h1 data-number="12" id="conclusion"><span
+class="header-section-number">12</span> Conclusion</h1>
 <p>TEI and self-play calibration provide a <strong>practical, honest
 skill ladder</strong> for a game too messy for classical solving. Points
 and go-out should be treated as <strong>two calibration targets</strong>
@@ -2394,10 +2665,11 @@ Class II without a fourth lobby tier — but <strong>promotion benches and
 TEI anchors are different jobs</strong>: fleet fair-share can look large
 while heads-up play stays near parity; REF_TEI must follow the tables
 you rate.</p>
-<p>The <strong>285<span>,</span>000-game module study</strong> (570
-cells; Section <a href="#sec:module-balance" data-reference-type="ref"
-data-reference="sec:module-balance">9</a>) is the authoritative
-skill/luck instrument. From its <strong>baseline</strong>
+<p>The <strong>274<span>,</span>500-game points module study</strong>
+(549 cells; Section <a href="#sec:module-balance"
+data-reference-type="ref" data-reference="sec:module-balance">9</a>) is
+the authoritative skill/luck instrument for TEI taxonomy. From its
+<strong>baseline</strong>
 Warp<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>fleet
 slice:</p>
 <ol>
@@ -2454,8 +2726,8 @@ introducing me to Mexican Train Dominoes.</p>
 project. All code, data, and reproduction scripts are available at <a
 href="https://github.com/digitaldefiance/warp12"
 class="uri">https://github.com/digitaldefiance/warp12</a>.</p>
-<h1 data-number="12" id="figure-list"><span
-class="header-section-number">12</span> Figure List</h1>
+<h1 data-number="13" id="figure-list"><span
+class="header-section-number">13</span> Figure List</h1>
 <p>All figures are generated from empirical data and located in
 <code>tools/nn/figures/</code>.</p>
 <ol>
@@ -2492,9 +2764,11 @@ policy/value heads, Fleet Admiral routing.</p></li>
 <li><p><strong>Points vs go-out divergence (Section 3)</strong> —
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi mathvariant="normal">Δ</mi><mi>μ</mi><mo stretchy="false" form="prefix">|</mo></mrow><annotation encoding="application/x-tex">|\Delta\mu|</annotation></semantics></math>
 anchor vs implied gaps; weaker-side win rates.</p></li>
-<li><p><strong>Module skill ranking (Section 9)</strong> — 285K-game
-Promote vs Warped taxonomy; Epsilon collapse; Zeta
-skill-promote.</p></li>
+<li><p><strong>Module skill ranking (Section 9)</strong> — 274.5K-game
+points Promote vs Warped taxonomy; Epsilon collapse; Zeta skill-promote.
+Go-out forks in Section <a href="#sec:goout-module-balance"
+data-reference-type="ref"
+data-reference="sec:goout-module-balance">10</a>.</p></li>
 <li><p><strong>Module
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
 Warp heatmap (Section 9)</strong> — Skill indicators by module and Warp
@@ -2516,8 +2790,8 @@ Per-cell depth cloud; Epsilon Warped pocket.</p></li>
 <li><p><strong>Hand-pressure bars (Section 9)</strong> — Constrained
 tiles and unique pips for key modules.</p></li>
 </ol>
-<h1 data-number="13" id="tables"><span
-class="header-section-number">13</span> Tables</h1>
+<h1 data-number="14" id="tables"><span
+class="header-section-number">14</span> Tables</h1>
 <table id="tab:summary-stats">
 <caption>Summary Statistics by Configuration (500 games per
 cell)</caption>
@@ -3249,8 +3523,8 @@ style="color: gray">0.05</span></td>
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi>r</mi><mo stretchy="false" form="prefix">|</mo><mo>&gt;</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">|r| &gt; 0.5</annotation></semantics></math>);
 gray values indicate negligible correlation
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi>r</mi><mo stretchy="false" form="prefix">|</mo><mo>&lt;</mo><mn>0.1</mn></mrow><annotation encoding="application/x-tex">|r| &lt; 0.1</annotation></semantics></math>).</p>
-<h1 data-number="14" id="code-map"><span
-class="header-section-number">14</span> Code Map</h1>
+<h1 data-number="15" id="code-map"><span
+class="header-section-number">15</span> Code Map</h1>
 <table>
 <thead>
 <tr>
@@ -3391,44 +3665,55 @@ style="text-align: left;"><code>docs/openskill-calibration-log.md</code></td>
 </tr>
 </tbody>
 </table>
-<h1 data-number="15" id="reproducibility"><span
-class="header-section-number">15</span> Reproducibility</h1>
-<h2 data-number="15.1" id="self-play-calibration"><span
-class="header-section-number">15.1</span> Self-Play Calibration</h2>
+<h1 data-number="16" id="reproducibility"><span
+class="header-section-number">16</span> Reproducibility</h1>
+<h2 data-number="16.1" id="self-play-calibration"><span
+class="header-section-number">16.1</span> Self-Play Calibration</h2>
 <pre><code>yarn calibrate:ai-tei
 AI_CALIBRATION_GAMES=500 yarn calibrate:ai-tei
 yarn calibrate:ai-tei-dti
 yarn optimize:ai-weights
 # OpenSkill AI-anchor calibration (engine unit suite)
 yarn test:engine -- openskill-calibration</code></pre>
-<h2 data-number="15.2" id="fleet-admiral-benchmarks"><span
-class="header-section-number">15.2</span> Fleet Admiral Benchmarks</h2>
+<h2 data-number="16.2" id="fleet-admiral-benchmarks"><span
+class="header-section-number">16.2</span> Fleet Admiral Benchmarks</h2>
 <pre><code>yarn fleet-admiral:bench:500
 FLEET_BENCH_SEAT=b yarn fleet-admiral:bench:500
 yarn fleet-admiral:bench:go-out-4p:500
 yarn jiti tools/nn/compare-fleet-search.ts</code></pre>
-<h2 data-number="15.3" id="class-i-training"><span
-class="header-section-number">15.3</span> Class I* Training</h2>
+<h2 data-number="16.3" id="class-i-training"><span
+class="header-section-number">16.3</span> Class I* Training</h2>
 <pre><code>yarn class1-star:pipeline:deep
 yarn class1-star:pipeline:go-out
 yarn class1-star:pipeline:deepblue</code></pre>
-<h2 data-number="15.4" id="skillluck-and-module-matrix-285k-games"><span
-class="header-section-number">15.4</span> Skill/Luck and Module Matrix
-(285k games)</h2>
-<pre><code># Authoritative campaign (570 cells × 500 games)
-MODULE_GAMES=500 MODULE_WORKERS=12 \
+<h2 data-number="16.4"
+id="skillluck-and-module-matrices-points-go-out-separate"><span
+class="header-section-number">16.4</span> Skill/Luck and Module Matrices
+(points + go-out, separate)</h2>
+<pre><code># Points instrument (549 cells × 500) — TEI taxonomy
+WARP12_ANALYSIS_DATA_DIR=tools/nn/data/points-modules-rerun \
+  MODULE_OBJECTIVE=points MODULE_GAMES=500 MODULE_WORKERS=14 \
   bash tools/nn/run-module-analysis-parallel.sh
-npx tsx tools/nn/analyze-module-results.ts
+WARP12_ANALYSIS_DATA_DIR=tools/nn/data/points-modules-rerun \
+  MODULE_FIGURE_OBJECTIVE=points python3 tools/nn/create-module-figures.py
 
-# Warp×fleet figures/tables use the baseline (`none`) cells of that matrix
-MPLBACKEND=Agg python3 tools/nn/create-module-figures.py
+# Go-out instrument (511 cells × 500) — forked modules; separate figures
+WARP12_ANALYSIS_DATA_DIR=tools/nn/data/go-out-modules \
+  MODULE_OBJECTIVE=go-out MODULE_GAMES=500 MODULE_WORKERS=14 \
+  bash tools/nn/run-module-analysis-parallel.sh
+WARP12_ANALYSIS_DATA_DIR=tools/nn/data/go-out-modules \
+  MODULE_FIGURE_OBJECTIVE=go-out python3 tools/nn/create-module-figures.py
+
+# Optional shared-ID contrast only (excludes forks)
+MODULE_FIGURE_OBJECTIVE=contrast python3 tools/nn/create-module-figures.py
+
 MPLBACKEND=Agg python3 tools/nn/create-paper-figures.py
 MPLBACKEND=Agg python3 tools/nn/create-figures.py
 MPLBACKEND=Agg python3 tools/nn/create-tables.py</code></pre>
 <p>All data and scripts are available in the <code>warp12-engine</code>
 package and <code>tools/nn/</code> directory.</p>
-<h1 data-number="16" id="target-venues"><span
-class="header-section-number">16</span> Target Venues</h1>
+<h1 data-number="17" id="target-venues"><span
+class="header-section-number">17</span> Target Venues</h1>
 <table>
 <thead>
 <tr>

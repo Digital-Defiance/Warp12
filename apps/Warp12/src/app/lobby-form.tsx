@@ -1,4 +1,10 @@
-import { defaultCampaignRounds, DEFAULT_GAME_OBJECTIVE, type GameObjective } from 'warp12-engine';
+import {
+  defaultCampaignRounds,
+  DEFAULT_GAME_OBJECTIVE,
+  isModuleAvailableForObjective,
+  moduleClearPatchForObjective,
+  type GameObjective,
+} from 'warp12-engine';
 
 import type { CreateLobbyOptions } from '../firebase';
 import type { PublicCharterView } from '../firebase/charter-service.js';
@@ -11,7 +17,12 @@ import {
   maxPlayersForFactor,
 } from '../game/local-game-config.js';
 import { requireWarpFactor } from './warp-factor.js';
-import { CampaignRoundsField, ObjectivePicker } from './objective-picker';
+import {
+  CampaignRoundsField,
+  GoOutCampaignField,
+  ObjectivePicker,
+  type GoOutCampaignConfig,
+} from './objective-picker';
 import { HouseRulesOptions } from './house-rules-options';
 import { DoubleZeroScoreField } from './double-zero-score-field';
 import { LargeFleetHandSizeField } from './large-fleet-hand-size-field';
@@ -27,6 +38,7 @@ import {
   presetToCreateLobbyOptions,
   type WarpSetupPreset,
 } from '../game/setup-presets.js';
+import { goOutAwareModuleLabel } from './go-out-module-labels.js';
 import styles from './lobby.module.scss';
 import { Link } from 'react-router-dom';
 
@@ -69,10 +81,32 @@ export function LobbyForm({
   const activeCharter =
     myCharters.find((crew) => crew.charterId === createOptions.charterId) ?? null;
   const setObjective = (objective: GameObjective) =>
-    onCreateOptionsChange({ ...createOptions, objective });
+    onCreateOptionsChange({
+      ...createOptions,
+      objective,
+      modules: {
+        ...(createOptions.modules ?? {}),
+        ...moduleClearPatchForObjective(objective),
+      },
+    });
 
   const setCampaignRounds = (campaignRounds: number) =>
     onCreateOptionsChange({ ...createOptions, campaignRounds });
+
+  const currentGoOutCampaign = (): GoOutCampaignConfig => ({
+    goOutStructure: createOptions.goOutStructure ?? 'sudden-death',
+    goOutWinsToWin: createOptions.goOutWinsToWin ?? 3,
+    goOutOvertime: createOptions.goOutOvertime ?? 'force',
+    campaignRounds: createOptions.campaignRounds ?? defaultCampaignRounds(maxPip),
+  });
+  const setGoOutCampaign = (cfg: GoOutCampaignConfig) =>
+    onCreateOptionsChange({
+      ...createOptions,
+      goOutStructure: cfg.goOutStructure,
+      goOutWinsToWin: cfg.goOutWinsToWin,
+      goOutOvertime: cfg.goOutOvertime,
+      campaignRounds: cfg.campaignRounds,
+    });
 
   const setMaxPlayers = (maxPlayers: number) =>
     onCreateOptionsChange({
@@ -213,6 +247,16 @@ export function LobbyForm({
         </fieldset>
       )}
 
+      {(createOptions.objective ?? DEFAULT_GAME_OBJECTIVE) === 'go-out' && (
+        <GoOutCampaignField
+          name="online-go-out"
+          value={currentGoOutCampaign()}
+          onChange={setGoOutCampaign}
+          disabled={baseDisabled || charterLocked}
+          maxPip={maxPip}
+        />
+      )}
+
       <fieldset className={styles.fieldset}>
         <legend>Rules preset</legend>
         <Warp12RulesPreset
@@ -280,7 +324,7 @@ export function LobbyForm({
               setModules({ salamanderPenalty: e.target.checked })
             }
           />
-          <span>Module Beta — Salamander penalty</span>
+          <span>{goOutAwareModuleLabel('beta', (createOptions.objective ?? DEFAULT_GAME_OBJECTIVE))}</span>
         </label>
         <label className={styles.checkboxRow}>
           <input
@@ -307,7 +351,7 @@ export function LobbyForm({
             disabled={baseDisabled || charterLocked}
             onChange={(e) => setModules({ longestTrail: e.target.checked })}
           />
-          <span>Module Theta — Longest Trail Bonus</span>
+          <span>{goOutAwareModuleLabel('theta', (createOptions.objective ?? DEFAULT_GAME_OBJECTIVE))}</span>
         </label>
         <label className={styles.checkboxRow}>
           <input
@@ -325,16 +369,35 @@ export function LobbyForm({
             disabled={baseDisabled || charterLocked}
             onChange={(e) => setModules({ temporalDebt: e.target.checked })}
           />
-          <span>Module Eta — Temporal Debt</span>
+          <span>{goOutAwareModuleLabel('eta', (createOptions.objective ?? DEFAULT_GAME_OBJECTIVE))}</span>
         </label>
         <label className={styles.checkboxRow}>
           <input
             type="checkbox"
-            checked={createOptions.modules?.drafting ?? false}
-            disabled={baseDisabled || charterLocked}
+            checked={
+              isModuleAvailableForObjective(
+                'drafting',
+                createOptions.objective ?? DEFAULT_GAME_OBJECTIVE
+              )
+                ? (createOptions.modules?.drafting ?? false)
+                : false
+            }
+            disabled={
+              baseDisabled ||
+              charterLocked ||
+              !isModuleAvailableForObjective(
+                'drafting',
+                createOptions.objective ?? DEFAULT_GAME_OBJECTIVE
+              )
+            }
             onChange={(e) => setModules({ drafting: e.target.checked })}
           />
-          <span>Module Epsilon — Tactical Requisition (Drafting)</span>
+          <span>
+            {goOutAwareModuleLabel(
+              'epsilon',
+              createOptions.objective ?? DEFAULT_GAME_OBJECTIVE
+            )}
+          </span>
         </label>
         <label className={styles.checkboxRow}>
           <input
@@ -343,7 +406,7 @@ export function LobbyForm({
             disabled={baseDisabled || charterLocked}
             onChange={(e) => setModules({ temporalInversion: e.target.checked })}
           />
-          <span>Module Kappa — Temporal Inversion (Warped/Exhibition)</span>
+          <span>{goOutAwareModuleLabel('kappa', (createOptions.objective ?? DEFAULT_GAME_OBJECTIVE))}</span>
         </label>
         <label className={styles.checkboxRow}>
           <input

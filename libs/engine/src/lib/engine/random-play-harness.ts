@@ -66,14 +66,40 @@ export function enumerateLegalActions(
   const playerId = round.activePlayerId;
   const actions: GameAction[] = [];
 
+  if (round.handExchangePending) {
+    const giver = round.handExchangePending.largerPlayerId;
+    for (const coordinate of round.hands[giver] ?? []) {
+      actions.push({
+        type: 'RESOLVE_HAND_EXCHANGE',
+        playerId: giver,
+        coordinate,
+      });
+    }
+    return actions;
+  }
+
   // Continuum Flash resolution takes priority — the invoker must pick an effect.
   if (round.continuumPendingInvoker === playerId) {
     for (const effect of getAvailableFlashEffects(
       round,
       state.modules,
-      state.captains
+      state.captains,
+      state.objective
     )) {
-      actions.push({ type: 'INVOKE_CONTINUUM_FLASH', playerId, effect });
+      if (effect === 'force-draw') {
+        for (const opponentId of state.captains
+          .map((c) => c.id)
+          .filter((id) => id !== playerId)) {
+          actions.push({
+            type: 'INVOKE_CONTINUUM_FLASH',
+            playerId,
+            effect,
+            targetPlayerId: opponentId,
+          });
+        }
+      } else {
+        actions.push({ type: 'INVOKE_CONTINUUM_FLASH', playerId, effect });
+      }
     }
     return actions;
   }
@@ -95,6 +121,12 @@ export function enumerateLegalActions(
 
   if (canDrawFromUncharted(round, playerId, houseRules)) {
     actions.push({ type: 'DRAW_FROM_UNCHARTED', playerId });
+    if (
+      state.objective === 'go-out' &&
+      state.modules.temporalDebt.enabled
+    ) {
+      actions.push({ type: 'DESPERATION_DIG', playerId });
+    }
   }
   if (canDeployDistressBeacon(round, playerId, { houseRules })) {
     actions.push({ type: 'DEPLOY_DISTRESS_BEACON', playerId });

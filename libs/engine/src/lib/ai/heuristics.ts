@@ -19,6 +19,8 @@ import {
   minOpponentHandSize as minOpponentHandSizeFromObs,
 } from './go-out-race.js';
 import { routeIsOwnTrail, trailKeyFor } from '../engine/squadrons.js';
+import { scoreHandExchangeGiveback } from './hand-exchange-ai.js';
+import { estimateSpoolValue } from './spool-strategy.js';
 
 export type WarpHeuristic = GenericHeuristic<WarpAiAction, WarpEvalContext>;
 
@@ -56,8 +58,16 @@ export const WARP_HEURISTIC_IDS = {
   dropToImpulseForget: 'drop-to-impulse-forget',
   /** Module Delta: Warp Drive Spool strategy (risk/reward, NZ vs own trail, game phase). */
   spoolStrategy: 'spool-strategy',
+  /** Module Delta: avoid passing while holding the Hot Potato. */
+  hotPotatoPass: 'hot-potato-pass',
+  /** Module Beta (Go-out): Salamander Surge — dump max double to force opponent draws. */
+  salamanderSurge: 'salamander-surge',
+  /** Module Theta (Go-out): Trail Momentum — race personal trail to length 5. */
+  trailMomentum: 'trail-momentum',
   /** Module Kappa: Temporal Inversion - hand size management on inverted rounds. */
   temporalInversion: 'temporal-inversion',
+  /** Module Kappa (Go-out): Hand Exchange give-back tile selection. */
+  handExchangeGiveback: 'hand-exchange-giveback',
   /** Module Theta: Longest Trail bonus value. */
   longestTrailBonus: 'longest-trail-bonus',
   /** Module Iota: Double Down timing strategy. */
@@ -102,6 +112,10 @@ const preferChart: WarpHeuristic = {
         return 55;
       case 'pick-from-pack':
         return 0; // Neutral; actual value comes from tile quality heuristics
+      case 'resolve-hand-exchange':
+        return 150;
+      case 'desperation-dig':
+        return 15;
       case 'draw':
         return 0;
       case 'pass-red-alert':
@@ -370,13 +384,18 @@ const goOutFeasibility: WarpHeuristic = {
 const goOutDrawReluctance: WarpHeuristic = {
   id: H.goOutDrawReluctance,
   score(action: WarpAiAction, ctx: WarpEvalContext): number {
-    if (ctx.obs.objective !== 'go-out' || action.kind !== 'draw') return 0;
+    if (ctx.obs.objective !== 'go-out') return 0;
     if (ctx.hand.length > ctx.goOutTuning.drawReluctanceHandSize) return 0;
     const charts = getLegalMoves(
       ctx.obs.round,
       ctx.obs.playerId,
       ctx.obs.houseRules
     ).length;
+    if (action.kind === 'desperation-dig') {
+      // When stuck, dig beats blind draw; when charts exist, dig is rare.
+      return charts <= 0 ? 14 : -4;
+    }
+    if (action.kind !== 'draw') return 0;
     if (charts <= 0) return 0;
     return -20 - ctx.hand.length * 4;
   },
@@ -616,102 +635,100 @@ const dropToImpulseForget: WarpHeuristic = {
 };
 
 /**
- * Module Delta: Warp Drive Spool strategy.
- * Uses the detailed spool-strategy.ts logic to evaluate when spooling makes sense.
+ * Module Delta: Warp Drive Spool strategy — delegates to estimateSpoolValue
+ * (mismatch + unfinished-double abort awareness).
  */
 const spoolStrategy: WarpHeuristic = {
   id: H.spoolStrategy,
   score(action: WarpAiAction, ctx: WarpEvalContext): number {
     if (action.kind !== 'spool') return 0;
-    
-    // Import estimateSpoolValue inline to avoid circular dependency
-    // This heuristic applies the full spool strategy evaluation
-    const { round, playerId, objective } = ctx.obs;
-    const hand = ctx.hand;
-    const unchartedSize = round.unchartedSectors.length;
-    
     const route = action.option.route;
-    const routePlayerId = route.kind === 'warp-trail' ? route.playerId : null;
-    const isOwnTrail = routePlayerId === playerId;
-    const isNeutralZone = routePlayerId === null;
-    const isOpponentTrail = routePlayerId !== null && !isOwnTrail;
-    
-    // FLEET EMBARGO: Never spool on opponent trails
-    if (isOpponentTrail) {
-      return -1000;
+    const routePlayerId =
+      route.kind === 'warp-trail' ? route.playerId : null;
+    return estimateSpoolValue(ctx.obs, routePlayerId);
+  },
+};
+
+/**
+ * Module Beta (Go-out) Salamander Surge: charting maxPip-maxPip forces each
+ * opponent to draw 1. Prefer when opponents are racing (small hands).
+ */
+const salamanderSurge: WarpHeuristic = {
+  id: H.salamanderSurge,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (action.kind !== 'chart') return 0;
+    if (ctx.obs.objective !== 'go-out') return 0;
+    if (!ctx.obs.modules.salamanderPenalty.enabled) return 0;
+    const maxPip = ctx.obs.maxPip ?? 12;
+    const { low, high } = action.move.coordinate;
+    if (low !== maxPip || high !== maxPip) return 0;
+
+    let value = 18;
+    for (const captain of ctx.obs.captains) {
+      if (captain.id === ctx.obs.playerId) continue;
+      const size = ctx.obs.round.hands[captain.id]?.length ?? 8;
+      if (size <= 2) value += 22;
+      else if (size <= 4) value += 12;
+      else if (size <= 6) value += 4;
     }
-    
-    // Basic safety checks
-    if (objective === 'points' && hand.length <= 2) return -150;
-    if (unchartedSize < 4) return -80;
-    
-    // Calculate trail lengths
-    const trails = Object.entries(round.table.warpTrails).map(([id, trail]) => ({
-      playerId: id,
-      length: trail.tiles.length,
-    }));
-    
-    const ourTrailLength = trails.find((t) => t.playerId === playerId)?.length ?? 0;
-    const maxOpponentLength = Math.max(
-      ...trails.filter((t) => t.playerId !== playerId).map((t) => t.length),
-      0
-    );
-    const neutralZoneLength = round.table.neutralZone.tiles.length;
-    
-    // Game phase
-    const totalTilesInPlay = trails.reduce((sum, t) => sum + t.length, 0) + neutralZoneLength;
-    const earlyGame = totalTilesInPlay < 20;
-    const midGame = totalTilesInPlay >= 20 && totalTilesInPlay < 50;
-    const lateGame = totalTilesInPlay >= 50;
-    
-    let value = unchartedSize * 1.5;
-    
-    // NEUTRAL ZONE STRATEGY
-    if (isNeutralZone) {
-      if (earlyGame) value += 40;
-      if (midGame) value += 15;
-      if (lateGame) value -= 25;
-      
-      if (ctx.obs.modules.warpDriveSpool.enabled) {
-        // NZ contact takes the Hazard Marker — avoid while holding it.
-        if (round.hazardMarkerHolder === playerId) value -= 40;
-        else if (round.hazardMarkerHolder) value -= 10;
-      }
-      if (ourTrailLength < maxOpponentLength - 2) value -= 40;
-      
-      return value;
-    }
-    
-    // OWN TRAIL STRATEGY
-    if (isOwnTrail) {
-      if (ourTrailLength < maxOpponentLength) {
-        const gap = maxOpponentLength - ourTrailLength;
-        value += gap * 12;
-      }
-      if (ourTrailLength > maxOpponentLength + 4) value -= 40;
-      if (
-        ctx.obs.modules.warpDriveSpool.enabled &&
-        round.hazardMarkerHolder === playerId
-      ) {
-        value += 20;
-      }
-      if (lateGame && Math.abs(ourTrailLength - maxOpponentLength) <= 2) value += 50;
-    }
-    
-    // Objective adjustments
-    if (objective === 'go-out') {
-      value += 25;
-      if (isNeutralZone) value += 15;
-    }
-    if (objective === 'points' && hand.length > 7) value += 25;
-    if (objective === 'points' && hand.length <= 4) value -= 30;
-    
-    // Uncharted size adjustments
-    if (unchartedSize > 30) value += 20;
-    if (unchartedSize >= 10 && unchartedSize <= 20) value += 5;
-    if (unchartedSize < 10) value -= 30;
-    
+    if (ctx.hand.length <= 2) value -= 15;
     return value;
+  },
+};
+
+/**
+ * Module Theta (Go-out) Trail Momentum: first personal trail to length ≥ 5
+ * earns an extra turn once/sector — push own-trail charts when close.
+ */
+const trailMomentum: WarpHeuristic = {
+  id: H.trailMomentum,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (ctx.obs.objective !== 'go-out') return 0;
+    if (!ctx.obs.modules.longestTrail.enabled) return 0;
+    if (ctx.obs.trailMomentumClaimedBy != null) return 0;
+
+    const playerId = ctx.obs.playerId;
+    const ownLen =
+      ctx.obs.round.table.warpTrails[trailKeyFor(ctx.obs.round, playerId)]
+        ?.tiles.length ?? 0;
+
+    if (action.kind === 'chart') {
+      if (!routeIsOwnTrail(ctx.obs.round, playerId, action.move.route)) {
+        if (ownLen >= 3 && ownLen < 5) return -8;
+        return 0;
+      }
+      if (ownLen >= 4 && ownLen < 5) return 40;
+      if (ownLen >= 3 && ownLen < 5) return 22;
+      if (ownLen < 3) return 6;
+      return 0;
+    }
+
+    if (action.kind === 'spool') {
+      const route = action.option.route;
+      if (
+        route.kind === 'warp-trail' &&
+        routeIsOwnTrail(ctx.obs.round, playerId, route)
+      ) {
+        if (ownLen >= 3 && ownLen < 5) return 28;
+        return 8;
+      }
+    }
+
+    return 0;
+  },
+};
+
+/**
+ * Module Delta Hot Potato: holding the hazard marker makes PASS painful
+ * (points: +5 per pass; go-out: draw 2). Prefer charting / spooling instead.
+ */
+const hotPotatoPass: WarpHeuristic = {
+  id: H.hotPotatoPass,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (action.kind !== 'pass-turn') return 0;
+    if (!ctx.obs.modules.warpDriveSpool.enabled) return 0;
+    if (ctx.obs.round.hazardMarkerHolder !== ctx.obs.playerId) return 0;
+    return ctx.obs.objective === 'go-out' ? -55 : -35;
   },
 };
 
@@ -724,6 +741,8 @@ const temporalInversionStrategy: WarpHeuristic = {
   score(action: WarpAiAction, ctx: WarpEvalContext): number {
     const temporalInversion = ctx.obs.modules?.temporalInversion?.enabled ?? false;
     if (!temporalInversion) return 0;
+    // Go-out Kappa is Hand Exchange, not pip inversion.
+    if (ctx.obs.objective === 'go-out') return 0;
     
     const isInvertedRound = ctx.obs.round.roundNumber % 2 === 0;
     if (!isInvertedRound) return 0;
@@ -774,6 +793,20 @@ const temporalInversionStrategy: WarpHeuristic = {
     }
     
     return 0;
+  },
+};
+
+/**
+ * Module Kappa (Go-out) Hand Exchange: choose which tile to give back after
+ * the random steal. Prefer high-pip tiles that do not match open ends.
+ */
+const handExchangeGiveback: WarpHeuristic = {
+  id: H.handExchangeGiveback,
+  score(action: WarpAiAction, ctx: WarpEvalContext): number {
+    if (action.kind !== 'resolve-hand-exchange') return 0;
+    if (ctx.obs.objective !== 'go-out') return 0;
+    if (!ctx.obs.modules.temporalInversion.enabled) return 0;
+    return scoreHandExchangeGiveback(action.coordinate, ctx.obs);
   },
 };
 
@@ -1079,7 +1112,11 @@ export const DEFAULT_WARP_HEURISTICS: WarpHeuristic[] = [
   dropToImpulseCatch,
   dropToImpulseForget,
   spoolStrategy,
+  hotPotatoPass,
+  salamanderSurge,
+  trailMomentum,
   temporalInversionStrategy,
+  handExchangeGiveback,
   longestTrailBonus,
   doubleDownTiming,
   squadCoordination,

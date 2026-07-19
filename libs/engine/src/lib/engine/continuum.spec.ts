@@ -104,6 +104,8 @@ describe('getAvailableFlashEffects', () => {
     const modules = resolveModules({ continuum: true, salamanderPenalty: true });
     const available = getAvailableFlashEffects(round, modules, captains);
     expect(available).not.toContain('continuum-wager');
+    expect(available).not.toContain('skip-lightest-hand');
+    expect(available).not.toContain('force-draw');
   });
 
   it('includes continuum-wager when at least two tiles remain in the pile', () => {
@@ -113,6 +115,23 @@ describe('getAvailableFlashEffects', () => {
     const modules = resolveModules({ continuum: true, salamanderPenalty: true });
     const available = getAvailableFlashEffects(round, modules, captains);
     expect(available).toContain('continuum-wager');
+  });
+
+  it('offers go-out flashes instead of points-only flashes', () => {
+    const round = makeRound(['a', 'b', 'c'], {
+      unchartedSectors: [normalizeCoordinate(1, 2), normalizeCoordinate(3, 4)],
+      hands: {
+        a: [normalizeCoordinate(1, 2), normalizeCoordinate(3, 4)],
+        b: [normalizeCoordinate(5, 6)],
+        c: [normalizeCoordinate(7, 8), normalizeCoordinate(9, 10), normalizeCoordinate(0, 1)],
+      },
+    });
+    const modules = resolveModules({ continuum: true, salamanderPenalty: true });
+    const goOut = getAvailableFlashEffects(round, modules, captains, 'go-out');
+    expect(goOut).toContain('skip-lightest-hand');
+    expect(goOut).toContain('force-draw');
+    expect(goOut).not.toContain('skip-lowest-points');
+    expect(goOut).not.toContain('salamander-swap');
   });
 });
 

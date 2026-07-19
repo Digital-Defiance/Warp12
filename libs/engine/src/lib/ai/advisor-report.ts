@@ -116,43 +116,70 @@ function describeAdvisorModuleContext(
     moduleLabels.push('Module Alpha · Q-Continuum');
   }
   if (m.salamanderPenalty.enabled) {
-    moduleLabels.push('Module Beta · Salamander Penalty');
+    moduleLabels.push(
+      state.objective === 'go-out'
+        ? 'Module Beta · Salamander Surge'
+        : 'Module Beta · Salamander Penalty'
+    );
     notes.push(
-      inverted
-        ? 'Salamander — under inversion the doubled highest double is worth keeping, not dumping.'
-        : 'Salamander — shed the highest double early; holding it doubles the penalty (round 2+).'
+      state.objective === 'go-out'
+        ? 'Salamander Surge — charting the highest double forces each opponent to draw 1.'
+        : inverted
+          ? 'Salamander — under inversion the doubled highest double is worth keeping, not dumping.'
+          : 'Salamander — shed the highest double early; holding it doubles the penalty (round 2+).'
     );
   }
   if (m.warpDriveSpool.enabled) {
     moduleLabels.push('Module Delta · Hot Potato');
+    notes.push(
+      'Warp Drive Spool — mismatch ends the draw (undrawn stay in Uncharted). An unfinished matching double is retrieved to hand; no Red Alert or Fracture remains.'
+    );
   }
   if (m.drafting.enabled) {
     moduleLabels.push('Module Epsilon · Draft Packs');
   }
   if (m.temporalDebt.enabled) {
-    moduleLabels.push('Module Eta · Temporal Debt');
+    moduleLabels.push(
+      state.objective === 'go-out'
+        ? 'Module Eta · Desperation Dig'
+        : 'Module Eta · Temporal Debt'
+    );
     notes.push(
-      `Temporal Debt — each draw from Uncharted Sectors adds a token worth ${m.temporalDebt.costPerToken} penalty point${m.temporalDebt.costPerToken === 1 ? '' : 's'}.`
+      state.objective === 'go-out'
+        ? 'Desperation Dig — when stuck, optionally dig up to 3 from Uncharted; chart the first playable; beacon stays open two turns.'
+        : `Temporal Debt — each draw from Uncharted Sectors adds a token worth ${m.temporalDebt.costPerToken} penalty point${m.temporalDebt.costPerToken === 1 ? '' : 's'}.`
     );
   }
   if (m.squadrons.enabled) {
     moduleLabels.push('Module Zeta · Squadrons');
   }
   if (m.longestTrail.enabled) {
-    moduleLabels.push('Module Theta · Longest Trail');
+    moduleLabels.push(
+      state.objective === 'go-out'
+        ? 'Module Theta · Trail Momentum'
+        : 'Module Theta · Longest Trail'
+    );
     notes.push(
-      `Longest Trail — the longest warp trail scores ${m.longestTrail.bonus} at round end; keep building yours.`
+      state.objective === 'go-out'
+        ? 'Trail Momentum — first personal trail to length ≥ 5 earns one extra turn (once per sector).'
+        : `Longest Trail — the longest warp trail scores ${m.longestTrail.bonus} at round end; keep building yours.`
     );
   }
   if (m.doubleDown.enabled) {
     moduleLabels.push('Module Iota · Double Down');
   }
   if (m.temporalInversion.enabled) {
-    moduleLabels.push('Module Kappa · Temporal Inversion');
+    moduleLabels.push(
+      state.objective === 'go-out'
+        ? 'Module Kappa · Hand Exchange'
+        : 'Module Kappa · Temporal Inversion'
+    );
     notes.push(
-      inverted
-        ? `Round ${roundNumber} is INVERTED — highest hand wins. Hold heavy tiles, draw to build your hand, and do not go out.`
-        : `Round ${roundNumber} scores normally — lowest hand wins (even rounds invert).`
+      state.objective === 'go-out'
+        ? 'Hand Exchange — first non-Spacedock double may swap one tile between unique most/fewest hands.'
+        : inverted
+          ? `Round ${roundNumber} is INVERTED — highest hand wins. Hold heavy tiles, draw to build your hand, and do not go out.`
+          : `Round ${roundNumber} scores normally — lowest hand wins (even rounds invert).`
     );
   }
   if (m.wormholes.enabled) {

@@ -42,7 +42,7 @@ rules}\label{a-note-on-official-rules}
 Unlike chess, multi-trail dominoes originally had no governing body and
 no single canonical ruleset. Almost every published source, commercial
 app, and family table differs on the details --- hand sizes, the value
-of the blank, when a train opens, how doubles are handled, and dozens of
+of the blank, when a trail opens, how doubles are handled, and dozens of
 optional variants. There was no authority to appeal to; there was only
 common practice.
 
@@ -82,8 +82,8 @@ standard beyond Warp players.
 This document is the authoritative rules reference \textbf{for Warp}
 (and Warp only). \textbf{Sections I--V} follow widely published
 multi-trail practice (double-twelve set, engine double set aside before
-the deal, personal trains, community / Neutral Zone train, train
-markers, doubles, boneyard, multi-round scoring). \textbf{Section VI}
+the deal, personal trails, community / Neutral Zone trail, distress
+beacons, doubles, boneyard, multi-round scoring). \textbf{Section VI}
 lists optional Warp modules and the \textbf{Official Warp rules}
 recommended preset.
 
@@ -157,8 +157,23 @@ Mode & Goal \\
 Spacedock descends from the highest double (eg \textbf{12-12}) through
 \textbf{0-0}. Lowest \textbf{cumulative points total} wins the
 campaign. \\
-\textbf{Go out} & First captain to empty their hand in a single round
-wins the sector immediately (no thirteen-round tally). \\
+\textbf{Go out} & Emptying your hand wins the \textbf{round}. Fleet
+command chooses the sector structure before launch:
+\begin{itemize}
+\tightlist
+\item \textbf{Sudden death} \emph{(default)} --- first captain to empty
+their hand wins the sector immediately.
+\item \textbf{Fixed rounds} --- play a Spacedock descent of $N$ rounds
+(same ladder as points); most \textbf{round wins} takes the sector. On a
+tie, overtime rounds continue (host may \textbf{force} them or
+\textbf{offer} accept/decline). Overtime past \textbf{0-0} wraps Spacedock
+back to the highest double.
+\item \textbf{First to $X$} --- first captain to win $X$ rounds takes
+the sector (Spacedock keeps descending and wraps if needed).
+\end{itemize}
+A \textbf{blocked} go-out round (empty Uncharted, no legal charts, no
+one out) is \textbf{re-dealt} at the same Spacedock --- no win credited.
+\\
 \end{longtable}
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
@@ -247,9 +262,10 @@ play
   \textbf{Uncharted Sectors} --- all remaining coordinates face down.
 \end{enumerate}
 
-\textbf{Round starter:} Round 1 opener is designated by fleet command
-(typically the host). Each later round, the starter rotates clockwise.
-The starter charts first; Spacedock was still set aside before the deal.
+\textbf{Round starter:} Fleet command designates any captain (human or
+AI) as the round-1 opener. Each later round, the starter rotates
+clockwise from that seat. The starter charts first; Spacedock was still
+set aside before the deal.
 
 \textbf{Optional modules} (Section VI) and \textbf{Subspace Fracture}
 must be agreed before launch. Digital setup defaults to the
@@ -420,7 +436,9 @@ protocol}\label{iv-doubles--red-alert-protocol}
 
 When a \textbf{double} (matching pips on both ends) is charted on any
 eligible route --- your Warp Trail, the Neutral Zone, or an open
-opponent trail --- announce \textbf{"Red Alert!"}
+opponent trail --- that double must be \textbf{satisfied} before normal
+play continues. Charting the double does \textbf{not} by itself call
+\textbf{Red Alert}; see Yellow vs Red below.
 
 \begin{itemize}
 \tightlist
@@ -435,16 +453,37 @@ opponent trail --- announce \textbf{"Red Alert!"}
   while your chart left a double unsatisfied. Chart the cover (or final
   stabilizer) first; only then may an empty hand end the sector.
 \item
-  If you cannot satisfy it, draw from Uncharted Sectors; if you still
-  cannot, deploy your Distress Beacon and pass Red Alert to the next
-  captain.
+  If you cannot satisfy the double from the coordinates already in your
+  hand, \textbf{one draw per turn} decides whether you may attempt a
+  draw to cover it:
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{You have not drawn yet this turn} (the double came from your
+    opening hand, or you charted it without having drawn): draw
+    \textbf{once} from Uncharted Sectors (or take one coordinate from the
+    Sensor Grid when Module Gamma is on). If that coordinate still does
+    not cover the double, deploy your Distress Beacon and \textbf{pass}.
+  \item
+    \textbf{You already drew this turn} --- including when the double
+    \textbf{itself} was the coordinate you just drew and then charted
+    --- you do \textbf{not} draw again. Deploy your Distress Beacon and
+    \textbf{pass} immediately.
+  \end{itemize}
 \end{itemize}
 
-\textbf{Worked example --- pass Red Alert after already drawing.}
-Captain A draws once from Uncharted Sectors, then charts a double they
-cannot cover. Uncharted still has coordinates, but Captain A \textbf{does not
-draw again} --- \textbf{one draw per turn}. They deploy their Distress
-Beacon and \textbf{pass Red Alert} to the next captain.
+\textbf{Worked example --- double was the draw (no second draw).}
+Captain A has no legal charts, draws once from Uncharted Sectors, and
+gets \textbf{8-8}. A charts that double but cannot cover it from hand.
+Uncharted still has coordinates, but A\textquotesingle s draw for the turn
+is already spent --- \textbf{one draw per turn}. A deploys the Distress
+Beacon and \textbf{passes}; the sector goes to \textbf{Red Alert}.
+
+\textbf{Worked example --- cover draw still available.}
+Captain A charts a double that was already in hand (no prior draw this
+turn) and cannot cover it. A \textbf{may} draw once to try for a cover.
+If that draw still does not cover, A deploys the beacon and passes
+(Red Alert).
 
 \textbf{Worked example --- empty hand without going out
 (tournament-style).} Four captains, points campaign, Red Alert only (no
@@ -454,11 +493,12 @@ Trail but \textbf{does not cover} the double. A\textquotesingle s hand
 is empty, but the round \textbf{does not} end --- A was \textbf{not
 officially out}.
 
-Red Alert responsibility is on A. A cannot cover the double, so A
-\textbf{passes Red Alert} (drawing first if Uncharted Sectors still hold
+Responsibility is still on A (Yellow alert). A cannot cover the double, so A
+\textbf{passes} (drawing first if Uncharted Sectors still hold
 coordinates and A has not drawn this turn; otherwise deploy beacon and pass).
-Responsibility moves to B, then C. Captain C \textbf{covers} the double
-with \textbf{11-12}. Red Alert clears and normal play resumes.
+Responsibility moves to B --- \textbf{Red Alert} --- then may continue to C.
+Captain C \textbf{covers} the double with \textbf{11-12}. The alert clears
+and normal play resumes.
 
 Captain B still holds \textbf{one coordinate} and later charts it legally,
 emptying B\textquotesingle s hand. \textbf{B wins the round} and scores
@@ -482,12 +522,12 @@ cumulative penalty even when another captain wins this round ---
 \begin{itemize}
 \tightlist
 \item
-  While Red Alert is active, \textbf{no other routes} may be played
-  until the double is satisfied.
+  While an unsatisfied double is active (Yellow or Red), \textbf{no other
+  routes} may be played until the double is satisfied.
 \item
   \textbf{Dead double:} If every coordinate in the set containing that pip is
   already charted (all thirteen coordinates showing that number in a
-  double-twelve set), the double cannot be satisfied --- Red Alert ends
+  double-twelve set), the double cannot be satisfied --- the alert ends
   and normal play resumes.
 \item
   Covering a double on another captain\textquotesingle s open trail
@@ -498,32 +538,50 @@ cumulative penalty even when another captain wins this round ---
 chart a double, satisfy it (cover coordinate, or three stabilizers under
 Subspace Fracture), and your turn ends. Because a cover must match the
 double\textquotesingle s pip and no other double shares that pip, a
-cover is always a non-double --- you never chain into a fresh Red Alert,
-and you do not play multiple doubles in a single turn. (Some casual
+cover is always a non-double --- you never chain into a fresh unsatisfied
+double, and you do not play multiple doubles in a single turn. (Some casual
 house rules let a captain lay several doubles in one turn as long as the
 last is covered by a non-double; Warp follows the tournament-style
 single-double resolution instead.)
 
-\subsubsection{\texorpdfstring{Yellow alert and Red Alert \emph{(digital
-status)}}{Yellow alert and Red Alert (digital status)}}\label{yellow-alert-and-red-alert-digital-status}
+\subsubsection{\texorpdfstring{Yellow alert and Red Alert}{Yellow alert and Red Alert}}\label{yellow-alert-and-red-alert-digital-status}
 
-The rules engine treats every uncovered double as \textbf{Red Alert} ---
-the same protocol throughout. On the bridge display and in the sector
-log, you will see two \textbf{status labels} for the same alert:
+An uncovered double always uses the same satisfaction protocol. The
+\textbf{Yellow} / \textbf{Red} distinction marks \textbf{whose turn it is
+to answer} --- not a different set of legal moves.
 
 \begin{itemize}
 \tightlist
 \item
-  \textbf{Yellow alert} --- the double was just charted; the responsible
-  captain has \textbf{not} yet passed Red Alert to someone else.
+  \textbf{Yellow alert} --- the double was just charted (or still sits on
+  the captain who charted it). That captain remains responsible. There is
+  \textbf{no table call} of ``Red Alert!'' at this stage. The digital
+  bridge may light the status amber for drama; table play treats it as a
+  quiet cover obligation.
 \item
-  \textbf{Red Alert} --- responsibility has passed at least once
-  (typically after a Distress Beacon deploy and pass). The double still
-  must be satisfied.
+  \textbf{Red Alert} --- responsibility has \textbf{moved to the next
+  captain} (Distress Beacon deploy and pass). Announce \textbf{``Red
+  Alert!''} when the pass happens. Typical triggers for that pass:
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{One draw per turn already spent} --- you drew earlier this
+    turn and then charted an unsatisfied double (often the drawn
+    coordinate \textbf{was} that double), so you cannot draw again to
+    cover; or
+  \item
+    You had not drawn yet, drew once to try for a cover from Uncharted
+    Sectors (or Sensor Grid under Module Gamma), and still cannot
+    satisfy; or
+  \item
+    Uncharted is empty (and Sensor Grid offers no legal take) so you
+    cannot draw at all.
+  \end{itemize}
 \end{itemize}
 
-This is presentation only. Gameplay, sounds, and scoring follow the Red
-Alert rules above in both phases.
+Gameplay, scoring, and legal charts follow the same cover / stabilizer
+rules in both phases. Sounds and HUD labels on the digital bridge track
+Yellow vs Red for clarity.
 
 \subsubsection{\texorpdfstring{Subspace Fracture interaction
 \emph{(Section VI ---
@@ -729,9 +787,12 @@ Double-blank score = 50 → 50 + 6 = \textbf{56}. Those round scores are
 added to each captain\textquotesingle s campaign total; Armstrong adds
 nothing.
 
-\textbf{Go out mode.} There is \textbf{no pip tally} --- the first
-captain to empty their hand in any single round wins the sector
-immediately.
+\textbf{Go out mode.} There is \textbf{no pip tally}. Emptying your hand
+wins the \textbf{round}; the sector victor follows the structure chosen
+at launch (sudden death, fixed rounds, or first to $X$ --- see
+Victory conditions). A blocked round is re-dealt. For optional Modules
+under Go-out, use the \textbf{Go-out --- Modules} block in Section~VI
+(not the Points campaign Module text).
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
@@ -744,7 +805,7 @@ chicken-foot protocol on doubles --- is part of \textbf{core} multi-trail
 play, not a Module; it is documented as a separate directive below.) We
 have taken extensive measures
 to keep rated play unaffected: a skill/luck quantifier and over
-171,000 game combinations across module configurations, checking for
+285,000 game combinations across module configurations, checking for
 strange outcomes or behaviors. Some modules are marked
 \textbf{Warped} --- intentional chaos that throws the game on its
 head, leans into luck, or can give an edge to lesser competitors.
@@ -754,7 +815,12 @@ Those are exhibition-only and never rated.
 
 \emph{Agree before launch. Unless noted, these are \textbf{not} part of
 standard multi-trail tournament practice --- though \textbf{Sections
-I--V} (trails, marker, draw, doubles, scoring) still apply underneath.}
+I--V} (trails, beacon, draw, doubles, scoring) still apply underneath.}
+
+\emph{Modules by objective:} After Subspace Fracture and house rules,
+Module text is duplicated with differences for \textbf{Points campaign} and
+\textbf{Go out}. Follow only the block that matches your sector
+objective (see \textbf{Modules by objective} below).
 
 \subsubsection{\texorpdfstring{Official Warp rules \emph{(recommended
 preset)}}{Official Warp rules (recommended preset)}}\label{official-warp-rules-recommended-preset}
@@ -911,9 +977,39 @@ later one); charting your own trail does \textbf{not} auto-raise.
 \textbf{One shield change per turn} --- a single open \textbf{or} a
 single close, never both and never repeated. Shield changes never pass
 helm on their own; adjust, then chart or \textbf{Pass}. Standard
-draw/marker rules still apply when you cannot chart (a forced marker
+draw/beacon rules still apply when you cannot chart (a forced beacon
 after a failed draw ends your turn). \\
 \end{longtable}
+
+\subsubsection{Modules by
+objective}\label{modules-by-objective}
+
+Optional Modules (Alpha through Lambda) are written
+\textbf{twice} below --- once for each sector objective. Read
+\textbf{only} the block that matches how you launched:
+
+\begin{longtable}[]{@{}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.64\linewidth}@{}}
+\toprule\noalign{}
+Objective & Which Module text to use \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Points campaign} & \textbf{Points campaign --- Modules}
+(immediately below). Stop when you reach the Go-out block. \\
+\textbf{Go out} & Skip the Points campaign Module text. Use
+\textbf{Go-out --- Modules} (after Zeta in the Points block). \\
+\end{longtable}
+
+Subspace Fracture and the house-rule toggles above are the same under
+either objective. Hosts should keep Go-out Module choices playable with
+physical coordinates on a hub table as well as in the app.
+
+\paragraph{Points campaign ---
+Modules}\label{points-campaign--modules}
+
+The Module text in this block applies when the sector objective is
+\textbf{Points campaign}. Do \textbf{not} use it for Go-out.
 
 \subsubsection{\texorpdfstring{Module Alpha --- The Continuum \emph{(on
 in Official Warp
@@ -1056,12 +1152,27 @@ opening coordinate).
 
 \textbf{Warp Drive Engagement (Spool):} On your turn (when not blocked by
 Red Alert or Subspace Fracture), you may \textbf{engage warp drive} to
-draw coordinates from Uncharted Sectors---draw coordinates one at a time until
-you draw a coordinate that cannot be charted to your chosen route. All
-matching coordinates are charted; the mismatch (and any remaining coordinates) go to
-your hand. Spooling is part of Module Delta; Module Theta does not unlock
-it. Engage Warp Drive is unavailable when Uncharted Sectors (and the
-Sensor Grid, if Module Gamma is on) have no coordinates left to draw.
+draw coordinates from \textbf{Uncharted Sectors only}---draw one at a
+time until you draw a coordinate that cannot be charted to your chosen
+route, or Uncharted is empty. Each matching coordinate is charted and
+the route endpoint updates. The first mismatch goes to your hand and the
+spool \textbf{stops}; undrawn coordinates remain in Uncharted (you never
+draw past the stop).
+
+\textbf{Doubles during spool:} If a matching double is drawn, the next
+draw must cover it (or, when Subspace Fracture applies to that double,
+three matching stabilizers must follow). If the cover or any required
+stabilizer fails to match --- or Uncharted runs out before the double is
+satisfied --- the unfinished double is \textbf{retrieved to your hand}
+along with any failed cover or stabilizer draw(s). The route endpoint
+reverts to its value before that double. \textbf{No Red Alert} and
+\textbf{no Subspace Fracture} remain on the table from that aborted
+double.
+
+Spooling does \textbf{not} take coordinates from the Sensor Grid (Module
+Gamma); sensor takes remain a separate action. Spooling is part of Module
+Delta; Module Theta does not unlock it. Engage Warp Drive is unavailable
+when Uncharted Sectors are empty.
 
 \textbf{Tactical Impact:} The Neutral Zone becomes a strategic dumping
 ground with real risk. Captains must weigh convenience against the
@@ -1344,6 +1455,15 @@ Neutral Zone, fundamentally altering board state ownership.
   trail open to everyone
 \end{itemize}
 
+\textbf{Tabletop (physical coordinates):} Do \textbf{not} slide entire
+warp trails when a Wormhole opens. Keep the coordinates where
+they sit on the hub and \textbf{re-seat} the captain who opened the
+Wormhole so they sit in front of the arm that is now their private
+trail (the former Neutral Zone arm). Mark the arm they left as the new
+\textbf{Neutral Zone} (public). Other captains stay put. Digital play
+swaps ownership labels instead; the board geometry is the same either
+way.
+
 \textbf{Tactical Impact:} Fundamentally rewrites the game from linear
 coordinates shedding to aggressive board state hijacking. High-skill
 players\textquotesingle{} long-term trail building becomes a
@@ -1427,6 +1547,383 @@ high-complexity 18-captain sectors.
   \textbf{Scoring:} Victory is a team achievement; a squadron goes out
   when \emph{one} captain clears their hand, with the team penalty
   calculated by the aggregate remaining pips.
+\end{itemize}
+
+\paragraph{Go-out --- Modules}\label{go-out--modules}
+
+The Module text in this block applies when the sector objective is
+\textbf{Go out}. Campaign points are never tallied. Do \textbf{not}
+mix these rules with the Points campaign Module text above --- each
+Module below is complete for Go-out on its own.
+
+\subsubsection{Module Alpha --- The Continuum
+\emph{(Go-out)}}\label{module-alpha--the-continuum-go-out}
+
+When \textbf{enabled}, charting \textbf{0-0 on your own Warp Trail}
+triggers a \textbf{Continuum Flash} before helm passes. That captain
+immediately chooses \textbf{one} directive for the rest of the sector
+(cleared when the sector ends):
+
+\begin{longtable}[]{@{}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.64\linewidth}@{}}
+\toprule\noalign{}
+Continuum Flash & Effect \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Reverse turn order} & Helm passes counter-clockwise for the rest
+of the sector. \\
+\textbf{Skip Lightest Hand} & The captain(s) holding the fewest
+coordinates skip their next turn. If several captains tie for fewest,
+all of them skip (including the invoker if they are among the
+lightest). \\
+\textbf{Peek Uncharted Sector} & The invoker sees the next coordinate that
+would be drawn from Uncharted Sectors (hidden from others). \\
+\textbf{Temporal inversion} & Turn order reverses until the next double
+is charted on the table. \\
+\textbf{Distress amplification} & All warp trails are open to every
+captain without a Distress Beacon. \\
+\textbf{Fracture immunity} & The next double on an own trail will not
+open Subspace Fracture (Red Alert still applies). \\
+\textbf{Force Draw} & The invoker chooses one opposing captain; that
+captain immediately draws \textbf{1} coordinate from Uncharted Sectors
+(or the Sensor Grid if Uncharted is empty and Module Gamma is on). If
+neither pool has a coordinate, the draw is canceled. \\
+\textbf{All Stop! echo} & Any captain going out this sector must call All
+Stop! before the sector closes. \\
+\textbf{Continuum Wager} & Draw two coordinates from Uncharted
+Sectors --- keep one, return the other face-down. \\
+\end{longtable}
+
+0-0 charted on the Neutral Zone or an opponent\textquotesingle s trail
+does \textbf{not} trigger Continuum Flash. A winning 0-0 on your own
+trail still requires Continuum Flash resolution before the sector can
+close.
+
+\subsubsection{Module Beta --- Salamander Surge
+\emph{(Go-out)}}\label{module-beta--salamander-surge-go-out}
+
+When \textbf{enabled}, charting the \textbf{highest double for the Warp
+Factor} (\texttt{maxPip-maxPip}) from hand --- \textbf{not} as Spacedock
+/ the opening engine play --- triggers a \textbf{Salamander Surge}:
+every opposing captain immediately draws \textbf{1} coordinate from
+Uncharted Sectors (or the Sensor Grid if Uncharted is empty and Module
+Gamma is on).
+
+Resolve forced draws in turn order starting with the next captain after
+the surger. If the draw pools empty mid-resolution, fulfill as many
+draws as possible and cancel the rest.
+
+Examples of the Salamander double: Warp 12 \textbf{12-12}; Warp 9
+\textbf{9-9}; Warp 15 \textbf{15-15}; Warp 18 \textbf{18-18}.
+
+\subsubsection{Module Gamma --- Long-Range Sensor Sweep
+\emph{(Go-out)}}\label{module-gamma--long-range-sensor-sweep-go-out}
+
+High-density sectors demand high-fidelity intel. When DecisionQ metrics
+spike, captains cannot rely on intuition alone; they require real-time
+tactical awareness to optimize their navigational throughput.
+
+When \textbf{enabled}, navigating the Uncharted Sectors is augmented by
+a \textbf{Sensor Grid} to manage the increased decision density of
+large-fleet engagements.
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{The Sensor Grid:} A market of 4 to 5 face-up coordinates is
+  dealt face-up next to the Uncharted Sectors.
+\item
+  \textbf{Sensor Sweep vs. Blind Jump:} When a captain is required to
+  draw a coordinate, they may perform a \textbf{Sensor Sweep} (select
+  from the Sensor Grid) to maintain optimal decision quality, or execute
+  a \textbf{Blind Jump} (draw a random face-down coordinate from the
+  Uncharted Sectors) if the tactical situation requires an uncharted
+  coordinate.
+\item
+  \textbf{Replenish:} Whenever a coordinate leaves the Sensor Grid
+  (Sensor Sweep, or any module that draws through the market), replace it
+  from Uncharted Sectors so the market returns to its configured size
+  while Uncharted still has coordinates. Blind Jumps draw only from
+  Uncharted and do not change the face-up market.
+\item
+  \textbf{Real-Time Updates:} The grid provides a constant, refreshing
+  view of the immediate navigational environment, allowing for precise
+  hand-management in complex, high-skill sectors.
+\end{itemize}
+
+\subsubsection{Module Delta --- Hot Potato (Neutral Zone Hazard)
+\emph{(Go-out)}}\label{module-delta-hot-potato-go-out}
+
+The Neutral Zone is highly unstable subspace. Playing there is
+convenient but dangerous---every contact transfers custody of a volatile
+\textbf{Hazard Marker}, and captains stuck holding it when they pass
+suffer immediate hand-bloat penalties.
+
+\textbf{Transfer Rule:} Whenever a captain charts a coordinate onto the
+\textbf{Neutral Zone}, they immediately take custody of the
+\textbf{Hazard Marker}.
+
+\textbf{Pass Penalty:} If you \textbf{pass} your turn while holding the
+Hazard Marker (cannot chart, drew or pile is empty, beacon already
+deployed), draw \textbf{2} coordinates from Uncharted Sectors (or the
+Sensor Grid if Uncharted is empty and Module Gamma is on). If both pools
+are completely empty, skip your \textbf{next} turn instead.
+
+\begin{itemize}
+\tightlist
+\item
+  The penalty applies \textbf{each time} you pass while holding the
+  marker.
+\item
+  The marker stays with you until someone else plays to the Neutral Zone.
+\end{itemize}
+
+\textbf{Sector Initialization:} The sector starter receives the Hazard
+Marker at the beginning of the sector (they got the ``privilege'' of the
+opening coordinate).
+
+\textbf{Warp Drive Engagement (Spool):} On your turn (when not blocked by
+Red Alert or Subspace Fracture), you may \textbf{engage warp drive} to
+draw coordinates from \textbf{Uncharted Sectors only}---draw one at a
+time until you draw a coordinate that cannot be charted to your chosen
+route, or Uncharted is empty. Each matching coordinate is charted and
+the route endpoint updates. The first mismatch goes to your hand and the
+spool \textbf{stops}; undrawn coordinates remain in Uncharted (you never
+draw past the stop).
+
+\textbf{Doubles during spool:} If a matching double is drawn, the next
+draw must cover it (or, when Subspace Fracture applies to that double,
+three matching stabilizers must follow). If the cover or any required
+stabilizer fails to match --- or Uncharted runs out before the double is
+satisfied --- the unfinished double is \textbf{retrieved to your hand}
+along with any failed cover or stabilizer draw(s). The route endpoint
+reverts to its value before that double. \textbf{No Red Alert} and
+\textbf{no Subspace Fracture} remain on the table from that aborted
+double.
+
+Spooling does \textbf{not} take coordinates from the Sensor Grid (Module
+Gamma); sensor takes remain a separate action. Spooling is part of Module
+Delta; Module Theta does not unlock it. Engage Warp Drive is unavailable
+when Uncharted Sectors are empty.
+
+\textbf{Tactical Impact:} The Neutral Zone becomes a strategic dumping
+ground with real risk. Captains must weigh convenience against the
+danger of getting stuck with the marker and being forced to pass into
+extra draws. Spooling stretches a trail (or the Neutral Zone) at
+hand-bloat risk.
+
+\subsubsection{Module Theta --- Trail Momentum
+\emph{(Go-out)}}\label{module-theta--trail-momentum-go-out}
+
+Strategic long-range navigation rewards extended personal trails.
+
+\textbf{Trail Momentum:} The first captain whose \textbf{personal} Warp
+Trail reaches \textbf{5} coordinates (trail length $\geq 5$ after a
+chart, including a spool that extends the trail) earns one immediate
+\textbf{extra turn}. Claimable \textbf{once per round}. Engaging Warp
+Drive / Spool is \textbf{not} part of Theta---it ships with Module
+Delta.
+
+\textbf{Tactical Impact:} Creates opposing incentives with Module Delta
+(hot potato and NZ spool push toward Neutral Zone risk; trail momentum
+pulls toward your own trail).
+
+\subsubsection{Module Iota --- Double Down
+\emph{(Go-out)}}\label{module-iota-double-down-go-out}
+
+Doubles become tactical weapons. When you chart a double, the next
+captain must immediately draw additional coordinates---forcing hand
+bloat on opponents.
+
+\textbf{Mechanic:} When any captain charts a double to any eligible
+route (own trail, Neutral Zone, or opponent\textquotesingle s open
+trail), the \textbf{next captain} draws \textbf{2 coordinates} from Uncharted
+Sectors (or Sensor Grid if uncharted exhausted) before their turn
+begins.
+
+\textbf{Tactical Impact:} Doubles shift from liability (Red Alert) to
+weapon (burden next player). Encourages double hoarding or strategic
+timing. Adds variance through forced draws.
+
+\textbf{Status:} Rated --- excellent skill preservation (81.4\%
+higher-skill win rate in calibration).
+
+\subsubsection{Module Eta --- Desperation Dig
+\emph{(Go-out)}}\label{module-eta--desperation-dig-go-out}
+
+Drawing from the unknown can be a last resort. When \textbf{enabled},
+Temporal Debt is an optional push-your-luck dig rather than a scoring
+penalty.
+
+\textbf{Mechanic (Desperation Dig):}
+
+\begin{itemize}
+\tightlist
+\item
+  When you cannot chart and must draw from \textbf{Uncharted Sectors},
+  you may invoke Temporal Debt.
+\item
+  Draw up to \textbf{3} coordinates one at a time, stopping immediately
+  when you draw a playable coordinate --- \textbf{chart that
+  coordinate} as part of this action (then finish any Red Alert /
+  Fracture duties as usual).
+\item
+  Your Distress Beacon stays \textbf{open for your next two turns}
+  (opponents may chart onto your trail while it is open).
+\item
+  You may dig even if fewer than three coordinates remain in Uncharted
+  Sectors. If the deck empties before a playable coordinate appears, the
+  dig ends, you pass, and the two-turn open-beacon cost still applies in
+  full.
+\item
+  \textbf{Sensor Sweep takes (Module Gamma)} are not a Desperation Dig
+  and do not incur the beacon cost.
+\end{itemize}
+
+\textbf{Tactical Impact:} Lets a blocked captain gamble for a line out of
+a dead hand at the cost of an open trail. Rewards knowing when the dig is
+worth the exposure.
+
+\subsubsection{Module Kappa --- Hand Exchange
+\emph{(Go-out; Warped --- exhibition
+only)}}\label{module-kappa--hand-exchange-go-out}
+
+Reality bends once per round. When \textbf{enabled}, the first time any
+captain charts a \textbf{double} other than Spacedock, the captain with
+the \textbf{most} coordinates in hand and the captain with the
+\textbf{fewest} resolve an exchange:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  The larger hand randomly takes \textbf{1} coordinate from the smaller
+  hand.
+\item
+  The larger hand then chooses \textbf{1} coordinate from their own hand
+  to give back.
+\end{enumerate}
+
+If two or more captains tie for most or for fewest, or if the same
+captain would be both, skip the exchange for the round.
+
+\textbf{Status:} Exhibition/Warped mode only --- casual chaos play. Never
+rated.
+
+\subsubsection{Module Lambda --- Wormholes
+\emph{(Go-out; Warped --- exhibition
+only)}}\label{module-lambda-wormholes-go-out}
+
+Spatial instability permits topological manipulation. Captains can open
+\textbf{Wormholes} that transpose their personal Warp Trail with the
+Neutral Zone, fundamentally altering board state ownership.
+
+\textbf{Mechanic:}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Wormhole Trigger:} Playing a \textbf{double} onto the
+  \textbf{Neutral Zone} opens a Wormhole
+\item
+  \textbf{Spatial Inversion:} The captain\textquotesingle s personal
+  trail and the Neutral Zone \textbf{immediately swap ownership}
+  \begin{itemize}
+  \tightlist
+  \item
+    Your former trail becomes the new public Neutral Zone (open to all)
+  \item
+    The former Neutral Zone becomes your new private trail
+  \end{itemize}
+\item
+  \textbf{Distress Beacon:} If you had a beacon active before the swap,
+  it is \textbf{destroyed during transit} (fresh start)
+\item
+  \textbf{Red Alert Resolution:} The double triggers Red Alert on your
+  \textbf{newly acquired} trail. You must satisfy it from your hand; if
+  you cannot, you deploy a beacon on your new trail.
+\end{itemize}
+
+\textbf{Strategic Implications:}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{The Escape Pod:} Dump a dead-end trail full of blocked
+  doubles into the public sphere and claim the Neutral Zone\textquotesingle s
+  momentum
+\item
+  \textbf{Risk Assessment:} Before opening a Wormhole, ensure you can
+  answer the Red Alert after the swap; otherwise you beacon your stolen
+  trail open to everyone
+\end{itemize}
+
+\textbf{Tabletop (physical coordinates):} Do \textbf{not} slide entire
+warp trails when a Wormhole opens. Keep the coordinates where
+they sit on the hub and \textbf{re-seat} the captain who opened the
+Wormhole so they sit in front of the arm that is now their private
+trail (the former Neutral Zone arm). Mark the arm they left as the new
+\textbf{Neutral Zone} (public). Other captains stay put. Digital play
+swaps ownership labels instead; the board geometry is the same either
+way.
+
+\textbf{Tactical Impact:} Fundamentally rewrites the game from linear
+coordinates shedding to aggressive board state hijacking. High-skill
+players\textquotesingle{} long-term trail building becomes a
+vulnerability (theft target). AI heuristics must weigh theft
+opportunities against defense. Lower-skilled players benefit from the
+randomness of dynamic ownership (\textasciitilde50-60\% expected skill
+preservation).
+
+\textbf{Status:} Exhibition/Warped mode only---\textbf{predicted to
+significantly reduce skill ordering} (untested; awaiting calibration).
+Never rated.
+
+\subsubsection{Module Epsilon --- Tactical Requisition (Draft)
+\emph{(Go-out)}}\label{module-epsilon--draft-go-out}
+
+\textbf{Unavailable.} Go-out sectors must leave drafting \textbf{off}.
+The race depends on captains adapting to the inefficiencies of their
+dealt hands; sculpting a starting loadout removes that friction.
+
+\subsubsection{Module Zeta --- Fleet Squadrons (Warp Crews)
+\emph{(Go-out)}}\label{module-zeta--fleet-squadrons-go-out}
+
+The DecisionQ requirement of 18-captain sectors is extreme. To maintain
+peak operational performance, the fleet forms localized task forces,
+pooling their cognitive resources to manage the massive navigational
+complexity of the board.
+
+When \textbf{enabled}, the fleet divides into equal squadrons before the
+sector launches. Squadrons are the professional standard for managing
+high-complexity 18-captain sectors.
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Squadron Formation:} Captains divide into equal teams. This
+  structure allows for shared cognitive load and collaborative
+  high-level strategy.
+\item
+  \textbf{Bridge Seating:} Teammates alternate turns with opposing
+  squadrons to ensure balanced tactical pressure.
+\item
+  \textbf{The Shared Trail:} Each squadron shares a single Warp Trail
+  and a single Distress Beacon, creating a unified navigational front.
+\item
+  \textbf{Shield Protocols:} The squadron's shields remain "Up" as long
+  as \emph{any} member of the team maintains forward momentum on their
+  shared trail.
+\item
+  \textbf{Collaborative Command:} Teammates may openly discuss
+  high-level strategy and coordinate moves, effectively leveraging
+  shared brainpower to master the complex decision trees of the Warp 18
+  board.
+\item
+  \textbf{Victory:} A squadron scores a round win when \emph{one} captain
+  clears their hand (no pip tally). Sector victory follows the go-out
+  structure chosen at launch.
 \end{itemize}
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
@@ -1747,8 +2244,8 @@ Track & When it applies \\
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-\textbf{Go-out TEI} & First captain to empty their hand wins the
-sector \\
+\textbf{Go-out TEI} & Sector win under the chosen go-out structure
+(sudden death, fixed rounds, or first to $X$) \\
 \textbf{Points TEI} & Lowest cumulative points total when the campaign
 ends \emph{(or the round, in single-round solo)} \\
 \end{longtable}
@@ -2129,11 +2626,11 @@ Rule & Standard multi-trail & Warp \\
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-Train marker when stuck & Required & Distress Beacon --- same \\
-Voluntary marker while able to play & \textbf{No} & \textbf{No} (unless
+Distress beacon when stuck & Required & Distress Beacon --- same \\
+Voluntary beacon while able to play & \textbf{No} & \textbf{No} (unless
 \textbf{Manual shield control} --- own trail required) \\
-Play elsewhere while marked & Allowed; marker stays & Same \\
-Play on own trail while marked & Marker \textbf{must} come off & Shields
+Play elsewhere while marked & Allowed; beacon stays & Same \\
+Play on own trail while marked & Beacon \textbf{must} come off & Shields
 Up --- same \\
 Doubles & Must satisfy / cover & Red Alert --- same \\
 Chicken foot on doubles & Optional house variant & Subspace Fracture ---

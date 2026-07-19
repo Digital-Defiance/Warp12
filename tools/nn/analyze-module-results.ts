@@ -7,9 +7,18 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const DATA_DIR = resolve(process.cwd(), 'tools/nn/data');
-const OUTPUT_MD = resolve(process.cwd(), 'docs/MODULE-ANALYSIS.md');
-const OUTPUT_JSON = resolve(process.cwd(), 'tools/nn/data/module-analysis-summary.json');
+const DATA_DIR = resolve(
+  process.cwd(),
+  process.env.WARP12_ANALYSIS_DATA_DIR ?? 'tools/nn/data'
+);
+const OUTPUT_MD = resolve(
+  DATA_DIR,
+  process.env.MODULE_ANALYSIS_MD ?? 'MODULE-ANALYSIS.md'
+);
+const OUTPUT_JSON = resolve(
+  DATA_DIR,
+  process.env.MODULE_ANALYSIS_JSON ?? 'module-analysis-summary.json'
+);
 
 interface ConfigResult {
   warpFactor: number;

@@ -2,16 +2,19 @@ import type { Coordinate } from './coordinate.js';
 import type { Captain, PlayerId } from './player.js';
 import type { GameModules } from './modules.js';
 import type { RoundState } from './game-state.js';
+import type { GameObjective } from './objective.js';
 
 /** Catalog of reality-bending Continuum Flash effects (Module Alpha). */
 export type FlashEffectKind =
   | 'reverse-turn-order'
   | 'skip-lowest-points'
+  | 'skip-lightest-hand'
   | 'peek-uncharted'
   | 'temporal-inversion'
   | 'distress-amplification'
   | 'fracture-immunity'
   | 'salamander-swap'
+  | 'force-draw'
   | 'all-stop-echo'
   | 'continuum-wager';
 
@@ -52,6 +55,13 @@ export interface FlashCatalogEntry {
   readonly label: string;
   readonly description: string;
   readonly requiresSalamander?: boolean;
+  /**
+   * When set, this flash is only offered for that objective.
+   * Omitted = available under both Points and Go-out.
+   */
+  readonly objectiveOnly?: GameObjective;
+  /** Invoker must supply `targetPlayerId` (opposing captain). */
+  readonly requiresTarget?: boolean;
 }
 
 export const FLASH_CATALOG: readonly FlashCatalogEntry[] = [
@@ -65,6 +75,14 @@ export const FLASH_CATALOG: readonly FlashCatalogEntry[] = [
     label: 'Skip lowest points',
     description:
       'The captain with the lowest campaign points score skips their next turn.',
+    objectiveOnly: 'points',
+  },
+  {
+    kind: 'skip-lightest-hand',
+    label: 'Skip Lightest Hand',
+    description:
+      'The captain(s) holding the fewest coordinates skip their next turn (ties skip all tied, including the invoker if tied).',
+    objectiveOnly: 'go-out',
   },
   {
     kind: 'peek-uncharted',
@@ -96,6 +114,15 @@ export const FLASH_CATALOG: readonly FlashCatalogEntry[] = [
     description:
       'If anyone holds the highest double (maxPip-maxPip) at round end, the full Salamander penalty (double its pips) lands on the highest-points captain instead — the holder pays nothing for it.',
     requiresSalamander: true,
+    objectiveOnly: 'points',
+  },
+  {
+    kind: 'force-draw',
+    label: 'Force Draw',
+    description:
+      'Choose an opposing captain; they immediately draw 1 coordinate from Uncharted Sectors (or Sensor Grid if Uncharted is empty).',
+    objectiveOnly: 'go-out',
+    requiresTarget: true,
   },
   {
     kind: 'all-stop-echo',
@@ -128,7 +155,10 @@ export function describeFlashEffect(
 ): string {
   const entry = FLASH_CATALOG.find((item) => item.kind === effect.kind);
   const base = entry?.label ?? effect.kind;
-  if (effect.kind === 'skip-lowest-points' && effect.targetPlayerId) {
+  if (
+    (effect.kind === 'skip-lowest-points' || effect.kind === 'force-draw') &&
+    effect.targetPlayerId
+  ) {
     return `${base}: ${names[effect.targetPlayerId] ?? effect.targetPlayerId}`;
   }
   if (effect.kind === 'peek-uncharted' && effect.peek) {
@@ -141,9 +171,13 @@ export function describeFlashEffect(
 export function getAvailableFlashEffects(
   round: RoundState,
   modules: GameModules,
-  captains: readonly Captain[]
+  captains: readonly Captain[],
+  objective: GameObjective = 'points'
 ): FlashEffectKind[] {
   return FLASH_CATALOG.filter((entry) => {
+    if (entry.objectiveOnly && entry.objectiveOnly !== objective) {
+      return false;
+    }
     if (entry.requiresSalamander && !modules.salamanderPenalty.enabled) {
       return false;
     }
@@ -153,6 +187,8 @@ export function getAvailableFlashEffects(
       case 'continuum-wager':
         return round.unchartedSectors.length >= 2;
       case 'skip-lowest-points':
+      case 'skip-lightest-hand':
+      case 'force-draw':
         return captains.length > 1;
       default:
         return true;

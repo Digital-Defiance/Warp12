@@ -1,5 +1,7 @@
 import type { Captain, PlayerId } from '../types/player.js';
 import type { GameState, RoundState } from '../types/game-state.js';
+import type { GameModules } from '../types/modules.js';
+import type { Coordinate } from '../types/coordinate.js';
 import { trailKeyFor } from './squadrons.js';
 import type {
   FlashEffect,
@@ -8,6 +10,7 @@ import type {
   RoundEffects,
 } from '../types/continuum.js';
 import { getAvailableFlashEffects } from '../types/continuum.js';
+import { refillSensorGrid } from './sensor-grid.js';
 
 function mergecontinuumEffects(
   current: RoundEffects | null,
@@ -56,7 +59,7 @@ export function consumeSkipForPlayer(
   });
 }
 
-/** Advance helm to the next captain, consuming any skip-lowest-points effects passed over. */
+/** Advance helm to the next captain, consuming any skip-next-turn effects passed over. */
 export function advanceToNextPlayer(
   round: RoundState,
   currentPlayerId: PlayerId
@@ -128,13 +131,77 @@ export function highestPointsCaptainId(
   ).id;
 }
 
+/** Captains tied for fewest coordinates in hand (Go-out Skip Lightest Hand). */
+export function lightestHandCaptainIds(
+  round: RoundState,
+  captains: readonly Captain[]
+): readonly PlayerId[] {
+  if (captains.length === 0) {
+    return [];
+  }
+  const counts = captains.map((captain) => ({
+    id: captain.id,
+    n: (round.hands[captain.id] ?? []).length,
+  }));
+  const min = Math.min(...counts.map((c) => c.n));
+  return counts.filter((c) => c.n === min).map((c) => c.id);
+}
+
+/**
+ * Draw up to `count` tiles into pools from Uncharted, then Sensor Grid.
+ * Returns updated pools + tiles drawn (may be fewer than count).
+ */
+export function drawTilesFromPools(
+  round: RoundState,
+  modules: GameModules,
+  count: number
+): {
+  readonly tiles: readonly Coordinate[];
+  readonly unchartedSectors: readonly Coordinate[];
+  readonly sensorGrid: readonly Coordinate[];
+} {
+  const tiles: Coordinate[] = [];
+  let remainingUncharted = [...round.unchartedSectors];
+  let remainingSensorGrid = [...(round.sensorGrid ?? [])];
+
+  for (let i = 0; i < count; i += 1) {
+    if (remainingUncharted.length > 0) {
+      tiles.push(remainingUncharted.shift()!);
+    } else if (remainingSensorGrid.length > 0) {
+      tiles.push(remainingSensorGrid.shift()!);
+    } else {
+      break;
+    }
+  }
+
+  const refilled = refillSensorGrid(
+    remainingSensorGrid,
+    remainingUncharted,
+    modules.sensorGrid.enabled ? modules.sensorGrid.gridSize : 0
+  );
+
+  return {
+    tiles,
+    unchartedSectors: refilled.unchartedSectors,
+    sensorGrid: refilled.sensorGrid,
+  };
+}
+
 export function buildQFlashEffect(
   kind: FlashEffectKind,
   state: GameState,
   round: RoundState,
-  invokerId: PlayerId
+  invokerId: PlayerId,
+  targetPlayerId?: PlayerId
 ): FlashEffect | null {
-  if (!getAvailableFlashEffects(round, state.modules, state.captains).includes(kind)) {
+  if (
+    !getAvailableFlashEffects(
+      round,
+      state.modules,
+      state.captains,
+      state.objective
+    ).includes(kind)
+  ) {
     return null;
   }
 
@@ -142,9 +209,11 @@ export function buildQFlashEffect(
     case 'reverse-turn-order':
       return { kind };
     case 'skip-lowest-points': {
-      const targetPlayerId = lowestPointsCaptainId(state.captains);
-      return targetPlayerId ? { kind, targetPlayerId } : null;
+      const lowest = lowestPointsCaptainId(state.captains);
+      return lowest ? { kind, targetPlayerId: lowest } : null;
     }
+    case 'skip-lightest-hand':
+      return { kind };
     case 'peek-uncharted': {
       const coordinate = round.unchartedSectors[0];
       if (!coordinate) {
@@ -160,6 +229,16 @@ export function buildQFlashEffect(
       return { kind };
     case 'salamander-swap':
       return { kind };
+    case 'force-draw': {
+      if (
+        !targetPlayerId ||
+        targetPlayerId === invokerId ||
+        !state.captains.some((c) => c.id === targetPlayerId)
+      ) {
+        return null;
+      }
+      return { kind, targetPlayerId };
+    }
     case 'all-stop-echo':
       return { kind };
     case 'continuum-wager':
@@ -170,7 +249,8 @@ export function buildQFlashEffect(
 export function applyQFlashEffect(
   round: RoundState,
   effect: FlashEffect,
-  invokerId: PlayerId
+  invokerId: PlayerId,
+  modules?: GameModules
 ): { round: RoundState; gamble: GamblePending | null } {
   let nextRound = { ...round, continuumPendingInvoker: null as PlayerId | null };
   let gamble: GamblePending | null = null;
@@ -179,7 +259,9 @@ export function applyQFlashEffect(
     case 'reverse-turn-order':
       nextRound = {
         ...nextRound,
-        continuumEffects: mergecontinuumEffects(nextRound.continuumEffects, { reverseTurnOrder: true }),
+        continuumEffects: mergecontinuumEffects(nextRound.continuumEffects, {
+          reverseTurnOrder: true,
+        }),
       };
       break;
     case 'skip-lowest-points':
@@ -195,6 +277,30 @@ export function applyQFlashEffect(
         };
       }
       break;
+    case 'skip-lightest-hand': {
+      const lightest = lightestHandCaptainIds(
+        nextRound,
+        nextRound.turnOrder.map((id) => ({
+          id,
+          displayName: id,
+          pointsScore: 0,
+        }))
+      );
+      const existing = nextRound.continuumEffects?.skipNextTurnFor ?? [];
+      const merged = [...existing];
+      for (const id of lightest) {
+        if (!merged.includes(id)) {
+          merged.push(id);
+        }
+      }
+      nextRound = {
+        ...nextRound,
+        continuumEffects: mergecontinuumEffects(nextRound.continuumEffects, {
+          skipNextTurnFor: merged,
+        }),
+      };
+      break;
+    }
     case 'peek-uncharted':
       if (effect.peek) {
         nextRound = {
@@ -212,31 +318,61 @@ export function applyQFlashEffect(
     case 'temporal-inversion':
       nextRound = {
         ...nextRound,
-        continuumEffects: mergecontinuumEffects(nextRound.continuumEffects, { temporalInversion: true }),
+        continuumEffects: mergecontinuumEffects(nextRound.continuumEffects, {
+          temporalInversion: true,
+        }),
       };
       break;
     case 'distress-amplification':
       nextRound = {
         ...nextRound,
-        continuumEffects: mergecontinuumEffects(nextRound.continuumEffects, { openAllTrails: true }),
+        continuumEffects: mergecontinuumEffects(nextRound.continuumEffects, {
+          openAllTrails: true,
+        }),
       };
       break;
     case 'fracture-immunity':
       nextRound = {
         ...nextRound,
-        continuumEffects: mergecontinuumEffects(nextRound.continuumEffects, { suppressNextFracture: true }),
+        continuumEffects: mergecontinuumEffects(nextRound.continuumEffects, {
+          suppressNextFracture: true,
+        }),
       };
       break;
     case 'salamander-swap':
       nextRound = {
         ...nextRound,
-        continuumEffects: mergecontinuumEffects(nextRound.continuumEffects, { salamanderSwap: true }),
+        continuumEffects: mergecontinuumEffects(nextRound.continuumEffects, {
+          salamanderSwap: true,
+        }),
       };
       break;
+    case 'force-draw': {
+      if (effect.targetPlayerId && modules) {
+        const drawn = drawTilesFromPools(nextRound, modules, 1);
+        if (drawn.tiles.length > 0) {
+          nextRound = {
+            ...nextRound,
+            unchartedSectors: drawn.unchartedSectors,
+            sensorGrid: drawn.sensorGrid,
+            hands: {
+              ...nextRound.hands,
+              [effect.targetPlayerId]: [
+                ...(nextRound.hands[effect.targetPlayerId] ?? []),
+                ...drawn.tiles,
+              ],
+            },
+          };
+        }
+      }
+      break;
+    }
     case 'all-stop-echo':
       nextRound = {
         ...nextRound,
-        continuumEffects: mergecontinuumEffects(nextRound.continuumEffects, { allStopEcho: true }),
+        continuumEffects: mergecontinuumEffects(nextRound.continuumEffects, {
+          allStopEcho: true,
+        }),
       };
       break;
     case 'continuum-wager': {
@@ -268,7 +404,9 @@ export function clearTemporalInversionOnDouble(
   }
   return {
     ...round,
-    continuumEffects: mergecontinuumEffects(round.continuumEffects, { temporalInversion: false }),
+    continuumEffects: mergecontinuumEffects(round.continuumEffects, {
+      temporalInversion: false,
+    }),
   };
 }
 
@@ -281,7 +419,9 @@ export function consumeFractureImmunity(
   return {
     round: {
       ...round,
-      continuumEffects: mergecontinuumEffects(round.continuumEffects, { suppressNextFracture: false }),
+      continuumEffects: mergecontinuumEffects(round.continuumEffects, {
+        suppressNextFracture: false,
+      }),
     },
     consumed: true,
   };
@@ -340,15 +480,13 @@ export function resolveRoundWinAllStop(
   };
 }
 
-export function trailsOpenToOthers(round: RoundState, trailPlayerId: PlayerId): boolean {
+export function trailsOpenToOthers(
+  round: RoundState,
+  trailPlayerId: PlayerId
+): boolean {
   if (round.continuumEffects?.openAllTrails) {
     return true;
   }
-  // Module Zeta: resolve to the trail's canonical key so this is correct
-  // whether the caller passes a captain id (e.g. from react adapters
-  // iterating turnOrder) or an already-resolved trailKey (engine callers,
-  // which route.playerId always is). Idempotent for non-squad games and for
-  // callers that already pass a trailKey.
   const trailKey = trailKeyFor(round, trailPlayerId);
   return round.table.warpTrails[trailKey]?.distressBeacon.active === true;
 }

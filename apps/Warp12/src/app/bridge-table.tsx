@@ -43,6 +43,7 @@ import {
   explainRoundPoints,
   summarizeRoundOutcome,
   EMPTY_Q_ROUND_EFFECTS,
+  pendingResolutionActorId,
   type RoundPointBreakdown,
   type RoundPointLine,
 } from 'warp12-engine';
@@ -226,6 +227,7 @@ import {
   ContinuumOrb,
   ContinuumFlashPanel,
   ContinuumWagerPanel,
+  HandExchangePanel,
 } from './flash-panel.js';
 import { TrailSpokeIndicators } from './trail-spoke-indicators';
 import spokeStyles from './trail-spoke-indicators.module.scss';
@@ -1399,7 +1401,8 @@ export function BridgeTable({
         buildModuleLoadoutEntry(
           gameRef.current.modules,
           round.roundNumber,
-          startedAt
+          startedAt,
+          gameRef.current.objective
         )
       );
       setGameLogVersion((version) => version + 1);
@@ -3444,6 +3447,7 @@ export function BridgeTable({
     ? [
         round.roundNumber,
         round.activePlayerId,
+        round.handExchangePending?.largerPlayerId ?? '',
         round.roundStarterOpening?.playerId ?? '',
         round.mandatoryPlay?.playerId ?? '',
         round.continuumPendingInvoker ?? '',
@@ -3529,10 +3533,11 @@ export function BridgeTable({
     }
 
     if (round.phase !== 'playing') return;
-    if (isVsAi && round.activePlayerId === humanId) return;
-    if (isLocalPassAndPlay && humanSeatIds.has(round.activePlayerId)) return;
+    const actorId = pendingResolutionActorId(round);
+    if (isVsAi && actorId === humanId) return;
+    if (isLocalPassAndPlay && humanSeatIds.has(actorId)) return;
 
-    const activePlayerId = round.activePlayerId;
+    const activePlayerId = actorId;
     const ai = aiPlayers.get(activePlayerId);
     if (!ai || aiBusy.current) return;
 
@@ -3544,7 +3549,7 @@ export function BridgeTable({
       if (
         !currentRound ||
         currentRound.phase !== 'playing' ||
-        currentRound.activePlayerId !== activePlayerId
+        pendingResolutionActorId(currentRound) !== activePlayerId
       ) {
         return;
       }
@@ -3866,6 +3871,23 @@ export function BridgeTable({
             >
               Draw
             </button>
+            {helmControls.showDesperationDig && (
+              <button
+                type="button"
+                className={styles.controlBtn}
+                data-module-eta="true"
+                aria-label="Desperation Dig — draw up to three from Uncharted; chart the first playable; beacon stays open for two turns"
+                disabled={!round || !isMyTurn}
+                onClick={() =>
+                  void dispatch({
+                    type: 'DESPERATION_DIG',
+                    playerId: handOwnerId,
+                  })
+                }
+              >
+                Desperation Dig
+              </button>
+            )}
             {spoolOptions.length > 0 && (
               <button
                 type="button"
@@ -4485,6 +4507,55 @@ export function BridgeTable({
           </div>
         )}
 
+        {game.goOutOvertimePending === true &&
+          (isOnlineHost || !isOnline) && (
+            <div
+              className={styles.roundEndOverlay}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="warp12-overtime-title"
+            >
+              <div className={styles.roundEndCard}>
+                <p className={styles.roundEndEyebrow}>Campaign tied</p>
+                <h3 id="warp12-overtime-title" className={styles.roundEndTitle}>
+                  Overtime?
+                </h3>
+                <p className={styles.roundEndBody}>
+                  The go-out campaign ended with equal wins. Play overtime rounds
+                  until the tie breaks, or end the sector tied.
+                </p>
+                <div className={styles.roundEndActions}>
+                  <button
+                    type="button"
+                    className={styles.roundEndBtn}
+                    onClick={() =>
+                      void dispatch({
+                        type: 'RESOLVE_GO_OUT_OVERTIME',
+                        playerId: viewerId ?? humanId,
+                        accept: true,
+                      })
+                    }
+                  >
+                    Accept overtime
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.roundEndBtnSecondary}
+                    onClick={() =>
+                      void dispatch({
+                        type: 'RESOLVE_GO_OUT_OVERTIME',
+                        playerId: viewerId ?? humanId,
+                        accept: false,
+                      })
+                    }
+                  >
+                    End tied
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
         <CampaignCompleteOverlay
           open={
             game.phase === 'complete' &&
@@ -4570,6 +4641,12 @@ export function BridgeTable({
         <ContinuumWagerPanel
           game={game}
           playerId={handOwnerId}
+          onResolve={(action) => void dispatch(action)}
+        />
+        <HandExchangePanel
+          game={game}
+          playerId={handOwnerId}
+          tileBg={tileBg}
           onResolve={(action) => void dispatch(action)}
         />
       </div>

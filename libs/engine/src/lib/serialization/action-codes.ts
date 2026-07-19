@@ -28,6 +28,12 @@ export enum ActionCode {
   LONGEST_TRAIL_BONUS = 0x11,
   /** Scoring annotation — see GameAction TEMPORAL_DEBT_PENALTY. */
   TEMPORAL_DEBT_PENALTY = 0x12,
+  /** Module Eta (Go-out) Desperation Dig. */
+  DESPERATION_DIG = 0x13,
+  /** Module Kappa (Go-out) Hand Exchange give-back. */
+  RESOLVE_HAND_EXCHANGE = 0x14,
+  /** Go-out fixed-rounds overtime accept/decline. */
+  RESOLVE_GO_OUT_OVERTIME = 0x15,
 }
 
 /** Route kind encoding (2 bits in route byte). */
@@ -49,6 +55,8 @@ export enum FlashCode {
   SALAMANDER_SWAP = 0x06,
   ALL_STOP_ECHO = 0x07,
   CONTINUUM_WAGER = 0x08,
+  SKIP_LIGHTEST_HAND = 0x09,
+  FORCE_DRAW = 0x0a,
 }
 
 /**
@@ -152,6 +160,10 @@ export function encodeFlashEffect(effect: string): number {
       return FlashCode.ALL_STOP_ECHO;
     case 'continuum-wager':
       return FlashCode.CONTINUUM_WAGER;
+    case 'skip-lightest-hand':
+      return FlashCode.SKIP_LIGHTEST_HAND;
+    case 'force-draw':
+      return FlashCode.FORCE_DRAW;
     default:
       throw new Error(`Unknown flash effect: ${effect}`);
   }
@@ -177,6 +189,10 @@ export function decodeFlashEffect(code: number): string {
       return 'all-stop-echo';
     case FlashCode.CONTINUUM_WAGER:
       return 'continuum-wager';
+    case FlashCode.SKIP_LIGHTEST_HAND:
+      return 'skip-lightest-hand';
+    case FlashCode.FORCE_DRAW:
+      return 'force-draw';
     default:
       throw new Error(`Unknown flash code: ${code}`);
   }

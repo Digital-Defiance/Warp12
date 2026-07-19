@@ -123,6 +123,12 @@ export function serializePublicGame(state: GameState): FirestoreGameDocument {
     },
     objective: state.objective,
     campaignRounds: state.campaignRounds,
+    ...(state.goOutStructure ? { goOutStructure: state.goOutStructure } : {}),
+    ...(state.goOutWinsToWin != null ? { goOutWinsToWin: state.goOutWinsToWin } : {}),
+    ...(state.goOutOvertime ? { goOutOvertime: state.goOutOvertime } : {}),
+    ...(state.matchStarterIndex != null ? { matchStarterIndex: state.matchStarterIndex } : {}),
+    ...(state.goOutOvertimePending === true ? { goOutOvertimePending: true } : {}),
+    ...(state.goOutInOvertime === true ? { goOutInOvertime: true } : {}),
     maxPip: state.maxPip ?? 12,
     maxPlayers: ONLINE_MAX_PLAYERS,
     captainIds: state.captains.map((c) => c.id),
@@ -130,10 +136,17 @@ export function serializePublicGame(state: GameState): FirestoreGameDocument {
       id: c.id,
       displayName: c.displayName,
       pointsScore: c.pointsScore,
+      ...(c.goOutWins != null && c.goOutWins > 0 ? { goOutWins: c.goOutWins } : {}),
       joinedAt: new Date().toISOString(),
       ...(c.squadronId ? { squadronId: c.squadronId } : {}),
     })),
     completedRounds: state.completedRounds,
+    ...(state.trailMomentumClaimedBy
+      ? { trailMomentumClaimedBy: state.trailMomentumClaimedBy }
+      : {}),
+    ...(state.handExchangeResolved
+      ? { handExchangeResolved: true }
+      : {}),
     round: state.round ? serializePublicRound(state.round) : null,
     flash: state.modules.continuum.activeFlash
       ? {
@@ -216,6 +229,17 @@ function serializePublicRound(round: RoundState): FirestorePublicRound {
           ],
         }
       : null,
+    ...(round.handExchangePending
+      ? {
+          handExchangePending: {
+            largerPlayerId: round.handExchangePending.largerPlayerId,
+            smallerPlayerId: round.handExchangePending.smallerPlayerId,
+            takenCoordinate: toFirestoreCoordinate(
+              round.handExchangePending.takenCoordinate
+            ),
+          },
+        }
+      : {}),
     roundStarterOpening: round.roundStarterOpening
       ? { playerId: round.roundStarterOpening.playerId }
       : null,
@@ -227,6 +251,7 @@ function serializePublicRound(round: RoundState): FirestorePublicRound {
     shieldChangedThisTurn: round.shieldChangedThisTurn ?? false,
     ...(round.returnedToWarp ? { returnedToWarp: true } : {}),
     ...(round.wormholeOpened ? { wormholeOpened: true } : {}),
+    ...(round.spoolAbortRetrieve ? { spoolAbortRetrieve: true } : {}),
     sensorGrid: (round.sensorGrid ?? []).map(toFirestoreCoordinate),
     draftState: round.draftState
       ? {
@@ -285,6 +310,13 @@ function serializeTable(round: RoundState): FirestoreTableDocument {
       ...(trail.distressBeacon.chartedOwnTrailSinceDown
         ? { distressBeaconChartedOwnTrailSinceDown: true }
         : {}),
+      ...(trail.distressBeacon.forcedOpenRemaining != null &&
+      trail.distressBeacon.forcedOpenRemaining > 0
+        ? {
+            distressBeaconForcedOpenRemaining:
+              trail.distressBeacon.forcedOpenRemaining,
+          }
+        : {}),
     })),
     neutralZone: {
       tiles: table.neutralZone.tiles.map(toPlaced),
@@ -326,6 +358,7 @@ export function mergeHandsIntoGame(
       distressBeacon: {
         active: boolean;
         chartedOwnTrailSinceDown?: boolean;
+        forcedOpenRemaining?: number;
       };
     }
   > = {};
@@ -340,6 +373,12 @@ export function mergeHandsIntoGame(
           active: trail.distressBeaconActive,
           ...(trail.distressBeaconChartedOwnTrailSinceDown
             ? { chartedOwnTrailSinceDown: true }
+            : {}),
+          ...(trail.distressBeaconForcedOpenRemaining != null &&
+          trail.distressBeaconForcedOpenRemaining > 0
+            ? {
+                forcedOpenRemaining: trail.distressBeaconForcedOpenRemaining,
+              }
             : {}),
         },
       };
@@ -393,6 +432,15 @@ export function mergeHandsIntoGame(
               ],
             }
           : null,
+        handExchangePending: doc.round.handExchangePending
+          ? {
+              largerPlayerId: doc.round.handExchangePending.largerPlayerId,
+              smallerPlayerId: doc.round.handExchangePending.smallerPlayerId,
+              takenCoordinate: fromFirestoreCoordinate(
+                doc.round.handExchangePending.takenCoordinate
+              ),
+            }
+          : null,
         mandatoryPlay: doc.round.mandatoryPlay
           ? {
               playerId: doc.round.mandatoryPlay.playerId,
@@ -418,6 +466,9 @@ export function mergeHandsIntoGame(
         shieldChangedThisTurn: doc.round.shieldChangedThisTurn ?? false,
         returnedToWarp: doc.round.returnedToWarp === true,
         ...(doc.round.wormholeOpened === true ? { wormholeOpened: true } : {}),
+        ...(doc.round.spoolAbortRetrieve === true
+          ? { spoolAbortRetrieve: true }
+          : {}),
         maxPip: doc.maxPip ?? 12,
         sensorGrid: (doc.round.sensorGrid ?? []).map(fromFirestoreCoordinate),
         draftState: decodeDraftState(doc.round.draftState),
@@ -489,6 +540,7 @@ export function mergeHandsIntoGame(
       id: c.id,
       displayName: c.displayName,
       pointsScore: c.pointsScore,
+      ...(c.goOutWins != null && c.goOutWins > 0 ? { goOutWins: c.goOutWins } : {}),
       ...(c.squadronId ? { squadronId: c.squadronId } : {}),
     })),
     ...(doc.squadrons
@@ -498,6 +550,10 @@ export function mergeHandsIntoGame(
       : {}),
     round,
     completedRounds: doc.completedRounds,
+    ...(doc.trailMomentumClaimedBy
+      ? { trailMomentumClaimedBy: doc.trailMomentumClaimedBy }
+      : {}),
+    ...(doc.handExchangeResolved ? { handExchangeResolved: true } : {}),
     modules: (() => {
       const resolved = resolveModules(doc.modules ?? {});
       return {
@@ -530,6 +586,12 @@ export function mergeHandsIntoGame(
     })(),
     objective: doc.objective,
     campaignRounds: doc.campaignRounds,
+    ...(doc.goOutStructure ? { goOutStructure: doc.goOutStructure } : {}),
+    ...(doc.goOutWinsToWin != null ? { goOutWinsToWin: doc.goOutWinsToWin } : {}),
+    ...(doc.goOutOvertime ? { goOutOvertime: doc.goOutOvertime } : {}),
+    ...(doc.matchStarterIndex != null ? { matchStarterIndex: doc.matchStarterIndex } : {}),
+    ...(doc.goOutOvertimePending === true ? { goOutOvertimePending: true } : {}),
+    ...(doc.goOutInOvertime === true ? { goOutInOvertime: true } : {}),
     maxPip: doc.maxPip ?? 12,
     houseRules: resolveHouseRules(doc.houseRules),
   };

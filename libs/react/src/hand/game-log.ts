@@ -49,7 +49,10 @@ export type GameLogEffect =
   | 'round-blocked'
   | 'return-to-warp'
   | 'wormhole-opened'
-  | 'salamander-swap-noop';
+  | 'salamander-swap-noop'
+  | 'spool-abort-retrieve'
+  | 'hand-exchange-opened'
+  | 'trail-momentum-claimed';
 
 export interface GameLogRoute {
   readonly kind: ChartRoute['kind'];
@@ -92,9 +95,50 @@ export interface GameLogEntry {
     readonly targetCaptainId: string;
     readonly drawCount: number;
   };
-  /** For SPOOL_WARP_DRIVE: tiles played (count only, for privacy) */
+  /**
+   * Module Beta (Go-out) Salamander Surge — opponents draw after maxPip
+   * double. Public count only (no tile identities).
+   */
+  readonly salamanderSurge?: {
+    readonly opponentDraws: number;
+  };
+  /**
+   * Module Delta · Hot Potato — public outcome only (no tile identities).
+   * Chart to Neutral Zone picks up the marker; pass while holding penalizes.
+   */
+  readonly hotPotato?: {
+    readonly taken?: true;
+    /** Go-out: tiles drawn on pass while holding. */
+    readonly passDraws?: number;
+    /** Points: +5 stack incremented on pass while holding. */
+    readonly passPenalty?: true;
+    /** Go-out: pools empty — skip next turn instead of drawing. */
+    readonly skipNext?: true;
+  };
+  /** For SPOOL_WARP_DRIVE: public counts only (no tile identities). */
   readonly spoolDetails?: {
     readonly tilesPlayed: number;
+    /** Drawn tiles that went to hand (mismatch and/or retrieved unfinished double). */
+    readonly tilesToHand: number;
+    /** True when an unfinished matching double was retrieved — no RA / Fracture left. */
+    readonly abortedUnfinishedDouble?: boolean;
+  };
+  /**
+   * Module Kappa (Go-out) Hand Exchange — public captains only (no tile
+   * identities for the steal or give-back).
+   */
+  readonly handExchange?: {
+    readonly largerCaptainId: string;
+    readonly smallerCaptainId: string;
+  };
+  /**
+   * Module Eta (Go-out) Desperation Dig — public outcome only (no tile IDs).
+   */
+  readonly desperationDig?: {
+    /** How many coordinates were drawn from Uncharted (0–3). */
+    readonly draws: number;
+    /** True when one drawn coordinate was auto-charted. */
+    readonly charted: boolean;
   };
   /** Module Beta: points charged for the held highest double. */
   readonly penaltyPoints?: number;
@@ -279,6 +323,17 @@ function effectsPhrase(effects: readonly GameLogEffect[]): string {
       case 'wormhole-opened':
         parts.push('opening a Wormhole — trail swapped with the Neutral Zone');
         break;
+      case 'spool-abort-retrieve':
+        parts.push(
+          'retrieving an unfinished double to hand — no Red Alert'
+        );
+        break;
+      case 'hand-exchange-opened':
+        parts.push('opening Hand Exchange');
+        break;
+      case 'trail-momentum-claimed':
+        parts.push('claiming Trail Momentum (extra turn)');
+        break;
       case 'dead-double':
         parts.push('the Double is dead — no cover required');
         break;
@@ -342,7 +397,8 @@ export function formatGameLogLine(
       : formatLogTime(entry.at, options);
   const name = captainLabel(entry.captainId, names);
   const prefix = `${time} - ${name}`;
-  const isOwnAction = viewerId && entry.captainId === viewerId;
+  void viewerId;
+  void ownHandSizeAfter;
 
   switch (entry.kind) {
     case 'ROUND_STARTED':
@@ -365,16 +421,39 @@ export function formatGameLogLine(
       return `${time} - Modules · ${labels.join(', ')}`;
     }
     case 'CHART_COORDINATE': {
-      const base = `${prefix} charted ${tilePhrase(entry.coordinate)} on ${trailPhrase(entry.route, entry.captainId, names)}${effectsPhrase(entry.effects)}`;
-      if (!entry.doubleDown) {
+      const chartEffectsText = effectsPhrase(
+        entry.effects.filter((effect) => effect !== 'hand-exchange-opened')
+      );
+      const base = `${prefix} charted ${tilePhrase(entry.coordinate)} on ${trailPhrase(entry.route, entry.captainId, names)}${chartEffectsText}`;
+      const extras: string[] = [];
+      if (entry.hotPotato?.taken) {
+        extras.push('takes the Hot Potato');
+      }
+      if (entry.doubleDown) {
+        const target = captainLabel(entry.doubleDown.targetCaptainId, names);
+        const drawPhrase =
+          entry.doubleDown.drawCount === 1
+            ? 'draws 1'
+            : `draws ${entry.doubleDown.drawCount}`;
+        extras.push(`Double Down! ${target} ${drawPhrase}`);
+      }
+      if (entry.salamanderSurge) {
+        const n = entry.salamanderSurge.opponentDraws;
+        extras.push(
+          n === 1
+            ? 'Salamander Surge! fleet draws 1'
+            : `Salamander Surge! fleet draws ${n}`
+        );
+      }
+      if (entry.handExchange) {
+        const larger = captainLabel(entry.handExchange.largerCaptainId, names);
+        const smaller = captainLabel(entry.handExchange.smallerCaptainId, names);
+        extras.push(`Hand Exchange! ${larger} takes from ${smaller}`);
+      }
+      if (extras.length === 0) {
         return base;
       }
-      const target = captainLabel(entry.doubleDown.targetCaptainId, names);
-      const drawPhrase =
-        entry.doubleDown.drawCount === 1
-          ? 'draws 1'
-          : `draws ${entry.doubleDown.drawCount}`;
-      return `${base} → Double Down! ${target} ${drawPhrase}`;
+      return `${base} → ${extras.join(' · ')}`;
     }
     case 'DRAW_FROM_UNCHARTED':
       if (entry.effects.includes('red-alert-opened')) {
@@ -384,24 +463,56 @@ export function formatGameLogLine(
         return `${prefix} drew from Uncharted Sectors — returned to warp${effectsPhrase(entry.effects.filter((e) => e !== 'return-to-warp'))}`;
       }
       return `${prefix} drew from Uncharted Sectors${effectsPhrase(entry.effects)}`;
+    case 'SENSOR_SWEEP': {
+      // Sensor Grid is face-up — naming the swept coordinate is public.
+      const swept = entry.coordinate
+        ? ` ${tilePhrase(entry.coordinate)}`
+        : '';
+      if (entry.effects.includes('red-alert-opened')) {
+        return `${prefix} sensor swept${swept} and could not answer the Double${effectsPhrase(entry.effects)}`;
+      }
+      if (entry.effects.includes('return-to-warp')) {
+        return `${prefix} sensor swept${swept} from the Sensor Grid — returned to warp${effectsPhrase(entry.effects.filter((e) => e !== 'return-to-warp'))}`;
+      }
+      return `${prefix} sensor swept${swept} from the Sensor Grid${effectsPhrase(entry.effects)}`;
+    }
+    case 'DESPERATION_DIG': {
+      const dig = entry.desperationDig;
+      if (dig?.charted) {
+        return `${prefix} dug Desperation Dig and charted a strike${effectsPhrase(entry.effects)}`;
+      }
+      return `${prefix} dug Desperation Dig — no strike${effectsPhrase(entry.effects)}`;
+    }
+    case 'RESOLVE_HAND_EXCHANGE': {
+      const partner = entry.targetCaptainId
+        ? captainLabel(entry.targetCaptainId, names)
+        : 'the lightest hand';
+      return `${prefix} completed Hand Exchange with ${partner}${effectsPhrase(entry.effects)}`;
+    }
     case 'SPOOL_WARP_DRIVE': {
       const details = entry.spoolDetails;
-      if (details && details.tilesPlayed > 0) {
+      const trail = trailPhrase(entry.route, entry.captainId, names);
+      const effectText = effectsPhrase(entry.effects);
+      if (details && (details.tilesPlayed > 0 || details.tilesToHand > 0)) {
         const parts: string[] = [];
-        parts.push(`played ${details.tilesPlayed} tile${details.tilesPlayed !== 1 ? 's' : ''}`);
-        
-        // Privacy: Only show what was drawn to hand if viewing your own action
-        // AND we have the post-spool hand size to compute it from
-        if (isOwnAction && ownHandSizeAfter !== undefined) {
-          const tilesSentToHand = details.tilesPlayed > 0 ? ownHandSizeAfter : 0;
-          if (tilesSentToHand > 0) {
-            parts.push(`drew ${tilesSentToHand} to hand`);
-          }
+        if (details.tilesPlayed > 0) {
+          parts.push(
+            `played ${details.tilesPlayed} tile${details.tilesPlayed !== 1 ? 's' : ''}`
+          );
         }
-        
-        return `${prefix} engaged warp drive on ${trailPhrase(entry.route, entry.captainId, names)} (${parts.join(', ')})${effectsPhrase(entry.effects)}`;
+        // Public count only — no tile identities. Prefer abort phrasing when present.
+        if (
+          !entry.effects.includes('spool-abort-retrieve') &&
+          details.tilesToHand > 0
+        ) {
+          parts.push(
+            `drew ${details.tilesToHand} to hand`
+          );
+        }
+        const detailText = parts.length > 0 ? ` (${parts.join(', ')})` : '';
+        return `${prefix} engaged warp drive on ${trail}${detailText}${effectText}`;
       }
-      return `${prefix} engaged warp drive on ${trailPhrase(entry.route, entry.captainId, names)}${effectsPhrase(entry.effects)}`;
+      return `${prefix} engaged warp drive on ${trail}${effectText}`;
     }
     case 'PASS_RED_ALERT': {
       const nextCaptain = entry.nextCaptainId
@@ -410,8 +521,20 @@ export function formatGameLogLine(
       const toPhrase = nextCaptain ? ` to ${nextCaptain}` : '';
       return `${prefix} passed Red Alert${toPhrase}${effectsPhrase(entry.effects)}`;
     }
-    case 'PASS_TURN':
+    case 'PASS_TURN': {
+      const potato = entry.hotPotato;
+      if (potato?.passDraws != null && potato.passDraws > 0) {
+        const n = potato.passDraws;
+        return `${prefix} passed turn while holding the Hot Potato — draws ${n}${effectsPhrase(entry.effects)}`;
+      }
+      if (potato?.skipNext) {
+        return `${prefix} passed turn while holding the Hot Potato — skips next turn${effectsPhrase(entry.effects)}`;
+      }
+      if (potato?.passPenalty) {
+        return `${prefix} passed turn while holding the Hot Potato (+5)${effectsPhrase(entry.effects)}`;
+      }
       return `${prefix} passed turn${effectsPhrase(entry.effects)}`;
+    }
     case 'DEPLOY_DISTRESS_BEACON':
       return `${prefix} deployed a Distress Beacon${effectsPhrase(entry.effects)}`;
     case 'ALL_STOP':
@@ -700,6 +823,109 @@ function detectDoubleDownDraw(
   return undefined;
 }
 
+/**
+ * Module Beta (Go-out): count opponent hand growth after maxPip double
+ * (Salamander Surge). Public total only.
+ */
+function detectSalamanderSurge(
+  before: GameState,
+  after: GameState,
+  action: Extract<GameAction, { type: 'CHART_COORDINATE' }>
+): GameLogEntry['salamanderSurge'] | undefined {
+  if (
+    before.objective !== 'go-out' ||
+    !before.modules.salamanderPenalty?.enabled
+  ) {
+    return undefined;
+  }
+  const maxPip = before.maxPip ?? before.round?.maxPip ?? 12;
+  if (
+    action.coordinate.low !== maxPip ||
+    action.coordinate.high !== maxPip
+  ) {
+    return undefined;
+  }
+  const beforeRound = before.round;
+  const afterRound = after.round;
+  if (!beforeRound || !afterRound) {
+    return undefined;
+  }
+
+  let opponentDraws = 0;
+  for (const captainId of afterRound.turnOrder) {
+    if (captainId === action.playerId) {
+      continue;
+    }
+    opponentDraws += Math.max(
+      0,
+      (afterRound.hands[captainId]?.length ?? 0) -
+        (beforeRound.hands[captainId]?.length ?? 0)
+    );
+  }
+  if (opponentDraws <= 0) {
+    return undefined;
+  }
+  return { opponentDraws };
+}
+
+/** Module Delta: chart onto Neutral Zone picks up (or refreshes) the marker. */
+function detectHotPotatoTaken(
+  before: GameState,
+  action: Extract<GameAction, { type: 'CHART_COORDINATE' }>
+): true | undefined {
+  if (
+    !before.modules.warpDriveSpool?.enabled ||
+    action.route.kind !== 'neutral-zone'
+  ) {
+    return undefined;
+  }
+  return true;
+}
+
+/** Module Delta: pass while holding Hot Potato — draws / +5 / skip. */
+function detectHotPotatoPass(
+  before: GameState,
+  after: GameState,
+  playerId: string
+): GameLogEntry['hotPotato'] | undefined {
+  if (!before.modules.warpDriveSpool?.enabled) {
+    return undefined;
+  }
+  const beforeRound = before.round;
+  const afterRound = after.round;
+  if (!beforeRound || !afterRound) {
+    return undefined;
+  }
+  if (beforeRound.hazardMarkerHolder !== playerId) {
+    return undefined;
+  }
+
+  if (before.objective === 'go-out') {
+    const drawn = Math.max(
+      0,
+      (afterRound.hands[playerId]?.length ?? 0) -
+        (beforeRound.hands[playerId]?.length ?? 0)
+    );
+    if (drawn > 0) {
+      return { passDraws: drawn };
+    }
+    const skipBefore = beforeRound.continuumEffects?.skipNextTurnFor ?? [];
+    const skipAfter = afterRound.continuumEffects?.skipNextTurnFor ?? [];
+    if (!skipBefore.includes(playerId) && skipAfter.includes(playerId)) {
+      return { skipNext: true };
+    }
+    return undefined;
+  }
+
+  if (
+    (afterRound.hazardMarkerPassCount ?? 0) >
+    (beforeRound.hazardMarkerPassCount ?? 0)
+  ) {
+    return { passPenalty: true };
+  }
+  return undefined;
+}
+
 export function buildAutoAllStopLogEntry(
   before: GameState,
   after: GameState,
@@ -747,6 +973,21 @@ export function buildGameLogEntry(
   switch (action.type) {
     case 'CHART_COORDINATE': {
       const doubleDown = detectDoubleDownDraw(before, after, action);
+      const salamanderSurge = detectSalamanderSurge(before, after, action);
+      const hotPotatoTaken = detectHotPotatoTaken(before, action);
+      const effects = [...chartEffects(beforeRound, afterRound, action)];
+      if (
+        !before.trailMomentumClaimedBy &&
+        after.trailMomentumClaimedBy === action.playerId
+      ) {
+        effects.push('trail-momentum-claimed');
+      }
+      const exchange = afterRound.handExchangePending;
+      const handExchangeOpened =
+        !beforeRound.handExchangePending && exchange != null;
+      if (handExchangeOpened) {
+        effects.push('hand-exchange-opened');
+      }
       return {
         at,
         kind: action.type,
@@ -754,8 +995,18 @@ export function buildGameLogEntry(
         trainId: trainIdForRoute(afterRound, action.route),
         coordinate: action.coordinate,
         route: routeToLogRoute(action.route),
-        effects: chartEffects(beforeRound, afterRound, action),
+        effects,
         ...(doubleDown ? { doubleDown } : {}),
+        ...(salamanderSurge ? { salamanderSurge } : {}),
+        ...(hotPotatoTaken ? { hotPotato: { taken: true } } : {}),
+        ...(handExchangeOpened && exchange
+          ? {
+              handExchange: {
+                largerCaptainId: exchange.largerPlayerId,
+                smallerCaptainId: exchange.smallerPlayerId,
+              },
+            }
+          : {}),
       };
     }
     case 'DRAW_FROM_UNCHARTED':
@@ -765,30 +1016,90 @@ export function buildGameLogEntry(
         captainId: action.playerId,
         effects: drawEffects(beforeRound, afterRound, action.playerId),
       };
+    case 'SENSOR_SWEEP':
+      // Sensor Grid is face-up — the swept coordinate is public table state.
+      return {
+        at,
+        kind: action.type,
+        captainId: action.playerId,
+        coordinate: action.coordinate,
+        effects: drawEffects(beforeRound, afterRound, action.playerId),
+      };
+    case 'DESPERATION_DIG': {
+      const draws = Math.max(
+        0,
+        beforeRound.unchartedSectors.length - afterRound.unchartedSectors.length
+      );
+      const trailKey = trailKeyFor(afterRound, action.playerId);
+      const lengthBefore =
+        beforeRound.table.warpTrails[trailKey]?.tiles.length ?? 0;
+      const lengthAfter =
+        afterRound.table.warpTrails[trailKey]?.tiles.length ?? 0;
+      const charted = lengthAfter > lengthBefore;
+      return {
+        at,
+        kind: action.type,
+        captainId: action.playerId,
+        effects: [],
+        desperationDig: { draws, charted },
+      };
+    }
+    case 'RESOLVE_HAND_EXCHANGE': {
+      const pending = beforeRound.handExchangePending;
+      return {
+        at,
+        kind: action.type,
+        captainId: action.playerId,
+        targetCaptainId: pending?.smallerPlayerId,
+        effects: [],
+        ...(pending
+          ? {
+              handExchange: {
+                largerCaptainId: pending.largerPlayerId,
+                smallerCaptainId: pending.smallerPlayerId,
+              },
+            }
+          : {}),
+      };
+    }
     case 'SPOOL_WARP_DRIVE': {
-      // Calculate tiles played from before/after state
+      // Public math only: trail growth + uncharted drain → tiles to hand count.
       const route = action.route;
       let tilesPlayed = 0;
-      
+
       if (route.kind === 'warp-trail') {
         const beforeTrail = beforeRound.table.warpTrails[route.playerId];
         const afterTrail = afterRound.table.warpTrails[route.playerId];
-        tilesPlayed = (afterTrail?.tiles.length ?? 0) - (beforeTrail?.tiles.length ?? 0);
+        tilesPlayed =
+          (afterTrail?.tiles.length ?? 0) - (beforeTrail?.tiles.length ?? 0);
       } else if (route.kind === 'neutral-zone') {
-        tilesPlayed = afterRound.table.neutralZone.tiles.length - beforeRound.table.neutralZone.tiles.length;
+        tilesPlayed =
+          afterRound.table.neutralZone.tiles.length -
+          beforeRound.table.neutralZone.tiles.length;
       }
-      
-      // SECURITY: Do NOT store tilesSentToHand - it's private info that would be
-      // synced to all clients. Only store tilesPlayed count.
+
+      const drawnFromUncharted = Math.max(
+        0,
+        beforeRound.unchartedSectors.length - afterRound.unchartedSectors.length
+      );
+      const tilesToHand = Math.max(0, drawnFromUncharted - tilesPlayed);
+      const abortedUnfinishedDouble = afterRound.spoolAbortRetrieve === true;
+      const effects: GameLogEffect[] = abortedUnfinishedDouble
+        ? ['spool-abort-retrieve']
+        : [];
+
+      // SECURITY: counts only — never tile identities (synced to all clients).
       return {
         at,
         kind: action.type,
         captainId: action.playerId,
         trainId: trainIdForRoute(afterRound, action.route),
         route: routeToLogRoute(action.route),
-        effects: [],
+        effects,
         spoolDetails: {
           tilesPlayed,
+          tilesToHand,
+          ...(abortedUnfinishedDouble ? { abortedUnfinishedDouble: true } : {}),
         },
       };
     }
@@ -801,13 +1112,16 @@ export function buildGameLogEntry(
           afterRound.table.redAlert?.responsiblePlayerId ?? undefined,
         effects: passRedAlertEffects(beforeRound, afterRound),
       };
-    case 'PASS_TURN':
+    case 'PASS_TURN': {
+      const hotPotato = detectHotPotatoPass(before, after, action.playerId);
       return {
         at,
         kind: action.type,
         captainId: action.playerId,
         effects: [],
+        ...(hotPotato ? { hotPotato } : {}),
       };
+    }
     case 'DEPLOY_DISTRESS_BEACON':
       return {
         at,
@@ -942,13 +1256,14 @@ const MODULE_LOG_LABELS: readonly {
 ];
 
 /**
- * Enabled module labels for a round. Module Kappa (Temporal Inversion) is
- * parity-aware: even rounds invert scoring, so the label states whether THIS
- * round is normal or inverted (otherwise players cannot tell if it fired).
+ * Enabled module labels for a round. Module Kappa is objective-aware:
+ * - Points: Temporal Inversion with even/odd parity stated for this round
+ * - Go-out: Hand Exchange (inversion scoring never fires under go-out)
  */
 export function enabledModuleLabels(
   modules: GameModules,
-  roundNumber: number
+  roundNumber: number,
+  objective: GameState['objective'] = 'points'
 ): string[] {
   const labels: string[] = [];
   for (const { key, label } of MODULE_LOG_LABELS) {
@@ -956,12 +1271,16 @@ export function enabledModuleLabels(
       continue;
     }
     if (key === 'temporalInversion') {
-      const inverted = roundNumber % 2 === 0;
-      labels.push(
-        inverted
-          ? `${label} (Round ${roundNumber} INVERTED — highest hand wins)`
-          : `${label} (Round ${roundNumber} normal — lowest hand wins)`
-      );
+      if (objective === 'go-out') {
+        labels.push('Module Kappa · Hand Exchange');
+      } else {
+        const inverted = roundNumber % 2 === 0;
+        labels.push(
+          inverted
+            ? `${label} (Round ${roundNumber} INVERTED — highest hand wins)`
+            : `${label} (Round ${roundNumber} normal — lowest hand wins)`
+        );
+      }
     } else {
       labels.push(label);
     }
@@ -976,14 +1295,15 @@ export function enabledModuleLabels(
 export function buildModuleLoadoutEntry(
   modules: GameModules,
   roundNumber: number,
-  at?: string
+  at?: string,
+  objective: GameState['objective'] = 'points'
 ): GameLogEntry {
   return {
     at: at ?? new Date().toISOString(),
     kind: 'MODULE_LOADOUT',
     captainId: '',
     roundNumber,
-    moduleLabels: enabledModuleLabels(modules, roundNumber),
+    moduleLabels: enabledModuleLabels(modules, roundNumber, objective),
     effects: [],
   };
 }

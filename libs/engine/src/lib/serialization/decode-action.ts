@@ -75,6 +75,17 @@ export function decodeAction(
       };
     }
 
+    case ActionCode.DESPERATION_DIG: {
+      if (offset + 2 > buffer.length) {
+        throw new Error('Buffer too short for DESPERATION_DIG');
+      }
+      const playerId = decodePlayerId(buffer[offset + 1], ctx);
+      return {
+        action: { type: 'DESPERATION_DIG', playerId },
+        bytesRead: 2,
+      };
+    }
+
     case ActionCode.SENSOR_SWEEP: {
       const size = 2 + COORDINATE_ENCODED_BYTES;
       if (offset + size > buffer.length) {
@@ -205,6 +216,34 @@ export function decodeAction(
       }
       return {
         action: { type: 'RESOLVE_CONTINUUM_WAGER', playerId, keepIndex },
+        bytesRead: 3,
+      };
+    }
+
+    case ActionCode.RESOLVE_HAND_EXCHANGE: {
+      const size = 2 + COORDINATE_ENCODED_BYTES;
+      if (offset + size > buffer.length) {
+        throw new Error('Buffer too short for RESOLVE_HAND_EXCHANGE');
+      }
+      const playerId = decodePlayerId(buffer[offset + 1], ctx);
+      const { coordinate } = readCoordinate(buffer, offset + 2, ctx.maxPip);
+      return {
+        action: { type: 'RESOLVE_HAND_EXCHANGE', playerId, coordinate },
+        bytesRead: size,
+      };
+    }
+
+    case ActionCode.RESOLVE_GO_OUT_OVERTIME: {
+      if (offset + 3 > buffer.length) {
+        throw new Error('Buffer too short for RESOLVE_GO_OUT_OVERTIME');
+      }
+      const playerId = decodePlayerId(buffer[offset + 1], ctx);
+      return {
+        action: {
+          type: 'RESOLVE_GO_OUT_OVERTIME',
+          playerId,
+          accept: buffer[offset + 2] !== 0,
+        },
         bytesRead: 3,
       };
     }

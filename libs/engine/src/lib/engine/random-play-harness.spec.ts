@@ -56,6 +56,21 @@ const PRESETS: ReadonlyArray<{
     },
   },
   {
+    name: 'go-out · 3 captains · forked modules (Theta/Eta/Kappa/Delta/Beta)',
+    options: {
+      captainCount: 3,
+      objective: 'go-out',
+      modules: {
+        continuum: true,
+        salamanderPenalty: true,
+        warpDriveSpool: true,
+        longestTrail: true,
+        temporalDebt: true,
+        temporalInversion: true,
+      },
+    },
+  },
+  {
     name: 'points · 5 captains · Subspace Fracture (own trail)',
     options: {
       captainCount: 5,

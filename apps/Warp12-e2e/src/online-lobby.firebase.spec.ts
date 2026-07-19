@@ -69,7 +69,9 @@ test.describe('online fleet (Firebase emulators)', () => {
     await page.getByPlaceholder('ABC123').fill('ZZZZZZ');
     await waitForOnlineReady(page, 'Join sector');
     await page.getByRole('button', { name: 'Join sector' }).click();
-    await expect(page.getByRole('alert')).toContainText('Game not found');
+    await expect(
+      page.getByRole('alert').filter({ hasText: 'Game not found' })
+    ).toBeVisible();
   });
 
   test('opening an unknown sector URL shows sector unavailable', async ({

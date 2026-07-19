@@ -1,0 +1,28 @@
+{
+  "warpFactor": 18,
+  "playerCount": 17,
+  "moduleConfig": "mu",
+  "moduleLabel": "Subspace Fracture (Own Trail)",
+  "zetaOmitted": false,
+  "games": 500,
+  "objective": "points",
+  "summary": {
+    "games": 500,
+    "playerCount": 17,
+    "maxPip": 18,
+    "objective": "points",
+    "avgLegalMovesPerTurn": 2.5211980458948213,
+    "avgUniqueTrainsPerTurn": 0.833962746864292,
+    "avgConstrainedTileFraction": 0.5177185988169049,
+    "avgUniquePipsInHand": 7.317086374668931,
+    "avgMaxPipCluster": 2.0100615424701544,
+    "avgHandEntropy": 2.624189698255037,
+    "avgMoveValueSpread": 3.3980302746218936,
+    "avgNearOptimalFraction": 0.8320602654462405,
+    "avgOwnTrailPlayRate": 0,
+    "avgShieldsDownRate": 0.4485479065165287
+  },
+  "skillIndicators": 3,
+  "timestamp": "2026-07-19T02:26:52.584Z",
+  "durationSeconds": 185.577
+}

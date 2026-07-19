@@ -5,6 +5,7 @@ import {
   DEFAULT_SUBSPACE_FRACTURE_SCOPE,
   defaultCampaignRounds,
   formatAiSkillUnratedLabel,
+  isModuleAvailableForObjective,
   type GameObjective,
   type HouseRulesConfig,
   type SubspaceFractureScope,
@@ -13,8 +14,15 @@ import {
 } from 'warp12-engine';
 
 import { BridgeTable } from './bridge-table';
+import { goOutAwareModuleLabel } from './go-out-module-labels.js';
 import styles from './lobby.module.scss';
-import { CampaignRoundsField, ObjectivePicker } from './objective-picker';
+import {
+  CampaignRoundsField,
+  GoOutCampaignField,
+  MatchStarterPicker,
+  ObjectivePicker,
+  type GoOutCampaignConfig,
+} from './objective-picker';
 import { HouseRulesOptions } from './house-rules-options';
 import { DoubleZeroScoreField } from './double-zero-score-field';
 import { LargeFleetHandSizeField } from './large-fleet-hand-size-field';
@@ -88,6 +96,15 @@ export function PassAndPlayPage() {
   const [campaignRounds, setCampaignRounds] = useState(
     initialSnapshot.campaignRounds
   );
+  const [goOutCampaign, setGoOutCampaign] = useState<GoOutCampaignConfig>(() => ({
+    goOutStructure: initialSnapshot.goOutStructure,
+    goOutWinsToWin: initialSnapshot.goOutWinsToWin,
+    goOutOvertime: initialSnapshot.goOutOvertime,
+    campaignRounds: initialSnapshot.campaignRounds,
+  }));
+  const [matchStarterIndex, setMatchStarterIndex] = useState(
+    initialSnapshot.matchStarterIndex
+  );
   const [salamander, setSalamander] = useState(
     initialSnapshot.modules.salamanderPenalty === true
   );
@@ -160,7 +177,11 @@ export function PassAndPlayPage() {
     aiFillCount,
     humanNames,
     objective,
-    campaignRounds,
+    campaignRounds: objective === 'go-out' ? goOutCampaign.campaignRounds : campaignRounds,
+    goOutStructure: goOutCampaign.goOutStructure,
+    goOutWinsToWin: goOutCampaign.goOutWinsToWin,
+    goOutOvertime: goOutCampaign.goOutOvertime,
+    matchStarterIndex,
     modules: {
       salamanderPenalty: salamander,
       continuum,
@@ -169,7 +190,9 @@ export function PassAndPlayPage() {
       longestTrail,
       doubleDown,
       temporalDebt,
-      drafting,
+      drafting: isModuleAvailableForObjective('drafting', objective)
+        ? drafting
+        : false,
       temporalInversion,
       wormholes,
       subspaceFracture,
@@ -189,6 +212,13 @@ export function PassAndPlayPage() {
     setExtendedThinkingByAi(snap.aiExtendedThinking);
     setObjective(snap.objective);
     setCampaignRounds(snap.campaignRounds);
+    setGoOutCampaign({
+      goOutStructure: snap.goOutStructure,
+      goOutWinsToWin: snap.goOutWinsToWin,
+      goOutOvertime: snap.goOutOvertime,
+      campaignRounds: snap.campaignRounds,
+    });
+    setMatchStarterIndex(snap.matchStarterIndex);
     setSalamander(snap.modules.salamanderPenalty === true);
     setContinuum(snap.modules.continuum === true);
     setSensorGrid(snap.modules.sensorGrid === true);
@@ -196,7 +226,10 @@ export function PassAndPlayPage() {
     setLongestTrail(snap.modules.longestTrail === true);
     setDoubleDown(snap.modules.doubleDown === true);
     setTemporalDebt(snap.modules.temporalDebt === true);
-    setDrafting(snap.modules.drafting === true);
+    setDrafting(
+      isModuleAvailableForObjective('drafting', snap.objective) &&
+        snap.modules.drafting === true
+    );
     setTemporalInversion(snap.modules.temporalInversion === true);
     setWormholes(snap.modules.wormholes === true);
     setSubspaceFracture(snap.modules.subspaceFracture === true);
@@ -274,6 +307,20 @@ export function PassAndPlayPage() {
       maxPip
     );
     const primary = humans[0];
+    const aiCaptainsList = applyAiTierOverrides(
+      buildAiCaptains(snap.aiFillCount, maxPip),
+      snap.aiTiers,
+      snap.aiExtendedThinking,
+      neuralAiSupported(maxPip)
+    );
+    const allCaptains = [
+      ...humans.map((h) => ({ id: h.id, displayName: h.displayName })),
+      ...aiCaptainsList.map((ai) => ({ id: ai.id, displayName: ai.displayName })),
+    ];
+    const safeStarterIndex =
+      snap.matchStarterIndex >= 0 && snap.matchStarterIndex < allCaptains.length
+        ? snap.matchStarterIndex
+        : undefined;
     const next: LocalGameConfig = {
       humanId: primary.id,
       humanName: primary.displayName,
@@ -281,14 +328,13 @@ export function PassAndPlayPage() {
       playerCount: count,
       objective: snap.objective,
       campaignRounds: snap.campaignRounds,
+      goOutStructure: snap.goOutStructure,
+      goOutWinsToWin: snap.goOutWinsToWin,
+      goOutOvertime: snap.goOutOvertime,
+      matchStarterIndex: safeStarterIndex,
       modules: snap.modules,
       houseRules: snap.houseRules,
-      aiCaptains: applyAiTierOverrides(
-        buildAiCaptains(snap.aiFillCount, maxPip),
-        snap.aiTiers,
-        snap.aiExtendedThinking,
-        neuralAiSupported(maxPip)
-      ),
+      aiCaptains: aiCaptainsList,
       maxPip,
     };
     writeLastUsedPreset(
@@ -478,7 +524,12 @@ export function PassAndPlayPage() {
       <ObjectivePicker
         name="pass-and-play-objective"
         value={objective}
-        onChange={setObjective}
+        onChange={(next) => {
+          setObjective(next);
+          if (!isModuleAvailableForObjective('drafting', next)) {
+            setDrafting(false);
+          }
+        }}
       />
 
       {objective === 'points' && (
@@ -491,6 +542,28 @@ export function PassAndPlayPage() {
           />
         </fieldset>
       )}
+
+      {objective === 'go-out' && (
+        <GoOutCampaignField
+          name="pnp-go-out"
+          value={goOutCampaign}
+          onChange={setGoOutCampaign}
+          maxPip={maxPip}
+        />
+      )}
+
+      <MatchStarterPicker
+        captains={[
+          ...buildHumanCaptains(
+            clampPassAndPlayPlayerCount(playerCount, maxPip) - aiFillCount,
+            humanNames,
+            maxPip
+          ),
+          ...buildAiCaptains(aiFillCount, maxPip),
+        ]}
+        value={matchStarterIndex}
+        onChange={setMatchStarterIndex}
+      />
 
       <fieldset className={styles.fieldset}>
         <legend>Rules preset</legend>
@@ -513,7 +586,7 @@ export function PassAndPlayPage() {
             checked={salamander}
             onChange={(e) => setSalamander(e.target.checked)}
           />
-          <span>Module Beta — Salamander penalty</span>
+          <span>{goOutAwareModuleLabel('beta', objective)}</span>
         </label>
         <label className={styles.checkboxRow}>
           <input
@@ -537,7 +610,7 @@ export function PassAndPlayPage() {
             checked={longestTrail}
             onChange={(e) => setLongestTrail(e.target.checked)}
           />
-          <span>Module Theta — Longest Trail Bonus</span>
+          <span>{goOutAwareModuleLabel('theta', objective)}</span>
         </label>
         <label className={styles.checkboxRow}>
           <input
@@ -553,15 +626,20 @@ export function PassAndPlayPage() {
             checked={temporalDebt}
             onChange={(e) => setTemporalDebt(e.target.checked)}
           />
-          <span>Module Eta — Temporal Debt</span>
+          <span>{goOutAwareModuleLabel('eta', objective)}</span>
         </label>
         <label className={styles.checkboxRow}>
           <input
             type="checkbox"
-            checked={drafting}
+            checked={
+              isModuleAvailableForObjective('drafting', objective)
+                ? drafting
+                : false
+            }
+            disabled={!isModuleAvailableForObjective('drafting', objective)}
             onChange={(e) => setDrafting(e.target.checked)}
           />
-          <span>Module Epsilon — Tactical Requisition (Drafting)</span>
+          <span>{goOutAwareModuleLabel('epsilon', objective)}</span>
         </label>
         <label className={styles.checkboxRow}>
           <input
@@ -569,7 +647,7 @@ export function PassAndPlayPage() {
             checked={temporalInversion}
             onChange={(e) => setTemporalInversion(e.target.checked)}
           />
-          <span>Module Kappa — Temporal Inversion (Warped/Exhibition)</span>
+          <span>{goOutAwareModuleLabel('kappa', objective)}</span>
         </label>
         <label className={styles.checkboxRow}>
           <input

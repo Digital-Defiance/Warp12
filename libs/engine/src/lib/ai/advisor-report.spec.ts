@@ -69,6 +69,35 @@ describe('advisor report', () => {
     ).toBe(true);
   });
 
+  it('notes spool abort retrieve for Module Delta', () => {
+    const round = makeRound(['a', 'b'], {
+      activePlayerId: 'a',
+      hands: {
+        a: [{ low: 12, high: 11 }],
+        b: [{ low: 6, high: 6 }],
+      },
+    });
+    const start = makeGame(round, {
+      modules: resolveModules({ warpDriveSpool: true }),
+    });
+    const report = buildAdvisorReport({
+      roundStartState: start,
+      entries: [],
+    });
+    expect(
+      report.moduleContext?.moduleLabels.some((label) =>
+        label.includes('Hot Potato')
+      )
+    ).toBe(true);
+    expect(
+      report.moduleContext?.notes.some(
+        (note) =>
+          note.includes('retrieved to hand') &&
+          note.includes('no Red Alert')
+      )
+    ).toBe(true);
+  });
+
   it('converts chart actions into warp AI actions', () => {
     const action = {
       type: 'CHART_COORDINATE' as const,

@@ -1,4 +1,5 @@
 import { applyAction } from '../engine/apply-action.js';
+import { pendingResolutionActorId } from '../engine/hand-exchange.js';
 import { scoreRound } from '../engine/scoring.js';
 import { startGame } from '../setup/create-game.js';
 import {
@@ -203,7 +204,7 @@ export function playSelfPlayGame(
       lastHandTiles = totalHandTiles(round);
     }
 
-    const playerId = round.activePlayerId;
+    const playerId = pendingResolutionActorId(round);
     const player = byId.get(playerId);
     if (!player) break;
     

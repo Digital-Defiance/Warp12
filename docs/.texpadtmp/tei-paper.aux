@@ -2,142 +2,194 @@
 \providecommand\hyper@newdestlabel[2]{}
 \providecommand\HyField@AuxAddToFields[1]{}
 \providecommand\HyField@AuxAddToCoFields[2]{}
-\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Mexican Train Dominoes}{1}{subsection.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{2}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Mexican Train Dominoes}{2}{subsection.1.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {1.2}Warp 12: Terminology and Presentation}{2}{subsection.1.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Warp 12 terminology mapped to Mexican Train equivalents}}{2}{table.caption.1}\protected@file@percent }
-\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{tab:terminology}{{1}{2}{Warp 12 terminology mapped to Mexican Train equivalents}{table.caption.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {1.3}Motivation}{2}{subsection.1.3}\protected@file@percent }
-\citation{doubleighteen2024}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Warp 12 terminology mapped to Mexican Train equivalents}}{3}{table.caption.1}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{tab:terminology}{{1}{3}{Warp 12 terminology mapped to Mexican Train equivalents}{table.caption.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {1.4}Contributions}{3}{subsection.1.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{3}{section.2}\protected@file@percent }
+\citation{doubleighteen2024}
 \citation{browne2012mcts}
 \citation{cowling2012ismcts}
 \citation{silver2017alphazero}
 \citation{silver2018alphazero}
 \citation{bowling2015heads}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{4}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Domino and Tile Games}{4}{subsection.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Game AI Paradigms}{4}{subsection.2.2}\protected@file@percent }
 \citation{elo1978rating}
 \citation{glickman1999glicko}
 \citation{herbrich2006trueskill}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Domino and Tile Games}{4}{subsection.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Game AI Paradigms}{4}{subsection.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Skill Rating Systems}{4}{subsection.2.3}\protected@file@percent }
+\citation{wenglin2011}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Skill Rating Systems}{5}{subsection.2.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Contribution Relative to Prior Work}{5}{subsection.2.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3}Game Model and Rules Engine}{5}{section.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Core Mexican Train Rules}{5}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Game Model and Rules Engine}{6}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Core Mexican Train Rules}{6}{subsection.3.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Implementation as State Machine}{6}{subsection.3.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.3}House Rules and Modules}{6}{subsection.3.3}\protected@file@percent }
 \citation{frank1996determinization}
 \citation{cowling2012ismcts}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Information Structure and Game Complexity}{7}{subsection.3.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Two Objectives as Two Different Games}{7}{subsection.3.5}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Strategic differences between points and go-out objectives}}{7}{table.caption.2}\protected@file@percent }
-\newlabel{tab:objectives}{{2}{7}{Strategic differences between points and go-out objectives}{table.caption.2}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Points vs go-out strategic divergence. Left: Implied ΔTEI from observed win rates shows go-out compression. Right: Win rate distributions demonstrate that go-out behaves like a stochastic race (ordering survives, magnitudes compress).}}{8}{figure.caption.3}\protected@file@percent }
-\newlabel{fig:points-vs-goout}{{1}{8}{Points vs go-out strategic divergence. Left: Implied ΔTEI from observed win rates shows go-out compression. Right: Win rate distributions demonstrate that go-out behaves like a stochastic race (ordering survives, magnitudes compress)}{figure.caption.3}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Agent architecture overview. Top: Heuristic policy stack (candidate generation through action selection). Middle-left: Class I* residual MLP adds learned correction to heuristics. Middle-right: Class Ω standalone policy/value heads (no heuristics). Bottom: Fleet Admiral multi-engine routing by player count.}}{8}{figure.caption.4}\protected@file@percent }
-\newlabel{fig:architectures}{{2}{8}{Agent architecture overview. Top: Heuristic policy stack (candidate generation through action selection). Middle-left: Class I* residual MLP adds learned correction to heuristics. Middle-right: Class Ω standalone policy/value heads (no heuristics). Bottom: Fleet Admiral multi-engine routing by player count}{figure.caption.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Two Objectives as Two Different Games}{8}{subsection.3.5}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Strategic differences between points and go-out objectives}}{8}{table.caption.2}\protected@file@percent }
+\newlabel{tab:objectives}{{2}{8}{Strategic differences between points and go-out objectives}{table.caption.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Points vs go-out strategic divergence under OpenSkill. Left: calibrated $|\Delta \mu |$ anchors versus $|\Delta \mu |$ implied by 2{,}000-game win rates --- go-out compression is stark. Right: weaker-side win rates show points keeps clearer tier separation than the go-out race.}}{8}{figure.caption.3}\protected@file@percent }
+\newlabel{fig:points-vs-goout}{{1}{8}{Points vs go-out strategic divergence under OpenSkill. Left: calibrated $|\Delta \mu |$ anchors versus $|\Delta \mu |$ implied by 2{,}000-game win rates --- go-out compression is stark. Right: weaker-side win rates show points keeps clearer tier separation than the go-out race}{figure.caption.3}{}}
 \citation{browne2012mcts}
 \citation{cowling2012ismcts}
 \@writefile{toc}{\contentsline {section}{\numberline {4}Agent Architecture}{9}{section.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Agent architecture overview. Top: Heuristic policy stack (candidate generation through action selection). Middle-left: Class I* residual MLP adds learned correction to heuristics. Middle-right: Class $\Omega $ standalone policy/value heads (no heuristics). Bottom: Fleet Admiral multi-engine routing by player count.}}{9}{figure.caption.4}\protected@file@percent }
+\newlabel{fig:architectures}{{2}{9}{Agent architecture overview. Top: Heuristic policy stack (candidate generation through action selection). Middle-left: Class I* residual MLP adds learned correction to heuristics. Middle-right: Class $\Omega $ standalone policy/value heads (no heuristics). Bottom: Fleet Admiral multi-engine routing by player count}{figure.caption.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Policy Stack}{9}{subsection.4.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Skill Presets (Class IV--II)}{9}{subsection.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Lookahead Policy (Product Decision)}{9}{subsection.4.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Tactical Advisor}{9}{subsection.4.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5}TEI (Tactical Effectiveness Index)}{9}{section.5}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces TEI reference bands and Elo win probability. Left: Class IV--II reference anchors by objective (v1 heuristic vs v2 Ω). Right: Standard Elo expected win rate curve with reference spacing markers (200 pts for points, 250 pts for go-out).}}{9}{figure.caption.5}\protected@file@percent }
-\newlabel{fig:tei-ladder}{{3}{9}{TEI reference bands and Elo win probability. Left: Class IV--II reference anchors by objective (v1 heuristic vs v2 Ω). Right: Standard Elo expected win rate curve with reference spacing markers (200 pts for points, 250 pts for go-out)}{figure.caption.5}{}}
-\citation{elo1978rating}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Reference Bands}{10}{subsection.5.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces TEI reference bands by class and objective}}{10}{table.caption.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Update Rule}{10}{subsection.5.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Percentile Boards}{10}{subsection.5.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Federation Academy}{10}{subsection.5.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6}Calibration Methodology}{10}{section.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Self-Play Loop}{10}{subsection.6.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Evaluation Suites}{10}{subsection.6.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Metrics}{10}{subsection.6.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7}Results: AI Calibration}{11}{section.7}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Calibration matrix heatmaps showing win rates between all Class IV/III/II pairs (200 games per matchup). Left: Points objective exhibits clean skill ordering. Right: Go-out objective shows compression, especially Class III vs II (near coin flip at 51\%).}}{11}{figure.caption.7}\protected@file@percent }
-\newlabel{fig:calibration-matrix}{{4}{11}{Calibration matrix heatmaps showing win rates between all Class IV/III/II pairs (200 games per matchup). Left: Points objective exhibits clean skill ordering. Right: Go-out objective shows compression, especially Class III vs II (near coin flip at 51\%)}{figure.caption.7}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Points (Default Rules, 200 games/matchup)}{11}{subsection.7.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Go-out}{11}{subsection.7.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Class I*, Fleet Admiral, and Class $\Omega $ Benches}{11}{subsection.7.3}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces AI bench results across experimental tiers. Top-left: Class I* neural residual iterations (imitation ceiling at 48--51\%). Top-right: Fleet Admiral search backends (expectimax wins 2p, ISMCTS wins 4p). Bottom-left: Class Ω fair-share rises with fleet size (points objective). Bottom-right: Fair-share hazard — naive Elo translation overestimates TEI anchors vs tempered decision (1520).}}{12}{figure.caption.8}\protected@file@percent }
-\newlabel{fig:ai-bench-results}{{5}{12}{AI bench results across experimental tiers. Top-left: Class I* neural residual iterations (imitation ceiling at 48--51\%). Top-right: Fleet Admiral search backends (expectimax wins 2p, ISMCTS wins 4p). Bottom-left: Class Ω fair-share rises with fleet size (points objective). Bottom-right: Fair-share hazard — naive Elo translation overestimates TEI anchors vs tempered decision (1520)}{figure.caption.8}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {8}Luck vs Skill Across Warp Factors: A 19,000-Game Empirical Study}{13}{section.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}Motivation and Configuration Matrix}{13}{subsection.8.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Warp factor configurations in Warp 12}}{13}{table.caption.9}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Configuration matrix for luck vs skill analysis}}{14}{table.caption.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Metrics and Composite Indices}{14}{subsection.8.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}Hypotheses}{15}{subsection.8.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}Statistical Results}{15}{subsection.8.4}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Cross-factor skill index comparison for 2--4 player configurations. W12 exhibits the highest skill expression in the balanced comparison range.}}{15}{figure.caption.11}\protected@file@percent }
-\newlabel{fig:cross-factor}{{6}{15}{Cross-factor skill index comparison for 2--4 player configurations. W12 exhibits the highest skill expression in the balanced comparison range}{figure.caption.11}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.4.1}H1: Warp Factor Effect (ANOVA)}{16}{subsubsection.8.4.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Mean skill index by Warp factor (2--4 players)}}{16}{table.caption.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.4.2}H2: Fleet Size Effect (Correlation)}{16}{subsubsection.8.4.2}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Fleet size effect on skill expression by Warp factor. W12 shows the steepest gradient ($r = 0.875$), indicating highest sensitivity to player count.}}{16}{figure.caption.13}\protected@file@percent }
-\newlabel{fig:fleet-size-effects}{{7}{16}{Fleet size effect on skill expression by Warp factor. W12 shows the steepest gradient ($r = 0.875$), indicating highest sensitivity to player count}{figure.caption.13}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Fleet size effect on skill expression by Warp factor}}{17}{table.caption.14}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.4.3}H3: Interaction Effect}{17}{subsubsection.8.4.3}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Decision complexity heatmap (avgLegalMoves) by Warp factor and fleet size. Note the relatively constant branching factor ($\sim $2 moves/turn) despite large variations in configuration.}}{17}{figure.caption.15}\protected@file@percent }
-\newlabel{fig:complexity-heatmap}{{8}{17}{Decision complexity heatmap (avgLegalMoves) by Warp factor and fleet size. Note the relatively constant branching factor ($\sim $2 moves/turn) despite large variations in configuration}{figure.caption.15}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces Interaction effect: slope variance across Warp factors}}{17}{table.caption.16}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.4.4}H4: Decision Complexity vs Hand Coherence}{18}{subsubsection.8.4.4}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Hand entropy (coherence) vs near-optimal play fraction. The weak correlation ($r = 0.009$) suggests that tactical richness and strategic coherence are orthogonal dimensions.}}{18}{figure.caption.17}\protected@file@percent }
-\newlabel{fig:coherence-vs-depth}{{9}{18}{Hand entropy (coherence) vs near-optimal play fraction. The weak correlation ($r = 0.009$) suggests that tactical richness and strategic coherence are orthogonal dimensions}{figure.caption.17}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.4.5}H5: Monotonic Trends}{18}{subsubsection.8.4.5}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Monotonic trend test (Kendall's $\tau $)}}{19}{table.caption.18}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces Skill vs luck balance across all configurations. Points above the diagonal (more skill than luck) include all W12/15/18 configurations. W18/18p exhibits the highest skill/luck ratio (8.10).}}{19}{figure.caption.19}\protected@file@percent }
-\newlabel{fig:skill-luck-balance}{{10}{19}{Skill vs luck balance across all configurations. Points above the diagonal (more skill than luck) include all W12/15/18 configurations. W18/18p exhibits the highest skill/luck ratio (8.10)}{figure.caption.19}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.5}Key Findings}{19}{subsection.8.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.5.1}W18/18p is Not a Crapshoot}{19}{subsubsection.8.5.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces W18: 2-player vs 18-player comparison}}{19}{table.caption.20}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.5.2}Cross-Factor Comparison at Maximum Fleet Size}{19}{subsubsection.8.5.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces Skill and luck at maximum fleet size per Warp factor}}{20}{table.caption.21}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.5.3}W12 Justification for TEI Rating}{20}{subsubsection.8.5.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.5.4}Hand Entropy Increases with Warp Factor}{20}{subsubsection.8.5.4}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces Mean hand entropy by Warp factor (all fleet sizes)}}{20}{table.caption.22}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.5.5}Decision Complexity Stays Constant}{20}{subsubsection.8.5.5}\protected@file@percent }
+\citation{wenglin2011}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Lookahead Policy (Product Decision)}{10}{subsection.4.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Tactical Advisor}{10}{subsection.4.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}TEI (Tactical Effectiveness Index)}{10}{section.5}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces OpenSkill TEI ladder. Left: calibrated AI anchors as $\mu \pm \sigma $ by objective, with diamond markers for the conservative display rating $\mu -3\sigma $. Right: presentation layer --- letter grade from $\sigma $ (confidence) plus a 0--99 score from the display rating.}}{10}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:tei-ladder}{{3}{10}{OpenSkill TEI ladder. Left: calibrated AI anchors as $\mu \pm \sigma $ by objective, with diamond markers for the conservative display rating $\mu -3\sigma $. Right: presentation layer --- letter grade from $\sigma $ (confidence) plus a 0--99 score from the display rating}{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Bayesian skill model}{10}{subsection.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Reference anchors}{11}{subsection.5.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Calibrated OpenSkill AI anchors (Phase~1.3; 2{,}000 games/matchup). Gaps: points $8.5/8.5$; go-out $10.5/13.5$ (widened against racing compression).}}{11}{table.caption.6}\protected@file@percent }
+\newlabel{tab:openskill-anchors}{{3}{11}{Calibrated OpenSkill AI anchors (Phase~1.3; 2{,}000 games/matchup). Gaps: points $8.5/8.5$; go-out $10.5/13.5$ (widened against racing compression)}{table.caption.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Update rule}{11}{subsection.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}TEI Grade display}{11}{subsection.5.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Percentile boards}{11}{subsection.5.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6}Federation Academy}{12}{subsection.5.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Calibration Methodology}{12}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Self-Play Loop}{12}{subsection.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Evaluation Suites}{12}{subsection.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Metrics}{12}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Results: AI Calibration}{12}{section.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Points (Default Rules, 2{,}000 games/matchup)}{12}{subsection.7.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces OpenSkill calibration heatmaps (2{,}000 games per matchup). Left: Points --- Ensign win rates 15.7\% / 9.2\% vs Lieutenant / Commander; Lieutenant vs Commander still the softest rung (36.3\%). Right: Go-out --- extreme compression (38--44\% weaker-side wins) even after widening $\mu $ gaps.}}{13}{figure.caption.7}\protected@file@percent }
+\newlabel{fig:calibration-matrix}{{4}{13}{OpenSkill calibration heatmaps (2{,}000 games per matchup). Left: Points --- Ensign win rates 15.7\% / 9.2\% vs Lieutenant / Commander; Lieutenant vs Commander still the softest rung (36.3\%). Right: Go-out --- extreme compression (38--44\% weaker-side wins) even after widening $\mu $ gaps}{figure.caption.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Go-out}{13}{subsection.7.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Class I*, Fleet Admiral, and Class $\Omega $ Benches}{13}{subsection.7.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces AI bench results across experimental tiers. Top-left: Class I* neural residual iterations (imitation ceiling at 48--51\%). Top-right: Fleet Admiral search backends (expectimax wins 2p, ISMCTS wins 4p). Bottom-left: Class $\Omega $ fair-share rises with fleet size (points objective). Bottom-right: Fair-share hazard --- naive Elo-style translation overestimates shipping anchors vs the tempered OpenSkill Commander $\mu $.}}{14}{figure.caption.8}\protected@file@percent }
+\newlabel{fig:ai-bench-results}{{5}{14}{AI bench results across experimental tiers. Top-left: Class I* neural residual iterations (imitation ceiling at 48--51\%). Top-right: Fleet Admiral search backends (expectimax wins 2p, ISMCTS wins 4p). Bottom-left: Class $\Omega $ fair-share rises with fleet size (points objective). Bottom-right: Fair-share hazard --- naive Elo-style translation overestimates shipping anchors vs the tempered OpenSkill Commander $\mu $}{figure.caption.8}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8}Luck vs Skill Across Warp Factors}{15}{section.8}\protected@file@percent }
+\newlabel{sec:luck-skill-boards}{{8}{15}{Luck vs Skill Across Warp Factors}{section.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}Motivation and Configuration Matrix}{15}{subsection.8.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Warp factor configurations in Warp 12}}{15}{table.caption.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Metrics and Composite Indices}{15}{subsection.8.2}\protected@file@percent }
+\newlabel{sec:luck-skill-instrument}{{8.2}{15}{Metrics and Composite Indices}{subsection.8.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Baseline cells within the 274{,}500-game points matrix (no modules) used for Warp-factor / fleet analysis}}{16}{table.caption.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}Hypotheses}{17}{subsection.8.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}Statistical Results}{17}{subsection.8.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.4.1}H1: Warp Factor Effect (ANOVA)}{17}{subsubsection.8.4.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Mean skill index by Warp factor (2--4 players)}}{17}{table.caption.12}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Cross-factor skill index comparison for 2--4 player configurations. W12 exhibits the highest skill expression in the balanced comparison range.}}{18}{figure.caption.11}\protected@file@percent }
+\newlabel{fig:cross-factor}{{6}{18}{Cross-factor skill index comparison for 2--4 player configurations. W12 exhibits the highest skill expression in the balanced comparison range}{figure.caption.11}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.4.2}H2: Fleet Size Effect (Correlation)}{19}{subsubsection.8.4.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Fleet size effect on skill expression by Warp factor. W12 shows the steepest gradient ($r = 0.875$), indicating highest sensitivity to player count.}}{19}{figure.caption.13}\protected@file@percent }
+\newlabel{fig:fleet-size-effects}{{7}{19}{Fleet size effect on skill expression by Warp factor. W12 shows the steepest gradient ($r = 0.875$), indicating highest sensitivity to player count}{figure.caption.13}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Fleet size effect on skill expression by Warp factor}}{19}{table.caption.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.4.3}H3: Interaction Effect}{20}{subsubsection.8.4.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Decision complexity heatmap (avgLegalMoves) by Warp factor and fleet size. Note the relatively constant branching factor ($\sim $2 moves/turn) despite large variations in configuration.}}{20}{figure.caption.15}\protected@file@percent }
+\newlabel{fig:complexity-heatmap}{{8}{20}{Decision complexity heatmap (avgLegalMoves) by Warp factor and fleet size. Note the relatively constant branching factor ($\sim $2 moves/turn) despite large variations in configuration}{figure.caption.15}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces Interaction effect: slope variance across Warp factors}}{20}{table.caption.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.4.4}H4: Decision Complexity vs Hand Coherence}{20}{subsubsection.8.4.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.4.5}H5: Monotonic Trends}{20}{subsubsection.8.4.5}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Hand entropy (coherence) vs near-optimal play fraction. The weak correlation ($r = 0.009$) suggests that tactical richness and strategic coherence are orthogonal dimensions.}}{21}{figure.caption.17}\protected@file@percent }
+\newlabel{fig:coherence-vs-depth}{{9}{21}{Hand entropy (coherence) vs near-optimal play fraction. The weak correlation ($r = 0.009$) suggests that tactical richness and strategic coherence are orthogonal dimensions}{figure.caption.17}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Monotonic trend test (Kendall's $\tau $)}}{21}{table.caption.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.5}Key Findings}{21}{subsection.8.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.5.1}W18/18p is Not a Crapshoot}{21}{subsubsection.8.5.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces Skill vs luck balance across all configurations. Points above the diagonal (more skill than luck) include all W12/15/18 configurations. W18/18p exhibits the highest skill/luck ratio (8.10).}}{22}{figure.caption.19}\protected@file@percent }
+\newlabel{fig:skill-luck-balance}{{10}{22}{Skill vs luck balance across all configurations. Points above the diagonal (more skill than luck) include all W12/15/18 configurations. W18/18p exhibits the highest skill/luck ratio (8.10)}{figure.caption.19}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces W18: 2-player vs 18-player comparison}}{22}{table.caption.20}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.5.2}Cross-Factor Comparison at Maximum Fleet Size}{22}{subsubsection.8.5.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces Skill and luck at maximum fleet size per Warp factor}}{22}{table.caption.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.5.3}W12 Justification for TEI Rating}{22}{subsubsection.8.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.5.4}Hand Entropy Increases with Warp Factor}{23}{subsubsection.8.5.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces Mean hand entropy by Warp factor (all fleet sizes)}}{23}{table.caption.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.5.5}Decision Complexity Stays Constant}{23}{subsubsection.8.5.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.6}Practical Implications}{23}{subsection.8.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.6.1}TEI Calibration Strategy}{23}{subsubsection.8.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.6.2}Future Exhibition Modes}{23}{subsubsection.8.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.6.3}Go-Out Objective}{24}{subsubsection.8.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Module Balance (Points): A 274{,}500-Game Competitive-Integrity Study}{24}{section.9}\protected@file@percent }
+\newlabel{sec:module-balance}{{9}{24}{Module Balance (Points): A 274{,}500-Game Competitive-Integrity Study}{section.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.1}Design questions}{24}{subsection.9.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.2}Method}{24}{subsection.9.2}\protected@file@percent }
+\newlabel{sec:module-instrument}{{9.2}{24}{Method}{subsection.9.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.3}Results: most modules preserve the ceiling}{25}{subsection.9.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {13}{\ignorespaces Module skill ranking — \textbf  {points} instrument (274,500 Commander self-play games, 500/cell; Zeta on even fleets $\geq $4 only). Go-out forks are \emph  {not} in this table. \emph  {Rec}: Promote = rated-eligible; Warped/party = Epsilon; Warped = Kappa (score inversion).}}{25}{table.caption.23}\protected@file@percent }
+\newlabel{tab:module-ranking}{{13}{25}{Module skill ranking — \textbf {points} instrument (274,500 Commander self-play games, 500/cell; Zeta on even fleets $\geq $4 only). Go-out forks are \emph {not} in this table. \emph {Rec}: Promote = rated-eligible; Warped/party = Epsilon; Warped = Kappa (score inversion)}{table.caption.23}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces \textbf  {Points instrument.} Module skill ceiling across Warp factors and fleet sizes. Nearly every module sits at or above the baseline Promote line (2.5). Epsilon is the sole collapse (Warped/party). Zeta remains high-skill (Promote; Squad TEI, never FFA).}}{26}{figure.caption.24}\protected@file@percent }
+\newlabel{fig:module-ranking}{{11}{26}{\textbf {Points instrument.} Module skill ceiling across Warp factors and fleet sizes. Nearly every module sits at or above the baseline Promote line (2.5). Epsilon is the sole collapse (Warped/party). Zeta remains high-skill (Promote; Squad TEI, never FFA)}{figure.caption.24}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {12}{\ignorespaces \textbf  {Points instrument.} Mean skill indicators by module and Warp factor. Epsilon is red across the board; the Official preset and single-module variants stay skill-stable, especially on W12+.}}{27}{figure.caption.25}\protected@file@percent }
+\newlabel{fig:module-heatmap}{{12}{27}{\textbf {Points instrument.} Mean skill indicators by module and Warp factor. Epsilon is red across the board; the Official preset and single-module variants stay skill-stable, especially on W12+}{figure.caption.25}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {13}{\ignorespaces Decision-quality profiles for rating-relevant modules. Epsilon trails on every axis; Iota leads on legal moves, constrained tiles, and move-value spread.}}{27}{figure.caption.26}\protected@file@percent }
+\newlabel{fig:module-profiles}{{13}{27}{Decision-quality profiles for rating-relevant modules. Epsilon trails on every axis; Iota leads on legal moves, constrained tiles, and move-value spread}{figure.caption.26}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {14}{\ignorespaces Epsilon collapse versus baseline, Iota, and Official across all Warp factors. Drafting never recovers the skill ceiling that pack-and-pass seems to promise.}}{28}{figure.caption.27}\protected@file@percent }
+\newlabel{fig:epsilon-collapse}{{14}{28}{Epsilon collapse versus baseline, Iota, and Official across all Warp factors. Drafting never recovers the skill ceiling that pack-and-pass seems to promise}{figure.caption.27}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {15}{\ignorespaces Warp 12 fleet curves for rating-relevant modules. Epsilon is the unique trough at every fleet size; Iota and Official track near the skill ceiling.}}{29}{figure.caption.28}\protected@file@percent }
+\newlabel{fig:w12-module-curves}{{15}{29}{Warp 12 fleet curves for rating-relevant modules. Epsilon is the unique trough at every fleet size; Iota and Official track near the skill ceiling}{figure.caption.28}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.4}The drafting paradox: Epsilon as a party module}{29}{subsection.9.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.5}Iota and outcome mix}{29}{subsection.9.5}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {16}{\ignorespaces Epsilon skill-indicator deficit versus baseline across Warp factors and fleet sizes (negative $=$ worse than pack-and-pass). The collapse is wide, not a single bad fleet.}}{30}{figure.caption.29}\protected@file@percent }
+\newlabel{fig:epsilon-deficit}{{16}{30}{Epsilon skill-indicator deficit versus baseline across Warp factors and fleet sizes (negative $=$ worse than pack-and-pass). The collapse is wide, not a single bad fleet}{figure.caption.29}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {17}{\ignorespaces Hand-pressure bars for rating-relevant modules. Left: constrained-tile fraction. Right: unique pips in hand. Epsilon sits alone at the bottom of both axes.}}{30}{figure.caption.30}\protected@file@percent }
+\newlabel{fig:hand-pressure}{{17}{30}{Hand-pressure bars for rating-relevant modules. Left: constrained-tile fraction. Right: unique pips in hand. Epsilon sits alone at the bottom of both axes}{figure.caption.30}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {18}{\ignorespaces Iota move-value-spread lift on Warp~12 (fleet sizes 2--8). Double Down widens discriminating choices without collapsing branching.}}{31}{figure.caption.31}\protected@file@percent }
+\newlabel{fig:iota-lift}{{18}{31}{Iota move-value-spread lift on Warp~12 (fleet sizes 2--8). Double Down widens discriminating choices without collapsing branching}{figure.caption.31}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {19}{\ignorespaces Skill / mixed / luck outcome mix by module (fraction of configuration cells). Promote modules are skill-dominated bars; Epsilon is mostly luck.}}{31}{figure.caption.32}\protected@file@percent }
+\newlabel{fig:outcome-mix}{{19}{31}{Skill / mixed / luck outcome mix by module (fraction of configuration cells). Promote modules are skill-dominated bars; Epsilon is mostly luck}{figure.caption.32}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {20}{\ignorespaces Per-cell scatter of mean legal moves vs move-value spread for baseline, Iota, Official, Zeta, and Epsilon. Epsilon occupies the lower-left Warped pocket.}}{32}{figure.caption.33}\protected@file@percent }
+\newlabel{fig:legal-vs-spread}{{20}{32}{Per-cell scatter of mean legal moves vs move-value spread for baseline, Iota, Official, Zeta, and Epsilon. Epsilon occupies the lower-left Warped pocket}{figure.caption.33}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.6}Zeta: skillful team play, Squadron TEI (never FFA)}{32}{subsection.9.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.7}Product recommendations}{32}{subsection.9.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {10}Go-out Module Balance: A Separate 255{,}500-Game Instrument}{32}{section.10}\protected@file@percent }
+\newlabel{sec:goout-module-balance}{{10}{32}{Go-out Module Balance: A Separate 255{,}500-Game Instrument}{section.10}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.1}Method (go-out)}{33}{subsection.10.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {14}{\ignorespaces Module skill ranking — \textbf  {go-out} instrument (255,500 Commander self-play games, 500/cell; Epsilon omitted). Labels use go-out forks (Surge, Trail Momentum, Dig, Hand Exchange). Do \emph  {not} compare $S$ averages to the points table — mechanics differ. \emph  {Rec}: Promote = skill-preserving under go-out; Warped = Kappa (Hand Exchange) by product policy.}}{33}{table.caption.34}\protected@file@percent }
+\newlabel{tab:goout-module-ranking}{{14}{33}{Module skill ranking — \textbf {go-out} instrument (255,500 Commander self-play games, 500/cell; Epsilon omitted). Labels use go-out forks (Surge, Trail Momentum, Dig, Hand Exchange). Do \emph {not} compare $S$ averages to the points table — mechanics differ. \emph {Rec}: Promote = skill-preserving under go-out; Warped = Kappa (Hand Exchange) by product policy}{table.caption.34}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.2}Results (go-out)}{33}{subsection.10.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.3}Deliberate contrast: shared module IDs only}{33}{subsection.10.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {21}{\ignorespaces \textbf  {Go-out instrument only.} Module skill ceiling under go-out forks. Do not compare bar heights to Figure~\ref {fig:module-ranking} as a single ranking.}}{34}{figure.caption.35}\protected@file@percent }
+\newlabel{fig:goout-module-ranking}{{21}{34}{\textbf {Go-out instrument only.} Module skill ceiling under go-out forks. Do not compare bar heights to Figure~\ref {fig:module-ranking} as a single ranking}{figure.caption.35}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {22}{\ignorespaces \textbf  {Go-out instrument.} Mean skill indicators by module and Warp factor under go-out.}}{35}{figure.caption.36}\protected@file@percent }
+\newlabel{fig:goout-module-heatmap}{{22}{35}{\textbf {Go-out instrument.} Mean skill indicators by module and Warp factor under go-out}{figure.caption.36}{}}
 \citation{cowling2012ismcts}
 \citation{silver2017alphazero}
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.6}Practical Implications}{21}{subsection.8.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.6.1}TEI Calibration Strategy}{21}{subsubsection.8.6.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.6.2}Future Exhibition Modes}{21}{subsubsection.8.6.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.6.3}Go-Out Objective}{21}{subsubsection.8.6.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {9}Discussion}{21}{section.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.1}What Calibration Teaches}{21}{subsection.9.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {23}{\ignorespaces Compare/contrast only: average skill indicators for shared module IDs under the points vs go-out instruments. Forked modules omitted.}}{36}{figure.caption.37}\protected@file@percent }
+\newlabel{fig:objective-module-contrast}{{23}{36}{Compare/contrast only: average skill indicators for shared module IDs under the points vs go-out instruments. Forked modules omitted}{figure.caption.37}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {11}Discussion}{36}{section.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.1}What Calibration Teaches}{36}{subsection.11.1}\protected@file@percent }
 \citation{cowling2012ismcts}
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.2}Design Recommendations}{22}{subsection.9.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.3}Limitations}{22}{subsection.9.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {10}Conclusion}{23}{section.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {A}Figure List}{23}{appendix.A}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {B}Tables}{24}{appendix.B}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {C}Code Map}{24}{appendix.C}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {D}Reproducibility}{24}{appendix.D}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {D.1}Self-Play Calibration}{24}{subsection.D.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {D.2}Fleet Admiral Benchmarks}{24}{subsection.D.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {D.3}Class I* Training}{24}{subsection.D.3}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {13}{\ignorespaces Summary Statistics by Configuration (500 games per cell)}}{25}{table.caption.24}\protected@file@percent }
-\newlabel{tab:summary-stats}{{13}{25}{Summary Statistics by Configuration (500 games per cell)}{table.caption.24}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {14}{\ignorespaces Statistical Test Results for Primary Hypotheses}}{26}{table.caption.25}\protected@file@percent }
-\newlabel{tab:hypothesis-tests}{{14}{26}{Statistical Test Results for Primary Hypotheses}{table.caption.25}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {15}{\ignorespaces Correlation Matrix for Key Game Metrics ($N=19{,}000$)}}{26}{table.caption.26}\protected@file@percent }
-\newlabel{tab:correlation-matrix}{{15}{26}{Correlation Matrix for Key Game Metrics ($N=19{,}000$)}{table.caption.26}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.2}Design Recommendations}{37}{subsection.11.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.3}Limitations}{37}{subsection.11.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {12}Conclusion}{38}{section.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {A}Figure List}{39}{appendix.A}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {B}Tables}{40}{appendix.B}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {C}Code Map}{40}{appendix.C}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {D}Reproducibility}{40}{appendix.D}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {D.1}Self-Play Calibration}{40}{subsection.D.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {D.2}Fleet Admiral Benchmarks}{40}{subsection.D.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {D.3}Class I* Training}{40}{subsection.D.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {D.4}Skill/Luck and Module Matrices (points + go-out, separate)}{40}{subsection.D.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {15}{\ignorespaces Summary Statistics by Configuration (500 games per cell)}}{41}{table.caption.39}\protected@file@percent }
+\newlabel{tab:summary-stats}{{15}{41}{Summary Statistics by Configuration (500 games per cell)}{table.caption.39}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {16}{\ignorespaces Statistical Test Results for Primary Hypotheses}}{42}{table.caption.40}\protected@file@percent }
+\newlabel{tab:hypothesis-tests}{{16}{42}{Statistical Test Results for Primary Hypotheses}{table.caption.40}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {17}{\ignorespaces Correlation Matrix for Key Game Metrics ($N=19{,}000$)}}{42}{table.caption.41}\protected@file@percent }
+\newlabel{tab:correlation-matrix}{{17}{42}{Correlation Matrix for Key Game Metrics ($N=19{,}000$)}{table.caption.41}{}}
 \bibstyle{plain}
 \bibcite{browne2012mcts}{1}
-\@writefile{toc}{\contentsline {subsection}{\numberline {D.4}Luck vs Skill Data Collection}{27}{subsection.D.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {E}Target Venues}{27}{appendix.E}\protected@file@percent }
 \bibcite{silver2017alphazero}{2}
+\@writefile{toc}{\contentsline {section}{\numberline {E}Target Venues}{43}{appendix.E}\protected@file@percent }
 \bibcite{elo1978rating}{3}
 \bibcite{cowling2012ismcts}{4}
 \bibcite{frank1996determinization}{5}
 \bibcite{glickman1999glicko}{6}
 \bibcite{herbrich2006trueskill}{7}
-\bibcite{silver2018alphazero}{8}
-\bibcite{bowling2015heads}{9}
-\bibcite{doubleighteen2024}{10}
-\bibcite{tesauro1995tdgammon}{11}
-\gdef \@abspage@last{28}
+\bibcite{wenglin2011}{8}
+\bibcite{silver2018alphazero}{9}
+\bibcite{bowling2015heads}{10}
+\bibcite{doubleighteen2024}{11}
+\bibcite{tesauro1995tdgammon}{12}
+\gdef \@abspage@last{44}

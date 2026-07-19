@@ -1,0 +1,28 @@
+{
+  "warpFactor": 18,
+  "playerCount": 10,
+  "moduleConfig": "zeta",
+  "moduleLabel": "Module Zeta (Squadrons)",
+  "zetaOmitted": false,
+  "games": 500,
+  "objective": "points",
+  "summary": {
+    "games": 500,
+    "playerCount": 10,
+    "maxPip": 18,
+    "objective": "points",
+    "avgLegalMovesPerTurn": 1.7917749186987368,
+    "avgUniqueTrainsPerTurn": 0.9203796827805134,
+    "avgConstrainedTileFraction": 0.5964537600071574,
+    "avgUniquePipsInHand": 7.789489393497137,
+    "avgMaxPipCluster": 2.1858953411833646,
+    "avgHandEntropy": 2.66110445788219,
+    "avgMoveValueSpread": 3.4312100036162256,
+    "avgNearOptimalFraction": 0.8270057123575151,
+    "avgOwnTrailPlayRate": 0,
+    "avgShieldsDownRate": 0.05703636838865314
+  },
+  "skillIndicators": 3,
+  "timestamp": "2026-07-19T02:09:41.578Z",
+  "durationSeconds": 158.068
+}

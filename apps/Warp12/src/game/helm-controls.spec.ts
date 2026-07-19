@@ -52,6 +52,7 @@ describe('resolveHelmControls', () => {
       })
     ).toEqual({
       showDraw: false,
+      showDesperationDig: false,
       showShieldsDown: false,
       showShieldsUp: false,
       showPassRedAlert: false,
@@ -105,6 +106,7 @@ describe('resolveHelmControls', () => {
       })
     ).toEqual({
       showDraw: false,
+      showDesperationDig: false,
       showShieldsDown: true,
       showShieldsUp: false,
       showPassRedAlert: false,
@@ -154,6 +156,7 @@ describe('resolveHelmControls', () => {
       })
     ).toEqual({
       showDraw: false,
+      showDesperationDig: false,
       showShieldsDown: true,
       showShieldsUp: false,
       showPassRedAlert: false,

@@ -12,6 +12,7 @@ export type WarpAiAction =
   | { readonly kind: 'chart'; readonly move: LegalMove }
   | { readonly kind: 'spool'; readonly option: SpoolOption }
   | { readonly kind: 'draw' }
+  | { readonly kind: 'desperation-dig' }
   | { readonly kind: 'deploy-beacon' }
   | { readonly kind: 'pass-red-alert' }
   | { readonly kind: 'pass-turn' }
@@ -19,9 +20,17 @@ export type WarpAiAction =
   | { readonly kind: 'raise-shields' }
   | { readonly kind: 'drop-to-impulse' }
   | { readonly kind: 'catch-drop-to-impulse'; readonly targetPlayerId: PlayerId }
-  | { readonly kind: 'invoke-continuum-flash'; readonly effect: FlashEffectKind }
+  | {
+      readonly kind: 'invoke-continuum-flash';
+      readonly effect: FlashEffectKind;
+      readonly targetPlayerId?: PlayerId;
+    }
   | { readonly kind: 'resolve-continuum-wager'; readonly keepIndex: 0 | 1 }
-  | { readonly kind: 'pick-from-pack'; readonly coordinate: import('../types/coordinate.js').Coordinate };
+  | { readonly kind: 'pick-from-pack'; readonly coordinate: import('../types/coordinate.js').Coordinate }
+  | {
+      readonly kind: 'resolve-hand-exchange';
+      readonly coordinate: import('../types/coordinate.js').Coordinate;
+    };
 
 /** Lowers an AI action into the engine {@link GameAction} for `applyAction`. */
 export function toGameAction(
@@ -44,6 +53,8 @@ export function toGameAction(
       };
     case 'draw':
       return { type: 'DRAW_FROM_UNCHARTED', playerId };
+    case 'desperation-dig':
+      return { type: 'DESPERATION_DIG', playerId };
     case 'deploy-beacon':
       return { type: 'DEPLOY_DISTRESS_BEACON', playerId };
     case 'pass-red-alert':
@@ -63,7 +74,14 @@ export function toGameAction(
         targetPlayerId: action.targetPlayerId,
       };
     case 'invoke-continuum-flash':
-      return { type: 'INVOKE_CONTINUUM_FLASH', playerId, effect: action.effect };
+      return {
+        type: 'INVOKE_CONTINUUM_FLASH',
+        playerId,
+        effect: action.effect,
+        ...(action.targetPlayerId
+          ? { targetPlayerId: action.targetPlayerId }
+          : {}),
+      };
     case 'resolve-continuum-wager':
       return {
         type: 'RESOLVE_CONTINUUM_WAGER',
@@ -73,6 +91,12 @@ export function toGameAction(
     case 'pick-from-pack':
       return {
         type: 'PICK_FROM_PACK',
+        playerId,
+        coordinate: action.coordinate,
+      };
+    case 'resolve-hand-exchange':
+      return {
+        type: 'RESOLVE_HAND_EXCHANGE',
         playerId,
         coordinate: action.coordinate,
       };

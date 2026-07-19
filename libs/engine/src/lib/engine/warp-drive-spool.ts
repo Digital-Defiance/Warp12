@@ -10,12 +10,13 @@ import { MAX_SPOOL_TILES } from '../constants/setup.js';
 
 /**
  * Module Delta: Warp Drive Spooling
- * 
+ *
  * Draw from Uncharted Sectors continuously (up to MAX_SPOOL_TILES), auto-playing matches until:
- * - Mismatch occurs (goes to hand, spool ends)
- * - Red Alert cannot be covered (double stays, mismatch to hand, spool ends)
- * - Subspace Fracture cannot be satisfied (double stays, all attempts to hand, spool ends)
- * - Tile limit reached (spool ends successfully)
+ * - Mismatch occurs (goes to hand, spool ends; undrawn stay in Uncharted)
+ * - A matching double cannot be covered / Fracture cannot finish: retrieve the double
+ *   (+ failed cover/stabilizer draws and any stabilizers already placed for that double)
+ *   to hand, revert the endpoint, leave no Red Alert / Fracture on the table
+ * - Tile limit reached or pile exhausted after legal charts (spool ends)
  */
 
 export interface SpoolResult {
@@ -29,6 +30,11 @@ export interface SpoolResult {
   readonly unchartedRemaining: readonly Coordinate[];
   /** True if this spool qualifies to clear hazard marker (2+ tiles on own trail). */
   readonly clearsHazardMarker: boolean;
+  /**
+   * True when a matching double could not be covered / Fracture could not finish:
+   * the unfinished double (+ failed draws) was retrieved to hand — no RA / Fracture left.
+   */
+  readonly abortedUnfinishedDouble: boolean;
   readonly debugInfo?: string;
 }
 
@@ -97,140 +103,92 @@ export function executeWarpDriveSpool(
         fractureStabilizersPlaced,
         unchartedRemaining: remaining,
         clearsHazardMarker: clearsHazard,
+        abortedUnfinishedDouble: false,
       };
     }
 
-    // Tile matches - play it
+    // Tile matches — chart it (doubles are provisional until covered / Fracture finishes)
+    const endpointBeforeTile = currentEndpoint;
     played.push(drawn);
     currentEndpoint = getOppositeEnd(drawn, currentEndpoint);
 
-    // Check if it's a double
     if (isDouble(drawn)) {
-      // Check if Subspace Fracture applies
-      const needsFracture = 
+      const needsFracture =
         modules.subspaceFracture.enabled &&
-        subspaceFractureAppliesToDouble(route, playerId, modules.subspaceFracture.scope, round);
+        subspaceFractureAppliesToDouble(
+          route,
+          playerId,
+          modules.subspaceFracture.scope,
+          round
+        );
+
+      const abortUnfinishedDouble = (
+        extrasToHand: readonly Coordinate[],
+        unchartedAfter: readonly Coordinate[],
+        stabilizersChartedForThisDouble: number
+      ): SpoolResult => {
+        // Drop the double and any stabilizers already charted for it.
+        const removeCount = 1 + stabilizersChartedForThisDouble;
+        const keptPlayed = played.slice(0, played.length - removeCount);
+        const retrieved = played.slice(played.length - removeCount);
+        sentToHand.push(...retrieved, ...extrasToHand);
+        const isOwnTrail = routeIsOwnTrail(round, playerId, route);
+        return {
+          success: false,
+          tilesPlayed: keptPlayed,
+          tilesSentToHand: sentToHand,
+          finalEndpoint: endpointBeforeTile,
+          redAlertActive: false,
+          fractureActive: false,
+          fractureStabilizersPlaced: 0,
+          unchartedRemaining: [...unchartedAfter],
+          clearsHazardMarker: isOwnTrail && keptPlayed.length >= 2,
+          abortedUnfinishedDouble: true,
+        };
+      };
 
       if (needsFracture) {
-        // Need 3 stabilizers
-        fractureActive = true;
-        redAlertActive = true;
         fractureStabilizersPlaced = 0;
 
         for (let i = 0; i < 3; i++) {
           if (remaining.length === 0) {
-            // Out of tiles during fracture - fail
-            const isOwnTrail = routeIsOwnTrail(round, playerId, route);
-            const clearsHazard = isOwnTrail && played.length >= 2;
-            
-            return {
-              success: false,
-              tilesPlayed: played,
-              tilesSentToHand: sentToHand,
-              finalEndpoint: null, // Fracture incomplete
-              redAlertActive: true,
-              fractureActive: true,
-              fractureStabilizersPlaced,
-              unchartedRemaining: remaining,
-              clearsHazardMarker: clearsHazard,
-            };
+            return abortUnfinishedDouble([], remaining, fractureStabilizersPlaced);
           }
 
           const [stabilizer, ...afterStabilizer] = remaining;
-          
-          if (!coordinateMatches(stabilizer, drawn.low)) {
-            // Stabilizer doesn't match - all 3 attempts go to hand
-            // We need to collect all attempted stabilizers
-            const failedStabilizers = [stabilizer];
-            let tempRemaining = afterStabilizer;
-            
-            // Try to get the rest (already drawn conceptually)
-            for (let j = i + 1; j < 3 && tempRemaining.length > 0; j++) {
-              const [nextAttempt, ...afterNext] = tempRemaining;
-              failedStabilizers.push(nextAttempt);
-              tempRemaining = afterNext;
-            }
 
-            sentToHand.push(...failedStabilizers);
-            
-            const isOwnTrail = routeIsOwnTrail(round, playerId, route);
-            const clearsHazard = isOwnTrail && played.length >= 2;
-            
-            return {
-              success: false,
-              tilesPlayed: played,
-              tilesSentToHand: sentToHand,
-              finalEndpoint: null, // Fracture incomplete
-              redAlertActive: true,
-              fractureActive: true,
-              fractureStabilizersPlaced,
-              unchartedRemaining: tempRemaining,
-              clearsHazardMarker: clearsHazard,
-            };
+          if (!coordinateMatches(stabilizer, drawn.low)) {
+            // Failed stabilizer draw only — do not pull undrawn attempts.
+            return abortUnfinishedDouble(
+              [stabilizer],
+              afterStabilizer,
+              fractureStabilizersPlaced
+            );
           }
 
-          // Stabilizer matches
           played.push(stabilizer);
           remaining = afterStabilizer;
           fractureStabilizersPlaced++;
 
-          // After 3rd stabilizer, update endpoint to center foot
           if (i === 2) {
             currentEndpoint = getOppositeEnd(stabilizer, drawn.low);
           }
         }
 
-        // Fracture satisfied
         fractureActive = false;
         redAlertActive = false;
         fractureStabilizersPlaced = 0;
-
       } else {
-        // Standard Red Alert - need cover tile
-        redAlertActive = true;
-
         if (remaining.length === 0) {
-          // No tiles left to cover - spool ends with active Red Alert
-          const isOwnTrail = routeIsOwnTrail(round, playerId, route);
-          const clearsHazard = isOwnTrail && played.length >= 2;
-          
-          return {
-            success: false,
-            tilesPlayed: played,
-            tilesSentToHand: sentToHand,
-            finalEndpoint: null, // Double uncovered
-            redAlertActive: true,
-            fractureActive: false,
-            fractureStabilizersPlaced: 0,
-            unchartedRemaining: remaining,
-            clearsHazardMarker: clearsHazard,
-          };
+          return abortUnfinishedDouble([], remaining, 0);
         }
 
         const [cover, ...afterCover] = remaining;
 
         if (!coordinateMatches(cover, drawn.low)) {
-          // Cover doesn't match - goes to hand, spool ends with Red Alert
-          sentToHand.push(cover);
-          remaining = afterCover;
-
-          const isOwnTrail = routeIsOwnTrail(round, playerId, route);
-          const clearsHazard = isOwnTrail && played.length >= 2;
-
-          return {
-            success: false,
-            tilesPlayed: played,
-            tilesSentToHand: sentToHand,
-            finalEndpoint: null, // Double uncovered
-            redAlertActive: true,
-            fractureActive: false,
-            fractureStabilizersPlaced: 0,
-            unchartedRemaining: remaining,
-            clearsHazardMarker: clearsHazard,
-          };
+          return abortUnfinishedDouble([cover], afterCover, 0);
         }
 
-        // Cover matches - play it and continue
         played.push(cover);
         remaining = afterCover;
         currentEndpoint = getOppositeEnd(cover, drawn.low);
@@ -253,6 +211,7 @@ export function executeWarpDriveSpool(
     fractureStabilizersPlaced,
     unchartedRemaining: remaining,
     clearsHazardMarker: clearsHazard,
+    abortedUnfinishedDouble: false,
   };
 }
 

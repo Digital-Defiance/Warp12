@@ -40,6 +40,12 @@ export function formatDoubleDownFeedback(
   return `Double Down! ${fromName} charted a double — ${targetName} drew ${drawPhrase}`;
 }
 
+function spoolAbortPhrase(isViewer: boolean): string {
+  return isViewer
+    ? 'unfinished double retrieved to hand — no Red Alert'
+    : 'unfinished double retrieved — no Red Alert';
+}
+
 export function formatSpoolFeedback(input: {
   before: GameState;
   after: GameState;
@@ -48,24 +54,44 @@ export function formatSpoolFeedback(input: {
   names: Readonly<Record<string, string>>;
   viewerId: string;
 }): string | null {
-  const { before, after, action, entry, names, viewerId } = input;
+  const { after, action, entry, names, viewerId } = input;
   const tilesPlayed = entry?.spoolDetails?.tilesPlayed ?? 0;
-  const handBefore = before.round?.hands[action.playerId]?.length ?? 0;
-  const handAfter = after.round?.hands[action.playerId]?.length ?? 0;
-  const mismatchCount = handAfter - handBefore;
+  const tilesToHand =
+    entry?.spoolDetails?.tilesToHand ??
+    Math.max(
+      0,
+      (after.round?.hands[action.playerId]?.length ?? 0) -
+        (input.before.round?.hands[action.playerId]?.length ?? 0)
+    );
+  const aborted =
+    entry?.spoolDetails?.abortedUnfinishedDouble === true ||
+    entry?.effects.includes('spool-abort-retrieve') === true ||
+    after.round?.spoolAbortRetrieve === true;
   const playedPhrase =
     tilesPlayed === 1 ? '1 tile' : `${tilesPlayed} tiles`;
+  const isViewer = action.playerId === viewerId;
+  const actor = names[action.playerId] ?? action.playerId;
 
-  if (action.playerId === viewerId) {
-    if (mismatchCount > 0) {
+  if (aborted) {
+    if (tilesPlayed > 0) {
+      return isViewer
+        ? `Spooled ${playedPhrase} — ${spoolAbortPhrase(true)}`
+        : `${actor} spooled ${playedPhrase} — ${spoolAbortPhrase(false)}`;
+    }
+    return isViewer
+      ? `Spool aborted — ${spoolAbortPhrase(true)}`
+      : `${actor}'s spool aborted — ${spoolAbortPhrase(false)}`;
+  }
+
+  if (isViewer) {
+    if (tilesToHand > 0) {
       const mismatchPhrase =
-        mismatchCount === 1 ? '1 mismatch' : `${mismatchCount} mismatches`;
+        tilesToHand === 1 ? '1 mismatch' : `${tilesToHand} mismatches`;
       return `Spooled ${playedPhrase} — drew ${mismatchPhrase} to hand`;
     }
     return `Spooled ${playedPhrase}`;
   }
 
-  const actor = names[action.playerId] ?? action.playerId;
   return `${actor} spooled ${playedPhrase}`;
 }
 
@@ -81,7 +107,29 @@ export function formatModuleFeedbackFromLogEntry(
     const actor = names[entry.captainId] ?? entry.captainId;
     const played = entry.spoolDetails.tilesPlayed;
     const playedPhrase = played === 1 ? '1 tile' : `${played} tiles`;
-    if (entry.captainId === viewerId) {
+    const aborted =
+      entry.spoolDetails.abortedUnfinishedDouble === true ||
+      entry.effects.includes('spool-abort-retrieve');
+    const isViewer = entry.captainId === viewerId;
+
+    if (aborted) {
+      if (played > 0) {
+        return isViewer
+          ? `Spooled ${playedPhrase} — ${spoolAbortPhrase(true)}`
+          : `${actor} spooled ${playedPhrase} — ${spoolAbortPhrase(false)}`;
+      }
+      return isViewer
+        ? `Spool aborted — ${spoolAbortPhrase(true)}`
+        : `${actor}'s spool aborted — ${spoolAbortPhrase(false)}`;
+    }
+
+    if (isViewer) {
+      const toHand = entry.spoolDetails.tilesToHand ?? 0;
+      if (toHand > 0) {
+        const mismatchPhrase =
+          toHand === 1 ? '1 mismatch' : `${toHand} mismatches`;
+        return `Spooled ${playedPhrase} — drew ${mismatchPhrase} to hand`;
+      }
       return `Spooled ${playedPhrase}`;
     }
     return `${actor} spooled ${playedPhrase}`;

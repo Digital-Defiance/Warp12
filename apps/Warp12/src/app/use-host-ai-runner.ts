@@ -15,6 +15,7 @@ import type { AiCaptainConfig } from '../game/local-game-config.js';
 import { mergeAiHandsIntoGame } from '../game/merge-ai-hands.js';
 import {
   formatViolation,
+  pendingResolutionActorId,
   pickBalancedTile,
   type WarpAiPlayer,
 } from 'warp12-engine';
@@ -86,7 +87,8 @@ export function useHostAiRunner(options: {
       objective,
       onlineAiSeed(options.code),
       tableSize,
-      options.game?.maxPip ?? 12
+      options.game?.maxPip ?? 12,
+      options.game?.modules
     )
       .then((next) => {
         if (!cancelled) setRoster(next);
@@ -110,18 +112,21 @@ export function useHostAiRunner(options: {
     options.enabled,
     options.game?.captains.length,
     options.game?.maxPip,
+    options.game?.modules,
     options.onError,
     options.sectorCaptains.length,
   ]);
 
   const activePlayerId = options.game?.round?.activePlayerId;
+  const handExchangeActorId =
+    options.game?.round?.handExchangePending?.largerPlayerId ?? null;
   const roundPhase = options.game?.round?.phase;
   const dropToImpulseCatchable = options.game?.round?.dropToImpulseCatchable ?? null;
   const dropToImpulseEnabled = options.game?.houseRules.dropToImpulseCall === true;
 
   useEffect(() => {
     submitRetries.current = 0;
-  }, [activePlayerId, roundPhase]);
+  }, [activePlayerId, roundPhase, handExchangeActorId]);
 
   useEffect(() => {
     const {
@@ -361,14 +366,21 @@ export function useHostAiRunner(options: {
       hostUid !== hostId ||
       !rosterRef.current ||
       syncPending ||
-      !activePlayerId ||
       roundPhase !== 'playing'
     ) {
       return;
     }
 
+    const gameNow = gameRef.current;
+    const actorId = gameNow?.round
+      ? pendingResolutionActorId(gameNow.round)
+      : activePlayerId;
+    if (!actorId) {
+      return;
+    }
+
     const activeCaptain = sectorCaptainsRef.current.find(
-      (captain) => captain.id === activePlayerId
+      (captain) => captain.id === actorId
     );
     if (!activeCaptain || !isAiCaptain(activeCaptain)) {
       return;
@@ -389,37 +401,39 @@ export function useHostAiRunner(options: {
 
       const game = gameRef.current;
       const round = game?.round;
-      if (
-        !game ||
-        !round ||
-        round.phase !== 'playing' ||
-        round.activePlayerId !== activePlayerId
-      ) {
+      if (!game || !round || round.phase !== 'playing') {
+        return;
+      }
+      const decisionPlayerId = pendingResolutionActorId(round);
+      if (decisionPlayerId !== actorId) {
         return;
       }
 
-      const ai = rosterRef.current?.get(activePlayerId);
+      const ai = rosterRef.current?.get(decisionPlayerId);
       if (!ai) {
         onError('AI officer roster unavailable');
         return;
       }
 
-      let mirrored = aiHandsRef.current[activePlayerId];
+      let mirrored = aiHandsRef.current[decisionPlayerId];
       // Empty array is not nullish — treat a zero-length mirror as "unknown" and
       // fall back to getDoc (listeners can stay empty while one-shot reads work).
       let hand =
         mirrored != null && mirrored.length > 0
           ? mirrored
-          : await fetchAiCaptainHand(code, activePlayerId);
+          : await fetchAiCaptainHand(code, decisionPlayerId);
 
       if (currentRun !== runId.current) {
         return;
       }
 
       const decisionState = mergeAiHandsIntoGame(game, {
-        [activePlayerId]: hand ?? [],
+        [decisionPlayerId]: hand ?? [],
       });
-      const action = await ai.decideGameActionAsync(decisionState, activePlayerId);
+      const action = await ai.decideGameActionAsync(
+        decisionState,
+        decisionPlayerId
+      );
       if (!action) {
         onError(`${activeCaptain.displayName} could not choose a move`);
         return;
@@ -487,6 +501,7 @@ export function useHostAiRunner(options: {
     };
   }, [
     activePlayerId,
+    handExchangeActorId,
     aiRetryTick,
     options.hostId,
     options.enabled,

@@ -107,10 +107,16 @@ export function formatTeiDelta(delta: number): string {
 export function coachingMessageForTeiDelta(
   delta: number | null,
   rated: boolean,
-  won: boolean
+  won: boolean,
+  options?: { readonly advisorUsed?: boolean }
 ): string | null {
   if (!rated) {
-    return 'Advisor was used — this match did not affect your TEI.';
+    // Only blame the advisor when it was actually engaged. Casual / unrated
+    // sectors use matchReportNotice (or stay silent) — never this copy.
+    if (options?.advisorUsed) {
+      return 'Advisor was used — this match did not affect your TEI.';
+    }
+    return null;
   }
   if (delta === null) {
     return null;

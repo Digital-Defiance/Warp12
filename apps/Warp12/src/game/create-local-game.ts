@@ -8,8 +8,11 @@ import {
   dealRoundFromShuffled,
   generateCoordinateSet,
   getWarpSkillProfile,
+  resolveModules,
   shuffleCoordinates,
   startGame,
+  type GameModuleConfig,
+  type GameModules,
   type GameObjective,
   type GameState,
   type OmegaModelWeights,
@@ -59,6 +62,17 @@ export function createLocalGame(
     })),
   ];
 
+  const matchStarterIndex =
+    typeof config.matchStarterIndex === 'number' &&
+    config.matchStarterIndex >= 0 &&
+    config.matchStarterIndex < captains.length
+      ? config.matchStarterIndex
+      : undefined;
+  const roundStarterId =
+    matchStarterIndex !== undefined
+      ? (captains[matchStarterIndex]?.id ?? captains[0]?.id)
+      : undefined;
+
   return startGame(
     {
       id: `local-${seed}`,
@@ -67,11 +81,15 @@ export function createLocalGame(
       houseRules: config.houseRules,
       objective: config.objective,
       campaignRounds: config.campaignRounds,
+      ...(config.goOutStructure ? { goOutStructure: config.goOutStructure } : {}),
+      ...(config.goOutWinsToWin != null ? { goOutWinsToWin: config.goOutWinsToWin } : {}),
+      ...(config.goOutOvertime ? { goOutOvertime: config.goOutOvertime } : {}),
+      ...(matchStarterIndex !== undefined ? { matchStarterIndex } : {}),
       maxPip: config.maxPip,
     },
     {
       shuffledCoordinates: shuffled,
-      roundStarterId: config.humanCaptains[0]?.id ?? config.humanId,
+      ...(roundStarterId ? { roundStarterId } : {}),
     }
   );
 }
@@ -176,13 +194,25 @@ export function rosterNeedsOmegaNet(
   return aiCaptains.some((ai) => usesOmegaNet(ai));
 }
 
+function resolvedModulesForAi(
+  modules?: GameModuleConfig | GameModules
+): GameModules | undefined {
+  if (!modules) return undefined;
+  return 'warpDriveSpool' in modules &&
+    typeof (modules as GameModules).warpDriveSpool === 'object' &&
+    'enabled' in (modules as GameModules).warpDriveSpool
+    ? (modules as GameModules)
+    : resolveModules(modules as GameModuleConfig);
+}
+
 export function buildAiRosterFromConfigs(
   aiCaptains: readonly AiCaptainConfig[],
   objective: GameObjective,
   seed: number,
   playerCount = aiCaptains.length + 1,
   omegaNet?: OmegaModelWeights,
-  maxPip = 12
+  maxPip = 12,
+  modules?: GameModuleConfig | GameModules
 ): ReadonlyMap<string, WarpAiPlayer> {
   const allowOmega = neuralAiSupported(maxPip);
   if (allowOmega && rosterNeedsOmegaNet(aiCaptains) && !omegaNet) {
@@ -191,10 +221,17 @@ export function buildAiRosterFromConfigs(
     );
   }
 
+  const resolved = resolvedModulesForAi(modules);
   const roster = new Map<string, WarpAiPlayer>();
   for (const [index, ai] of aiCaptains.entries()) {
     const rng = createSeededRng(seed + (index + 1) * 997);
-    const skill = getWarpSkillProfile(ai.skill, objective, playerCount);
+    const skill = getWarpSkillProfile(
+      ai.skill,
+      objective,
+      playerCount,
+      undefined,
+      resolved
+    );
     const useOmega = allowOmega && usesOmegaNet(ai);
     const useSearch = useOmega && usesOmegaSearch(ai);
 
@@ -220,7 +257,8 @@ export async function buildAiRosterFromConfigsAsync(
   objective: GameObjective,
   seed: number,
   playerCount = aiCaptains.length + 1,
-  maxPip = 12
+  maxPip = 12,
+  modules?: GameModuleConfig | GameModules
 ): Promise<ReadonlyMap<string, WarpAiPlayer>> {
   const omegaNet =
     neuralAiSupported(maxPip) && rosterNeedsOmegaNet(aiCaptains)
@@ -232,7 +270,8 @@ export async function buildAiRosterFromConfigsAsync(
     seed,
     playerCount,
     omegaNet,
-    maxPip
+    maxPip,
+    modules
   );
 }
 
@@ -247,7 +286,8 @@ export function buildAiRoster(
     seed,
     config.playerCount,
     omegaNet,
-    config.maxPip
+    config.maxPip,
+    config.modules
   );
 }
 
@@ -260,6 +300,7 @@ export async function buildAiRosterAsync(
     config.objective,
     seed,
     config.playerCount,
-    config.maxPip
+    config.maxPip,
+    config.modules
   );
 }

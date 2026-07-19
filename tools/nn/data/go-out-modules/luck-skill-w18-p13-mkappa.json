@@ -1,0 +1,28 @@
+{
+  "warpFactor": 18,
+  "playerCount": 13,
+  "moduleConfig": "kappa",
+  "moduleLabel": "Module Kappa (Temporal Inversion)",
+  "zetaOmitted": false,
+  "games": 500,
+  "objective": "go-out",
+  "summary": {
+    "games": 500,
+    "playerCount": 13,
+    "maxPip": 18,
+    "objective": "go-out",
+    "avgLegalMovesPerTurn": 2.547282187213278,
+    "avgUniqueTrainsPerTurn": 1.0133455130076225,
+    "avgConstrainedTileFraction": 0.5281919577144507,
+    "avgUniquePipsInHand": 8.480118531086674,
+    "avgMaxPipCluster": 2.211305933493748,
+    "avgHandEntropy": 2.7990037262595964,
+    "avgMoveValueSpread": 4.032275088003014,
+    "avgNearOptimalFraction": 0.8111137422923422,
+    "avgOwnTrailPlayRate": 0,
+    "avgShieldsDownRate": 0.3427016077984555
+  },
+  "skillIndicators": 3,
+  "timestamp": "2026-07-19T02:34:38.918Z",
+  "durationSeconds": 4.504
+}

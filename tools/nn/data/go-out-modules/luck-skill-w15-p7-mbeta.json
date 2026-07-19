@@ -1,0 +1,28 @@
+{
+  "warpFactor": 15,
+  "playerCount": 7,
+  "moduleConfig": "beta",
+  "moduleLabel": "Module Beta (Salamander Penalty)",
+  "zetaOmitted": false,
+  "games": 500,
+  "objective": "go-out",
+  "summary": {
+    "games": 500,
+    "playerCount": 7,
+    "maxPip": 15,
+    "objective": "go-out",
+    "avgLegalMovesPerTurn": 2.1969164380561406,
+    "avgUniqueTrainsPerTurn": 1.0251513864494939,
+    "avgConstrainedTileFraction": 0.5734514887188892,
+    "avgUniquePipsInHand": 7.992756750871532,
+    "avgMaxPipCluster": 2.344266259082172,
+    "avgHandEntropy": 2.6639958051960706,
+    "avgMoveValueSpread": 3.6300421727394276,
+    "avgNearOptimalFraction": 0.792736809297892,
+    "avgOwnTrailPlayRate": 0,
+    "avgShieldsDownRate": 0.16197752148681407
+  },
+  "skillIndicators": 3,
+  "timestamp": "2026-07-19T02:32:01.762Z",
+  "durationSeconds": 2.578
+}

@@ -61,6 +61,13 @@ export function encodeAction(action: GameAction, ctx: EncodeContext): Uint8Array
       return bytes;
     }
 
+    case 'DESPERATION_DIG': {
+      const bytes = new Uint8Array(2);
+      bytes[0] = ActionCode.DESPERATION_DIG;
+      bytes[1] = encodePlayerId(action.playerId, ctx);
+      return bytes;
+    }
+
     case 'SENSOR_SWEEP': {
       const bytes = new Uint8Array(2 + COORDINATE_ENCODED_BYTES);
       bytes[0] = ActionCode.SENSOR_SWEEP;
@@ -140,6 +147,22 @@ export function encodeAction(action: GameAction, ctx: EncodeContext): Uint8Array
       bytes[0] = ActionCode.RESOLVE_CONTINUUM_WAGER;
       bytes[1] = encodePlayerId(action.playerId, ctx);
       bytes[2] = action.keepIndex;
+      return bytes;
+    }
+
+    case 'RESOLVE_HAND_EXCHANGE': {
+      const bytes = new Uint8Array(2 + COORDINATE_ENCODED_BYTES);
+      bytes[0] = ActionCode.RESOLVE_HAND_EXCHANGE;
+      bytes[1] = encodePlayerId(action.playerId, ctx);
+      writeCoordinate(bytes, 2, action.coordinate, ctx.maxPip);
+      return bytes;
+    }
+
+    case 'RESOLVE_GO_OUT_OVERTIME': {
+      const bytes = new Uint8Array(3);
+      bytes[0] = ActionCode.RESOLVE_GO_OUT_OVERTIME;
+      bytes[1] = encodePlayerId(action.playerId, ctx);
+      bytes[2] = action.accept ? 1 : 0;
       return bytes;
     }
 

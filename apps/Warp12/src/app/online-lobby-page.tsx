@@ -1,3 +1,4 @@
+import { goOutAwareModuleLabel } from './go-out-module-labels.js';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
@@ -7,6 +8,9 @@ import {
   GAME_OBJECTIVE_LABELS,
   defaultCampaignRounds,
   hasWarpedModules,
+  isModuleAvailableForObjective,
+  moduleClearPatchForObjective,
+  sanitizeModuleConfigForObjective,
   type GameObjective,
 } from 'warp12-engine';
 
@@ -34,7 +38,14 @@ import {
   SectorUnavailablePanel,
 } from './join-sector-panel';
 import { joinSpectate } from '../firebase/spectate-service.js';
-import { CampaignRoundsField, ObjectivePicker, ObjectiveSummary } from './objective-picker';
+import {
+  CampaignRoundsField,
+  GoOutCampaignField,
+  MatchStarterPicker,
+  ObjectivePicker,
+  ObjectiveSummary,
+  type GoOutCampaignConfig,
+} from './objective-picker';
 import { HouseRulesOptions } from './house-rules-options';
 import { DoubleZeroScoreField } from './double-zero-score-field';
 import { LargeFleetHandSizeField } from './large-fleet-hand-size-field';
@@ -295,6 +306,10 @@ export function OnlineLobbyPage() {
     objective?: GameObjective;
     maxPlayers?: number;
     campaignRounds?: number;
+    goOutStructure?: import('warp12-engine').GoOutStructure;
+    goOutWinsToWin?: number;
+    goOutOvertime?: import('warp12-engine').GoOutOvertimePolicy;
+    matchStarterIndex?: number;
     modules?: CreateLobbyOptions['modules'];
     houseRules?: CreateLobbyOptions['houseRules'];
     rated?: boolean;
@@ -645,12 +660,26 @@ export function OnlineLobbyPage() {
             name="waiting-objective"
             value={objective}
             disabled={busy || charterLocked}
-            onChange={(value) => void saveSettings({ objective: value })}
+            onChange={(value) => {
+              const nextModules = sanitizeModuleConfigForObjective(
+                lobby.modules,
+                value
+              );
+              const modulesChanged =
+                JSON.stringify(nextModules) !==
+                JSON.stringify(lobby.modules ?? {});
+              void saveSettings({
+                objective: value,
+                ...(modulesChanged ? { modules: nextModules } : {}),
+              });
+            }}
           />
         ) : (
           <ObjectiveSummary
             objective={objective}
             campaignRounds={campaignRounds}
+            goOutStructure={lobby.goOutStructure}
+            goOutWinsToWin={lobby.goOutWinsToWin}
           />
         )}
 
@@ -664,6 +693,49 @@ export function OnlineLobbyPage() {
               onChange={(value) => void saveSettings({ campaignRounds: value })}
             />
           </fieldset>
+        )}
+
+        {isHost && objective === 'go-out' && (
+          <GoOutCampaignField
+            name="waiting-go-out"
+            value={{
+              goOutStructure: lobby.goOutStructure ?? 'sudden-death',
+              goOutWinsToWin: lobby.goOutWinsToWin ?? 3,
+              goOutOvertime: lobby.goOutOvertime ?? 'force',
+              campaignRounds,
+            }}
+            disabled={busy || charterLocked}
+            maxPip={sectorMaxPip}
+            onChange={(cfg: GoOutCampaignConfig) =>
+              void saveSettings({
+                goOutStructure: cfg.goOutStructure,
+                goOutWinsToWin: cfg.goOutWinsToWin,
+                goOutOvertime: cfg.goOutOvertime,
+                campaignRounds: cfg.campaignRounds,
+              })
+            }
+          />
+        )}
+
+        {!isHost && objective === 'go-out' && (
+          <ObjectiveSummary
+            objective={objective}
+            campaignRounds={campaignRounds}
+            goOutStructure={lobby.goOutStructure}
+            goOutWinsToWin={lobby.goOutWinsToWin}
+          />
+        )}
+
+        {isHost && (
+          <MatchStarterPicker
+            captains={lobby.captains.map((c) => ({
+              id: c.id,
+              displayName: c.displayName,
+            }))}
+            value={lobby.matchStarterIndex ?? -1}
+            disabled={busy}
+            onChange={(index) => void saveSettings({ matchStarterIndex: index })}
+          />
         )}
 
         {isHost && (
@@ -720,7 +792,7 @@ export function OnlineLobbyPage() {
                   })
                 }
               />
-              <span>Module Beta — Salamander penalty</span>
+              <span>{goOutAwareModuleLabel('beta', lobby.objective ?? 'points')}</span>
             </label>
             <label className={styles.checkboxRow}>
               <input
@@ -784,7 +856,7 @@ export function OnlineLobbyPage() {
                   })
                 }
               />
-              <span>Module Theta — Longest Trail Bonus</span>
+              <span>{goOutAwareModuleLabel('theta', lobby.objective ?? 'points')}</span>
             </label>
             <label className={styles.checkboxRow}>
               <input
@@ -816,13 +888,27 @@ export function OnlineLobbyPage() {
                   })
                 }
               />
-              <span>Module Eta — Temporal Debt</span>
+              <span>{goOutAwareModuleLabel('eta', lobby.objective ?? 'points')}</span>
             </label>
             <label className={styles.checkboxRow}>
               <input
                 type="checkbox"
-                checked={lobby.modules.drafting ?? false}
-                disabled={busy || charterLocked}
+                checked={
+                  isModuleAvailableForObjective(
+                    'drafting',
+                    lobby.objective ?? DEFAULT_GAME_OBJECTIVE
+                  )
+                    ? (lobby.modules.drafting ?? false)
+                    : false
+                }
+                disabled={
+                  busy ||
+                  charterLocked ||
+                  !isModuleAvailableForObjective(
+                    'drafting',
+                    lobby.objective ?? DEFAULT_GAME_OBJECTIVE
+                  )
+                }
                 onChange={(e) =>
                   void saveSettings({
                     modules: {
@@ -832,7 +918,12 @@ export function OnlineLobbyPage() {
                   })
                 }
               />
-              <span>Module Epsilon — Tactical Requisition (Drafting / Warped)</span>
+              <span>
+                {goOutAwareModuleLabel(
+                  'epsilon',
+                  lobby.objective ?? DEFAULT_GAME_OBJECTIVE
+                )}
+              </span>
             </label>
             <label className={styles.checkboxRow}>
               <input
@@ -848,7 +939,7 @@ export function OnlineLobbyPage() {
                   })
                 }
               />
-              <span>Module Kappa — Temporal Inversion (Warped/Exhibition)</span>
+              <span>{goOutAwareModuleLabel('kappa', lobby.objective ?? 'points')}</span>
             </label>
             <label className={styles.checkboxRow}>
               <input

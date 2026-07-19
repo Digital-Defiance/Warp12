@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { summarizeAdvisorPerformance } from './advisor-performance.js';
+import {
+  coachingMessageForTeiDelta,
+  summarizeAdvisorPerformance,
+} from './advisor-performance.js';
 import type { AdvisorMoveReview } from 'warp12-engine';
 
 function review(strength: AdvisorMoveReview['strength']): AdvisorMoveReview {
@@ -42,5 +45,26 @@ describe('summarizeAdvisorPerformance', () => {
 
   it('returns null when there are no reviews', () => {
     expect(summarizeAdvisorPerformance([])).toBeNull();
+  });
+});
+
+describe('coachingMessageForTeiDelta', () => {
+  it('blames the advisor only when advisorUsed is true', () => {
+    expect(
+      coachingMessageForTeiDelta(null, false, true, { advisorUsed: true })
+    ).toMatch(/advisor was used/i);
+  });
+
+  it('does not blame the advisor for a casual unrated sector', () => {
+    expect(
+      coachingMessageForTeiDelta(null, false, true, { advisorUsed: false })
+    ).toBeNull();
+    expect(coachingMessageForTeiDelta(null, false, false)).toBeNull();
+  });
+
+  it('describes TEI movement on rated matches', () => {
+    expect(coachingMessageForTeiDelta(12, true, true)).toMatch(/TEI up \+12/);
+    expect(coachingMessageForTeiDelta(-5, true, false)).toMatch(/TEI down -5/);
+    expect(coachingMessageForTeiDelta(0, true, true)).toMatch(/unchanged/i);
   });
 });

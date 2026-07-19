@@ -1,6 +1,10 @@
 import type { GameObjective } from '../types/objective.js';
 import type { HouseRulesConfig } from '../types/house-rules.js';
-import type { GameModuleConfig } from '../types/modules.js';
+import {
+  resolveModules,
+  type GameModuleConfig,
+  type GameModules,
+} from '../types/modules.js';
 import { createWarpAiPlayer } from './create-warp-ai.js';
 import { getWarpSkillProfile, resolveWarpLookahead, type WarpSkillLevel, type WarpTableRole } from './skill.js';
 import { playSelfPlayGame, runSelfPlayMatch, type SelfPlaySeat } from './self-play.js';
@@ -104,13 +108,20 @@ function makeSeat(
   seatIndex: number,
   seed: number,
   playerCount: number,
-  tableRole?: WarpTableRole
+  tableRole?: WarpTableRole,
+  modules?: GameModules
 ): SelfPlaySeat {
   return {
     id,
     displayName: skill,
     player: createWarpAiPlayer({
-      skill: getWarpSkillProfile(skill, objective, playerCount, tableRole),
+      skill: getWarpSkillProfile(
+        skill,
+        objective,
+        playerCount,
+        tableRole,
+        modules
+      ),
       objective,
       lookahead: resolveWarpLookahead(skill, objective, playerCount),
       rng: seatRng(game, seatIndex + 1, seed),
@@ -123,7 +134,8 @@ export function makeHeadToHeadSeats(
   right: WarpSkillLevel,
   objective: GameObjective,
   game: number,
-  seed: number
+  seed: number,
+  modules?: GameModules
 ): SelfPlaySeat[] {
   const playerCount = 2;
   const leftId = left === right ? 'a' : left;
@@ -140,7 +152,17 @@ export function makeHeadToHeadSeats(
         ];
 
   return specs.map((spec, index) =>
-    makeSeat(spec.skill, spec.id, objective, game, index, seed, playerCount)
+    makeSeat(
+      spec.skill,
+      spec.id,
+      objective,
+      game,
+      index,
+      seed,
+      playerCount,
+      undefined,
+      modules
+    )
   );
 }
 
@@ -158,8 +180,17 @@ export function runSkillMatchup(
   options: CalibrationRunOptions
 ): SkillMatchupResult {
   const seed = options.seed ?? 4242;
+  const modules = resolveModules(options.modules);
   const match = runSelfPlayMatch(
-    (game) => makeHeadToHeadSeats(left, right, options.objective, game, seed),
+    (game) =>
+      makeHeadToHeadSeats(
+        left,
+        right,
+        options.objective,
+        game,
+        seed,
+        modules
+      ),
     {
       games: options.games,
       seed,
@@ -231,7 +262,8 @@ export function makeFocusSeats(
   opponents: WarpSkillLevel,
   objective: GameObjective,
   game: number,
-  seed: number
+  seed: number,
+  modules?: GameModules
 ): SelfPlaySeat[] {
   const ids = playerIds(playerCount);
   const focusIndex = game % playerCount;
@@ -244,7 +276,8 @@ export function makeFocusSeats(
       index,
       seed,
       playerCount,
-      index === focusIndex ? 'focus' : 'opponent'
+      index === focusIndex ? 'focus' : 'opponent',
+      modules
     )
   );
 }
@@ -255,9 +288,10 @@ export function makeFourPlayerFocusSeats(
   opponents: WarpSkillLevel,
   objective: GameObjective,
   game: number,
-  seed: number
+  seed: number,
+  modules?: GameModules
 ): SelfPlaySeat[] {
-  return makeFocusSeats(4, focus, opponents, objective, game, seed);
+  return makeFocusSeats(4, focus, opponents, objective, game, seed, modules);
 }
 
 export interface FocusMatchupResult {
@@ -280,6 +314,7 @@ export function runFocusMatchup(
   options: CalibrationRunOptions
 ): FocusMatchupResult {
   const seed = options.seed ?? 4242;
+  const modules = resolveModules(options.modules);
   const ids = playerIds(playerCount);
   let completed = 0;
   let focusWins = 0;
@@ -291,7 +326,8 @@ export function runFocusMatchup(
       opponents,
       options.objective,
       game,
-      seed
+      seed,
+      modules
     );
     const result = playSelfPlayGame({
       seats,

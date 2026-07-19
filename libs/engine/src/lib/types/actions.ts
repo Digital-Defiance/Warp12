@@ -18,6 +18,8 @@ export type GameAction =
       route: ChartRoute;
     }
   | { type: 'DRAW_FROM_UNCHARTED'; playerId: PlayerId }
+  /** Module Eta (Go-out): optional dig up to 3 from Uncharted; auto-chart first playable. */
+  | { type: 'DESPERATION_DIG'; playerId: PlayerId }
   | { type: 'SENSOR_SWEEP'; playerId: PlayerId; coordinate: Coordinate }
   | { 
       type: 'SPOOL_WARP_DRIVE'; 
@@ -36,11 +38,32 @@ export type GameAction =
     }
   /** Manual shield control: close your warp trail (house rule). */
   | { type: 'RAISE_SHIELDS'; playerId: PlayerId }
-  | { type: 'INVOKE_CONTINUUM_FLASH'; playerId: PlayerId; effect: FlashEffectKind }
+  | {
+      type: 'INVOKE_CONTINUUM_FLASH';
+      playerId: PlayerId;
+      effect: FlashEffectKind;
+      /** Required for Force Draw (Go-out). */
+      targetPlayerId?: PlayerId;
+    }
   | { type: 'RESOLVE_CONTINUUM_WAGER'; playerId: PlayerId; keepIndex: 0 | 1 }
+  /** Module Kappa (Go-out): larger hand returns one coordinate after Hand Exchange steal. */
+  | {
+      type: 'RESOLVE_HAND_EXCHANGE';
+      playerId: PlayerId;
+      coordinate: Coordinate;
+    }
   /** Module Epsilon: Pick a tile from your draft pack. */
   | { type: 'PICK_FROM_PACK'; playerId: PlayerId; coordinate: Coordinate }
   | { type: 'END_ROUND'; winnerId: PlayerId | null }
+  /**
+   * Go-out fixed-rounds: host accepts or declines overtime after a tied
+   * regulation campaign. Not a playable helm action.
+   */
+  | {
+      type: 'RESOLVE_GO_OUT_OVERTIME';
+      playerId: PlayerId;
+      accept: boolean;
+    }
   /**
    * Scoring annotation (not a playable action): Module Beta charged the held
    * highest double at round end. Emitted into action / binary logs so public
@@ -109,6 +132,8 @@ export type ActionViolation =
   | 'RED_ALERT_NOT_ACTIVE'
   | 'CONTINUUM_FLASH_NOT_PENDING'
   | 'CONTINUUM_WAGER_NOT_PENDING'
+  | 'HAND_EXCHANGE_NOT_PENDING'
+  | 'HAND_EXCHANGE_PENDING'
   | 'CONTINUUM_FLASH_UNAVAILABLE'
   | 'BEACON_NOT_ALLOWED'
   | 'BEACON_ALREADY_ACTIVE'

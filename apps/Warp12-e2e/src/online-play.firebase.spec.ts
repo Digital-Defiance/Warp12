@@ -21,6 +21,10 @@ import {
 } from './helpers/firestore-emulator.js';
 import {
   expectBridgeTable,
+  expectWaitingRoom,
+  fillCallSign,
+  gotoFleetMuster,
+  joinSector,
   launchMission,
   openSector,
 } from './helpers/online-lobby.js';
@@ -98,7 +102,7 @@ test.describe('online play (Firebase emulators)', () => {
       await expect(guestComms.getByText('Engage!')).toBeVisible({ timeout: 15_000 });
       await openSubspaceComms(hostPage);
       await expect(
-        hostPage.getByText('Rated sector — comms restricted to quick hails during active play.')
+        hostPage.getByText(/Rated sector — (quick hails only|free text is restricted)/i)
       ).toBeVisible();
     } finally {
       await closeLobbyContexts(hostContext, guestContext);
@@ -174,6 +178,138 @@ test.describe('online play (Firebase emulators)', () => {
         guestPage.getByRole('listitem').filter({ hasText: 'Captain Pike (2)' })
       ).toBeVisible();
       await expect(hostPage.getByText('Captain Pike · Host')).toBeVisible();
+    } finally {
+      await closeLobbyContexts(hostContext, guestContext);
+    }
+  });
+
+  test('host can configure go-out first-to + guest starter before launch', async ({
+    browser,
+  }) => {
+    const hostContext = await browser.newContext();
+    const guestContext = await browser.newContext();
+    const hostPage = await hostContext.newPage();
+    const guestPage = await guestContext.newPage();
+    const pageErrors: string[] = [];
+    hostPage.on('pageerror', (err) => pageErrors.push(err.message));
+    hostPage.on('console', (msg) => {
+      if (msg.type() === 'error') {
+        pageErrors.push(msg.text());
+      }
+    });
+
+    try {
+      // Configure go-out on the muster form (createLobby path).
+      await gotoFleetMuster(hostPage);
+      await fillCallSign(hostPage, DEFAULT_HOST_CALLSIGN);
+      await hostPage
+        .getByRole('checkbox', { name: /Rated sector — results count toward TEI/ })
+        .uncheck();
+      await hostPage
+        .locator('input[type="radio"][name="online-objective"][value="go-out"]')
+        .check();
+      await expect(
+        hostPage.getByRole('group', { name: 'Go-out sector structure' })
+      ).toBeVisible();
+      await hostPage
+        .locator('input[type="radio"][name="online-go-out-go-out-structure"][value="first-to"]')
+        .check();
+      await hostPage.getByLabel('Wins to win').selectOption('2');
+
+      await hostPage.getByRole('button', { name: 'Open sector' }).click();
+      await hostPage.waitForURL(/\/online\/[A-Z0-9]{6}$/);
+      const sectorCode = hostPage.url().match(/\/online\/([A-Z0-9]{6})$/)![1]!;
+
+      await joinSector(guestPage, DEFAULT_GUEST_CALLSIGN, sectorCode);
+      await expectWaitingRoom(hostPage, sectorCode, 2);
+
+      await expect
+        .poll(
+          async () => (await readGameDocument(sectorCode))?.objective ?? null,
+          { timeout: 15_000 }
+        )
+        .toBe('go-out');
+      await expect
+        .poll(
+          async () =>
+            (await readGameDocument(sectorCode))?.goOutStructure ?? null,
+          { timeout: 15_000 }
+        )
+        .toBe('first-to');
+      await expect
+        .poll(
+          async () =>
+            (await readGameDocument(sectorCode))?.goOutWinsToWin ?? null,
+          { timeout: 15_000 }
+        )
+        .toBe(2);
+
+      // Waiting-room setting write (same saveSettings path as objective).
+      const starter = hostPage.getByLabel('First-round starter');
+      await expect(starter).toBeEnabled({ timeout: 10_000 });
+      await starter.selectOption({ label: DEFAULT_GUEST_CALLSIGN });
+      await expect
+        .poll(
+          async () => {
+            if (pageErrors.length) {
+              throw new Error(`page errors: ${pageErrors.join(' | ')}`);
+            }
+            return (await readGameDocument(sectorCode))?.matchStarterIndex ?? null;
+          },
+          { timeout: 15_000 }
+        )
+        .toBe(1);
+
+      await launchMission(hostPage);
+      await expectBridgeTable(hostPage, sectorCode, DEFAULT_HOST_CALLSIGN);
+      await expectBridgeTable(guestPage, sectorCode, DEFAULT_GUEST_CALLSIGN);
+
+      const doc = (await readGameDocument(sectorCode))!;
+      expect(doc.objective).toBe('go-out');
+      expect(doc.goOutStructure).toBe('first-to');
+      expect(doc.goOutWinsToWin).toBe(2);
+      expect(doc.matchStarterIndex).toBe(1);
+      const guestId = doc.captainIds.find((id) => id !== doc.hostId);
+      expect(doc.round?.activePlayerId).toBe(guestId);
+      expect(doc.round?.table?.spacedock?.placedBy).toBe(guestId);
+    } finally {
+      await closeLobbyContexts(hostContext, guestContext);
+    }
+  });
+
+  test('host can switch victory objective in the waiting room', async ({
+    browser,
+  }) => {
+    const { hostContext, guestContext, hostPage, sectorCode } =
+      await setupCasualTwoCaptainLobby(browser);
+
+    try {
+      const goOutRadio = hostPage.locator(
+        'input[type="radio"][name="waiting-objective"][value="go-out"]'
+      );
+      await expect(goOutRadio).toBeEnabled({ timeout: 15_000 });
+      await goOutRadio.click();
+      await expect
+        .poll(
+          async () => (await readGameDocument(sectorCode))?.objective ?? null,
+          { timeout: 15_000 }
+        )
+        .toBe('go-out');
+      await expect(goOutRadio).toBeChecked({ timeout: 10_000 });
+      await expect(
+        hostPage.getByRole('group', { name: 'Go-out sector structure' })
+      ).toBeVisible();
+
+      const pointsRadio = hostPage.locator(
+        'input[type="radio"][name="waiting-objective"][value="points"]'
+      );
+      await pointsRadio.click();
+      await expect
+        .poll(
+          async () => (await readGameDocument(sectorCode))?.objective ?? null,
+          { timeout: 15_000 }
+        )
+        .toBe('points');
     } finally {
       await closeLobbyContexts(hostContext, guestContext);
     }

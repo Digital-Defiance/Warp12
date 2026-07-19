@@ -32,6 +32,10 @@ export function warpAiActionKey(action: WarpAiAction): string {
       return `continuum-flash:${action.effect}`;
     case 'resolve-continuum-wager':
       return `q-gamble:${action.keepIndex}`;
+    case 'resolve-hand-exchange':
+      return `hand-exchange:${coordinateKey(action.coordinate)}`;
+    case 'desperation-dig':
+      return 'desperation-dig';
     default:
       return action.kind;
   }
@@ -71,12 +75,27 @@ export function gameActionToWarpAi(
         targetPlayerId: action.targetPlayerId,
       };
     case 'INVOKE_CONTINUUM_FLASH':
-      return { kind: 'invoke-continuum-flash', effect: action.effect };
+      return {
+        kind: 'invoke-continuum-flash',
+        effect: action.effect,
+        ...(action.targetPlayerId
+          ? { targetPlayerId: action.targetPlayerId }
+          : {}),
+      };
     case 'RESOLVE_CONTINUUM_WAGER':
       return { kind: 'resolve-continuum-wager', keepIndex: action.keepIndex };
     case 'SPOOL_WARP_DRIVE':
       return { kind: 'spool', option: { route: action.route } };
+    case 'DESPERATION_DIG':
+      return { kind: 'desperation-dig' };
+    case 'RESOLVE_HAND_EXCHANGE':
+      return {
+        kind: 'resolve-hand-exchange',
+        coordinate: action.coordinate,
+      };
     case 'END_ROUND':
+      return null;
+    case 'RESOLVE_GO_OUT_OVERTIME':
       return null;
     case 'SALAMANDER_PENALTY':
       return null;

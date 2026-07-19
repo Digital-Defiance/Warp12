@@ -79,6 +79,28 @@ export function canDrawFromUncharted(
   return getLegalMoves(round, playerId, houseRules).length === 0;
 }
 
+/**
+ * Module Eta (Go-out) Desperation Dig — same gate as a blind draw, plus
+ * go-out objective and Temporal Debt enabled.
+ */
+export function canDesperationDig(
+  state: {
+    readonly objective: import('../types/objective.js').GameObjective;
+    readonly modules: import('../types/modules.js').GameModules;
+  },
+  round: RoundState,
+  playerId: PlayerId,
+  houseRules: HouseRules = DEFAULT_HOUSE_RULES
+): boolean {
+  if (state.objective !== 'go-out') {
+    return false;
+  }
+  if (!state.modules.temporalDebt.enabled) {
+    return false;
+  }
+  return canDrawFromUncharted(round, playerId, houseRules);
+}
+
 /** Must draw from Uncharted Sectors before passing when tiles remain. */
 export function mustDrawBeforePassing(
   round: RoundState,
@@ -276,6 +298,9 @@ export function canRaiseShieldsManually(
   const beacon =
     round.table.warpTrails[trailKeyFor(round, playerId)]?.distressBeacon;
   if (beacon?.active !== true) {
+    return false;
+  }
+  if ((beacon.forcedOpenRemaining ?? 0) > 0) {
     return false;
   }
   if (beacon.chartedOwnTrailSinceDown !== true) {

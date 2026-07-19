@@ -66,7 +66,7 @@ _analysis_report_progress() {
 _analysis_reap_finished() {
   local still=()
   local pid rc
-  for pid in "${PIDS[@]}"; do
+  for pid in ${PIDS[@]+"${PIDS[@]}"}; do
     if kill -0 "$pid" 2>/dev/null; then
       still+=("$pid")
       continue
@@ -78,13 +78,18 @@ _analysis_reap_finished() {
       FAILURES=$((FAILURES + 1))
     fi
   done
-  PIDS=("${still[@]}")
+  # Bash + set -u: empty "${still[@]}" is unbound — reassign safely.
+  if [ "${#still[@]}" -eq 0 ]; then
+    PIDS=()
+  else
+    PIDS=("${still[@]}")
+  fi
 }
 
 _analysis_on_signal() {
   echo "Interrupted — stopping workers..." >&2
   local pid
-  for pid in "${PIDS[@]:-}"; do
+  for pid in ${PIDS[@]+"${PIDS[@]}"}; do
     kill "$pid" 2>/dev/null || true
   done
   exit 130
@@ -99,7 +104,8 @@ _analysis_throttle() {
       _analysis_report_progress
     fi
     if [ "${#PIDS[@]}" -ge "$WORKERS" ]; then
-      sleep 0.2
+      # Ignore transient kill/interrupt on sleep (OOM pressure); keep throttling.
+      sleep 0.2 || true
     fi
   done
 }
@@ -112,7 +118,7 @@ _analysis_wait_all() {
       _analysis_report_progress
     fi
     if [ "${#PIDS[@]}" -gt 0 ]; then
-      sleep 0.2
+      sleep 0.2 || true
     fi
   done
 }
@@ -132,7 +138,12 @@ echo ""
 # zeta (squadrons, squadronSize=2) requires an even player count >= 4 — formSquadrons()
 # throws otherwise — so standalone zeta is added only when eligible. The "all" stress
 # config still runs on smaller/odd fleets; the collector auto-omits Zeta there.
-MODULES=("none" "alpha" "beta" "gamma" "delta" "epsilon" "eta" "theta" "iota" "kappa" "lambda" "mu" "official" "all")
+# Go-out: Epsilon (Drafting) is unavailable (lobby/RULES gate) — omit from the matrix.
+if [ "$OBJECTIVE" = "go-out" ]; then
+  MODULES=("none" "alpha" "beta" "gamma" "delta" "eta" "theta" "iota" "kappa" "lambda" "mu" "official" "all")
+else
+  MODULES=("none" "alpha" "beta" "gamma" "delta" "epsilon" "eta" "theta" "iota" "kappa" "lambda" "mu" "official" "all")
+fi
 MODULE_COUNT=$((${#MODULES[@]} + 1)) # +1 for zeta, added conditionally
 
 CONFIGS=()
@@ -183,6 +194,14 @@ echo ""
 
 for CONFIG in "${CONFIGS[@]}"; do
   IFS=':' read -r FACTOR PLAYERS MODULE <<< "$CONFIG"
+  OUT="${DATA_DIR}/luck-skill-w${FACTOR}-p${PLAYERS}-m${MODULE}.json"
+
+  # Resume: skip cells that already wrote a result (re-run after OOM / kill).
+  if [ -s "$OUT" ] && grep -q '"games"' "$OUT" 2>/dev/null; then
+    COMPLETED=$((COMPLETED + 1))
+    echo "[W${FACTOR}·${PLAYERS}p·${MODULE}] skip (exists)"
+    continue
+  fi
 
   MODULE_WARP_FACTOR=$FACTOR \
   MODULE_PLAYER_COUNT=$PLAYERS \
@@ -190,7 +209,7 @@ for CONFIG in "${CONFIGS[@]}"; do
   MODULE_GAMES=$GAMES \
   MODULE_OBJECTIVE=$OBJECTIVE \
   MODULE_SEED=$BASE_SEED \
-  MODULE_OUTPUT="${DATA_DIR}/luck-skill-w${FACTOR}-p${PLAYERS}-m${MODULE}.json" \
+  MODULE_OUTPUT="$OUT" \
   _analysis_tsx tools/nn/collect-luck-skill-modules.ts \
     2>&1 | sed "s/^/[W${FACTOR}·${PLAYERS}p·${MODULE}] /" &
 
@@ -202,6 +221,8 @@ echo ""
 echo "Waiting for final workers to complete..."
 _analysis_wait_all
 trap - INT TERM
+
+COMPLETED=$(find "$DATA_DIR" -maxdepth 1 -name 'luck-skill-w*-p*-m*.json' -type f | wc -l | tr -d ' ')
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

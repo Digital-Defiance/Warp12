@@ -42,6 +42,8 @@ import {
   resolveQGamble,
   trailsOpenToOthers,
   resolveRoundWinAllStop,
+  drawTilesFromPools,
+  mergecontinuumEffects,
 } from './continuum.js';
 import {
   getLegalMoves,
@@ -52,13 +54,31 @@ import {
 import { sameTrailGroup, trailKeyFor } from './squadrons.js';
 import {
   canDeployDistressBeacon,
+  canDesperationDig,
   canDrawFromUncharted,
   canSensorSweep,
   canPassRedAlert,
   canPassTurn,
   canRaiseShieldsManually,
 } from './beacon.js';
+import {
+  consumeTrailMomentumExtraTurn,
+  maybeArmTrailMomentum,
+  personalTrailLength,
+} from './trail-momentum.js';
+import {
+  DESPERATION_DIG_MAX_DRAWS,
+  beaconBlocksClear,
+  deployDesperationBeacon,
+  pickDesperationDigRoute,
+  tickDesperationBeaconOnTurnEnd,
+} from './desperation-dig.js';
+import {
+  applyHandExchangeGiveback,
+  beginHandExchange,
+} from './hand-exchange.js';
 import { scoreRound } from './scoring.js';
+import { resolveGoOutOvertimeOffer } from './go-out-campaign.js';
 import {
   finalizeRoundWinAfterQ,
   maybeEndBlockedRound,
@@ -97,6 +117,10 @@ function appendToTrail(
 
 function clearDistressBeacon(trail: WarpTrail): WarpTrail {
   if (!trail.distressBeacon.active) {
+    return trail;
+  }
+  // Module Eta: Desperation-Dig beacons stay open until forcedOpenRemaining ticks down.
+  if (beaconBlocksClear(trail.distressBeacon)) {
     return trail;
   }
   return { ...trail, distressBeacon: { active: false } };
@@ -302,8 +326,13 @@ function applyChartToRoute(
     houseRules: HouseRules;
     maxPip?: number;
     modules?: import('../types/modules.js').GameModules;
+    /** Module Theta (Go-out): true if this chart may claim Trail Momentum. */
+    trailMomentumEligible?: boolean;
   }
 ): RoundState {
+  // Capture own personal-trail length before chart for Module Theta arming.
+  const lengthBefore = personalTrailLength(round, playerId);
+
   const { hand, removed } = removeCoordinateFromHand(
     round.hands[playerId] ?? [],
     coordinate
@@ -536,6 +565,18 @@ function applyChartToRoute(
 
   nextRound = resolveDeadRedAlert(nextRound, options.maxPip);
 
+  // Module Theta (Go-out): Trail Momentum — arm an extra turn the first time
+  // this captain's personal trail crosses length 5. Consumed on advanceTurn.
+  if (options.trailMomentumEligible) {
+    nextRound = maybeArmTrailMomentum(
+      nextRound,
+      playerId,
+      route,
+      lengthBefore,
+      true
+    );
+  }
+
   const playedZeroZero =
     options.qContinuumEnabled &&
     isDouble(placed.coordinate) &&
@@ -730,9 +771,26 @@ function advanceTurn(round: RoundState, houseRules: HouseRules): RoundState {
     return round;
   }
 
+  // Module Theta (Go-out): Trail Momentum grants the extra turn instead of
+  // passing the helm. Reset per-turn flags but keep the same active captain.
+  const momentum = consumeTrailMomentumExtraTurn(round);
+  if (momentum) {
+    return momentum;
+  }
+
+  // Module Eta (Go-out): Desperation-Dig beacons stay forced open for two
+  // turn-ends by the trail holder. Tick before passing the helm.
+  const outgoing = round.activePlayerId;
+  const tickedTable = tickDesperationBeaconOnTurnEnd(
+    round.table,
+    outgoing,
+    round
+  );
+
   return advanceTurnWithDropToImpulse(
     {
       ...round,
+      table: tickedTable,
       playedThisTurn: false,
       drewThisTurn: false,
       shieldChangedThisTurn: false,
@@ -758,8 +816,14 @@ function handleDraw(
   ]);
   nextRound = { ...nextRound, unchartedSectors: remaining, drewThisTurn: true };
 
-  // Module Eta (Temporal Debt): Increment debt tokens when drawing from uncharted
-  if (state.modules.temporalDebt?.enabled && nextRound.debtTokens) {
+  // Module Eta (Temporal Debt): Increment debt tokens when drawing from
+  // Uncharted — points campaigns only. Go-out uses Desperation Dig instead
+  // (see RULES §VI Go-out; docs/go-out-modules-implementation.md Phase 5).
+  if (
+    state.objective !== 'go-out' &&
+    state.modules.temporalDebt?.enabled &&
+    nextRound.debtTokens
+  ) {
     const currentDebt = nextRound.debtTokens[playerId] ?? 0;
     nextRound = {
       ...nextRound,
@@ -818,6 +882,179 @@ function handleDraw(
     ok: true,
     state: withRound(state, maybeEndBlockedRound(advanceTurn(nextRound, state.houseRules), state.houseRules)),
   };
+}
+
+/**
+ * Module Eta (Go-out) Desperation Dig — dig up to 3 tiles from Uncharted
+ * looking for a playable one. Deploys the invoker's beacon forced open for
+ * their next two turn-ends regardless of outcome. First playable tile is
+ * auto-charted; unplayable ones stay in hand. RULES §VI Eta go-out block.
+ */
+function handleDesperationDig(
+  state: GameState,
+  round: RoundState,
+  playerId: string
+): ActionResult {
+  if (!canDesperationDig(state, round, playerId, state.houseRules)) {
+    return fail('DRAW_NOT_ALLOWED');
+  }
+
+  const trailKey = trailKeyFor(round, playerId);
+  const trail = round.table.warpTrails[trailKey];
+  if (!trail) {
+    return fail('INVALID_ROUTE');
+  }
+
+  // Deploy the desperation beacon (forced open for two turn-ends) up front —
+  // the ship is running dark for the dig whether or not it strikes a tile.
+  let nextRound = updateTable(round, {
+    ...round.table,
+    warpTrails: {
+      ...round.table.warpTrails,
+      [trailKey]: deployDesperationBeacon(trail),
+    },
+  });
+
+  let charted = false;
+
+  for (let i = 0; i < DESPERATION_DIG_MAX_DRAWS; i += 1) {
+    if (nextRound.unchartedSectors.length === 0) {
+      break;
+    }
+
+    const [drawn, ...remaining] = nextRound.unchartedSectors;
+    nextRound = {
+      ...nextRound,
+      unchartedSectors: remaining,
+      hands: {
+        ...nextRound.hands,
+        [playerId]: [...(nextRound.hands[playerId] ?? []), drawn],
+      },
+      drewThisTurn: true,
+    };
+
+    const legalWithDrawn = getLegalMoves(
+      nextRound,
+      playerId,
+      state.houseRules
+    ).filter(
+      (move) =>
+        move.coordinate.low === drawn.low &&
+        move.coordinate.high === drawn.high
+    );
+
+    if (legalWithDrawn.length === 0) {
+      continue;
+    }
+
+    const route = pickDesperationDigRoute(legalWithDrawn, playerId, nextRound);
+    if (!route) {
+      continue;
+    }
+
+    try {
+      nextRound = applyChartToRoute(nextRound, playerId, drawn, route, {
+        subspaceFracture: {
+          enabled: state.modules.subspaceFracture.enabled,
+          scope: state.modules.subspaceFracture.scope,
+        },
+        qContinuumEnabled: state.modules.continuum.enabled,
+        houseRules: state.houseRules,
+        maxPip: state.maxPip ?? nextRound.maxPip ?? 12,
+        modules: state.modules,
+        trailMomentumEligible:
+          state.objective === 'go-out' &&
+          state.modules.longestTrail?.enabled === true &&
+          state.trailMomentumClaimedBy == null,
+      });
+      charted = true;
+      break;
+    } catch {
+      return fail('INVALID_ROUTE');
+    }
+  }
+
+  if (!charted) {
+    // Nothing playable turned up — pass the helm through the standard turn
+    // machinery so the desperation beacon ticks and skips propagate.
+    nextRound = maybeEndBlockedRound(
+      advanceTurn(nextRound, state.houseRules),
+      state.houseRules
+    );
+  }
+
+  return { ok: true, state: withRound(state, nextRound) };
+}
+
+/**
+ * Module Kappa (Go-out) Hand Exchange — the larger hand returns one
+ * coordinate to the smaller hand after the random steal. RULES §VI Kappa
+ * go-out block.
+ */
+function handleResolveHandExchange(
+  state: GameState,
+  round: RoundState,
+  playerId: string,
+  coordinate: Coordinate
+): ActionResult {
+  const pending = round.handExchangePending;
+  if (!pending) {
+    return fail('HAND_EXCHANGE_NOT_PENDING');
+  }
+  if (pending.largerPlayerId !== playerId) {
+    return fail('HAND_EXCHANGE_NOT_PENDING');
+  }
+  if (!handContains(round.hands[playerId] ?? [], coordinate)) {
+    return fail('COORDINATE_NOT_IN_HAND');
+  }
+  const nextRound = applyHandExchangeGiveback(round, playerId, coordinate);
+  if (!nextRound) {
+    return fail('HAND_EXCHANGE_NOT_PENDING');
+  }
+  return { ok: true, state: withRound(state, nextRound) };
+}
+
+/**
+ * Module Beta (Go-out) Salamander Surge — every opponent draws one tile
+ * (uncharted → sensor grid) starting from the caster's next captain. RULES
+ * §VI Beta go-out block.
+ */
+function applySalamanderSurge(
+  round: RoundState,
+  casterId: string,
+  modules: import('../types/modules.js').GameModules
+): RoundState {
+  const order = round.turnOrder;
+  const startIndex = order.indexOf(casterId);
+  if (startIndex < 0) {
+    return round;
+  }
+
+  let nextRound = round;
+  for (let step = 1; step <= order.length; step += 1) {
+    const opponentId = order[(startIndex + step) % order.length];
+    if (opponentId === casterId) {
+      continue;
+    }
+    const drawn = drawTilesFromPools(nextRound, modules, 1);
+    if (drawn.tiles.length === 0) {
+      break;
+    }
+    nextRound = {
+      ...nextRound,
+      unchartedSectors: drawn.unchartedSectors,
+      sensorGrid: drawn.sensorGrid,
+      hands: {
+        ...nextRound.hands,
+        [opponentId]: [
+          ...(nextRound.hands[opponentId] ?? []),
+          ...drawn.tiles,
+        ],
+      },
+    };
+  }
+
+  return nextRound;
 }
 
 function handleSensorSweep(
@@ -1045,7 +1282,9 @@ function handleWarpDriveSpool(
     unchartedSectors: spoolResult.unchartedRemaining,
   };
 
-  // Handle Red Alert state if spool ended with uncovered double
+  // Spool never leaves an unfinished double on the table: either the double
+  // was covered during the spool, or abort retrieved it (abortedUnfinishedDouble).
+  // Legacy path retained only if redAlertActive is ever signaled again.
   if (spoolResult.redAlertActive && spoolResult.tilesPlayed.length > 0) {
     const lastPlayed = spoolResult.tilesPlayed[spoolResult.tilesPlayed.length - 1];
     const isDouble = lastPlayed.low === lastPlayed.high;
@@ -1109,6 +1348,10 @@ function handleWarpDriveSpool(
 
   // Mark that we played this turn
   nextRound = { ...nextRound, playedThisTurn: true };
+
+  if (spoolResult.abortedUnfinishedDouble) {
+    nextRound = { ...nextRound, spoolAbortRetrieve: true };
+  }
 
   // Advance turn after spool completes
   nextRound = advanceTurn(nextRound, state.houseRules);
@@ -1189,17 +1432,46 @@ function handlePassTurn(
   if (!canPassTurn(round, playerId, { ...options, houseRules: state.houseRules })) {
     return fail('PASS_NOT_ALLOWED');
   }
-  
+
   let nextRound = round;
-  
-  // Module Delta: Track pass while holding hazard marker
+
+  // Module Delta: Hazard marker holder pass — go-out variant draws 2 from
+  // the pools (uncharted → sensor grid). Points variant increments the pass
+  // count for the +5 penalty tally instead. See RULES §VI Delta go-out block
+  // and docs/go-out-modules-implementation.md Phase 3.
   if (state.modules.warpDriveSpool?.enabled && round.hazardMarkerHolder === playerId) {
-    nextRound = {
-      ...nextRound,
-      hazardMarkerPassCount: (nextRound.hazardMarkerPassCount ?? 0) + 1,
-    };
+    if (state.objective === 'go-out') {
+      const drawn = drawTilesFromPools(nextRound, state.modules, 2);
+      if (drawn.tiles.length > 0) {
+        nextRound = {
+          ...nextRound,
+          unchartedSectors: drawn.unchartedSectors,
+          sensorGrid: drawn.sensorGrid,
+          hands: {
+            ...nextRound.hands,
+            [playerId]: [...(nextRound.hands[playerId] ?? []), ...drawn.tiles],
+          },
+        };
+      } else {
+        // Pools exhausted — sideline this captain on their next helm pass.
+        const existing = nextRound.continuumEffects?.skipNextTurnFor ?? [];
+        if (!existing.includes(playerId)) {
+          nextRound = {
+            ...nextRound,
+            continuumEffects: mergecontinuumEffects(nextRound.continuumEffects, {
+              skipNextTurnFor: [...existing, playerId],
+            }),
+          };
+        }
+      }
+    } else {
+      nextRound = {
+        ...nextRound,
+        hazardMarkerPassCount: (nextRound.hazardMarkerPassCount ?? 0) + 1,
+      };
+    }
   }
-  
+
   nextRound = maybeEndBlockedRound(advanceTurn(nextRound, state.houseRules), state.houseRules);
   return { ok: true, state: withRound(state, nextRound) };
 }
@@ -1387,7 +1659,8 @@ function handleQFlash(
   state: GameState,
   round: RoundState,
   playerId: string,
-  effectKind: FlashEffectKind
+  effectKind: FlashEffectKind,
+  targetPlayerId?: string
 ): ActionResult {
   if (!state.modules.continuum.enabled) {
     return fail('INVALID_ROUTE');
@@ -1397,12 +1670,23 @@ function handleQFlash(
     return fail('CONTINUUM_FLASH_NOT_PENDING');
   }
 
-  const effect = buildQFlashEffect(effectKind, state, round, playerId);
+  const effect = buildQFlashEffect(
+    effectKind,
+    state,
+    round,
+    playerId,
+    targetPlayerId
+  );
   if (!effect) {
     return fail('CONTINUUM_FLASH_UNAVAILABLE');
   }
 
-  const { round: afterEffect } = applyQFlashEffect(round, effect, playerId);
+  const { round: afterEffect } = applyQFlashEffect(
+    round,
+    effect,
+    playerId,
+    state.modules
+  );
   let nextRound = finalizeRoundWinAfterQ(afterEffect, state.houseRules);
 
   const flash: QFlash = { invokedBy: playerId, effect };
@@ -1543,6 +1827,17 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
   if (state.round?.wormholeOpened) {
     state = { ...state, round: { ...state.round, wormholeOpened: false } };
   }
+  // Module Delta: spool abort retrieve cue for game-log / toast.
+  if (state.round?.spoolAbortRetrieve) {
+    state = { ...state, round: { ...state.round, spoolAbortRetrieve: false } };
+  }
+
+  if (action.type === 'RESOLVE_GO_OUT_OVERTIME') {
+    if (state.goOutOvertimePending !== true) {
+      return fail('GAME_NOT_ACTIVE');
+    }
+    return resolveGoOutOvertimeOffer(state, action.accept);
+  }
 
   if (action.type === 'END_ROUND') {
     if (state.phase !== 'active' || !state.round) {
@@ -1601,6 +1896,12 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
   }
 
   let round = roundOrViolation;
+
+  // Module Kappa (Go-out) Hand Exchange: while a give-back is pending, only
+  // that resolution is legal — everyone else is on hold until it clears.
+  if (round.handExchangePending && action.type !== 'RESOLVE_HAND_EXCHANGE') {
+    return fail('HAND_EXCHANGE_PENDING');
+  }
 
   switch (action.type) {
     case 'CHART_COORDINATE': {
@@ -1674,6 +1975,18 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
         return fail('INVALID_ROUTE');
       }
 
+      // Module Theta (Go-out): capture pre-chart eligibility for Trail
+      // Momentum claim tracking (once per sector).
+      const lengthBefore = personalTrailLength(round, action.playerId);
+      const momentumEligible =
+        state.objective === 'go-out' &&
+        state.modules.longestTrail?.enabled === true &&
+        state.trailMomentumClaimedBy == null;
+
+      const chartedDouble = isDouble(action.coordinate);
+
+      let nextState: GameState;
+
       try {
         round = applyChartToRoute(round, action.playerId, action.coordinate, action.route, {
           subspaceFracture: {
@@ -1684,27 +1997,27 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
           houseRules: state.houseRules,
           maxPip: state.maxPip ?? state.round?.maxPip ?? 12,
           modules: state.modules,
+          trailMomentumEligible: momentumEligible,
         });
-        
+
         // Module Delta: Transfer hazard marker when playing to Neutral Zone
         if (state.modules.warpDriveSpool?.enabled && action.route.kind === 'neutral-zone') {
           round = {
             ...round,
             hazardMarkerHolder: action.playerId,
-            hazardMarkerPassCount: 0, // Reset pass count on transfer
+            hazardMarkerPassCount: 0,
           };
         }
-        
-        // Module Iota: Double Down - next player draws tiles when double is played
-        if (state.modules.doubleDown?.enabled && isDouble(action.coordinate)) {
+
+        // Module Iota: Double Down — next captain draws tiles when a double is charted.
+        if (state.modules.doubleDown?.enabled && chartedDouble) {
           const drawCount = state.modules.doubleDown.drawCount ?? 2;
           const { nextId } = advanceToNextPlayer(round, action.playerId);
-          
-          // Draw from uncharted first, then sensor grid if available
+
           const availableToDraw: Coordinate[] = [];
           let remainingUncharted = [...round.unchartedSectors];
           let remainingSensorGrid: Coordinate[] | null = round.sensorGrid ? [...round.sensorGrid] : null;
-          
+
           for (let i = 0; i < drawCount; i += 1) {
             if (remainingUncharted.length > 0) {
               const drawn = remainingUncharted.shift()!;
@@ -1713,10 +2026,10 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
               const drawn = remainingSensorGrid.shift()!;
               availableToDraw.push(drawn);
             } else {
-              break; // No more tiles available
+              break;
             }
           }
-          
+
           if (availableToDraw.length > 0) {
             const refilled = refillSensorGrid(
               remainingSensorGrid ?? [],
@@ -1736,11 +2049,52 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
             };
           }
         }
+
+        // Module Beta (Go-out): Salamander Surge — each opponent draws 1
+        // when the caster charts maxPip-maxPip from hand.
+        const maxPip = state.maxPip ?? round.maxPip ?? 12;
+        if (
+          state.objective === 'go-out' &&
+          state.modules.salamanderPenalty?.enabled &&
+          action.coordinate.low === maxPip &&
+          action.coordinate.high === maxPip
+        ) {
+          round = applySalamanderSurge(round, action.playerId, state.modules);
+        }
+
+        nextState = withRound(state, round);
+
+        // Module Theta (Go-out): Trail Momentum — claim the once-per-sector
+        // extra turn when the personal trail first crosses length 5.
+        const lengthAfter = personalTrailLength(round, action.playerId);
+        if (
+          momentumEligible &&
+          lengthBefore < 5 &&
+          lengthAfter >= 5 &&
+          action.route.kind === 'warp-trail' &&
+          sameTrailGroup(round, action.playerId, action.route.playerId)
+        ) {
+          nextState = { ...nextState, trailMomentumClaimedBy: action.playerId };
+        }
+
+        // Module Kappa (Go-out): Hand Exchange — first non-Spacedock double
+        // charted this sector triggers a random steal from the unique
+        // smallest hand into the unique largest, then a give-back choice.
+        if (
+          chartedDouble &&
+          state.objective === 'go-out' &&
+          state.modules.temporalInversion?.enabled === true &&
+          state.handExchangeResolved !== true
+        ) {
+          const { round: withHE } = beginHandExchange(round);
+          round = withHE;
+          nextState = { ...nextState, round, handExchangeResolved: true };
+        }
       } catch {
         return fail('INVALID_ROUTE');
       }
 
-      return { ok: true, state: withRound(state, round) };
+      return { ok: true, state: nextState };
     }
 
     case 'DRAW_FROM_UNCHARTED': {
@@ -1755,6 +2109,17 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
         return fail('DRAW_NOT_ALLOWED');
       }
       return handleDraw(state, round, action.playerId);
+    }
+
+    case 'DESPERATION_DIG': {
+      const turnCheck = requirePlayerTurn(round, action.playerId);
+      if (turnCheck !== true) {
+        return fail(turnCheck);
+      }
+      if (qResolutionBlocksAction(round, action.playerId)) {
+        return fail('CONTINUUM_FLASH_NOT_PENDING');
+      }
+      return handleDesperationDig(state, round, action.playerId);
     }
 
     case 'SENSOR_SWEEP': {
@@ -1880,7 +2245,13 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
       if (turnCheck !== true) {
         return fail(turnCheck);
       }
-      return handleQFlash(state, round, action.playerId, action.effect);
+      return handleQFlash(
+        state,
+        round,
+        action.playerId,
+        action.effect,
+        action.targetPlayerId
+      );
     }
 
     case 'RESOLVE_CONTINUUM_WAGER': {
@@ -1889,6 +2260,15 @@ export function applyAction(state: GameState, action: GameAction): ActionResult 
         return fail(turnCheck);
       }
       return handleQGamble(state, round, action.playerId, action.keepIndex);
+    }
+
+    case 'RESOLVE_HAND_EXCHANGE': {
+      return handleResolveHandExchange(
+        state,
+        round,
+        action.playerId,
+        action.coordinate
+      );
     }
 
     case 'SALAMANDER_PENALTY':

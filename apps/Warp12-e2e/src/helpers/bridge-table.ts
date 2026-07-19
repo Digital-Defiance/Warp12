@@ -13,7 +13,7 @@ import {
   waitForOnlineReady,
 } from './online-lobby.js';
 
-/** Host always charts first — launchOnlineGame sets roundStarterId to hostId. */
+/** Round-1 starter comes from matchStarterIndex (any seat, human or AI). */
 export const DEFAULT_HOST_CALLSIGN = 'Captain Pike';
 export const DEFAULT_GUEST_CALLSIGN = 'Captain Kirk';
 

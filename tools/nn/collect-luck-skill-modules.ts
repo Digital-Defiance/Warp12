@@ -13,6 +13,7 @@ import {
   getWarpSkillProfile,
   resolveWarpLookahead,
   summarizeLuckSkillMetrics,
+  resolveModules,
   type WarpFactor,
   type GameLuckSkillMetrics,
   type GameObjective,
@@ -257,7 +258,13 @@ const matchResult = runSelfPlayMatch(
     const seats = [];
     for (let i = 0; i < PLAYER_COUNT; i++) {
       const player = createWarpAiPlayer({
-        skill: getWarpSkillProfile('commander', OBJECTIVE, PLAYER_COUNT),
+        skill: getWarpSkillProfile(
+          'commander',
+          OBJECTIVE,
+          PLAYER_COUNT,
+          undefined,
+          resolveModules(resolvedModules ?? {})
+        ),
         lookahead: resolveWarpLookahead('commander', OBJECTIVE, PLAYER_COUNT),
         rng: () => Math.random(),
         objective: OBJECTIVE,

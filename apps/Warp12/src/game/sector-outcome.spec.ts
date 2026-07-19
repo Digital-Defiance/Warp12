@@ -102,4 +102,56 @@ describe('sector outcome', () => {
       'You'
     );
   });
+
+  it('ranks fixed-rounds go-out campaigns by goOutWins', () => {
+    const game = completeGame({
+      objective: 'go-out',
+      goOutStructure: 'fixed-rounds',
+      campaignRounds: 5,
+      captains: [
+        { id: 'you', displayName: 'You', pointsScore: 0, goOutWins: 2 },
+        { id: 'ai', displayName: 'AI', pointsScore: 0, goOutWins: 3 },
+      ],
+    });
+    expect(sectorWinnerId(game)).toBe('ai');
+    const standings = sectorStandings(game, { you: 'You', ai: 'AI' });
+    expect(standings[0]?.id).toBe('ai');
+    expect(standings[0]?.label).toContain('Winner');
+    expect(standings[0]?.value).toBe(3);
+    expect(sectorCompleteHeadline(game, { you: 'You', ai: 'AI' }, 'you')).toContain(
+      'AI wins the 5-round campaign'
+    );
+  });
+
+  it('returns null winner when go-out campaign ends tied', () => {
+    const game = completeGame({
+      objective: 'go-out',
+      goOutStructure: 'fixed-rounds',
+      goOutOvertimePending: false,
+      captains: [
+        { id: 'you', displayName: 'You', pointsScore: 0, goOutWins: 2 },
+        { id: 'ai', displayName: 'AI', pointsScore: 0, goOutWins: 2 },
+      ],
+    });
+    expect(sectorWinnerId(game)).toBeNull();
+    expect(sectorCompleteHeadline(game, { you: 'You', ai: 'AI' })).toContain(
+      'tied'
+    );
+  });
+
+  it('headlines first-to campaigns by win count', () => {
+    const game = completeGame({
+      objective: 'go-out',
+      goOutStructure: 'first-to',
+      goOutWinsToWin: 3,
+      captains: [
+        { id: 'you', displayName: 'You', pointsScore: 0, goOutWins: 3 },
+        { id: 'ai', displayName: 'AI', pointsScore: 0, goOutWins: 1 },
+      ],
+    });
+    expect(sectorWinnerId(game)).toBe('you');
+    expect(sectorCompleteHeadline(game, { you: 'You', ai: 'AI' }, 'you')).toContain(
+      'You reach 3 wins first'
+    );
+  });
 });

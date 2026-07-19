@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   hasWarpedModules,
+  isModuleAvailableForObjective,
+  MODULE_OBJECTIVE_GATES,
+  moduleClearPatchForObjective,
   resolveModules,
+  sanitizeModuleConfigForObjective,
   toModuleConfig,
   warpedModuleKeys,
 } from './modules.js';
@@ -15,6 +19,37 @@ describe('Warped module helpers', () => {
     expect(warpedModuleKeys({ wormholes: true })).toEqual(['wormholes']);
     expect(hasWarpedModules({ doubleDown: true })).toBe(false);
     expect(hasWarpedModules({ squadrons: true })).toBe(false);
+  });
+
+  it('gates modules via MODULE_OBJECTIVE_GATES (not hard-coded branches)', () => {
+    expect(
+      MODULE_OBJECTIVE_GATES.some(
+        (gate) => gate.key === 'drafting' && gate.objectiveOnly === 'points'
+      )
+    ).toBe(true);
+    expect(isModuleAvailableForObjective('drafting', 'points')).toBe(true);
+    expect(isModuleAvailableForObjective('drafting', 'go-out')).toBe(false);
+    expect(moduleClearPatchForObjective('go-out')).toMatchObject({
+      drafting: false,
+    });
+    expect(moduleClearPatchForObjective('points')).toEqual({});
+  });
+
+  it('strips gated modules under the wrong objective (RULES §VI)', () => {
+    expect(
+      sanitizeModuleConfigForObjective(
+        { drafting: true, continuum: true },
+        'go-out'
+      )
+    ).toEqual({ drafting: false, continuum: true });
+    expect(
+      resolveModules(
+        sanitizeModuleConfigForObjective({ drafting: true }, 'go-out')
+      ).drafting.enabled
+    ).toBe(false);
+    expect(
+      sanitizeModuleConfigForObjective({ drafting: true }, 'points').drafting
+    ).toBe(true);
   });
 
   it('round-trips resolveModules ↔ toModuleConfig for module flags', () => {

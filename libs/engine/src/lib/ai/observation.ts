@@ -21,6 +21,36 @@ export interface WarpAiObservation {
   readonly captains: readonly Captain[];
   /** Double-N max pip for this sector (defaults to 12). */
   readonly maxPip?: number;
+  /** Module Theta (Go-out): who already claimed Trail Momentum this sector. */
+  readonly trailMomentumClaimedBy?: PlayerId | null;
+  /** Module Kappa (Go-out): Hand Exchange already resolved/skipped this sector. */
+  readonly handExchangeResolved?: boolean;
+}
+
+/** Build a Game State wrapper around an observation for the forward model / legal APIs. */
+export function observationToState(obs: WarpAiObservation): GameState {
+  return {
+    id: 'search',
+    phase: 'active',
+    captains: obs.captains.length > 0
+      ? obs.captains
+      : obs.round.turnOrder.map((id) => ({
+          id,
+          displayName: id,
+          pointsScore: 0,
+        })),
+    round: obs.round,
+    completedRounds: 0,
+    modules: obs.modules,
+    houseRules: obs.houseRules,
+    objective: obs.objective,
+    campaignRounds: obs.campaignRounds,
+    maxPip: obs.maxPip ?? 12,
+    ...(obs.trailMomentumClaimedBy != null
+      ? { trailMomentumClaimedBy: obs.trailMomentumClaimedBy }
+      : {}),
+    ...(obs.handExchangeResolved ? { handExchangeResolved: true } : {}),
+  };
 }
 
 /** Builds an observation for `playerId` from a game state, or null if no round. */
@@ -40,5 +70,7 @@ export function observe(
     campaignRounds: state.campaignRounds,
     captains: state.captains,
     maxPip: state.maxPip ?? DOUBLE_TWELVE_MAX_PIPS,
+    trailMomentumClaimedBy: state.trailMomentumClaimedBy ?? null,
+    handExchangeResolved: state.handExchangeResolved === true,
   };
 }

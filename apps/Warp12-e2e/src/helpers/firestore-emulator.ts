@@ -5,12 +5,18 @@ interface EmulatorGameDocument {
   phase: string;
   hostId: string;
   captainIds: string[];
-  captains: { id: string; displayName: string }[];
+  captains: { id: string; displayName: string; goOutWins?: number }[];
+  objective?: string;
+  goOutStructure?: string;
+  goOutWinsToWin?: number;
+  goOutOvertime?: string;
+  matchStarterIndex?: number;
   round: {
     phase: string;
     roundNumber: number;
     activePlayerId: string;
     unchartedSectors: unknown[];
+    table?: { spacedock?: { placedBy?: string } };
   } | null;
 }
 

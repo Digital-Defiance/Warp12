@@ -1,11 +1,16 @@
 import type {
   GameModuleConfig,
   GameObjective,
+  GoOutOvertimePolicy,
+  GoOutStructure,
   HouseRulesConfig,
   WarpFactor,
   WarpSkillLevel,
 } from 'warp12-engine';
 import {
+  DEFAULT_GO_OUT_OVERTIME,
+  DEFAULT_GO_OUT_STRUCTURE,
+  DEFAULT_GO_OUT_WINS_TO_WIN,
   defaultCampaignRounds,
   hasWarpedModules,
   neuralWeightsAvailable,
@@ -86,8 +91,22 @@ export interface LocalGameConfig {
   /** Total captains at the table (humans + AI officers). */
   readonly playerCount: number;
   readonly objective: GameObjective;
-  /** Points campaigns only — ignored when objective is go-out. */
+  /**
+   * Points campaigns: length in rounds.
+   * Go-out fixed-rounds: Spacedock descent length.
+   */
   readonly campaignRounds: number;
+  /** Go-out sector structure — defaults to 'sudden-death'. */
+  readonly goOutStructure?: GoOutStructure;
+  /** Go-out first-to: wins required. */
+  readonly goOutWinsToWin?: number;
+  /** Go-out fixed-rounds: tie-break overtime policy. */
+  readonly goOutOvertime?: GoOutOvertimePolicy;
+  /**
+   * Index into the captain roster for the match's first-round starter.
+   * -1 or undefined = engine default (host / first seat).
+   */
+  readonly matchStarterIndex?: number;
   readonly modules: GameModuleConfig;
   readonly houseRules?: HouseRulesConfig;
   readonly aiCaptains: readonly AiCaptainConfig[];
@@ -284,6 +303,10 @@ export function defaultLocalGameConfig(
     playerCount: count,
     objective: WARP12_OFFICIAL_OBJECTIVE,
     campaignRounds: defaultCampaignRounds(factor),
+    goOutStructure: DEFAULT_GO_OUT_STRUCTURE,
+    goOutWinsToWin: DEFAULT_GO_OUT_WINS_TO_WIN,
+    goOutOvertime: DEFAULT_GO_OUT_OVERTIME,
+    matchStarterIndex: undefined,
     modules: { ...WARP12_OFFICIAL_MODULES },
     houseRules: { ...WARP12_OFFICIAL_HOUSE_RULES },
     aiCaptains: buildAiCaptains(count - 1, factor),

@@ -1,0 +1,28 @@
+{
+  "warpFactor": 12,
+  "playerCount": 3,
+  "moduleConfig": "delta",
+  "moduleLabel": "Module Delta (Warp Drive Spool)",
+  "zetaOmitted": false,
+  "games": 500,
+  "objective": "go-out",
+  "summary": {
+    "games": 500,
+    "playerCount": 3,
+    "maxPip": 12,
+    "objective": "go-out",
+    "avgLegalMovesPerTurn": 2.109860637063105,
+    "avgUniqueTrainsPerTurn": 1.0411948201626153,
+    "avgConstrainedTileFraction": 0.6292010795160273,
+    "avgUniquePipsInHand": 7.619289882274318,
+    "avgMaxPipCluster": 2.6397207233226907,
+    "avgHandEntropy": 2.567445371909816,
+    "avgMoveValueSpread": 3.3199475122356223,
+    "avgNearOptimalFraction": 0.7652391435907967,
+    "avgOwnTrailPlayRate": 0,
+    "avgShieldsDownRate": 0.04618508597597857
+  },
+  "skillIndicators": 3,
+  "timestamp": "2026-07-19T02:31:06.155Z",
+  "durationSeconds": 1.36
+}

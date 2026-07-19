@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  12 JUL 2026 12:39
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  18 JUL 2026 19:48
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -799,144 +799,261 @@ LaTeX Font Info:    Trying to load font information for U+msb on input line 29.
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) [1
 
-{/usr/local/texlive/2026/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}] [2] [3]
-Overfull \hbox (0.61302pt too wide) in paragraph at lines 152--153
+{/usr/local/texlive/2026/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+[2{/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}] [3] [4]
+Overfull \hbox (0.61302pt too wide) in paragraph at lines 157--158
 []\OT1/cmr/bx/n/10.95 TrueSkill [[]]: \OT1/cmr/m/n/10.95 Mi-crosoft's rat-ing sys-tem ex-tends to multi-player and team games us-ing Bayesian
  []
 
-[4] [5]
-Overfull \hbox (3.66386pt too wide) in paragraph at lines 203--204
+[5]
+Overfull \hbox (3.66386pt too wide) in paragraph at lines 210--211
 []\OT1/cmr/bx/n/10.95 Legal moves: \OT1/cmr/m/n/10.95 Func-tion \OT1/cmtt/m/n/10.95 getLegalMoves(state, playerId) -> Action[] \OT1/cmr/m/n/10.95 com-putes all valid
  []
 
-[6]
-<../tools/nn/figures/figure10-points-vs-goout.png, id=353, 1004.553pt x 427.3566pt>
+[6] [7]
+<../tools/nn/figures/figure10-points-vs-goout.png, id=422, 968.8195pt x 397.485pt>
 File: ../tools/nn/figures/figure10-points-vs-goout.png Graphic file (type png)
 <use ../tools/nn/figures/figure10-points-vs-goout.png>
-Package pdftex.def Info: ../tools/nn/figures/figure10-points-vs-goout.png  used on input line 284.
-(pdftex.def)             Requested size: 422.77664pt x 179.86023pt.
-<../tools/nn/figures/figure9-architectures.png, id=355, 798.3426pt x 599.841pt>
+Package pdftex.def Info: ../tools/nn/figures/figure10-points-vs-goout.png  used on input line 298.
+(pdftex.def)             Requested size: 422.77664pt x 173.4565pt.
+<../tools/nn/figures/figure9-architectures.png, id=424, 798.3426pt x 599.841pt>
 File: ../tools/nn/figures/figure9-architectures.png Graphic file (type png)
 <use ../tools/nn/figures/figure9-architectures.png>
-Package pdftex.def Info: ../tools/nn/figures/figure9-architectures.png  used on input line 293.
+Package pdftex.def Info: ../tools/nn/figures/figure9-architectures.png  used on input line 307.
 (pdftex.def)             Requested size: 446.26582pt x 335.31372pt.
- [7] [8 <../tools/nn/figures/figure10-points-vs-goout.png> <../tools/nn/figures/figure9-architectures.png>]
-<../tools/nn/figures/figure6-tei-ladder.png, id=378, 860.013pt x 355.0866pt>
+ [8 <../tools/nn/figures/figure10-points-vs-goout.png>] [9 <../tools/nn/figures/figure9-architectures.png>]
+<../tools/nn/figures/figure6-tei-ladder.png, id=441, 880.088pt x 383.031pt>
 File: ../tools/nn/figures/figure6-tei-ladder.png Graphic file (type png)
 <use ../tools/nn/figures/figure6-tei-ladder.png>
-Package pdftex.def Info: ../tools/nn/figures/figure6-tei-ladder.png  used on input line 314.
-(pdftex.def)             Requested size: 422.77664pt x 174.55743pt.
- [9 <../tools/nn/figures/figure6-tei-ladder.png>]
-<../tools/nn/figures/figure7-calibration-matrix.png, id=386, 849.4134pt x 354.6048pt>
+Package pdftex.def Info: ../tools/nn/figures/figure6-tei-ladder.png  used on input line 328.
+(pdftex.def)             Requested size: 422.77664pt x 184.00475pt.
+ [10 <../tools/nn/figures/figure6-tei-ladder.png>] [11]
+Overfull \hbox (23.14417pt too wide) in paragraph at lines 397--398
+\OT1/cmr/m/n/10.95 See \OT1/cmtt/m/n/10.95 docs/openskill-calibration-log.md \OT1/cmr/m/n/10.95 for dated Open-Skill self-play runs and \OT1/cmtt/m/n/10.95 calibration-log.md
+ []
+
+<../tools/nn/figures/figure7-calibration-matrix.png, id=455, 858.8085pt x 354.123pt>
 File: ../tools/nn/figures/figure7-calibration-matrix.png Graphic file (type png)
 <use ../tools/nn/figures/figure7-calibration-matrix.png>
-Package pdftex.def Info: ../tools/nn/figures/figure7-calibration-matrix.png  used on input line 368.
-(pdftex.def)             Requested size: 422.77664pt x 176.49574pt.
- [10]
+Package pdftex.def Info: ../tools/nn/figures/figure7-calibration-matrix.png  used on input line 401.
+(pdftex.def)             Requested size: 422.77664pt x 174.33229pt.
+[12]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 388.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\Omega' on input line 388.
+(hyperref)                removing `math shift' on input line 421.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 388.
+(hyperref)                removing `\Omega' on input line 421.
 
-<../tools/nn/figures/figure8-ai-bench-results.png, id=398, 860.013pt x 715.9548pt>
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 421.
+
+<../tools/nn/figures/figure8-ai-bench-results.png, id=465, 860.013pt x 715.473pt>
 File: ../tools/nn/figures/figure8-ai-bench-results.png Graphic file (type png)
 <use ../tools/nn/figures/figure8-ai-bench-results.png>
-Package pdftex.def Info: ../tools/nn/figures/figure8-ai-bench-results.png  used on input line 392.
-(pdftex.def)             Requested size: 446.26582pt x 371.51207pt.
-[11 <../tools/nn/figures/figure7-calibration-matrix.png>] [12 <../tools/nn/figures/figure8-ai-bench-results.png>]
+Package pdftex.def Info: ../tools/nn/figures/figure8-ai-bench-results.png  used on input line 425.
+(pdftex.def)             Requested size: 446.26582pt x 371.26207pt.
+[13 <../tools/nn/figures/figure7-calibration-matrix.png>] [14 <../tools/nn/figures/figure8-ai-bench-results.png>]
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-[13] [14]
-Overfull \hbox (61.07425pt too wide) in paragraph at lines 503--504
+[15]
+Overfull \hbox (119.1381pt too wide) detected at line 531
+[]
+ []
+
+[16]
+Overfull \hbox (61.07425pt too wide) in paragraph at lines 551--552
 []\OT1/cmr/m/n/10.95 Decision com-plex-ity (\OT1/cmtt/m/n/10.95 avgLegalMoves\OT1/cmr/m/n/10.95 ) and hand co-her-ence (\OT1/cmtt/m/n/10.95 avgHandEntropy\OT1/cmr/m/n/10.95 )
  []
 
-<../tools/nn/figures/figure1-cross-factor-comparison.png, id=429, 999.2532pt x 792.3201pt>
+<../tools/nn/figures/figure1-cross-factor-comparison.png, id=507, 999.2532pt x 792.3201pt>
 File: ../tools/nn/figures/figure1-cross-factor-comparison.png Graphic file (type png)
 <use ../tools/nn/figures/figure1-cross-factor-comparison.png>
-Package pdftex.def Info: ../tools/nn/figures/figure1-cross-factor-comparison.png  used on input line 511.
+Package pdftex.def Info: ../tools/nn/figures/figure1-cross-factor-comparison.png  used on input line 559.
 (pdftex.def)             Requested size: 375.80544pt x 297.97768pt.
-[15 <../tools/nn/figures/figure1-cross-factor-comparison.png>]
-<../tools/nn/figures/figure2-fleet-size-effects.png, id=436, 999.0123pt x 792.3201pt>
+[17] [18 <../tools/nn/figures/figure1-cross-factor-comparison.png>]
+<../tools/nn/figures/figure2-fleet-size-effects.png, id=519, 999.0123pt x 792.3201pt>
 File: ../tools/nn/figures/figure2-fleet-size-effects.png Graphic file (type png)
 <use ../tools/nn/figures/figure2-fleet-size-effects.png>
-Package pdftex.def Info: ../tools/nn/figures/figure2-fleet-size-effects.png  used on input line 543.
+Package pdftex.def Info: ../tools/nn/figures/figure2-fleet-size-effects.png  used on input line 591.
 (pdftex.def)             Requested size: 375.80544pt x 298.05022pt.
 
-Overfull \hbox (14.10942pt too wide) in paragraph at lines 548--549
+Overfull \hbox (14.10942pt too wide) in paragraph at lines 596--597
 []\OT1/cmr/m/n/10.95 Within each Warp fac-tor, we com-puted Pear-son cor-re-la-tion be-tween \OT1/cmtt/m/n/10.95 playerCount \OT1/cmr/m/n/10.95 and \OT1/cmtt/m/n/10.95 skillIndex\OT1/cmr/m/n/10.95 : 
  []
 
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-[16 <../tools/nn/figures/figure2-fleet-size-effects.png>]
-<../tools/nn/figures/figure3-complexity-heatmap.png, id=444, 911.0838pt x 349.5459pt>
+[19 <../tools/nn/figures/figure2-fleet-size-effects.png>]
+<../tools/nn/figures/figure3-complexity-heatmap.png, id=528, 911.0838pt x 349.5459pt>
 File: ../tools/nn/figures/figure3-complexity-heatmap.png Graphic file (type png)
 <use ../tools/nn/figures/figure3-complexity-heatmap.png>
-Package pdftex.def Info: ../tools/nn/figures/figure3-complexity-heatmap.png  used on input line 573.
+Package pdftex.def Info: ../tools/nn/figures/figure3-complexity-heatmap.png  used on input line 621.
 (pdftex.def)             Requested size: 328.82707pt x 126.15643pt.
-<../tools/nn/figures/figure4-coherence-vs-depth.png, id=445, 854.7132pt x 638.385pt>
+<../tools/nn/figures/figure4-coherence-vs-depth.png, id=529, 854.7132pt x 638.385pt>
 File: ../tools/nn/figures/figure4-coherence-vs-depth.png Graphic file (type png)
 <use ../tools/nn/figures/figure4-coherence-vs-depth.png>
-Package pdftex.def Info: ../tools/nn/figures/figure4-coherence-vs-depth.png  used on input line 601.
+Package pdftex.def Info: ../tools/nn/figures/figure4-coherence-vs-depth.png  used on input line 649.
 (pdftex.def)             Requested size: 375.80544pt x 280.69543pt.
- [17 <../tools/nn/figures/figure3-complexity-heatmap.png>]
+
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-<../tools/nn/figures/figure5-skill-luck-balance.png, id=454, 1071.5232pt x 426.1521pt>
+[20 <../tools/nn/figures/figure3-complexity-heatmap.png>]
+<../tools/nn/figures/figure5-skill-luck-balance.png, id=537, 1071.5232pt x 426.1521pt>
 File: ../tools/nn/figures/figure5-skill-luck-balance.png Graphic file (type png)
 <use ../tools/nn/figures/figure5-skill-luck-balance.png>
-Package pdftex.def Info: ../tools/nn/figures/figure5-skill-luck-balance.png  used on input line 640.
+Package pdftex.def Info: ../tools/nn/figures/figure5-skill-luck-balance.png  used on input line 688.
 (pdftex.def)             Requested size: 375.80544pt x 149.46107pt.
-[18 <../tools/nn/figures/figure4-coherence-vs-depth.png>]
+
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-[19 <../tools/nn/figures/figure5-skill-luck-balance.png>] [20]
-Overfull \hbox (18.98726pt too wide) in paragraph at lines 756--757
+[21 <../tools/nn/figures/figure4-coherence-vs-depth.png>] [22 <../tools/nn/figures/figure5-skill-luck-balance.png>] [23]
+Overfull \hbox (12.72423pt too wide) in paragraph at lines 794--794
+[]\OT1/cmr/bx/n/14.4 Module Bal-ance (Points): A 274,500-Game Competitive-Integrity
+ []
+
+
+Overfull \hbox (66.97614pt too wide) in paragraph at lines 812--814
+\OT1/cmr/m/n/10.95 raw teleme-tries, then score four ab-so-lute pass/fail in-di-ca-tors (im-ple-mented in \OT1/cmtt/m/n/10.95 collect-luck-skill-modules.ts\OT1/cmr/m/n/10.95 ): 
+ []
+
+[24] (../tools/nn/tables/table4-module-ranking.tex)
+<../tools/nn/figures/figure11-module-skill-ranking.png, id=579, 751.608pt x 513.774pt>
+File: ../tools/nn/figures/figure11-module-skill-ranking.png Graphic file (type png)
+<use ../tools/nn/figures/figure11-module-skill-ranking.png>
+Package pdftex.def Info: ../tools/nn/figures/figure11-module-skill-ranking.png  used on input line 831.
+(pdftex.def)             Requested size: 432.17375pt x 295.41776pt.
+<../tools/nn/figures/figure12-module-warp-heatmap.png, id=580, 610.353pt x 585.7155pt>
+File: ../tools/nn/figures/figure12-module-warp-heatmap.png Graphic file (type png)
+<use ../tools/nn/figures/figure12-module-warp-heatmap.png>
+Package pdftex.def Info: ../tools/nn/figures/figure12-module-warp-heatmap.png  used on input line 838.
+(pdftex.def)             Requested size: 366.40834pt x 351.61969pt.
+<../tools/nn/figures/figure14-module-metric-profiles.png, id=581, 968.418pt x 361.35pt>
+File: ../tools/nn/figures/figure14-module-metric-profiles.png Graphic file (type png)
+<use ../tools/nn/figures/figure14-module-metric-profiles.png>
+Package pdftex.def Info: ../tools/nn/figures/figure14-module-metric-profiles.png  used on input line 845.
+(pdftex.def)             Requested size: 446.26582pt x 166.51524pt.
+<../tools/nn/figures/figure13-epsilon-collapse.png, id=582, 823.878pt x 655.029pt>
+File: ../tools/nn/figures/figure13-epsilon-collapse.png Graphic file (type png)
+<use ../tools/nn/figures/figure13-epsilon-collapse.png>
+Package pdftex.def Info: ../tools/nn/figures/figure13-epsilon-collapse.png  used on input line 862.
+(pdftex.def)             Requested size: 446.26582pt x 354.79984pt.
+<../tools/nn/figures/figure15-w12-module-fleet-curves.png, id=583, 751.608pt x 412.596pt>
+File: ../tools/nn/figures/figure15-w12-module-fleet-curves.png Graphic file (type png)
+<use ../tools/nn/figures/figure15-w12-module-fleet-curves.png>
+Package pdftex.def Info: ../tools/nn/figures/figure15-w12-module-fleet-curves.png  used on input line 869.
+(pdftex.def)             Requested size: 422.77664pt x 232.08467pt.
+ [25] [26 <../tools/nn/figures/figure11-module-skill-ranking.png>] [27 <../tools/nn/figures/figure12-module-warp-heatmap.png> <../tools/nn/figures/figure14-module-metric-profiles.png>] [28 <../tools/nn/figures/figure13-epsilon-collapse.png>]
+<../tools/nn/figures/figure16-epsilon-deficit-heatmap.png, id=613, 822.2355pt x 296.964pt>
+File: ../tools/nn/figures/figure16-epsilon-deficit-heatmap.png Graphic file (type png)
+<use ../tools/nn/figures/figure16-epsilon-deficit-heatmap.png>
+Package pdftex.def Info: ../tools/nn/figures/figure16-epsilon-deficit-heatmap.png  used on input line 888.
+(pdftex.def)             Requested size: 413.3867pt x 149.30179pt.
+<../tools/nn/figures/figure20-hand-pressure-bars.png, id=614, 823.5495pt x 357.7365pt>
+File: ../tools/nn/figures/figure20-hand-pressure-bars.png Graphic file (type png)
+<use ../tools/nn/figures/figure20-hand-pressure-bars.png>
+Package pdftex.def Info: ../tools/nn/figures/figure20-hand-pressure-bars.png  used on input line 895.
+(pdftex.def)             Requested size: 432.17375pt x 187.73259pt.
+<../tools/nn/figures/figure17-iota-spread-lift-w12.png, id=618, 679.338pt x 369.234pt>
+File: ../tools/nn/figures/figure17-iota-spread-lift-w12.png Graphic file (type png)
+<use ../tools/nn/figures/figure17-iota-spread-lift-w12.png>
+Package pdftex.def Info: ../tools/nn/figures/figure17-iota-spread-lift-w12.png  used on input line 905.
+(pdftex.def)             Requested size: 399.29463pt x 217.02922pt.
+<../tools/nn/figures/figure18-module-outcome-mix.png, id=619, 823.5495pt x 463.185pt>
+File: ../tools/nn/figures/figure18-module-outcome-mix.png Graphic file (type png)
+<use ../tools/nn/figures/figure18-module-outcome-mix.png>
+Package pdftex.def Info: ../tools/nn/figures/figure18-module-outcome-mix.png  used on input line 912.
+(pdftex.def)             Requested size: 432.17375pt x 243.06975pt.
+<../tools/nn/figures/figure19-legal-vs-spread-scatter.png, id=620, 701.019pt x 441.504pt>
+File: ../tools/nn/figures/figure19-legal-vs-spread-scatter.png Graphic file (type png)
+<use ../tools/nn/figures/figure19-legal-vs-spread-scatter.png>
+Package pdftex.def Info: ../tools/nn/figures/figure19-legal-vs-spread-scatter.png  used on input line 919.
+(pdftex.def)             Requested size: 413.3867pt x 260.3571pt.
+ [29 <../tools/nn/figures/figure15-w12-module-fleet-curves.png>] [30 <../tools/nn/figures/figure16-epsilon-deficit-heatmap.png> <../tools/nn/figures/figure20-hand-pressure-bars.png>] [31 <../tools/nn/figures/figure17-iota-spread-lift-w12.png> <../tools/nn/figures/figure18-module-outcome-mix.png>] [32 <../tools/nn/figures/figure19-legal-vs-spread-scatter.png>] (../tools/nn/tables/table5-goout-module-ranking.tex)
+<../tools/nn/figures/figure21-goout-module-skill-ranking.png, id=652, 751.2795pt x 513.774pt>
+File: ../tools/nn/figures/figure21-goout-module-skill-ranking.png Graphic file (type png)
+<use ../tools/nn/figures/figure21-goout-module-skill-ranking.png>
+Package pdftex.def Info: ../tools/nn/figures/figure21-goout-module-skill-ranking.png  used on input line 947.
+(pdftex.def)             Requested size: 432.17375pt x 295.55887pt.
+<../tools/nn/figures/figure22-goout-module-warp-heatmap.png, id=655, 612.6525pt x 585.7155pt>
+File: ../tools/nn/figures/figure22-goout-module-warp-heatmap.png Graphic file (type png)
+<use ../tools/nn/figures/figure22-goout-module-warp-heatmap.png>
+Package pdftex.def Info: ../tools/nn/figures/figure22-goout-module-warp-heatmap.png  used on input line 954.
+(pdftex.def)             Requested size: 366.40834pt x 350.30591pt.
+
+Overfull \hbox (115.24312pt too wide) in paragraph at lines 969--970
+\OT1/cmr/m/n/10.95 across ob-jec-tives (base-line, Iota, Of-fi-cial, Zeta, Gamma, Lambda, Mu) and \OT1/cmr/bx/n/10.95 ex-cludes \OT1/cmr/m/n/10.95 forks (Beta/Delta/Eta/Theta/Kappa).
+ []
+
+<../tools/nn/figures/figure29-points-vs-goout-shared-modules-contrast.png, id=657, 751.608pt x 397.8135pt>
+File: ../tools/nn/figures/figure29-points-vs-goout-shared-modules-contrast.png Graphic file (type png)
+<use ../tools/nn/figures/figure29-points-vs-goout-shared-modules-contrast.png>
+Package pdftex.def Info: ../tools/nn/figures/figure29-points-vs-goout-shared-modules-contrast.png  used on input line 973.
+(pdftex.def)             Requested size: 446.26582pt x 236.20119pt.
+[33] [34 <../tools/nn/figures/figure21-goout-module-skill-ranking.png>] [35 <../tools/nn/figures/figure22-goout-module-warp-heatmap.png>]
+Overfull \hbox (18.98726pt too wide) in paragraph at lines 988--989
 []\OT1/cmr/bx/n/10.95 Neural Class II can re-place heuris-tics with-out a sec-ond lobby tier \OT1/cmr/m/n/10.95 --- keep $\OML/cmm/m/it/10.95 ^^[ \OT1/cmr/m/n/10.95 =$\OT1/cmtt/m/n/10.95 commander\OT1/cmr/m/n/10.95 ,
  []
 
-[21] [22] [23]
-Overfull \hbox (0.26653pt too wide) in paragraph at lines 818--819
+
+Overfull \hbox (22.94504pt too wide) in paragraph at lines 989--990
+[]\OT1/cmr/bx/n/10.95 Fair-share $\OMS/cmsy/m/n/10.95 6\OT1/cmr/m/n/10.95 =$ $^^A\OML/cmm/m/it/10.95 ^^V$ \OT1/cmr/bx/n/10.95 bump \OT1/cmr/m/n/10.95 --- trans-lat-ing fleet-mean $
+$/Commander ra-tio with Elo-style $400 [][]([])$
+ []
+
+[36 <../tools/nn/figures/figure29-points-vs-goout-shared-modules-contrast.png>] [37] [38]
+Overfull \hbox (0.26653pt too wide) in paragraph at lines 1064--1065
 []\OT1/cmr/bx/n/10.95 Decision com-plex-ity heatmap (Sec-tion 8) \OT1/cmr/m/n/10.95 --- Con-stant branch-ing fac-tor ($\OMS/cmsy/m/n/10.95 ^^X$\OT1/cmr/m/n/10.95 2 moves/turn)
  []
 
-(../tools/nn/tables/table1-summary-stats.tex) (../tools/nn/tables/table2-hypothesis-tests.tex) (../tools/nn/tables/table3-correlation-matrix.tex)
+(../tools/nn/tables/table1-summary-stats.tex [39]) (../tools/nn/tables/table2-hypothesis-tests.tex) (../tools/nn/tables/table3-correlation-matrix.tex)
+LaTeX Font Info:    Trying to load font information for OMS+cmtt on input line 1115.
+LaTeX Font Info:    No file OMScmtt.fd. on input line 1115.
+
+
+LaTeX Font Warning: Font shape `OMS/cmtt/m/n' undefined
+(Font)              using `OMS/cmsy/m/n' instead
+(Font)              for symbol `textbraceleft' on input line 1115.
+
+
+Overfull \hbox (9.24232pt too wide) in paragraph at lines 1097--1127
+ [][] 
+ []
+
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-[24] [25] [26] [27] [28] (/Volumes/Code/Warp12/docs/.texpadtmp/tei-paper.aux)
+[40] [41] [42] [43] [44] (/Volumes/Code/Warp12/docs/.texpadtmp/tei-paper.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
+
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
 Package rerunfilecheck Info: File `tei-paper.out' has not changed.
-(rerunfilecheck)             Checksum: 2418F8978DD149C27CBE51471D4078AA;12138.
+(rerunfilecheck)             Checksum: D497B357B683C31579376C3ACF5D2746;15309.
  ) 
 Here is how much of TeX's memory you used:
- 15648 strings out of 467525
- 250218 string characters out of 5418982
- 674564 words of memory out of 5000000
- 44187 multiletter control sequences out of 15000+600000
- 640414 words of font info for 87 fonts, out of 8000000 for 9000
+ 15880 strings out of 467525
+ 258209 string characters out of 5418982
+ 678297 words of memory out of 5000000
+ 44340 multiletter control sequences out of 15000+600000
+ 642924 words of font info for 98 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,10n,79p,906b,644s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmbxti10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cbfonts/grmn1095.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sfti1095.pfb>
-Output written on /Volumes/Code/Warp12/docs/.texpadtmp/tei-paper.pdf (28 pages, 4347037 bytes).
+ 75i,12n,79p,1297b,643s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmbxti10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmti9.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sfbx1095.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sfrm0900.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sfti1095.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt1095.pfb>
+Output written on /Volumes/Code/Warp12/docs/.texpadtmp/tei-paper.pdf (44 pages, 6218304 bytes).
 PDF statistics:
- 652 PDF objects out of 1000 (max. 8388607)
- 566 compressed objects within 6 object streams
- 188 named destinations out of 1000 (max. 500000)
- 595 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 908 PDF objects out of 1000 (max. 8388607)
+ 765 compressed objects within 8 object streams
+ 253 named destinations out of 1000 (max. 500000)
+ 772 words of extra memory for PDF output out of 10000 (max. 10000000)
 

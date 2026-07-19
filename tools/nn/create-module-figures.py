@@ -1,13 +1,25 @@
 #!/usr/bin/env python3
 """
-Publication figures for the Module Balance study (285k games).
-Reads tools/nn/data/luck-skill-w*-p*-m*.json and writes PNGs to tools/nn/figures/.
+Publication figures for module skill/luck studies.
+
+Points and go-out are **separate instruments** (go-out module forks are not
+apples-to-apples with points). Always pass an explicit objective + data dir:
+
+  WARP12_ANALYSIS_DATA_DIR=tools/nn/data/points-modules-rerun \\
+    MODULE_FIGURE_OBJECTIVE=points python3 tools/nn/create-module-figures.py
+
+  WARP12_ANALYSIS_DATA_DIR=tools/nn/data/go-out-modules \\
+    MODULE_FIGURE_OBJECTIVE=go-out python3 tools/nn/create-module-figures.py
+
+  # Deliberate compare/contrast of shared module IDs only (excludes forks):
+  MODULE_FIGURE_OBJECTIVE=contrast python3 tools/nn/create-module-figures.py
 """
 
 from __future__ import annotations
 
 import glob
 import json
+import os
 from collections import defaultdict
 from pathlib import Path
 
@@ -32,7 +44,23 @@ plt.rcParams.update(
 )
 
 ROOT = Path(__file__).resolve().parents[2]
-DATA = ROOT / "tools/nn/data"
+OBJECTIVE = os.environ.get("MODULE_FIGURE_OBJECTIVE", "points").strip().lower()
+if OBJECTIVE not in ("points", "go-out", "contrast"):
+    raise SystemExit(
+        "MODULE_FIGURE_OBJECTIVE must be points, go-out, or contrast "
+        f"(got {OBJECTIVE!r})"
+    )
+
+_default_data = (
+    ROOT / "tools/nn/data/points-modules-rerun"
+    if OBJECTIVE == "points"
+    else ROOT / "tools/nn/data/go-out-modules"
+)
+DATA = Path(
+    os.environ.get("WARP12_ANALYSIS_DATA_DIR", str(_default_data))
+).expanduser()
+if not DATA.is_absolute():
+    DATA = ROOT / DATA
 OUT = ROOT / "tools/nn/figures"
 OUT.mkdir(parents=True, exist_ok=True)
 
@@ -46,7 +74,8 @@ MOSS = "#3D6B4F"
 CREAM = "#F7F3EA"
 WARM = "#E8DFD0"
 
-DISPLAY = {
+# Points lexicon (pip scoring / campaign modules).
+DISPLAY_POINTS = {
     "iota": "Iota (Double Down)",
     "all": "All modules",
     "zeta": "Zeta (Squadrons)",
@@ -64,7 +93,25 @@ DISPLAY = {
     "epsilon": "Epsilon (Drafting)",
 }
 
-ORDER = [
+# Go-out lexicon — forked module names; do not reuse points captions.
+DISPLAY_GO_OUT = {
+    "iota": "Iota (Double Down)",
+    "all": "All modules",
+    "zeta": "Zeta (Squadrons)",
+    "alpha": "Alpha (Continuum)",
+    "beta": "Beta (Salamander Surge)",
+    "delta": "Delta (Spool / Hot Potato)",
+    "eta": "Eta (Desperation Dig)",
+    "gamma": "Gamma (Sensor Grid)",
+    "kappa": "Kappa (Hand Exchange)",
+    "lambda": "Lambda (Wormholes)",
+    "none": "Baseline",
+    "theta": "Theta (Trail Momentum)",
+    "mu": "Mu (Fracture)",
+    "official": "Official Warp 12",
+}
+
+ORDER_POINTS = [
     "iota",
     "all",
     "zeta",
@@ -82,6 +129,69 @@ ORDER = [
     "epsilon",
 ]
 
+ORDER_GO_OUT = [
+    "iota",
+    "alpha",
+    "beta",
+    "delta",
+    "eta",
+    "gamma",
+    "lambda",
+    "none",
+    "theta",
+    "zeta",
+    "kappa",
+    "mu",
+    "official",
+    "all",
+]
+
+# Distinct filenames — never overwrite points figs with go-out (or vice versa).
+FILES_POINTS = {
+    "ranking": "figure11-module-skill-ranking.png",
+    "heatmap": "figure12-module-warp-heatmap.png",
+    "epsilon_collapse": "figure13-epsilon-collapse.png",
+    "profiles": "figure14-module-metric-profiles.png",
+    "w12_curves": "figure15-w12-module-fleet-curves.png",
+    "epsilon_deficit": "figure16-epsilon-deficit-heatmap.png",
+    "iota_lift": "figure17-iota-spread-lift-w12.png",
+    "outcome_mix": "figure18-module-outcome-mix.png",
+    "scatter": "figure19-legal-vs-spread-scatter.png",
+    "hand_pressure": "figure20-hand-pressure-bars.png",
+    "table": "table4-module-ranking.tex",
+    "table_label": "tab:module-ranking",
+}
+
+FILES_GO_OUT = {
+    "ranking": "figure21-goout-module-skill-ranking.png",
+    "heatmap": "figure22-goout-module-warp-heatmap.png",
+    "profiles": "figure23-goout-module-metric-profiles.png",
+    "w12_curves": "figure24-goout-w12-module-fleet-curves.png",
+    "iota_lift": "figure25-goout-iota-spread-lift-w12.png",
+    "outcome_mix": "figure26-goout-module-outcome-mix.png",
+    "scatter": "figure27-goout-legal-vs-spread-scatter.png",
+    "hand_pressure": "figure28-goout-hand-pressure-bars.png",
+    "table": "table5-goout-module-ranking.tex",
+    "table_label": "tab:goout-module-ranking",
+}
+
+if OBJECTIVE == "points":
+    DISPLAY = DISPLAY_POINTS
+    ORDER = ORDER_POINTS
+    FILES = FILES_POINTS
+    OBJ_TITLE = "points objective"
+elif OBJECTIVE == "go-out":
+    DISPLAY = DISPLAY_GO_OUT
+    ORDER = ORDER_GO_OUT
+    FILES = FILES_GO_OUT
+    OBJ_TITLE = "go-out objective"
+else:
+    # contrast mode: no single-instrument DISPLAY/ORDER/FILES
+    DISPLAY = DISPLAY_POINTS
+    ORDER = ORDER_POINTS
+    FILES = {}
+    OBJ_TITLE = "points vs go-out (contrast)"
+
 
 def eligible_zeta(player_count: int) -> bool:
     return player_count >= 4 and player_count % 2 == 0
@@ -89,12 +199,19 @@ def eligible_zeta(player_count: int) -> bool:
 
 def load_results() -> list[dict]:
     rows: list[dict] = []
-    for path in sorted(DATA.glob("luck-skill-w*-p*-m*.json")):
-        data = json.loads(path.read_text())
+    pattern = str(DATA / "luck-skill-w*-p*-m*.json")
+    for path in sorted(glob.glob(pattern)):
+        data = json.loads(Path(path).read_text())
         if data.get("skipped"):
+            continue
+        obj = data.get("objective", "points")
+        if obj != OBJECTIVE:
             continue
         # Legacy ineligible Zeta runs ≈ baseline noise; exclude from Zeta claims.
         if data["moduleConfig"] == "zeta" and not eligible_zeta(data["playerCount"]):
+            continue
+        # Go-out matrix never includes Epsilon; drop if present.
+        if OBJECTIVE == "go-out" and data["moduleConfig"] == "epsilon":
             continue
         rows.append(data)
     return rows
@@ -152,8 +269,8 @@ def figure11_ranking(stats: dict[str, dict]) -> None:
     ax.set_xlim(0, 4.05)
     ax.set_xlabel("Average skill indicators (0–4)")
     ax.set_title(
-        "Module skill ceiling across Warp factors & fleet sizes\n"
-        "285,000 Commander self-play games · points objective"
+        f"Module skill ceiling across Warp factors & fleet sizes\n"
+        f"Commander self-play · {OBJ_TITLE} (separate instrument)"
     )
     ax.axvline(2.5, color=AMBER, linestyle="--", linewidth=1.4, alpha=0.9, label="Promote ≥ 2.5")
     ax.axvline(1.5, color=CORAL, linestyle=":", linewidth=1.4, alpha=0.9, label="Avoid < 1.5")
@@ -178,7 +295,7 @@ def figure11_ranking(stats: dict[str, dict]) -> None:
     ax.grid(axis="x", alpha=0.35)
     sns.despine(left=True, bottom=False)
     plt.tight_layout()
-    path = OUT / "figure11-module-skill-ranking.png"
+    path = OUT / FILES["ranking"]
     plt.savefig(path, bbox_inches="tight", facecolor=fig.get_facecolor())
     plt.close()
     print(f"    ✓ {path.name}")
@@ -218,13 +335,13 @@ def figure12_heatmap(rows: list[dict]) -> None:
         yticklabels=[DISPLAY[m] for m in mods],
     )
     ax.set_title(
-        "Skill indicators by module and Warp factor\n"
-        "(averaged over all fleet sizes per cell)"
+        f"Skill indicators by module and Warp factor · {OBJ_TITLE}\n"
+        "(averaged over all fleet sizes per cell; single-objective instrument)"
     )
     ax.set_xlabel("Warp factor")
     ax.set_ylabel("")
     plt.tight_layout()
-    path = OUT / "figure12-module-warp-heatmap.png"
+    path = OUT / FILES["heatmap"]
     plt.savefig(path, bbox_inches="tight", facecolor=fig.get_facecolor())
     plt.close()
     print(f"    ✓ {path.name}")
@@ -281,7 +398,7 @@ def figure13_epsilon_collapse(rows: list[dict]) -> None:
         y=1.06,
     )
     plt.tight_layout()
-    path = OUT / "figure13-epsilon-collapse.png"
+    path = OUT / FILES["epsilon_collapse"]
     plt.savefig(path, bbox_inches="tight", facecolor=fig.get_facecolor())
     plt.close()
     print(f"    ✓ {path.name}")
@@ -289,7 +406,12 @@ def figure13_epsilon_collapse(rows: list[dict]) -> None:
 
 def figure14_metric_profiles(stats: dict[str, dict]) -> None:
     print("  Figure 14: metric profiles for key modules...")
-    mods = ["none", "iota", "zeta", "official", "epsilon"]
+    mods = (
+        ["none", "iota", "zeta", "official", "epsilon"]
+        if OBJECTIVE == "points"
+        else ["none", "iota", "zeta", "official", "kappa"]
+    )
+    mods = [m for m in mods if m in stats]
     metrics = [
         ("legal", "Legal moves / turn", 3.0),
         ("constrained", "Constrained tile fraction", 0.5),
@@ -307,6 +429,7 @@ def figure14_metric_profiles(stats: dict[str, dict]) -> None:
         "zeta": TEAL,
         "official": AMBER,
         "epsilon": CORAL,
+        "kappa": AMBER,
     }
     x = np.arange(len(mods))
     for ax, (key, title, threshold), idx in zip(axes, metrics, range(4)):
@@ -339,13 +462,14 @@ def figure14_metric_profiles(stats: dict[str, dict]) -> None:
             ax.yaxis.set_major_formatter(lambda y, _: f"{y:.0%}")
 
     fig.suptitle(
-        "Decision-quality profile — Baseline · Iota · Zeta · Official · Epsilon",
+        f"Decision-quality profile ({OBJ_TITLE}) — "
+        + " · ".join(DISPLAY[m].split(" (")[0] for m in mods),
         fontsize=13,
         fontweight="bold",
         y=1.03,
     )
     plt.tight_layout()
-    path = OUT / "figure14-module-metric-profiles.png"
+    path = OUT / FILES["profiles"]
     plt.savefig(path, bbox_inches="tight", facecolor=fig.get_facecolor())
     plt.close()
     print(f"    ✓ {path.name}")
@@ -356,14 +480,24 @@ def figure15_w12_fleet_curves(rows: list[dict]) -> None:
     fig, ax = plt.subplots(figsize=(10.5, 5.8))
     fig.patch.set_facecolor(CREAM)
     ax.set_facecolor(CREAM)
-    series = [
-        ("none", NAVY, "Baseline"),
-        ("iota", MOSS, "Iota"),
-        ("zeta", TEAL, "Zeta (even fleets)"),
-        ("official", AMBER, "Official"),
-        ("epsilon", CORAL, "Epsilon"),
-        ("all", "#6B4C3B", "All modules"),
-    ]
+    if OBJECTIVE == "points":
+        series = [
+            ("none", NAVY, "Baseline"),
+            ("iota", MOSS, "Iota"),
+            ("zeta", TEAL, "Zeta (even fleets)"),
+            ("official", AMBER, "Official"),
+            ("epsilon", CORAL, "Epsilon"),
+            ("all", "#6B4C3B", "All modules"),
+        ]
+    else:
+        series = [
+            ("none", NAVY, "Baseline"),
+            ("iota", MOSS, "Iota"),
+            ("zeta", TEAL, "Zeta (even fleets)"),
+            ("official", AMBER, "Official"),
+            ("kappa", AMBER, "Kappa (Hand Exchange)"),
+            ("all", "#6B4C3B", "All modules"),
+        ]
     for mod, color, label in series:
         pts = sorted(
             (r["playerCount"], r["skillIndicators"])
@@ -378,12 +512,14 @@ def figure15_w12_fleet_curves(rows: list[dict]) -> None:
     ax.set_xticks(range(2, 9))
     ax.set_xlabel("Fleet size (Warp 12)")
     ax.set_ylabel("Skill indicators")
-    ax.set_title("Warp 12 module skill across rated fleet sizes (2–8 captains)")
+    ax.set_title(
+        f"Warp 12 module skill across fleets (2–8) · {OBJ_TITLE}"
+    )
     ax.legend(frameon=True, ncol=3, loc="lower left")
     ax.grid(True, alpha=0.3)
     sns.despine()
     plt.tight_layout()
-    path = OUT / "figure15-w12-module-fleet-curves.png"
+    path = OUT / FILES["w12_curves"]
     plt.savefig(path, bbox_inches="tight", facecolor=fig.get_facecolor())
     plt.close()
     print(f"    ✓ {path.name}")
@@ -392,21 +528,39 @@ def figure15_w12_fleet_curves(rows: list[dict]) -> None:
 def write_latex_table(stats: dict[str, dict]) -> None:
     table_dir = ROOT / "tools/nn/tables"
     table_dir.mkdir(parents=True, exist_ok=True)
-    path = table_dir / "table4-module-ranking.tex"
+    path = table_dir / FILES["table"]
+    n_cells = sum(s["n"] for s in stats.values())
+    # Approximate campaign size from cell counts × 500 (printed in caption).
+    games = n_cells * 500
+    if OBJECTIVE == "points":
+        caption = (
+            f"Module skill ranking — \\textbf{{points}} instrument "
+            f"({games:,} Commander self-play games, 500/cell; "
+            f"Zeta on even fleets $\\geq$4 only). "
+            "Go-out forks are \\emph{not} in this table. "
+            "\\emph{Rec}: Promote = rated-eligible; Warped/party = Epsilon; "
+            "Warped = Kappa (score inversion)."
+        )
+        kappa_note = "Intentional score inversion — Warped by design."
+    else:
+        caption = (
+            f"Module skill ranking — \\textbf{{go-out}} instrument "
+            f"({games:,} Commander self-play games, 500/cell; "
+            "Epsilon omitted). Labels use go-out forks "
+            "(Surge, Trail Momentum, Dig, Hand Exchange). "
+            "Do \\emph{not} compare $S$ averages to the points table — "
+            "mechanics differ. "
+            "\\emph{Rec}: Promote = skill-preserving under go-out; "
+            "Warped = Kappa (Hand Exchange) by product policy."
+        )
+        kappa_note = "Hand Exchange — Warped by product policy."
     lines = [
-        "% Auto-generated by create-module-figures.py",
+        f"% Auto-generated by create-module-figures.py ({OBJECTIVE})",
         "\\begin{table}[htbp]",
         "\\centering",
         "\\small",
-        "\\caption{Module skill ranking from the 285{,}000-game study "
-        "(Commander self-play, points objective, 500 games/cell). "
-        "Zeta metrics restricted to even fleets $\\geq$4. "
-        "\\emph{Rec} is the product call: Promote = eligible for rated "
-        "presets (Zeta gameplay included; Squad TEI on rated Warp~12, "
-        "never free-for-all \\texttt{humanRating}); Warped = exhibition "
-        "only (Epsilon = party luck; "
-        "Kappa = intentional score inversion).}",
-        "\\label{tab:module-ranking}",
+        f"\\caption{{{caption}}}",
+        f"\\label{{{FILES['table_label']}}}",
         "\\begin{tabular}{@{}llrrrrrl@{}}",
         "\\toprule",
         "\\textbf{Module} & \\textbf{Rec} & \\textbf{Skill} & "
@@ -418,13 +572,9 @@ def write_latex_table(stats: dict[str, dict]) -> None:
         if m not in stats:
             continue
         s = stats[m]
-        # Product classification (Warped = exhibition / never FFA-rated):
-        # Epsilon collapses skill → party Warped. Kappa inverts scoring → Warped
-        # by design. Zeta is skill-promote (FFA TEI gated separately).
         if m == "epsilon":
             rec = "Warped/party"
         elif m == "kappa":
-            # Intentional score inversion — Warped by design even if complexity metrics look fine.
             rec = "Warped"
         elif s["avg_skill"] >= 2.5 and s["skill_dom"] > s["luck_dom"]:
             rec = "Promote"
@@ -444,10 +594,89 @@ def write_latex_table(stats: dict[str, dict]) -> None:
             "\\end{tabular}",
             "\\end{table}",
             "",
+            f"% kappa note: {kappa_note}",
         ]
     )
     path.write_text("\n".join(lines))
     print(f"    ✓ {path.relative_to(ROOT)}")
+
+
+def _load_dir(data_dir: Path, objective: str) -> list[dict]:
+    rows: list[dict] = []
+    for path in sorted(glob.glob(str(data_dir / "luck-skill-w*-p*-m*.json"))):
+        data = json.loads(Path(path).read_text())
+        if data.get("skipped"):
+            continue
+        if data.get("objective", "points") != objective:
+            continue
+        if data["moduleConfig"] == "zeta" and not eligible_zeta(data["playerCount"]):
+            continue
+        rows.append(data)
+    return rows
+
+
+def figure29_baseline_objective_contrast() -> None:
+    """
+    Deliberate compare/contrast: shared baseline (and a few shared-id modules)
+    across objectives. Not a taxonomy merge — captions must say so.
+    """
+    print("  Figure 29: points vs go-out baseline contrast...")
+    pts_dir = ROOT / "tools/nn/data/points-modules-rerun"
+    go_dir = ROOT / "tools/nn/data/go-out-modules"
+    pts = module_stats(_load_dir(pts_dir, "points"))
+    go = module_stats(_load_dir(go_dir, "go-out"))
+    # Shared module *ids* only — labels note forks where names diverge.
+    mods = ["none", "iota", "official", "zeta", "gamma", "lambda", "mu"]
+    labels = {
+        "none": "Baseline",
+        "iota": "Iota",
+        "official": "Official",
+        "zeta": "Zeta",
+        "gamma": "Gamma",
+        "lambda": "Lambda",
+        "mu": "Mu",
+    }
+    mods = [m for m in mods if m in pts and m in go]
+    x = np.arange(len(mods))
+    w = 0.38
+    fig, ax = plt.subplots(figsize=(10.5, 5.6))
+    fig.patch.set_facecolor(CREAM)
+    ax.set_facecolor(CREAM)
+    pts_v = [pts[m]["avg_skill"] for m in mods]
+    go_v = [go[m]["avg_skill"] for m in mods]
+    ax.bar(
+        x - w / 2,
+        pts_v,
+        w,
+        label="Points instrument",
+        color=TEAL,
+        edgecolor=NAVY,
+    )
+    ax.bar(
+        x + w / 2,
+        go_v,
+        w,
+        label="Go-out instrument",
+        color=MOSS,
+        edgecolor=NAVY,
+    )
+    ax.set_xticks(x)
+    ax.set_xticklabels([labels[m] for m in mods])
+    ax.set_ylim(0, 4.05)
+    ax.set_ylabel("Average skill indicators (0–4)")
+    ax.axhline(2.5, color=AMBER, linestyle="--", linewidth=1.2, alpha=0.8)
+    ax.set_title(
+        "Compare/contrast only: shared module IDs under each objective\n"
+        "Forked modules (Beta/Delta/Eta/Theta/Kappa) excluded — not apples-to-apples"
+    )
+    ax.legend(frameon=True)
+    ax.grid(axis="y", alpha=0.3)
+    sns.despine()
+    plt.tight_layout()
+    path = OUT / "figure29-points-vs-goout-shared-modules-contrast.png"
+    plt.savefig(path, bbox_inches="tight", facecolor=fig.get_facecolor())
+    plt.close()
+    print(f"    ✓ {path.name}")
 
 
 def figure16_epsilon_deficit(rows: list[dict]) -> None:
@@ -496,7 +725,7 @@ def figure16_epsilon_deficit(rows: list[dict]) -> None:
     ax.set_ylabel("")
     ax.set_title("Epsilon skill deficit vs baseline (negative = luck collapse)")
     plt.tight_layout()
-    path = OUT / "figure16-epsilon-deficit-heatmap.png"
+    path = OUT / FILES["epsilon_deficit"]
     plt.savefig(path, bbox_inches="tight", facecolor=fig.get_facecolor())
     plt.close()
     print(f"    ✓ {path.name}")
@@ -559,7 +788,7 @@ def figure17_iota_lift(rows: list[dict]) -> None:
     ax.grid(True, alpha=0.3)
     sns.despine()
     plt.tight_layout()
-    path = OUT / "figure17-iota-spread-lift-w12.png"
+    path = OUT / FILES["iota_lift"]
     plt.savefig(path, bbox_inches="tight", facecolor=fig.get_facecolor())
     plt.close()
     print(f"    ✓ {path.name}")
@@ -605,12 +834,12 @@ def figure18_outcome_mix(stats: dict[str, dict]) -> None:
     ax.invert_yaxis()
     ax.set_xlim(0, 100)
     ax.set_xlabel("% of configuration cells")
-    ax.set_title("Outcome mix across fleet × Warp matrix")
+    ax.set_title(f"Outcome mix across fleet × Warp matrix · {OBJ_TITLE}")
     ax.legend(loc="lower right")
     ax.grid(axis="x", alpha=0.3)
     sns.despine(left=True)
     plt.tight_layout()
-    path = OUT / "figure18-module-outcome-mix.png"
+    path = OUT / FILES["outcome_mix"]
     plt.savefig(path, bbox_inches="tight", facecolor=fig.get_facecolor())
     plt.close()
     print(f"    ✓ {path.name}")
@@ -618,13 +847,22 @@ def figure18_outcome_mix(stats: dict[str, dict]) -> None:
 
 def figure19_scatter_depth(rows: list[dict]) -> None:
     print("  Figure 19: legal moves vs spread scatter...")
-    focus = {
-        "none": (NAVY, "Baseline"),
-        "iota": (MOSS, "Iota"),
-        "epsilon": (CORAL, "Epsilon"),
-        "zeta": (TEAL, "Zeta"),
-        "official": (AMBER, "Official"),
-    }
+    if OBJECTIVE == "points":
+        focus = {
+            "none": (NAVY, "Baseline"),
+            "iota": (MOSS, "Iota"),
+            "epsilon": (CORAL, "Epsilon"),
+            "zeta": (TEAL, "Zeta"),
+            "official": (AMBER, "Official"),
+        }
+    else:
+        focus = {
+            "none": (NAVY, "Baseline"),
+            "iota": (MOSS, "Iota"),
+            "kappa": (AMBER, "Kappa"),
+            "zeta": (TEAL, "Zeta"),
+            "official": (AMBER, "Official"),
+        }
     fig, ax = plt.subplots(figsize=(9.8, 6.2))
     fig.patch.set_facecolor(CREAM)
     ax.set_facecolor(CREAM)
@@ -645,12 +883,14 @@ def figure19_scatter_depth(rows: list[dict]) -> None:
     ax.axhline(2.0, color=SLATE, linestyle=":", alpha=0.5, label="Spread threshold (2.0)")
     ax.set_xlabel("Avg legal moves / turn")
     ax.set_ylabel("Avg move-value spread")
-    ax.set_title("Decision breadth vs discriminating depth (every fleet × Warp cell)")
+    ax.set_title(
+        f"Decision breadth vs depth · {OBJ_TITLE} (every fleet × Warp cell)"
+    )
     ax.legend(loc="upper left", frameon=True)
     ax.grid(True, alpha=0.3)
     sns.despine()
     plt.tight_layout()
-    path = OUT / "figure19-legal-vs-spread-scatter.png"
+    path = OUT / FILES["scatter"]
     plt.savefig(path, bbox_inches="tight", facecolor=fig.get_facecolor())
     plt.close()
     print(f"    ✓ {path.name}")
@@ -658,7 +898,12 @@ def figure19_scatter_depth(rows: list[dict]) -> None:
 
 def figure20_constrained_bars(stats: dict[str, dict]) -> None:
     print("  Figure 20: constrained-tile + unique-pips bars...")
-    mods = ["iota", "zeta", "none", "official", "epsilon"]
+    mods = (
+        ["iota", "zeta", "none", "official", "epsilon"]
+        if OBJECTIVE == "points"
+        else ["iota", "zeta", "none", "official", "kappa"]
+    )
+    mods = [m for m in mods if m in stats]
     fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.8))
     fig.patch.set_facecolor(CREAM)
     palette = {
@@ -667,6 +912,7 @@ def figure20_constrained_bars(stats: dict[str, dict]) -> None:
         "none": NAVY,
         "official": AMBER,
         "epsilon": CORAL,
+        "kappa": AMBER,
     }
     x = np.arange(len(mods))
     for ax, key, title, fmt in [
@@ -699,25 +945,40 @@ def figure20_constrained_bars(stats: dict[str, dict]) -> None:
             ax.axhline(0.5, color=SLATE, linestyle="--", alpha=0.6)
             ax.set_ylim(0, 0.75)
             ax.yaxis.set_major_formatter(lambda y, _: f"{y:.0%}")
-    fig.suptitle("Hand pressure metrics — key modules", fontweight="bold", y=1.02)
+    fig.suptitle(
+        f"Hand pressure metrics — key modules ({OBJ_TITLE})",
+        fontweight="bold",
+        y=1.02,
+    )
     plt.tight_layout()
-    path = OUT / "figure20-hand-pressure-bars.png"
+    path = OUT / FILES["hand_pressure"]
     plt.savefig(path, bbox_inches="tight", facecolor=fig.get_facecolor())
     plt.close()
     print(f"    ✓ {path.name}")
 
 
 def main() -> None:
-    print("Generating module-analysis paper figures...")
+    print(f"Generating module-analysis figures ({OBJECTIVE})...")
+    print(f"  Data: {DATA}")
+    if OBJECTIVE == "contrast":
+        figure29_baseline_objective_contrast()
+        print("Done (contrast-only).")
+        return
+
     rows = load_results()
     stats = module_stats(rows)
     print(f"  Loaded {len(rows)} configuration cells")
+    if not rows:
+        raise SystemExit(f"No cells found under {DATA} for objective={OBJECTIVE}")
+
     figure11_ranking(stats)
     figure12_heatmap(rows)
-    figure13_epsilon_collapse(rows)
+    if OBJECTIVE == "points":
+        figure13_epsilon_collapse(rows)
     figure14_metric_profiles(stats)
     figure15_w12_fleet_curves(rows)
-    figure16_epsilon_deficit(rows)
+    if OBJECTIVE == "points":
+        figure16_epsilon_deficit(rows)
     figure17_iota_lift(rows)
     figure18_outcome_mix(stats)
     figure19_scatter_depth(rows)

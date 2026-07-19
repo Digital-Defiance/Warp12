@@ -34,7 +34,9 @@ Mexican Train dominoes is commonly played under two incompatible victory conditi
 
 Empirical results from thousands of self-play games show that \textbf{skill ordering is stable under the points objective} (consistent rating gaps between tiers), while \textbf{go-out exhibits higher variance} and compressed skill gaps. We demonstrate that search algorithms provide different advantages depending on context: expectimax wins in 2-player points (64\% vs heuristics), while ISMCTS excels in 4+ player go-out (31\% vs 23\% baseline). 
 
-A \textbf{285{,}000-game} points self-play campaign across \textbf{570 configuration cells} (4 Warp factors $\times$ every legal fleet size $\times$ 15 module configs) is our sole skill/luck instrument for board choice and module taxonomy. From the \textbf{baseline} cells alone we find that \textbf{skill expression increases with both tile set size and player count}, contradicting the intuition that larger games devolve into luck, and that Warp factor 12 is the empirically optimal choice for competitive rating. Across the full matrix, most optional modules preserve the baseline skill ceiling; \textbf{Module Iota (Double Down) slightly raises it}. \textbf{Module Epsilon (Drafting)} collapses it (1.08/4 indicators) --- counter-intuitively, choosing your hand makes outcomes \emph{more} luck-dominated mid-game --- and is therefore designated \textbf{Warped / party}. \textbf{Module Zeta (Squadrons)} also preserves skill (2.94/4); it never writes free-for-all (FFA) TEI --- rated Warp~12 crew sectors update a dedicated \textbf{Squad TEI} track (\texttt{squadRating}) after team-track calibration (\texttt{SQUADRONS\_RATING\_CALIBRATED}), not because Zeta is luck-dominant.
+A \textbf{274{,}500-game} points self-play campaign across \textbf{549 configuration cells} (4 Warp factors $\times$ every legal fleet size $\times$ module configs, with Zeta only on eligible even fleets) is the skill/luck instrument for \textbf{board choice and points-module taxonomy}. From the \textbf{baseline} cells alone we find that \textbf{skill expression increases with both tile set size and player count}, contradicting the intuition that larger games devolve into luck, and that Warp factor 12 is the empirically optimal choice for competitive rating. Across the full points matrix, most optional modules preserve the baseline skill ceiling; \textbf{Module Iota (Double Down) slightly raises it}. \textbf{Module Epsilon (Drafting)} collapses it (1.08/4 indicators) --- counter-intuitively, choosing your hand makes outcomes \emph{more} luck-dominated mid-game --- and is therefore designated \textbf{Warped / party}. \textbf{Module Zeta (Squadrons)} also preserves skill (2.94/4); it never writes free-for-all (FFA) TEI --- rated Warp~12 crew sectors update a dedicated \textbf{Squad TEI} track (\texttt{squadRating}) after team-track calibration (\texttt{SQUADRONS\_RATING\_CALIBRATED}), not because Zeta is luck-dominant.
+
+A \textbf{separate} \textbf{255{,}500-game} go-out campaign (511 cells; Epsilon omitted) evaluates go-out module forks (Salamander Surge, Trail Momentum, Desperation Dig, Hand Exchange, Hot Potato pass). Those mechanics are \emph{not} apples-to-apples with points; we report them in their own figures and do not merge $S$ averages across objectives except in one deliberate shared-ID contrast plot.
 
 Finally, we report on \textbf{Class $\Omega$}, a neural self-play agent that achieves parity with heuristic baselines in small games and outperforms in large fleets. All code, data, and reproduction scripts are available as open source.
 \end{abstract}
@@ -117,7 +119,7 @@ This paper makes the following contributions:
 
 \item \textbf{Search algorithm analysis} --- We show that different search methods (expectimax, ISMCTS) provide advantages in different contexts: expectimax excels in 2-player points (64\% win rate), while ISMCTS works better in 4+ player go-out (31\% vs 23\% baseline).
 
-\item \textbf{Luck vs skill and module integrity} --- A single \textbf{285{,}000-game} matrix (570 cells) measures skill expression across Warp factors, fleet sizes, and 15 module configs. Baseline cells justify rating W12; Iota slightly raises the ceiling; Epsilon collapses it (Warped/party); Zeta preserves skill and rates on a dedicated Squad TEI track (never free-for-all / FFA).
+\item \textbf{Luck vs skill and module integrity} --- A \textbf{274{,}500-game} points matrix (549 cells) measures skill expression across Warp factors, fleet sizes, and module configs for TEI taxonomy. A \textbf{separate} go-out matrix (255{,}500 games / 511 cells) evaluates forked go-out modules without conflating $S$ averages. Baseline cells justify rating W12; Iota slightly raises the points ceiling; Epsilon collapses it (Warped/party); Zeta preserves skill and rates on a dedicated Squad TEI track (never free-for-all / FFA).
 
 \item \textbf{Neural self-play agent (Class $\Omega$)} --- We demonstrate that a pure self-play neural policy can achieve competitive performance (parity in small games, advantages in large fleets) without hand-crafted heuristics, and discuss the challenges of mapping training performance to appropriate rating anchors.
 
@@ -169,7 +171,7 @@ This work makes several novel contributions relative to the existing literature:
 
 \item \textbf{Multi-player self-play methodology:} Most game AI calibration focuses on 2-player matchups. We include 3--8 player configurations and focus matchups (one strong player vs multiple weaker opponents) to validate skill expression in realistic play scenarios.
 
-\item \textbf{Luck vs skill empirics:} The 285{,}000-game module matrix (Section~\ref{sec:module-balance}) is the systematic measurement of how tile set size, player count, and optional modules affect skill expression --- including Warped/party designation for Epsilon and Warp-factor board choice from baseline cells.
+\item \textbf{Luck vs skill empirics:} The points module matrix (Section~\ref{sec:module-balance}) measures how tile set size, player count, and optional modules affect skill expression for TEI --- including Warped/party designation for Epsilon. The go-out module matrix (Section~\ref{sec:goout-module-balance}) is a separate instrument for forked go-out modules.
 
 \item \textbf{Open-source implementation:} All code (rules engine, AI agents, calibration scripts) and data are publicly available for reproduction and extension.
 \end{enumerate}
@@ -492,7 +494,7 @@ W18 & 2--18 players & 17 & 8,500 \\
 \textbf{Total} & & \textbf{38} & \textbf{19{,}000 (baseline subset)} \\
 \bottomrule
 \end{tabular}
-\caption{Baseline cells within the 285{,}000-game matrix (no modules) used for Warp-factor / fleet analysis}
+\caption{Baseline cells within the 274{,}500-game points matrix (no modules) used for Warp-factor / fleet analysis}
 \end{table}
 
 All games used the \textbf{points objective} (lowest cumulative pip total) with Class II (heuristic Commander) self-play as part of the July 2026 module campaign (parallel workers on M4 Max). Compact notation: e.g., W12/4p denotes Warp 12 with 4 players.
@@ -785,14 +787,14 @@ Despite large variations in Warp factor and fleet size, \texttt{avgLegalMoves} r
 
 This study used \textbf{points only}. Go-out exhibits higher variance (Section 7.2), suggesting:
 \begin{itemize}
-\item Skill/luck ratios may differ under go-out objective (worth a follow-up module-matrix pass under go-out).
-\item W12/2--4p may remain optimal, but large-fleet go-out (8+ players) could show different patterns due to race dynamics.
+\item Skill/luck under go-out is reported in Section~\ref{sec:goout-module-balance} as a separate module-matrix instrument (not pooled with points).
+\item W12/2--4p may remain optimal for points TEI; large-fleet go-out (8+ players) still shows high $S$ on the go-out instrument but race variance is a separate TEI-calibration concern.
 \end{itemize}
 
-\section{Module Balance: A 285{,}000-Game Competitive-Integrity Study}
+\section{Module Balance (Points): A 274{,}500-Game Competitive-Integrity Study}
 \label{sec:module-balance}
 
-Section~\ref{sec:luck-skill-boards} used the \textbf{baseline} slice of this campaign to show that W12 is the right \emph{board} for rating. The full matrix answers the product question: which \emph{optional modules} preserve that skill signal, and which should be barred from TEI?
+Section~\ref{sec:luck-skill-boards} used the \textbf{baseline} slice of this \textbf{points} campaign to show that W12 is the right \emph{board} for rating. The full points matrix answers the product question: which \emph{optional modules} preserve that skill signal, and which should be barred from TEI? Go-out module forks are evaluated separately in Section~\ref{sec:goout-module-balance}; we do not pool $S$ averages across objectives.
 
 \subsection{Design questions}
 \begin{itemize}
@@ -805,7 +807,7 @@ Section~\ref{sec:luck-skill-boards} used the \textbf{baseline} slice of this cam
 \subsection{Method}
 \label{sec:module-instrument}
 
-We collected \textbf{500 Commander self-play games} on each of \textbf{570 configuration cells} --- Warp factor $\{9,12,15,18\}$ $\times$ every legal fleet size $\times$ 15 module configs (baseline, Alpha--Mu, Official Warp 12, ``all'', and Zeta) --- for \textbf{285{,}000 games} under the points objective, using the same \texttt{LuckSkillMetricsSampler} as Section~\ref{sec:luck-skill-instrument}.
+We collected \textbf{500 Commander self-play games} on each of \textbf{549 configuration cells} --- Warp factor $\{9,12,15,18\}$ $\times$ every legal fleet size $\times$ module configs (baseline, Alpha--Mu, Official Warp 12, ``all'', and Zeta on eligible fleets only) --- for \textbf{274{,}500 games} under the \textbf{points} objective, using the same \texttt{LuckSkillMetricsSampler} as Section~\ref{sec:luck-skill-instrument}. (Earlier drafts that counted Zeta on ineligible fleets as 570 cells are superseded.)
 
 \textbf{Module ranking instrument (distinct from §8 composites).}
 For each cell we average the raw telemetries, then score four absolute pass/fail indicators (implemented in \texttt{collect-luck-skill-modules.ts}):
@@ -827,14 +829,14 @@ Zeta requires equal squads: even fleets of at least 4 captains when \texttt{squa
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.92\textwidth]{../tools/nn/figures/figure11-module-skill-ranking.png}
-\caption{Module skill ceiling across Warp factors and fleet sizes. Nearly every module sits at or above the baseline Promote line (2.5). Epsilon is the sole collapse (Warped/party). Zeta remains high-skill (Promote; Squad TEI, never FFA).}
+\caption{\textbf{Points instrument.} Module skill ceiling across Warp factors and fleet sizes. Nearly every module sits at or above the baseline Promote line (2.5). Epsilon is the sole collapse (Warped/party). Zeta remains high-skill (Promote; Squad TEI, never FFA).}
 \label{fig:module-ranking}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.78\textwidth]{../tools/nn/figures/figure12-module-warp-heatmap.png}
-\caption{Mean skill indicators by module and Warp factor. Epsilon is red across the board; the Official preset and single-module variants stay skill-stable, especially on W12+.}
+\caption{\textbf{Points instrument.} Mean skill indicators by module and Warp factor. Epsilon is red across the board; the Official preset and single-module variants stay skill-stable, especially on W12+.}
 \label{fig:module-heatmap}
 \end{figure}
 
@@ -930,6 +932,49 @@ Zeta is the dual of Epsilon on the skill instrument: \textbf{2.94/4} indicators 
 \item \textbf{Do not merge} Epsilon-enabled boards into rated FFA TEI; keep exhibition ledgers separate when Warped modules run.
 \end{itemize}
 
+\section{Go-out Module Balance: A Separate 255{,}500-Game Instrument}
+\label{sec:goout-module-balance}
+
+Go-out rewrites several modules (Salamander Surge, Hot Potato pass draws, Trail Momentum, Desperation Dig, Hand Exchange). Those forks change mid-game pressure relative to the points campaign, so this section is a \textbf{separate instrument}: same sampler and $S\in\{0..4\}$ indicators, but \textbf{not} an apples-to-apples comparison of module means to Section~\ref{sec:module-balance}. We never plot forked modules on a shared points/go-out taxonomy bar except where noted below.
+
+\subsection{Method (go-out)}
+\textbf{511 cells} $\times$ 500 Commander games = \textbf{255{,}500 games} under go-out. Epsilon is omitted (unavailable under go-out). Zeta remains eligible-fleet-only (17 cells). Figure generation uses go-out display names and writes distinct assets (\texttt{figure21}--\texttt{figure28}, Table~\ref{tab:goout-module-ranking}).
+
+\input{../tools/nn/tables/table5-goout-module-ranking.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{../tools/nn/figures/figure21-goout-module-skill-ranking.png}
+\caption{\textbf{Go-out instrument only.} Module skill ceiling under go-out forks. Do not compare bar heights to Figure~\ref{fig:module-ranking} as a single ranking.}
+\label{fig:goout-module-ranking}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.78\textwidth]{../tools/nn/figures/figure22-goout-module-warp-heatmap.png}
+\caption{\textbf{Go-out instrument.} Mean skill indicators by module and Warp factor under go-out.}
+\label{fig:goout-module-heatmap}
+\end{figure}
+
+\subsection{Results (go-out)}
+\begin{itemize}
+\item Most go-out configs remain skill-dominant (baseline and most singles $\approx$ 2.97/4).
+\item \textbf{Iota} still tops the go-out instrument at 3.00/4 (38/38 skill-dominant).
+\item Forked modules (Surge, Dig, Momentum, Hot Potato) do \emph{not} collapse $S$ under Commander play.
+\item \textbf{Kappa (Hand Exchange)} stays Warped by product policy despite a high $S$ (2.89/4) --- exhibition / non-FFA, parallel to points Kappa's Warped designation for a different mechanical reason.
+\item Stacked ``all'' is slightly softer (2.82/4; more mixed cells) but not luck-dominant.
+\end{itemize}
+
+\subsection{Deliberate contrast: shared module IDs only}
+Figure~\ref{fig:objective-module-contrast} is the \emph{only} dual-objective module plot. It includes modules whose \textbf{rules are shared} across objectives (baseline, Iota, Official, Zeta, Gamma, Lambda, Mu) and \textbf{excludes} forks (Beta/Delta/Eta/Theta/Kappa). The point is compare/contrast of instruments on comparable rules --- not a merged taxonomy.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{../tools/nn/figures/figure29-points-vs-goout-shared-modules-contrast.png}
+\caption{Compare/contrast only: average skill indicators for shared module IDs under the points vs go-out instruments. Forked modules omitted.}
+\label{fig:objective-module-contrast}
+\end{figure}
+
 \section{Discussion}
 
 \subsection{What Calibration Teaches}
@@ -943,7 +988,7 @@ Zeta is the dual of Epsilon on the skill instrument: \textbf{2.94/4} indicators 
 \item \textbf{Neural Class II can replace heuristics without a second lobby tier} --- keep $\sigma=$\texttt{commander}, update \texttt{rulesProfileId} + Commander anchor $\mu$.
 \item \textbf{Fair-share $\neq$ $\Delta\mu$ bump} --- translating fleet-mean $\Omega$/Commander ratio with Elo-style $400 \log_{10}(\text{fs})$ overstates anchors when most rated matches are 2--4p; temper for the rating context you ship.
 \item \textbf{Imitation nets (Class I*) plateau at the teacher;} $\Omega$ succeeds by targeting search visit distributions (Path B), not Commander picks, following principles similar to AlphaZero's self-play approach~\cite{silver2017alphazero}.
-\item \textbf{Larger fleets increase skill, not noise} --- baseline cells of the 285K-game matrix show skill index rises with player count ($r > 0.84$ for W12/15/18), contradicting the ``more players = crapshoot'' intuition.
+\item \textbf{Larger fleets increase skill, not noise} --- baseline cells of the 274.5K-game points matrix show skill index rises with player count ($r > 0.84$ for W12/15/18), contradicting the ``more players = crapshoot'' intuition.
 \item \textbf{W12 is empirically optimal for TEI} --- highest baseline skill in 2--4p range, steepest fleet size gradient ($r = 0.875$), best discriminator of player ability.
 \item \textbf{Drafting is a trap for competitive design} --- Module Epsilon collapses mid-game skill indicators to 1.08/4; choose-your-hand rituals belong in party mode (Warped).
 \item \textbf{Team play is skillful and rates on Squad TEI} --- Module Zeta preserves skill (2.94/4); rated crew sectors update \texttt{squadRating}, never FFA \texttt{humanRating}.
@@ -979,7 +1024,7 @@ Zeta is the dual of Epsilon on the skill instrument: \textbf{2.94/4} indicators 
 
 TEI and self-play calibration provide a \textbf{practical, honest skill ladder} for a game too messy for classical solving. Points and go-out should be treated as \textbf{two calibration targets} on one engine. \textbf{Class I*} and Fleet Admiral benches show that \textbf{no single algorithm wins every mode}: Commander heuristics are near-optimal in 2p points (ISMCTS~\cite{cowling2012ismcts} $\sim$51\%), expectimax extracts a $\sim$64\% edge there via explicit tree search, and ISMCTS outperforms greedy seats in 4p go-out ($\sim$31\% vs $\sim$23\%). \textbf{Class $\Omega$} shows that a pure self-play net can \textbf{replace} heuristic Class II without a fourth lobby tier --- but \textbf{promotion benches and TEI anchors are different jobs}: fleet fair-share can look large while heads-up play stays near parity; REF\_TEI must follow the tables you rate.
 
-The \textbf{285{,}000-game module study} (570 cells; Section~\ref{sec:module-balance}) is the authoritative skill/luck instrument. From its \textbf{baseline} Warp$\times$fleet slice:
+The \textbf{274{,}500-game points module study} (549 cells; Section~\ref{sec:module-balance}) is the authoritative skill/luck instrument for TEI taxonomy. From its \textbf{baseline} Warp$\times$fleet slice:
 
 \begin{enumerate}
 \item \textbf{Skill expression increases with both Warp factor and fleet size.} Contrary to conventional wisdom (``more players = more luck''), skill index rises strongly with player count ($r = 0.84$--$0.89$ for W12/15/18). W18/18p exhibits 1.74$\times$ the skill of W18/2p, with only 1.21$\times$ the luck --- the \textit{highest} skill/luck ratio of any configuration tested.
@@ -1024,7 +1069,7 @@ All figures are generated from empirical data and located in \texttt{tools/nn/fi
 \item \textbf{AI bench results comparison (Section 7)} --- Class I* parity, Fleet Admiral wins (expectimax 64\%), $\Omega$ fair-share by fleet size, fair-share hazard.
 \item \textbf{Architecture diagrams (Section 4)} --- Policy stack, Class I* MLP, Class $\Omega$ policy/value heads, Fleet Admiral routing.
 \item \textbf{Points vs go-out divergence (Section 3)} --- $|\Delta\mu|$ anchor vs implied gaps; weaker-side win rates.
-\item \textbf{Module skill ranking (Section 9)} --- 285K-game Promote vs Warped taxonomy; Epsilon collapse; Zeta skill-promote.
+\item \textbf{Module skill ranking (Section 9)} --- 274.5K-game points Promote vs Warped taxonomy; Epsilon collapse; Zeta skill-promote. Go-out forks in Section~\ref{sec:goout-module-balance}.
 \item \textbf{Module $\times$ Warp heatmap (Section 9)} --- Skill indicators by module and Warp factor.
 \item \textbf{Epsilon collapse panels (Section 9)} --- Drafting vs baseline/Iota/Official across W9--W18.
 \item \textbf{Module metric profiles (Section 9)} --- Legal moves, constrained tiles, spread, unique pips.
@@ -1108,15 +1153,25 @@ yarn class1-star:pipeline:go-out
 yarn class1-star:pipeline:deepblue
 \end{verbatim}
 
-\subsection{Skill/Luck and Module Matrix (285k games)}
+\subsection{Skill/Luck and Module Matrices (points + go-out, separate)}
 \begin{verbatim}
-# Authoritative campaign (570 cells × 500 games)
-MODULE_GAMES=500 MODULE_WORKERS=12 \
+# Points instrument (549 cells × 500) — TEI taxonomy
+WARP12_ANALYSIS_DATA_DIR=tools/nn/data/points-modules-rerun \
+  MODULE_OBJECTIVE=points MODULE_GAMES=500 MODULE_WORKERS=14 \
   bash tools/nn/run-module-analysis-parallel.sh
-npx tsx tools/nn/analyze-module-results.ts
+WARP12_ANALYSIS_DATA_DIR=tools/nn/data/points-modules-rerun \
+  MODULE_FIGURE_OBJECTIVE=points python3 tools/nn/create-module-figures.py
 
-# Warp×fleet figures/tables use the baseline (`none`) cells of that matrix
-MPLBACKEND=Agg python3 tools/nn/create-module-figures.py
+# Go-out instrument (511 cells × 500) — forked modules; separate figures
+WARP12_ANALYSIS_DATA_DIR=tools/nn/data/go-out-modules \
+  MODULE_OBJECTIVE=go-out MODULE_GAMES=500 MODULE_WORKERS=14 \
+  bash tools/nn/run-module-analysis-parallel.sh
+WARP12_ANALYSIS_DATA_DIR=tools/nn/data/go-out-modules \
+  MODULE_FIGURE_OBJECTIVE=go-out python3 tools/nn/create-module-figures.py
+
+# Optional shared-ID contrast only (excludes forks)
+MODULE_FIGURE_OBJECTIVE=contrast python3 tools/nn/create-module-figures.py
+
 MPLBACKEND=Agg python3 tools/nn/create-paper-figures.py
 MPLBACKEND=Agg python3 tools/nn/create-figures.py
 MPLBACKEND=Agg python3 tools/nn/create-tables.py

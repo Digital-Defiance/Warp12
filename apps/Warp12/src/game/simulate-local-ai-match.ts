@@ -1,5 +1,6 @@
 import {
   observe,
+  pendingResolutionActorId,
   toGameAction,
   type GameAction,
   type GameState,
@@ -42,7 +43,8 @@ function pickHumanMove(
     return null;
   }
 
-  const onTurn = obs.round.activePlayerId === humanId;
+  const actorId = pendingResolutionActorId(obs.round);
+  const onTurn = actorId === humanId;
   const candidates = onTurn
     ? warpCandidateGenerator(obs, { captains: obs.captains, rng })
     : warpOffTurnCandidateGenerator(obs);
@@ -139,8 +141,8 @@ export async function simulateLocalAiMatch(input?: {
       continue; // Check for more off-turn actions or active turn
     }
 
-    // Now handle the active player's turn
-    const activeId = round.activePlayerId;
+    // Now handle the active player's turn (or pending resolution actor).
+    const activeId = pendingResolutionActorId(round);
     let action: GameAction | null = null;
     let source: ActionLogEntry['source'] = 'human';
 

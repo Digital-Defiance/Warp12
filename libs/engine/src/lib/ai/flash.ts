@@ -69,6 +69,16 @@ function scoreEffect(
         : highest.id !== playerId
           ? 6
           : 0;
+    case 'skip-lightest-hand': {
+      const myLen = myHand.length;
+      const lightest = Math.min(
+        ...captains.map((c) => (round.hands[c.id] ?? []).length)
+      );
+      // Prefer when someone else is lightest (or tied — still slows the table)
+      return myLen > lightest ? 14 : 5;
+    }
+    case 'force-draw':
+      return goOut ? 11 : 0;
     case 'all-stop-echo':
       return goOut ? 0 : 5;
     case 'continuum-wager':
@@ -92,7 +102,8 @@ export function chooseQFlashEffect(
   const available = getAvailableFlashEffects(
     obs.round,
     obs.modules,
-    captains
+    captains,
+    obs.objective
   );
 
   if (available.length === 0) {
@@ -104,6 +115,22 @@ export function chooseQFlashEffect(
     .sort((a, b) => b.score - a.score);
 
   return ranked[0]?.kind ?? available[0]!;
+}
+
+/** Prefer forcing the opponent with the lightest hand (go-out race). */
+export function chooseForceDrawTarget(
+  obs: WarpAiObservation,
+  captains: readonly Captain[]
+): string | undefined {
+  const opponents = captains.filter((c) => c.id !== obs.playerId);
+  if (opponents.length === 0) {
+    return undefined;
+  }
+  return opponents.reduce((best, captain) => {
+    const n = (obs.round.hands[captain.id] ?? []).length;
+    const bestN = (obs.round.hands[best.id] ?? []).length;
+    return n < bestN ? captain : best;
+  }).id;
 }
 
 function playableMoveCount(obs: WarpAiObservation, tileIndex: 0 | 1): number {

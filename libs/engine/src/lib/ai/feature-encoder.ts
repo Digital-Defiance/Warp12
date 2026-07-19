@@ -122,7 +122,9 @@ export function encodeClass1StarFeatures(
   cursor += CLASS1_STAR_TILE_COUNT;
 
   const kindIndex = ACTION_KIND_INDEX[action.kind];
-  out[cursor + kindIndex] = 1;
+  if (kindIndex >= 0 && kindIndex < CLASS1_STAR_ACTION_KIND_DIM) {
+    out[cursor + kindIndex] = 1;
+  }
   cursor += CLASS1_STAR_ACTION_KIND_DIM;
 
   if (action.kind === 'chart') {
@@ -134,6 +136,12 @@ export function encodeClass1StarFeatures(
 
     out[cursor++] = action.move.coordinate.low / 12;
     out[cursor++] = action.move.coordinate.high / 12;
+  } else if (
+    action.kind === 'resolve-hand-exchange' ||
+    action.kind === 'pick-from-pack'
+  ) {
+    writeTileMask(out, cursor, [action.coordinate]);
+    cursor += CLASS1_STAR_TILE_COUNT + CLASS1_STAR_ROUTE_KIND_DIM + 2;
   } else {
     cursor += CLASS1_STAR_TILE_COUNT + CLASS1_STAR_ROUTE_KIND_DIM + 2;
   }

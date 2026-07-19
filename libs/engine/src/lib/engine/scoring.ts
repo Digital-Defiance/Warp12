@@ -19,12 +19,14 @@ import {
   createRoundStateFromDeal,
   createRoundStateWithDraft,
   dealRoundFromShuffled,
+  roundStarterForRound,
 } from '../setup/create-game.js';
 import { highestPointsCaptainId } from './continuum.js';
 import { withRoundAndCaptains } from './helpers.js';
 import { determineLongestTrailWinners, getTrailLength } from './longest-trail.js';
 import { applySensorGridToRound } from './sensor-grid.js';
 import type { PlayerId } from '../types/player.js';
+import { scoreGoOutRound } from './go-out-campaign.js';
 
 /**
  * Public Salamander attribution for an ended points round, or null when
@@ -657,16 +659,7 @@ export function scoreRound(
     : state.captains;
 
   if (state.objective === 'go-out') {
-    return {
-      ok: true,
-      state: clearActiveQFlash({
-        ...state,
-        phase: 'complete',
-        captains,
-        round: { ...round, phase: 'ended' },
-        completedRounds: 1,
-      }),
-    };
+    return scoreGoOutRound(state, round, random);
   }
 
   const nextRoundNumber = round.roundNumber + 1;
@@ -690,6 +683,13 @@ export function scoreRound(
     collectRoundCoordinatesForRecycle(round),
     random
   );
+
+  const matchStarterIndex = state.matchStarterIndex ?? 0;
+  const nextStarterId = roundStarterForRound(
+    round.turnOrder,
+    nextRoundNumber,
+    matchStarterIndex
+  );
   
   // Module Epsilon: Use drafting for subsequent rounds if enabled
   if (state.modules.drafting.enabled) {
@@ -698,6 +698,7 @@ export function scoreRound(
       captains,
       shuffledCoordinates: shuffled,
       turnOrder: round.turnOrder,
+      roundStarterId: nextStarterId,
       maxPip: state.maxPip ?? DOUBLE_TWELVE_MAX_PIPS,
       largeFleetHandSize: state.houseRules.largeFleetHandSize,
       packSize: state.modules.drafting.packSize,
@@ -746,6 +747,7 @@ export function scoreRound(
     captains,
     shuffledCoordinates: shuffled,
     turnOrder: round.turnOrder,
+    roundStarterId: nextStarterId,
     largeFleetHandSize: state.houseRules.largeFleetHandSize,
     maxPip: state.maxPip ?? DOUBLE_TWELVE_MAX_PIPS,
   });

@@ -1,5 +1,7 @@
 # See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
+firestore-debug.log
+tools/nn/logs/
 .docs-build-stamps.json
 # compiled output
 dist

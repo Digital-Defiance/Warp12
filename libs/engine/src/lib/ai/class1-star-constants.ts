@@ -45,6 +45,8 @@ export const ACTION_KIND_INDEX: Readonly<Record<WarpAiAction['kind'], number>> =
     chart: 0,
     spool: 1,
     draw: 2,
+    /** Alias draw slot — keep Class I* v1 width stable. */
+    'desperation-dig': 2,
     'deploy-beacon': 3,
     'pass-red-alert': 4,
     'pass-turn': 5,
@@ -54,6 +56,9 @@ export const ACTION_KIND_INDEX: Readonly<Record<WarpAiAction['kind'], number>> =
     'catch-drop-to-impulse': 9,
     'invoke-continuum-flash': 10,
     'resolve-continuum-wager': 11,
+    /** Alias wager-resolve slot — keep Class I* v1 width stable. */
+    'resolve-hand-exchange': 11,
+    /** Out-of-band for draft; feature encoder clamps to DIM. */
     'pick-from-pack': 12,
   };
 

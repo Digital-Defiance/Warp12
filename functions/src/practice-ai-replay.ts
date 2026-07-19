@@ -143,6 +143,7 @@ export async function replayLocalAiHumanActions(input: {
     generateCoordinateSet,
     getWarpSkillProfile,
     resolveClass1StarPlayLookahead,
+    resolveModules,
     shuffleCoordinates,
     startGame,
     validateOmegaModelWeights,
@@ -198,7 +199,9 @@ export async function replayLocalAiHumanActions(input: {
     const skill = getWarpSkillProfile(
       ai.skill,
       config.objective,
-      config.playerCount
+      config.playerCount,
+      undefined,
+      resolveModules(config.modules ?? {})
     );
     if (ai.class1Star) {
       roster.set(

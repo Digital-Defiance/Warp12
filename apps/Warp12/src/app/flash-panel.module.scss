@@ -9,7 +9,7 @@
 }
 
 .panel {
-  width: min(520px, 100%);
+  width: min(560px, 100%);
   max-height: min(80vh, 640px);
   overflow: auto;
   border: 1px solid var(--warp-panel-border, #334155);
@@ -80,6 +80,87 @@
   padding: 0.85rem 1rem;
   font-size: 1rem;
   cursor: pointer;
+}
+
+.tileGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: center;
+  margin: 0 0 1.1rem;
+}
+
+.tileChoice {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0.4rem;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
+
+  &:hover {
+    border-color: rgba(56, 189, 248, 0.55);
+    background: rgba(56, 189, 248, 0.08);
+    transform: translateY(-2px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
+  }
+}
+
+.tileChoiceSelected {
+  border-color: var(--warp-accent-warm, #fbbf24);
+  background: rgba(251, 191, 36, 0.12);
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.35);
+}
+
+.takenTile {
+  display: inline-flex;
+  vertical-align: middle;
+  margin: 0 0.15rem;
+}
+
+.actions {
+  display: flex;
+  justify-content: stretch;
+  gap: 0.75rem;
+}
+
+.confirmBtn {
+  flex: 1;
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.85rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  color: #e2e8f0;
+
+  &:hover:not(:disabled) {
+    background: rgba(56, 189, 248, 0.28);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 }
 
 .banner,

@@ -1,7 +1,7 @@
 {
   "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Warp 12",
-  "version": "0.8.62",
+  "version": "0.9.63",
   "identifier": "com.example.warp12",
   "build": {
     "frontendDist": "../dist",
@@ -55,13 +55,13 @@
     ],
     "android": {
       "minSdkVersion": 21,
-      "versionCode": 62,
+      "versionCode": 63,
       "debugApplicationIdSuffix": ".debug"
     },
     "iOS": {
       "developmentTeam": "XXXXXXXXXX",
       "minimumSystemVersion": "14.0",
-      "bundleVersion": "62",
+      "bundleVersion": "63",
       "infoPlist": "./Info.ios.plist"
     }
   },

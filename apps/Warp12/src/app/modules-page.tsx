@@ -1,24 +1,31 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import {
   MODULE_CATALOG,
   MODULE_STUDY_META,
+  formatMix,
+  formatSkill,
+  labelFor,
+  metricsFor,
+  studyMetaFor,
   taxonomyLabel,
   type ModuleStatRow,
+  type ModuleStudyInstrument,
 } from '../content/module-catalog.js';
 
 import styles from './about-page.module.scss';
 import moduleStyles from './modules-page.module.scss';
 
-function formatSkill(row: ModuleStatRow): string {
-  return `${row.avgSkill.toFixed(2)}/4`;
-}
-
-function mixLabel(row: ModuleStatRow): string {
-  return `${row.skillDominant}/${row.mixed}/${row.luckDominant}`;
-}
-
 export function ModulesPage() {
+  const [instrument, setInstrument] =
+    useState<ModuleStudyInstrument>('points');
+  const study = studyMetaFor(instrument);
+  const other =
+    instrument === 'points'
+      ? MODULE_STUDY_META.goOut
+      : MODULE_STUDY_META.points;
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -53,12 +60,20 @@ export function ModulesPage() {
           <h2 className={styles.sectionTitle}>Play-tested at machine scale</h2>
           <div className={styles.calloutClaim}>
             <strong>
-              {MODULE_STUDY_META.totalGames.toLocaleString()} Commander
-              self-play games
+              {(
+                MODULE_STUDY_META.points.totalGames +
+                MODULE_STUDY_META.goOut.totalGames
+              ).toLocaleString()}{' '}
+              Commander self-play games
             </strong>{' '}
-            across {MODULE_STUDY_META.totalConfigs} configuration cells (
-            {MODULE_STUDY_META.gamesPerCell} games each) — Warp factors 9 / 12 /
-            15 / 18 × every legal fleet size × fifteen module setups.
+            across two instruments —{' '}
+            {MODULE_STUDY_META.points.totalGames.toLocaleString()} points (
+            {MODULE_STUDY_META.points.totalConfigs} cells) and{' '}
+            {MODULE_STUDY_META.goOut.totalGames.toLocaleString()} go-out (
+            {MODULE_STUDY_META.goOut.totalConfigs} cells),{' '}
+            {MODULE_STUDY_META.gamesPerCell} games each — Warp factors 9 / 12 /
+            15 / 18 × every legal fleet size × module setups (Epsilon omitted
+            under go-out; Zeta only on eligible even fleets).
           </div>
           <p className={styles.p}>
             Dominoes apps usually ship module toggles on vibes: “drafting sounds
@@ -73,12 +88,10 @@ export function ModulesPage() {
             identical AI seats, published metrics, and a public Promote vs Warped
             taxonomy grounded in data rather than marketing copy. The research
             write-up lives in the{' '}
-            <Link to="/research">TEI paper</Link> (§9) and{' '}
-            <Link to="/paper/log">calibration log</Link>.
+            <Link to="/research">TEI paper</Link> (§9 points · go-out section)
+            and <Link to="/paper/log">calibration log</Link>.
           </p>
-          <p className={styles.p}>
-            {MODULE_STUDY_META.method}
-          </p>
+          <p className={styles.p}>{MODULE_STUDY_META.method}</p>
         </section>
 
         <section className={styles.section}>
@@ -86,10 +99,68 @@ export function ModulesPage() {
           <p className={styles.p}>
             Higher average skill indicators mean mid-game choices still
             discriminate strong play. Skill / mixed / luck counts are how many
-            Warp×fleet cells fell in each band.
+            Warp×fleet cells fell in each band. Points and go-out are{' '}
+            <strong>separate instruments</strong> — forked modules (Beta, Delta,
+            Eta, Theta, Kappa) change mid-game pressure, so do not compare means
+            across the toggle as one ranking.
           </p>
+
+          <div
+            className={moduleStyles.instrumentTabs}
+            role="tablist"
+            aria-label="Skill study instrument"
+          >
+            <button
+              type="button"
+              role="tab"
+              id="modules-instrument-points"
+              aria-controls="modules-skill-table"
+              aria-selected={instrument === 'points'}
+              className={`${moduleStyles.instrumentTab} ${
+                instrument === 'points' ? moduleStyles.instrumentTabActive : ''
+              }`}
+              onClick={() => setInstrument('points')}
+            >
+              Points campaign
+            </button>
+            <button
+              type="button"
+              role="tab"
+              id="modules-instrument-go-out"
+              aria-controls="modules-skill-table"
+              aria-selected={instrument === 'go-out'}
+              className={`${moduleStyles.instrumentTab} ${
+                instrument === 'go-out' ? moduleStyles.instrumentTabActive : ''
+              }`}
+              onClick={() => setInstrument('go-out')}
+            >
+              Go-out
+            </button>
+          </div>
+
+          <p className={moduleStyles.instrumentMeta} id="modules-skill-table-desc">
+            Showing{' '}
+            <strong>
+              {instrument === 'points' ? 'points' : 'go-out'}
+            </strong>
+            : {study.totalGames.toLocaleString()} games · {study.totalConfigs}{' '}
+            cells ({study.generated}). Companion instrument:{' '}
+            {other.totalGames.toLocaleString()} games / {other.totalConfigs}{' '}
+            cells.
+          </p>
+
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
+            <table
+              className={styles.table}
+              id="modules-skill-table"
+              role="tabpanel"
+              aria-labelledby={
+                instrument === 'points'
+                  ? 'modules-instrument-points'
+                  : 'modules-instrument-go-out'
+              }
+              aria-describedby="modules-skill-table-desc"
+            >
               <thead>
                 <tr>
                   <th scope="col">Module</th>
@@ -99,23 +170,40 @@ export function ModulesPage() {
                 </tr>
               </thead>
               <tbody>
-                {MODULE_CATALOG.map((row) => (
-                  <tr key={row.id}>
-                    <td>
-                      <span className={moduleStyles.greek}>{row.greek}</span>{' '}
-                      {row.label}
-                    </td>
-                    <td>
-                      <span
-                        className={`${moduleStyles.badge} ${badgeClass(row)}`}
-                      >
-                        {taxonomyLabel(row.taxonomy)}
-                      </span>
-                    </td>
-                    <td>{formatSkill(row)}</td>
-                    <td>{mixLabel(row)}</td>
-                  </tr>
-                ))}
+                {MODULE_CATALOG.map((row) => {
+                  const metrics = metricsFor(row, instrument);
+                  return (
+                    <tr key={row.id}>
+                      <td>
+                        <span className={moduleStyles.greek}>{row.greek}</span>{' '}
+                        {labelFor(row, instrument)}
+                      </td>
+                      <td>
+                        <span
+                          className={`${moduleStyles.badge} ${badgeClass(row)}`}
+                        >
+                          {taxonomyLabel(row.taxonomy)}
+                        </span>
+                      </td>
+                      <td>
+                        {metrics ? (
+                          formatSkill(metrics)
+                        ) : (
+                          <span className={moduleStyles.na}>
+                            — unavailable
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {metrics ? (
+                          formatMix(metrics)
+                        ) : (
+                          <span className={moduleStyles.na}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -130,15 +218,16 @@ export function ModulesPage() {
             Epsilon — why drafting is a party module
           </h2>
           <div className={styles.calloutWarn}>
-            <strong>Warped / party · never rated.</strong> Average skill
-            indicators <strong>1.08/4</strong> — luck-dominant in 27 of 38
-            cells. Zero skill-dominant configurations.
+            <strong>Warped / party · never rated.</strong> Points instrument:{' '}
+            average skill indicators <strong>1.08/4</strong> — luck-dominant in
+            27 of 38 cells. Zero skill-dominant configurations. Unavailable under
+            go-out (RULES §VI).
           </div>
           <p className={styles.p}>
             <strong>Module Epsilon — Tactical Requisition</strong> replaces the
             blind deal with pack-and-pass drafting. Captains pick into loadouts,
             pass residual packs, and launch. Intuition says: choosing your hand
-            must raise skill. The table disagrees.
+            must raise skill. The points table disagrees.
           </p>
           <ul className={styles.list}>
             <li>
@@ -168,9 +257,9 @@ export function ModulesPage() {
           </h2>
           <div className={styles.calloutClaim}>
             <strong>Skill-promote · Squad TEI on rated Warp 12.</strong> About{' '}
-            <strong>2.92–2.94/4</strong> skill indicators on the study —
-            shared trails keep pressure high. Not Warped; never writes FFA
-            human TEI.
+            <strong>2.94/4</strong> skill indicators on both instruments
+            (17 eligible-fleet cells) — shared trails keep pressure high. Not
+            Warped; never writes FFA human TEI.
           </div>
           <p className={styles.p}>
             <strong>Module Zeta — Fleet Squadrons</strong> divides the fleet
@@ -238,37 +327,50 @@ export function ModulesPage() {
           <h2 className={styles.sectionTitle}>Module field guide</h2>
           <p className={styles.p}>
             How each module changes the table. Exact scoring footnotes and edge
-            cases remain in the Manual — this is the operating briefing.
+            cases remain in the Manual — this is the operating briefing. Telemetry
+            line below each entry follows the instrument toggle above.
           </p>
           <ul className={moduleStyles.guide}>
-            {MODULE_CATALOG.map((row) => (
-              <li key={row.id} className={moduleStyles.guideItem}>
-                <div className={moduleStyles.guideHead}>
-                  <strong>
-                    {row.greek !== '—' && row.greek !== 'Preset'
-                      ? `Module ${row.greek} — `
-                      : ''}
-                    {row.label}
-                  </strong>
-                  <span
-                    className={`${moduleStyles.badge} ${badgeClass(row)}`}
-                  >
-                    {taxonomyLabel(row.taxonomy)}
-                  </span>
-                </div>
-                <p className={moduleStyles.guideGist}>{row.gist}</p>
-                <ol className={moduleStyles.operateList}>
-                  {row.operate.map((step) => (
-                    <li key={step}>{step}</li>
-                  ))}
-                </ol>
-                <p className={moduleStyles.guideMeta}>
-                  Skill {formatSkill(row)} · legal moves {row.legalMoves.toFixed(1)} ·
-                  constrained {row.constrainedPct}% · spread {row.spread.toFixed(1)} ·
-                  unique pips {row.uniquePips.toFixed(1)}
-                </p>
-              </li>
-            ))}
+            {MODULE_CATALOG.map((row) => {
+              const metrics = metricsFor(row, instrument);
+              return (
+                <li key={row.id} className={moduleStyles.guideItem}>
+                  <div className={moduleStyles.guideHead}>
+                    <strong>
+                      {row.greek !== '—' && row.greek !== 'Preset'
+                        ? `Module ${row.greek} — `
+                        : ''}
+                      {labelFor(row, instrument)}
+                    </strong>
+                    <span
+                      className={`${moduleStyles.badge} ${badgeClass(row)}`}
+                    >
+                      {taxonomyLabel(row.taxonomy)}
+                    </span>
+                  </div>
+                  <p className={moduleStyles.guideGist}>{row.gist}</p>
+                  <ol className={moduleStyles.operateList}>
+                    {row.operate.map((step) => (
+                      <li key={step}>{step}</li>
+                    ))}
+                  </ol>
+                  <p className={moduleStyles.guideMeta}>
+                    {metrics ? (
+                      <>
+                        {instrument === 'points' ? 'Points' : 'Go-out'} skill{' '}
+                        {formatSkill(metrics)} · legal moves{' '}
+                        {metrics.legalMoves.toFixed(1)} · constrained{' '}
+                        {metrics.constrainedPct}% · spread{' '}
+                        {metrics.spread.toFixed(1)} · unique pips{' '}
+                        {metrics.uniquePips.toFixed(1)}
+                      </>
+                    ) : (
+                      <>Go-out: unavailable (RULES §VI)</>
+                    )}
+                  </p>
+                </li>
+              );
+            })}
           </ul>
           <p className={styles.p}>
             Full normative text:{' '}

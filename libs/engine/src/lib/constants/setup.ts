@@ -120,18 +120,23 @@ export function handSizeForPlayerCount(
   return size;
 }
 
+/**
+ * Spacedock double for a round number. Within a normal campaign this is
+ * maxPip … 0. Go-out overtime (and any round past the natural ladder) wraps
+ * back to maxPip: after 0-0 comes maxPip-maxPip again.
+ */
 export function spacedockValueForRound(
   roundNumber: number,
   maxPip: number = DOUBLE_TWELVE_MAX_PIPS
 ): number {
   const factor = normalizeWarpFactor(maxPip);
-  const maxRounds = factor + 1;
-  if (roundNumber < 1 || roundNumber > maxRounds) {
+  const cycle = factor + 1;
+  if (roundNumber < 1) {
     throw new RangeError(
-      `Round number must be 1–${maxRounds} for a double-${factor} set; received ${roundNumber}.`
+      `Round number must be ≥ 1 for a double-${factor} set; received ${roundNumber}.`
     );
   }
-  return factor - (roundNumber - 1);
+  return factor - ((roundNumber - 1) % cycle);
 }
 
 /** Highest double is Spacedock in round 1; Salamander applies from round 2 onward. */

@@ -1,5 +1,9 @@
 import type { Coordinate } from './coordinate.js';
 import type { GameObjective } from './objective.js';
+import type {
+  GoOutOvertimePolicy,
+  GoOutStructure,
+} from './go-out-campaign.js';
 import type { HouseRules, HouseRulesConfig } from './house-rules.js';
 import type { PlayerId } from './player.js';
 import type { NeutralZone, Spacedock, WarpTrail } from './trails.js';
@@ -103,6 +107,12 @@ export interface RoundState {
    */
   readonly wormholeOpened?: boolean;
   /**
+   * Transient Module Delta signal: spool aborted an unfinished matching double
+   * (retrieved to hand; no Red Alert / Fracture left). Drives game-log / feedback.
+   * Reset on the next action.
+   */
+  readonly spoolAbortRetrieve?: boolean;
+  /**
    * Double-N max pip for this sector (9 / 12 / 15 / 18). Used for dead-double
    * pip exhaustion. Omit for legacy fixtures (treated as 12).
    */
@@ -128,6 +138,21 @@ export interface RoundState {
    * resolution via `trailKeyFor` (see engine/squadrons.ts). Absent = FFA.
    */
   readonly squadrons?: readonly import('./squadrons.js').Squadron[];
+  /**
+   * Module Theta (Go-out) Trail Momentum: pending helm reactivation for the
+   * captain who first reached personal trail length ≥ 5. Consumed on the next
+   * `advanceTurn` instead of passing the helm.
+   */
+  readonly trailMomentumExtraTurnFor?: PlayerId | null;
+  /**
+   * Module Kappa (Go-out) Hand Exchange: awaiting give-back choice from the
+   * larger hand after a random steal.
+   */
+  readonly handExchangePending?: {
+    readonly largerPlayerId: PlayerId;
+    readonly smallerPlayerId: PlayerId;
+    readonly takenCoordinate: Coordinate;
+  } | null;
 }
 
 export interface GameState {
@@ -139,10 +164,34 @@ export interface GameState {
   readonly modules: import('./modules.js').GameModules;
   /** Optional house-rule toggles (default standard multi-trail). */
   readonly houseRules: HouseRules;
-  /** Fleet victory condition — points campaign vs first captain out. */
+  /** Fleet victory condition — points campaign vs go-out. */
   readonly objective: GameObjective;
-  /** Points campaigns end after this many rounds. Ignored for go-out. */
+  /**
+   * Points campaigns: end after this many rounds.
+   * Go-out fixed-rounds: same — play this many Spacedock rounds then compare
+   * round wins (overtime if tied).
+   */
   readonly campaignRounds: number;
+  /**
+   * Go-out sector structure. Omit / sudden-death = first empty hand ends the
+   * sector (legacy default).
+   */
+  readonly goOutStructure?: GoOutStructure;
+  /** Go-out first-to: round wins required to take the sector. */
+  readonly goOutWinsToWin?: number;
+  /** Go-out fixed-rounds: overtime policy when win counts tie. */
+  readonly goOutOvertime?: GoOutOvertimePolicy;
+  /**
+   * Index into round turnOrder for the match's round-1 starter. Subsequent
+   * rounds rotate clockwise: `(matchStarterIndex + roundNumber - 1) % n`.
+   */
+  readonly matchStarterIndex?: number;
+  /**
+   * Fixed-rounds go-out ended tied; waiting for host to accept/decline overtime.
+   */
+  readonly goOutOvertimePending?: boolean;
+  /** Currently playing go-out overtime (Spacedock may wrap past 0-0). */
+  readonly goOutInOvertime?: boolean;
   /**
    * Double-N max pip for this sector (9 / 12 / 15 / 18). Omit for legacy
    * double-twelve fixtures (treated as 12).
@@ -153,6 +202,18 @@ export interface GameState {
    * the squadrons module is enabled.
    */
   readonly squadrons?: readonly import('./squadrons.js').Squadron[];
+  /**
+   * Module Theta (Go-out) Trail Momentum: captain who already claimed the
+   * once-per-round extra turn (or null/undefined if unclaimed). Cleared when
+   * the next round is dealt.
+   */
+  readonly trailMomentumClaimedBy?: PlayerId | null;
+  /**
+   * Module Kappa (Go-out) Hand Exchange: true once the first-double trigger
+   * has fired this round (whether an exchange ran or was skipped for ties).
+   * Cleared when the next round is dealt.
+   */
+  readonly handExchangeResolved?: boolean;
 }
 
 export interface CreateGameInput {
@@ -162,6 +223,11 @@ export interface CreateGameInput {
   readonly houseRules?: HouseRulesConfig;
   readonly objective?: GameObjective;
   readonly campaignRounds?: number;
+  readonly goOutStructure?: GoOutStructure;
+  readonly goOutWinsToWin?: number;
+  readonly goOutOvertime?: GoOutOvertimePolicy;
+  /** Index into captains/turnOrder for round-1 starter (any seat). */
+  readonly matchStarterIndex?: number;
   /** Double-N max pip (9 / 12 / 15 / 18). Defaults to 12. */
   readonly maxPip?: number;
 }

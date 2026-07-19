@@ -1,4 +1,4 @@
-import type { GameObjective, WarpSkillLevel } from 'warp12-engine';
+import type { GameObjective, GoOutOvertimePolicy, GoOutStructure, WarpSkillLevel } from 'warp12-engine';
 import type { GameAction, HouseRulesConfig } from 'warp12-engine';
 import type { GameLogEntry } from 'warp12-react';
 
@@ -34,8 +34,26 @@ export interface FirestoreGameDocument {
   houseRules?: HouseRulesConfig;
   /** Sector scoring objective. */
   objective: GameObjective;
-  /** Penalty campaign length. */
+  /** Penalty campaign length (or go-out fixed-rounds descent length). */
   campaignRounds: number;
+  /** Go-out sector structure. Absent = sudden-death (legacy default). */
+  goOutStructure?: GoOutStructure;
+  /** Go-out first-to: wins required to clinch the sector. */
+  goOutWinsToWin?: number;
+  /** Go-out fixed-rounds: overtime policy when win-counts tie. */
+  goOutOvertime?: GoOutOvertimePolicy;
+  /**
+   * Index into turnOrder for the match's first-round starter.
+   * Absent = host seat (legacy default).
+   */
+  matchStarterIndex?: number;
+  /**
+   * True when a fixed-rounds go-out sector ended tied and the host must
+   * accept or decline overtime.
+   */
+  goOutOvertimePending?: boolean;
+  /** True while playing go-out overtime rounds (Spacedock may wrap). */
+  goOutInOvertime?: boolean;
   /** Double-N max pip (9 / 12 / 15 / 18). Defaults to 12 for legacy docs. */
   maxPip?: number;
   /**
@@ -74,6 +92,10 @@ export interface FirestoreGameDocument {
   rulesProfileId?: string;
   captains: FirestoreCaptain[];
   completedRounds: number;
+  /** Module Theta (Go-out) Trail Momentum claim. */
+  trailMomentumClaimedBy?: string | null;
+  /** Module Kappa (Go-out) Hand Exchange resolved this sector. */
+  handExchangeResolved?: boolean;
   round: FirestorePublicRound | null;
   flash?: {
     invokedBy: string;
@@ -89,6 +111,8 @@ export interface FirestoreCaptain {
   id: string;
   displayName: string;
   pointsScore: number;
+  /** Go-out campaigns: rounds won by this captain. */
+  goOutWins?: number;
   joinedAt: string;
   isAi?: boolean;
   skill?: WarpSkillLevel;
@@ -129,6 +153,11 @@ export interface OnlineLobbySettings {
   objective: GameObjective;
   maxPlayers: number;
   campaignRounds: number;
+  goOutStructure?: GoOutStructure;
+  goOutWinsToWin?: number;
+  goOutOvertime?: GoOutOvertimePolicy;
+  /** Index into fleet for the match's first-round starter (-1 = engine picks). */
+  matchStarterIndex?: number;
   /** Double-N max pip (9 / 12 / 15 / 18). */
   maxPip?: number;
   /** Host intent to play for TEI (default true). */
@@ -167,6 +196,12 @@ export interface FirestorePublicRound {
     playerId: string;
     options: [FirestoreCoordinate, FirestoreCoordinate];
   } | null;
+  /** Module Kappa (Go-out) Hand Exchange pending give-back. */
+  handExchangePending?: {
+    largerPlayerId: string;
+    smallerPlayerId: string;
+    takenCoordinate: FirestoreCoordinate;
+  } | null;
   roundStarterOpening?: {
     playerId: string;
   } | null;
@@ -181,6 +216,8 @@ export interface FirestorePublicRound {
   returnedToWarp?: boolean;
   /** Module Lambda: transient wormhole-opened cue. */
   wormholeOpened?: boolean;
+  /** Module Delta: transient spool-abort retrieve cue (unfinished double to hand). */
+  spoolAbortRetrieve?: boolean;
   /** Module Gamma: face-up sensor market. */
   sensorGrid?: FirestoreCoordinate[];
   /** Module Epsilon: pack-and-pass draft (null / omitted outside drafting). */
@@ -245,6 +282,8 @@ export interface FirestoreTrailDocument {
   distressBeaconActive: boolean;
   /** Manual shield control: owner has serviced their own trail since opening. */
   distressBeaconChartedOwnTrailSinceDown?: boolean;
+  /** Module Eta (Go-out) Desperation Dig forced-open remaining turn-ends. */
+  distressBeaconForcedOpenRemaining?: number;
 }
 
 export interface FirestoreNeutralZoneDocument {

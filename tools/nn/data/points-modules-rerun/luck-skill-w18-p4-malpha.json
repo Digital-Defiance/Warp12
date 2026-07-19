@@ -1,0 +1,28 @@
+{
+  "warpFactor": 18,
+  "playerCount": 4,
+  "moduleConfig": "alpha",
+  "moduleLabel": "Module Alpha (Continuum)",
+  "zetaOmitted": false,
+  "games": 500,
+  "objective": "points",
+  "summary": {
+    "games": 500,
+    "playerCount": 4,
+    "maxPip": 18,
+    "objective": "points",
+    "avgLegalMovesPerTurn": 1.6945410137390529,
+    "avgUniqueTrainsPerTurn": 0.7770193541570112,
+    "avgConstrainedTileFraction": 0.551398912092209,
+    "avgUniquePipsInHand": 8.60087846518686,
+    "avgMaxPipCluster": 2.5238157270010855,
+    "avgHandEntropy": 2.753920203953082,
+    "avgMoveValueSpread": 2.973221973838872,
+    "avgNearOptimalFraction": 0.8432775554523523,
+    "avgOwnTrailPlayRate": 0,
+    "avgShieldsDownRate": 0.04351725533886158
+  },
+  "skillIndicators": 3,
+  "timestamp": "2026-07-19T01:55:04.017Z",
+  "durationSeconds": 127.269
+}

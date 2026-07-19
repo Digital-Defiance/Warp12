@@ -1,0 +1,28 @@
+{
+  "warpFactor": 9,
+  "playerCount": 3,
+  "moduleConfig": "none",
+  "moduleLabel": "Baseline (no modules)",
+  "zetaOmitted": false,
+  "games": 500,
+  "objective": "points",
+  "summary": {
+    "games": 500,
+    "playerCount": 3,
+    "maxPip": 9,
+    "objective": "points",
+    "avgLegalMovesPerTurn": 1.8484453234154434,
+    "avgUniqueTrainsPerTurn": 0.9354974093231883,
+    "avgConstrainedTileFraction": 0.5662601842901321,
+    "avgUniquePipsInHand": 5.595460925845333,
+    "avgMaxPipCluster": 2.3927313204460754,
+    "avgHandEntropy": 2.165736443969492,
+    "avgMoveValueSpread": 1.8253959592434779,
+    "avgNearOptimalFraction": 0.8148629211466497,
+    "avgOwnTrailPlayRate": 0,
+    "avgShieldsDownRate": 0.0913337489051786
+  },
+  "skillIndicators": 2,
+  "timestamp": "2026-07-19T01:30:06.903Z",
+  "durationSeconds": 4.828
+}

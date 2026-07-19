@@ -18,7 +18,7 @@ import { toGameAction, type WarpAiAction } from './actions.js';
 import { warpCandidateGenerator } from './candidate-generator.js';
 import { assignHiddenHands } from './belief-constraints.js';
 import { collectPlacedCoordinates } from './context.js';
-import type { WarpAiObservation } from './observation.js';
+export { observationToState } from './observation.js';
 
 /** Points weight of a hand, honoring Salamander on the highest double. */
 export function handPips(
@@ -133,27 +133,7 @@ export function warpLeafEval(state: GameState, perspective: PlayerRef): number {
     : warpLeafEvalPenalty(state, perspective);
 }
 
-/** Build a Game State wrapper around an observation for the forward model. */
-export function observationToState(obs: WarpAiObservation): GameState {
-  return {
-    id: 'search',
-    phase: 'active',
-    captains: obs.captains.length > 0
-      ? obs.captains
-      : obs.round.turnOrder.map((id) => ({
-          id,
-          displayName: id,
-          pointsScore: 0,
-        })),
-    round: obs.round,
-    completedRounds: 0,
-    modules: obs.modules,
-    houseRules: obs.houseRules,
-    objective: obs.objective,
-    campaignRounds: obs.campaignRounds,
-    maxPip: obs.maxPip ?? 12,
-  };
-}
+/** Forward search leaf helpers and SearchModel live below. */
 
 function rankAction(
   action: WarpAiAction,
@@ -179,6 +159,10 @@ function rankAction(
     case 'invoke-continuum-flash':
     case 'resolve-continuum-wager':
       return 5_000;
+    case 'resolve-hand-exchange':
+      return 8_000;
+    case 'desperation-dig':
+      return 5;
     default:
       return -2;
   }

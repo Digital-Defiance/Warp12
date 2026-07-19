@@ -1,4 +1,5 @@
 import type { FlashEffect } from './continuum.js';
+import type { GameObjective } from './objective.js';
 import {
   DEFAULT_SUBSPACE_FRACTURE_SCOPE,
   type SubspaceFractureScope,
@@ -193,6 +194,99 @@ export function hasWarpedModules(
   config: GameModuleConfig | null | undefined
 ): boolean {
   return warpedModuleKeys(config).length > 0;
+}
+
+/**
+ * Module enable flags that may be restricted to one objective (RULES §VI).
+ * Same pattern as Continuum Flash `objectiveOnly` — omit = both objectives.
+ */
+export type ObjectiveGatedModuleKey = Extract<keyof GameModuleConfig, 'drafting'>;
+
+export interface ModuleObjectiveGate {
+  readonly key: ObjectiveGatedModuleKey;
+  /**
+   * When set, this module is only offered for that objective.
+   * Omitted = available under both Points and Go-out.
+   */
+  readonly objectiveOnly?: GameObjective;
+  /** Companion config fields cleared when the module is stripped. */
+  readonly clearKeys?: readonly (keyof GameModuleConfig)[];
+}
+
+/**
+ * Declarative objective gates for lobby/engine module flags.
+ * Add a row here (not special-case branches) when RULES §VI restricts a module.
+ */
+export const MODULE_OBJECTIVE_GATES: readonly ModuleObjectiveGate[] = [
+  {
+    key: 'drafting',
+    objectiveOnly: 'points',
+    clearKeys: ['draftingPackSize'],
+  },
+];
+
+export function isModuleAvailableForObjective(
+  key: ObjectiveGatedModuleKey,
+  objective: GameObjective
+): boolean {
+  const gate = MODULE_OBJECTIVE_GATES.find((entry) => entry.key === key);
+  if (!gate?.objectiveOnly) {
+    return true;
+  }
+  return gate.objectiveOnly === objective;
+}
+
+/** Patch that disables every gated module unavailable under `objective`. */
+export function moduleClearPatchForObjective(
+  objective: GameObjective
+): Partial<GameModuleConfig> {
+  const patch: Partial<GameModuleConfig> = {};
+  for (const gate of MODULE_OBJECTIVE_GATES) {
+    if (!gate.objectiveOnly || gate.objectiveOnly === objective) {
+      continue;
+    }
+    patch[gate.key] = false;
+    // Companion keys are omitted (not set to undefined) so Firestore payloads
+    // stay valid; sanitize deletes them from the returned config object.
+  }
+  return patch;
+}
+
+/**
+ * Strip modules unavailable for `objective` from lobby/config payloads before
+ * resolve / start so client toggles cannot sneak a gated module into a sector.
+ */
+export function sanitizeModuleConfigForObjective(
+  config: GameModuleConfig | null | undefined,
+  objective: GameObjective
+): GameModuleConfig {
+  const base = config ?? {};
+  const clear = moduleClearPatchForObjective(objective);
+  if (Object.keys(clear).length === 0) {
+    return base;
+  }
+  const needsStrip = MODULE_OBJECTIVE_GATES.some(
+    (gate) =>
+      gate.objectiveOnly != null &&
+      gate.objectiveOnly !== objective &&
+      base[gate.key] === true
+  );
+  if (!needsStrip) {
+    return base;
+  }
+  const next: GameModuleConfig = { ...base, ...clear };
+  for (const gate of MODULE_OBJECTIVE_GATES) {
+    if (
+      gate.objectiveOnly != null &&
+      gate.objectiveOnly !== objective &&
+      gate.clearKeys
+    ) {
+      for (const clearKey of gate.clearKeys) {
+        delete next[clearKey];
+      }
+    }
+  }
+  return next;
 }
 
 /** Flatten resolved engine modules back to the lobby/Firestore config shape. */

@@ -1,10 +1,14 @@
-import type { GameAction, GameState } from 'warp12-engine';
+import { useEffect, useState } from 'react';
+import { DominoTile } from 'double-eighteen-react';
+import type { Coordinate, GameAction, GameState } from 'warp12-engine';
 import {
   FLASH_CATALOG,
   describeFlashEffect,
   getAvailableFlashEffects,
 } from 'warp12-engine';
+import { WARP_PIP_COLORS, WARP_TILE_SURFACE, type WarpTileBg } from 'warp12-theme';
 
+import { useAnnounce } from '../a11y/live-announcer.js';
 import styles from './flash-panel.module.scss';
 
 interface ContinuumFlashPanelProps {
@@ -21,35 +25,95 @@ export function ContinuumFlashPanel({
   onInvoke,
 }: ContinuumFlashPanelProps) {
   const round = game.round;
+  const [forceDrawPick, setForceDrawPick] = useState(false);
+
   if (!round || round.continuumPendingInvoker !== playerId) {
     return null;
   }
 
   const available = new Set(
-    getAvailableFlashEffects(round, game.modules, game.captains)
+    getAvailableFlashEffects(
+      round,
+      game.modules,
+      game.captains,
+      game.objective
+    )
   );
   const entries = FLASH_CATALOG.filter((entry) => available.has(entry.kind));
+  const opponents = game.captains.filter((c) => c.id !== playerId);
+
+  if (forceDrawPick) {
+    return (
+      <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby="force-draw-title">
+        <div className={styles.panel}>
+          <h2 id="force-draw-title" className={styles.title}>
+            Force Draw
+          </h2>
+          <p className={styles.lead}>Choose an opposing captain to draw 1 coordinate.</p>
+          <ul className={styles.list}>
+            {opponents.map((opponent) => (
+              <li key={opponent.id}>
+                <button
+                  type="button"
+                  className={styles.option}
+                  onClick={() =>
+                    onInvoke({
+                      type: 'INVOKE_CONTINUUM_FLASH',
+                      playerId,
+                      effect: 'force-draw',
+                      targetPlayerId: opponent.id,
+                    })
+                  }
+                >
+                  <span className={styles.optionLabel}>
+                    {names[opponent.id] ?? opponent.displayName}
+                  </span>
+                  <span className={styles.optionDetail}>
+                    {(round.hands[opponent.id] ?? []).length} in hand
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            className={styles.option}
+            onClick={() => setForceDrawPick(false)}
+            aria-label="Back to Continuum Flash choices"
+          >
+            <span className={styles.optionLabel}>Back</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className={styles.overlay} role="dialog" aria-modal="true">
+    <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby="continuum-flash-title">
       <div className={styles.panel}>
-        <h2 className={styles.title}>Continuum Flash</h2>
+        <h2 id="continuum-flash-title" className={styles.title}>
+          Continuum Flash
+        </h2>
         <p className={styles.lead}>
           You charted the double-blank. Choose one reality-bending directive for
-          the rest of this round.
+          the rest of this {game.objective === 'go-out' ? 'sector' : 'round'}.
         </p>
         <ul className={styles.list}>
           {entries.map((entry) => (
             <ContinuumFlashOption
               key={entry.kind}
               entry={entry}
-              onPick={() =>
+              onPick={() => {
+                if (entry.kind === 'force-draw') {
+                  setForceDrawPick(true);
+                  return;
+                }
                 onInvoke({
                   type: 'INVOKE_CONTINUUM_FLASH',
                   playerId,
                   effect: entry.kind,
-                })
-              }
+                });
+              }}
             />
           ))}
         </ul>
@@ -109,6 +173,150 @@ export function ContinuumWagerPanel({ game, playerId, onResolve }: ContinuumWage
               Keep {coordinate.low}-{coordinate.high}
             </button>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface HandExchangePanelProps {
+  game: GameState;
+  playerId: string;
+  tileBg: WarpTileBg;
+  onResolve: (action: GameAction) => void;
+}
+
+/** Module Kappa (Go-out): larger hand returns one coordinate after the steal. */
+export function HandExchangePanel({
+  game,
+  playerId,
+  tileBg,
+  onResolve,
+}: HandExchangePanelProps) {
+  const announce = useAnnounce();
+  const pending = game.round?.handExchangePending;
+  const hand = game.round?.hands[playerId] ?? [];
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const tileSurface = WARP_TILE_SURFACE[tileBg];
+  const maxPip = game.maxPip ?? 12;
+
+  useEffect(() => {
+    setSelectedIndex(null);
+  }, [pending?.largerPlayerId, pending?.takenCoordinate.low, pending?.takenCoordinate.high]);
+
+  useEffect(() => {
+    if (!pending || pending.largerPlayerId !== playerId) {
+      return;
+    }
+    announce(
+      `Hand Exchange: choose one coordinate to give back after taking ${pending.takenCoordinate.low}-${pending.takenCoordinate.high}.`,
+      'assertive'
+    );
+  }, [announce, pending, playerId]);
+
+  if (!pending || pending.largerPlayerId !== playerId) {
+    return null;
+  }
+
+  const selected: Coordinate | null =
+    selectedIndex !== null ? (hand[selectedIndex] ?? null) : null;
+  const taken = pending.takenCoordinate;
+
+  return (
+    <div
+      className={styles.overlay}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="hand-exchange-title"
+    >
+      <div className={styles.panel}>
+        <h2 id="hand-exchange-title" className={styles.title}>
+          Hand Exchange
+        </h2>
+        <p className={styles.lead}>
+          You took{' '}
+          <span className="sr-only">
+            {taken.low}-{taken.high}
+          </span>
+          <span className={styles.takenTile} aria-hidden="true">
+            <DominoTile
+              maxPips={maxPip}
+              value1={taken.low}
+              value2={taken.high}
+              width={28}
+              height={56}
+              rotation={0}
+              backgroundColor={tileSurface.fill}
+              borderColor={tileSurface.border}
+              pipColors={WARP_PIP_COLORS}
+            />
+          </span>{' '}
+          from the lightest hand. Select one coordinate to give back.
+        </p>
+        <div
+          className={styles.tileGrid}
+          role="listbox"
+          aria-label="Coordinates in your hand"
+          aria-activedescendant={
+            selectedIndex !== null
+              ? `hand-exchange-tile-${selectedIndex}`
+              : undefined
+          }
+        >
+          {hand.map((coordinate, index) => {
+            const selectedHere = selectedIndex === index;
+            const label = `${coordinate.low}-${coordinate.high}`;
+            return (
+              <button
+                key={`${label}-${index}`}
+                id={`hand-exchange-tile-${index}`}
+                type="button"
+                role="option"
+                aria-selected={selectedHere}
+                aria-label={label}
+                className={`${styles.tileChoice} ${
+                  selectedHere ? styles.tileChoiceSelected : ''
+                }`}
+                onClick={() => setSelectedIndex(index)}
+              >
+                <DominoTile
+                  maxPips={maxPip}
+                  value1={coordinate.low}
+                  value2={coordinate.high}
+                  width={40}
+                  height={80}
+                  rotation={0}
+                  backgroundColor={tileSurface.fill}
+                  borderColor={tileSurface.border}
+                  pipColors={WARP_PIP_COLORS}
+                />
+              </button>
+            );
+          })}
+        </div>
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={styles.confirmBtn}
+            disabled={selected === null}
+            aria-label={
+              selected
+                ? `Give back ${selected.low}-${selected.high}`
+                : 'Select a coordinate to give back'
+            }
+            onClick={() => {
+              if (!selected) {
+                return;
+              }
+              onResolve({
+                type: 'RESOLVE_HAND_EXCHANGE',
+                playerId,
+                coordinate: selected,
+              });
+            }}
+          >
+            Give back
+          </button>
         </div>
       </div>
     </div>

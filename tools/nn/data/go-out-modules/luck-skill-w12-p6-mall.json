@@ -1,0 +1,28 @@
+{
+  "warpFactor": 12,
+  "playerCount": 6,
+  "moduleConfig": "all",
+  "moduleLabel": "All Modules (stress test)",
+  "zetaOmitted": false,
+  "games": 500,
+  "objective": "go-out",
+  "summary": {
+    "games": 500,
+    "playerCount": 6,
+    "maxPip": 12,
+    "objective": "go-out",
+    "avgLegalMovesPerTurn": 2.5177191910940953,
+    "avgUniqueTrainsPerTurn": 1.2870610962644655,
+    "avgConstrainedTileFraction": 0.6482074345438616,
+    "avgUniquePipsInHand": 9.046830261254048,
+    "avgMaxPipCluster": 3.0405421835154662,
+    "avgHandEntropy": 2.816930394222428,
+    "avgMoveValueSpread": 4.243697192819102,
+    "avgNearOptimalFraction": 0.6917590342656494,
+    "avgOwnTrailPlayRate": 0,
+    "avgShieldsDownRate": 0.05403628321228967
+  },
+  "skillIndicators": 3,
+  "timestamp": "2026-07-19T02:31:24.664Z",
+  "durationSeconds": 2.348
+}
