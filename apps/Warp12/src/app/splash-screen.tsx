@@ -156,9 +156,6 @@ export const SplashScreen: FC<SplashScreenProps> = ({
       <div className={styles.logoContainer}>
         <SplashLogo className={styles.logo} />
       </div>
-      {clickToDismiss ? (
-        <p className={styles.dismissHint}>Click to continue</p>
-      ) : null}
     </div>
   );
 };
