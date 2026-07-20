@@ -24,7 +24,9 @@ import {
 import type {
   CaptainTailsCoordinate,
   CaptainTailsDisplay,
+  LogFontScale,
 } from './table-view-prefs';
+import { LOG_FONT_SCALE_FACTOR } from './table-view-prefs';
 import {
   DEFAULT_AUTO_FOLLOW_RETURN_DELAY_MS,
   sanitizeAutoFollowReturnDelayMs,
@@ -78,6 +80,15 @@ export interface TableOptionsDialogProps {
   onBridgeSoundsEnabledChange: (next: boolean) => void;
   turnBeepsEnabled: boolean;
   onTurnBeepsEnabledChange: (next: boolean) => void;
+  /** Commentator mode: show MM:SS elapsed prefixes. */
+  commentatorShowElapsed: boolean;
+  onCommentatorShowElapsedChange: (next: boolean) => void;
+  /** Bridge log / commentary overlay type size. */
+  logFontScale: LogFontScale;
+  onLogFontScaleChange: (next: LogFontScale) => void;
+  /** Admin-only audible commentator TTS. */
+  audibleCommentary?: boolean;
+  onAudibleCommentaryChange?: (next: boolean) => void;
   showDebugExport?: boolean;
   debugExportBusy?: boolean;
   onExportDebug?: () => void | Promise<void>;
@@ -142,6 +153,12 @@ export function TableOptionsDialog({
   onBridgeSoundsEnabledChange,
   turnBeepsEnabled,
   onTurnBeepsEnabledChange,
+  commentatorShowElapsed,
+  onCommentatorShowElapsedChange,
+  logFontScale,
+  onLogFontScaleChange,
+  audibleCommentary = false,
+  onAudibleCommentaryChange,
   showDebugExport = false,
   debugExportBusy = false,
   onExportDebug,
@@ -486,6 +503,64 @@ export function TableOptionsDialog({
           </section>
 
           <section className={optionStyles.section}>
+            <h3 className={optionStyles.sectionTitle}>Comms log</h3>
+            <label className={optionStyles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={commentatorShowElapsed}
+                onChange={(event) => {
+                  const next = event.target.checked;
+                  onCommentatorShowElapsedChange(next);
+                  announce(
+                    next
+                      ? 'Commentator timestamps on.'
+                      : 'Commentator timestamps off.',
+                    'polite'
+                  );
+                }}
+              />
+              <span>Show timespan in commentator mode</span>
+            </label>
+            <p className={optionStyles.hint}>
+              {commentatorShowElapsed
+                ? 'Highlight lines start with round elapsed time (e.g. 05:12). Fleet console always keeps times.'
+                : 'Commentator lines drop the MM:SS prefix — cleaner for OBS. Fleet console still shows times.'}
+            </p>
+            <p className={optionStyles.hint} style={{ fontStyle: 'normal' }}>
+              Log font size
+            </p>
+            <div className={optionStyles.row} role="group" aria-label="Log font size">
+              {(
+                [
+                  ['xs', 'Extra small'],
+                  ['sm', 'Small'],
+                  ['md', 'Medium'],
+                  ['lg', 'Large'],
+                  ['xl', 'Extra large'],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={optionStyles.optionBtn}
+                  data-active={logFontScale === id}
+                  aria-pressed={logFontScale === id}
+                  onClick={() => {
+                    onLogFontScaleChange(id);
+                    announce(`Log font size ${label}.`, 'polite');
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className={optionStyles.hint}>
+              Scales the Bridge ticker, sector log dialog, and commentary overlay
+              ({Math.round(LOG_FONT_SCALE_FACTOR[logFontScale] * 100)}%).
+            </p>
+          </section>
+
+          <section className={optionStyles.section}>
             <h3 className={optionStyles.sectionTitle}>Sound</h3>
             <label className={optionStyles.checkboxRow}>
               <input
@@ -586,7 +661,7 @@ export function TableOptionsDialog({
 
           {sectorInvite ? (
             <section className={optionStyles.section}>
-              <h3 className={optionStyles.sectionTitle}>Spectator link</h3>
+              <h3 className={optionStyles.sectionTitle}>Stream &amp; spectate</h3>
               <div className={optionStyles.actionRow}>
                 <button
                   type="button"
@@ -612,7 +687,56 @@ export function TableOptionsDialog({
                       });
                   }}
                 >
-                  Copy spectator link
+                  Copy watch link
+                </button>
+                <button
+                  type="button"
+                  className={optionStyles.actionBtn}
+                  disabled={!sectorInvite.allowSpectate}
+                  aria-label={
+                    sectorInvite.allowSpectate
+                      ? 'Copy commentary overlay link'
+                      : 'Copy commentary overlay link (gallery closed)'
+                  }
+                  onClick={() => {
+                    const { commentaryUrl } = sectorInviteLinks(
+                      sectorInvite.code
+                    );
+                    void copyTextToClipboard(commentaryUrl)
+                      .then(() => {
+                        const msg = 'Commentary link copied.';
+                        setInviteStatus(msg);
+                        announce(msg, 'polite');
+                      })
+                      .catch(() => {
+                        const msg = 'Could not copy commentary link.';
+                        setInviteStatus(msg);
+                        announce(msg, 'assertive');
+                      });
+                  }}
+                >
+                  Copy commentary
+                </button>
+                <button
+                  type="button"
+                  className={optionStyles.actionBtn}
+                  aria-label="Copy private hand link"
+                  onClick={() => {
+                    const { handUrl } = sectorInviteLinks(sectorInvite.code);
+                    void copyTextToClipboard(handUrl)
+                      .then(() => {
+                        const msg = 'Private hand link copied.';
+                        setInviteStatus(msg);
+                        announce(msg, 'polite');
+                      })
+                      .catch(() => {
+                        const msg = 'Could not copy private hand link.';
+                        setInviteStatus(msg);
+                        announce(msg, 'assertive');
+                      });
+                  }}
+                >
+                  Copy private hand
                 </button>
               </div>
               {inviteStatus ? (
@@ -623,8 +747,8 @@ export function TableOptionsDialog({
               <p className={optionStyles.hint}>
                 {sectorInvite.allowSpectate
                   ? sectorInvite.rated
-                    ? 'Rated play keeps Subspace on quick hails — copy the watch URL here to share mid-mission. Seat invites only work in the lobby.'
-                    : 'Share the public watch URL so captains without a seat can follow the table. Seat invites only work in the lobby.'
+                    ? 'Rated play keeps Subspace on quick hails. Watch for gallery; commentary for OBS; private hand for your off-camera seat (same Firebase login).'
+                    : 'Watch = gallery. Commentary = OBS overlay. Private hand = second monitor (your seat auth). Open Stream setup from the sector log for the full checklist.'
                   : 'Spectator gallery is closed for this sector (host or ops). Re-enable in the lobby or ask ops to reopen spectate.'}
               </p>
             </section>
@@ -633,6 +757,29 @@ export function TableOptionsDialog({
           {isAdmin ? (
             <section className={optionStyles.section}>
               <h3 className={optionStyles.sectionTitle}>Admin</h3>
+              <label className={optionStyles.checkboxRow}>
+                <input
+                  type="checkbox"
+                  checked={audibleCommentary}
+                  disabled={!onAudibleCommentaryChange}
+                  onChange={(event) => {
+                    const next = event.target.checked;
+                    onAudibleCommentaryChange?.(next);
+                    announce(
+                      next
+                        ? 'Audible game commentary on.'
+                        : 'Audible game commentary off.',
+                      'polite'
+                    );
+                  }}
+                />
+                <span>Audible game commentary</span>
+              </label>
+              <p className={optionStyles.hint}>
+                {audibleCommentary
+                  ? 'Speaks commentator highlights via Cloud Functions + ElevenLabs (quota-limited; cached in Firebase Storage).'
+                  : 'Admin-only: speak ringside highlight lines aloud. Uses server TTS — never sends free-form text.'}
+              </p>
               <label className={optionStyles.checkboxRow}>
                 <input
                   type="checkbox"

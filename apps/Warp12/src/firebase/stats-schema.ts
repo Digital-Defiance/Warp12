@@ -1,6 +1,7 @@
 import type { WarpSkillLevel } from 'warp12-engine';
 
 import type { CaptainGender } from '../game/captain-profile.js';
+import type { CaptainPronounPreference } from '../game/captain-pronouns.js';
 import type {
   ObjectiveRatingStats,
   RatedObjective,
@@ -78,6 +79,16 @@ export interface PlayerStatsDocument {
   displayName: string;
   /** Advisor-report icon preference (captain avatar). */
   captainGender?: CaptainGender;
+  /**
+   * Narration pronouns (commentator / sector log). Independent of captainGender —
+   * e.g. female avatar + they/them is valid.
+   */
+  captainPronouns?: CaptainPronounPreference;
+  /**
+   * Optional pronunciation alias for TTS / spoken commentary.
+   * Visible call sign stays `displayName`; speech may use this instead.
+   */
+  speakAs?: string | null;
   matchesCompleted: number;
   matchesWon: number;
   roundsPlayed: number;

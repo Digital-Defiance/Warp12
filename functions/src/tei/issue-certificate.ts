@@ -2,10 +2,10 @@
  * Shared certificate issue: HMAC sign + PDF upload + verify URL.
  */
 
-import * as admin from 'firebase-admin';
 import { HttpsError } from 'firebase-functions/v2/https';
 
 import { certificateSigningSecret } from '../params';
+import { getAppStorageBucket } from '../storage-bucket';
 import { buildSignedCertificatePdf } from './certificate-pdf';
 import type { RatedMatchCertificate } from './rated-match-schema';
 
@@ -54,9 +54,7 @@ export async function issueSignedCertificate(
     secret,
   });
 
-  await admin
-    .storage()
-    .bucket()
+  await getAppStorageBucket()
     .file(signed.storagePath)
     .save(Buffer.from(signed.pdfBytes), {
       contentType: 'application/pdf',

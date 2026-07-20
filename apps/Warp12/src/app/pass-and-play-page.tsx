@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import {
@@ -12,6 +12,9 @@ import {
   type WarpAiPlayer,
   type WarpSkillLevel,
 } from 'warp12-engine';
+import { setWarpFactor, useRequireWarpFactor, type WarpFactor } from './warp-factor.js';
+import { FactorGauge } from './factor-gauge';
+import { useAnnounce } from '../a11y/live-announcer.js';
 
 import { BridgeTable } from './bridge-table';
 import { goOutAwareModuleLabel } from './go-out-module-labels.js';
@@ -62,7 +65,7 @@ import {
   WARP12_OFFICIAL_OBJECTIVE,
 } from '../game/warp12-preset.js';
 import { drawMatchSeed } from '../game/match-seed.js';
-import { requireWarpFactor } from './warp-factor.js';
+import { Warp12Logo } from './Warp12Logo.js';
 
 type SetupPhase = 'configure' | 'playing';
 
@@ -73,7 +76,8 @@ interface PassAndPlayLaunchSession {
 }
 
 export function PassAndPlayPage() {
-  const maxPip = requireWarpFactor();
+  const announce = useAnnounce();
+  const maxPip = useRequireWarpFactor();
   const fleetMax = maxPlayersForFactor(maxPip);
   const [phase, setPhase] = useState<SetupPhase>('configure');
   const [initialSnapshot] = useState(() =>
@@ -151,6 +155,32 @@ export function PassAndPlayPage() {
   );
   const [launching, setLaunching] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
+
+  // Keep fleet size / AI fill / names inside the new factor's limits when the dial changes.
+  useEffect(() => {
+    const capped = clampPassAndPlayPlayerCount(playerCount, maxPip);
+    if (capped !== playerCount) {
+      setPlayerCount(capped);
+    }
+    setHumanNames((current) => {
+      if (current.length === capped) return current;
+      return Array.from(
+        { length: capped },
+        (_, index) =>
+          current[index] ??
+          DEFAULT_HUMAN_CAPTAIN_NAMES[index] ??
+          `Captain ${index + 1}`
+      );
+    });
+    setAiFillCount((current) =>
+      Math.min(current, Math.max(0, capped - PASS_AND_PLAY_MIN_PLAYERS))
+    );
+  }, [maxPip]); // eslint-disable-line react-hooks/exhaustive-deps -- clamp only on factor change
+
+  useEffect(() => {
+    if (neuralAiSupported(maxPip)) return;
+    setExtendedThinkingByAi({});
+  }, [maxPip]);
 
   const applyOfficialWarp12Rules = () => {
     setObjective(WARP12_OFFICIAL_OBJECTIVE);
@@ -368,6 +398,20 @@ export function PassAndPlayPage() {
   }
 
   return (
+    <>
+    <div className={styles.factorGaugeContainer}>
+      <FactorGauge
+        width={200}
+        factor={maxPip}
+        onFactorSelect={(next: WarpFactor) => {
+          setWarpFactor(next);
+          announce(`Warp factor ${next}`, 'polite');
+        }}
+      />
+      <div className={styles.factorGaugeLogoContainer}>
+        <Warp12Logo factor={maxPip} width={200} taglineOff={true} />
+      </div>
+    </div>
     <section className={`${styles.lobby} ${styles.lobbyWide}`}>
       <p className={styles.backLink}>
         <Link to="/">← Back to bridge</Link>
@@ -735,6 +779,7 @@ export function PassAndPlayPage() {
         </button>
       </div>
     </section>
+    </>
   );
 }
 

@@ -299,6 +299,23 @@ export function AboutPage() {
         </section>
 
         <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Streaming</h2>
+          <p className={styles.p}>
+            Warp can run stream-safe: hide your hand on the capture Bridge, put
+            the commentator overlay in OBS, and play from a private hand window
+            (online seat or local companion). Full walkthrough in the{' '}
+            <a
+              href="https://docs.warp12.app/streamer-manual"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Streamer Manual
+            </a>
+            , or open <strong>Stream setup</strong> from the sector log mid-match.
+          </p>
+        </section>
+
+        <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Who builds this</h2>
           <p className={styles.p}>
             Warp 12 is a free, nonprofit hobby project by{' '}

@@ -21,18 +21,17 @@ export function GameLogLine({
   nameColors = [],
   className,
 }: GameLogLineProps) {
-  const parsed = splitGameLogLine(line);
-
-  if (!parsed) {
-    return <p className={className ?? styles.line}>{line}</p>;
-  }
-
-  const segments = splitBodyByNames(parsed.body, nameColors);
+  const { timestamp, body } = splitGameLogLine(line);
+  const segments = splitBodyByNames(body, nameColors);
 
   return (
     <p className={className ?? styles.line}>
-      <span className={styles.timestamp}>{parsed.timestamp}</span>
-      {' - '}
+      {timestamp != null ? (
+        <>
+          <span className={styles.timestamp}>{timestamp}</span>
+          {' - '}
+        </>
+      ) : null}
       {segments.map((segment, index) => {
         if (segment.tei) {
           const colorClass = getTeiGradeColor(segment.tei.grade);

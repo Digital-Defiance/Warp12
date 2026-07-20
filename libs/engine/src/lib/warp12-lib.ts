@@ -34,3 +34,4 @@ export * from './fixtures/create-demo-game.js';
 export * from './violations/format-violation.js';
 export * from './rating/index.js';
 export * from './serialization/index.js';
+export * from './commentator/index.js';

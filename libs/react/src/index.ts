@@ -9,3 +9,5 @@ export * from './hand/hand-layout.js';
 export * from './hand/use-hand-layout.js';
 export * from './hand/action-log.js';
 export * from './hand/game-log.js';
+export * from './hand/game-log-commentator.js';
+export * from './hand/pronouns.js';

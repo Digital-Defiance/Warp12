@@ -792,6 +792,29 @@
   }
 }
 
+.privateHandBanner {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 0.85rem;
+  margin: 0 0 0.65rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  border-radius: 4px;
+  background: rgba(251, 191, 36, 0.1);
+  font-family: var(--font-federation, system-ui);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--warp-text, #e2e8f0);
+
+  strong {
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #fbbf24;
+  }
+}
+
 .waitingMessage {
   font-family: var(--font-federation);
   color: #94a3b8;
@@ -924,4 +947,17 @@
   color: #94a3b8;
   text-align: center;
   padding: 2rem;
+}
+
+.factorGaugeContainer {
+  text-align: center;
+}
+.factorGaugeContainer h2 {
+  margin-top: 0px;
+  font-family: var(--font-federation);
+  margin-bottom: 50px;
+}
+.factorGaugeLogoContainer {
+  margin-top: 0px;
+  margin-bottom: 25px;
 }

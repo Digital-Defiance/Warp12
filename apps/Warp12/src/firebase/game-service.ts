@@ -28,6 +28,7 @@ import {
 import { FIRESTORE_COLLECTIONS, getFirestoreDb } from './config.js';
 import { extractHands, mergeHandsIntoGame } from './serialize.js';
 import { stripUndefined } from './strip-undefined.js';
+import { sanitizeSpeakAs } from '../game/captain-speak-as.js';
 import {
   isAiCaptain,
   isAiCaptainId,
@@ -123,6 +124,10 @@ export interface CreateLobbyOptions {
   verified?: boolean;
   charterId?: string;
   rulesProfileId?: string;
+  /** Host spoken-as alias (snapshotted onto roster). */
+  speakAs?: string | null;
+  /** Match-level TTS speak-as (default true). */
+  useSpeakAs?: boolean;
 }
 
 export async function createLobby(
@@ -132,12 +137,14 @@ export async function createLobby(
   options: CreateLobbyOptions = {}
 ): Promise<string> {
   const now = new Date().toISOString();
+  const hostSpeakAs = sanitizeSpeakAs(options.speakAs);
   const captains: FirestoreCaptain[] = [
     {
       id: hostId,
       displayName,
       pointsScore: 0,
       joinedAt: now,
+      ...(hostSpeakAs ? { speakAs: hostSpeakAs } : {}),
       ...(options.verified !== undefined ? { verified: options.verified } : {}),
     },
   ];
@@ -168,6 +175,7 @@ export async function createLobby(
       : {}),
     maxPip,
     rated,
+    useSpeakAs: options.useSpeakAs !== false,
     maxPlayers: clampOnlineMaxPlayers(
       options.maxPlayers ?? ONLINE_MAX_PLAYERS,
       warpSetProfile(maxPip).maxPlayers
@@ -197,9 +205,10 @@ export async function joinLobby(
   gameId: string,
   playerId: string,
   displayName: string,
-  options: { verified?: boolean } = {}
+  options: { verified?: boolean; speakAs?: string | null } = {}
 ): Promise<{ displayName: string }> {
   let assignedName = displayName.trim();
+  const joinSpeakAs = sanitizeSpeakAs(options.speakAs);
 
   await runTransaction(getFirestoreDb()!, async (tx) => {
     const snap = await tx.get(gameRef(gameId));
@@ -228,6 +237,7 @@ export async function joinLobby(
         displayName: assignedName,
         pointsScore: 0,
         joinedAt: now,
+        ...(joinSpeakAs ? { speakAs: joinSpeakAs } : {}),
         ...(options.verified !== undefined
           ? { verified: options.verified }
           : {}),
@@ -337,6 +347,8 @@ export interface UpdateAiCaptainPatch {
   displayName?: string;
   skill?: WarpSkillLevel;
   useLookahead?: boolean;
+  /** Spoken-as alias for TTS; null/empty clears. */
+  speakAs?: string | null;
 }
 
 export async function updateAiCaptain(
@@ -375,8 +387,7 @@ export async function updateAiCaptain(
           )
         : current.displayName;
 
-    const captains = [...data.captains];
-    captains[index] = {
+    const base: FirestoreCaptain = {
       ...current,
       displayName: nextDisplayName,
       ...(patch.skill !== undefined ? { skill: patch.skill } : {}),
@@ -384,9 +395,94 @@ export async function updateAiCaptain(
         ? { useLookahead: patch.useLookahead }
         : {}),
     };
+    let next: FirestoreCaptain = base;
+    if (patch.speakAs !== undefined) {
+      const alias = sanitizeSpeakAs(patch.speakAs);
+      const { speakAs: _cleared, ...withoutSpeakAs } = base;
+      void _cleared;
+      next = alias ? { ...withoutSpeakAs, speakAs: alias } : withoutSpeakAs;
+    }
+
+    const captains = [...data.captains];
+    captains[index] = next;
 
     tx.update(gameRef(gameId), {
       captains,
+      updatedAt: new Date().toISOString(),
+    });
+  });
+}
+
+/**
+ * Lobby-only: set or clear a captain's spoken-as alias (frozen at launch).
+ * Host may edit any seat; a captain may edit only their own.
+ */
+export async function updateCaptainSpeakAs(
+  gameId: string,
+  actorId: string,
+  targetCaptainId: string,
+  speakAs: string | null
+): Promise<void> {
+  const next = sanitizeSpeakAs(speakAs);
+  await runTransaction(getFirestoreDb()!, async (tx) => {
+    const snap = await tx.get(gameRef(gameId));
+    if (!snap.exists()) {
+      throw new Error('Game not found');
+    }
+    const data = snap.data() as FirestoreGameDocument;
+    if (data.phase !== 'lobby') {
+      throw new Error('Spoken-as is locked once the mission launches');
+    }
+    const isHost = data.hostId === actorId;
+    if (!isHost && actorId !== targetCaptainId) {
+      throw new Error('Only the host can edit another captain’s spoken-as');
+    }
+    if (!isHost && !data.captains.some((c) => c.id === actorId)) {
+      throw new Error('Not aboard this sector');
+    }
+
+    const index = data.captains.findIndex((c) => c.id === targetCaptainId);
+    if (index === -1) {
+      throw new Error('Captain not found');
+    }
+
+    const captains = [...data.captains];
+    const current = captains[index]!;
+    captains[index] = next
+      ? { ...current, speakAs: next }
+      : (() => {
+          const { speakAs: _removed, ...rest } = current;
+          void _removed;
+          return rest;
+        })();
+
+    tx.update(gameRef(gameId), {
+      captains,
+      updatedAt: new Date().toISOString(),
+    });
+  });
+}
+
+/** Lobby-only match toggle: when false, TTS uses call signs only. */
+export async function setLobbyUseSpeakAs(
+  gameId: string,
+  hostId: string,
+  useSpeakAs: boolean
+): Promise<void> {
+  await runTransaction(getFirestoreDb()!, async (tx) => {
+    const snap = await tx.get(gameRef(gameId));
+    if (!snap.exists()) {
+      throw new Error('Game not found');
+    }
+    const data = snap.data() as FirestoreGameDocument;
+    if (data.hostId !== hostId) {
+      throw new Error('Only the host can change spoken-as settings');
+    }
+    if (data.phase !== 'lobby') {
+      throw new Error('Spoken-as settings are locked once the mission launches');
+    }
+    tx.update(gameRef(gameId), {
+      useSpeakAs,
       updatedAt: new Date().toISOString(),
     });
   });
@@ -440,6 +536,42 @@ export async function clearSpectatorGallery(
     }
     tx.update(gameRef(gameId), {
       spectatorIds: [],
+      updatedAt: new Date().toISOString(),
+    });
+  });
+}
+
+/**
+ * After a guest links Google in the waiting room, stamp `verified` on their
+ * lobby seat so rating eligibility updates before launch. Host-only (rules
+ * allow host lobby writes); non-hosts rely on Auth at TEI report time.
+ */
+export async function markLobbyCaptainVerified(
+  gameId: string,
+  hostId: string,
+  captainId: string
+): Promise<void> {
+  await runTransaction(getFirestoreDb()!, async (tx) => {
+    const ref = gameRef(gameId);
+    const snap = await tx.get(ref);
+    if (!snap.exists()) {
+      throw new Error('Game not found');
+    }
+    const data = snap.data() as FirestoreGameDocument;
+    if (data.phase !== 'lobby') {
+      throw new Error('Verification can only be stamped in the lobby');
+    }
+    if (data.hostId !== hostId) {
+      throw new Error('Only the host can update lobby seat verification');
+    }
+    if (!data.captainIds.includes(captainId)) {
+      throw new Error('Captain is not aboard this sector');
+    }
+    const captains = data.captains.map((captain) =>
+      captain.id === captainId ? { ...captain, verified: true } : captain
+    );
+    tx.update(ref, {
+      captains,
       updatedAt: new Date().toISOString(),
     });
   });
@@ -553,6 +685,9 @@ export async function updateLobbySettings(
             ...(settings.allowSpectate === false ? { spectatorIds: [] } : {}),
           }
         : {}),
+      ...(settings.useSpeakAs !== undefined
+        ? { useSpeakAs: settings.useSpeakAs }
+        : {}),
       maxPlayers,
       updatedAt: new Date().toISOString(),
     });
@@ -621,6 +756,7 @@ export async function launchOnlineGame(
       captains: lobby.captains,
       rated: lobby.rated,
       maxPlayers: maxPlayersFor(lobby),
+      useSpeakAs: lobby.useSpeakAs !== false,
       allowSpectate: lobby.allowSpectate,
       spectatorIds: lobby.spectatorIds ?? [],
       charterId: lobby.charterId,
@@ -740,6 +876,8 @@ export interface OnlineGameSnapshot {
   aiHands: Record<string, readonly { low: number; high: number }[]>;
   /** Host intent to play for TEI (default true). */
   rated: boolean;
+  /** When false, TTS uses call signs only (default true). */
+  useSpeakAs: boolean;
   dissolved: boolean;
   /** Viewer was removed from captainIds (ops kick). */
   ejected: boolean;
@@ -875,6 +1013,7 @@ export function subscribeOnlineGame(
       spectatorCount: spectatorIds.length,
       isSpectator: spectatorIds.includes(viewerId),
       paused: latestDoc?.paused === true,
+      useSpeakAs: latestDoc?.useSpeakAs !== false,
       ...(latestDoc?.pauseReason
         ? { pauseReason: latestDoc.pauseReason }
         : {}),
@@ -897,6 +1036,7 @@ export function subscribeOnlineGame(
         sectorCaptains: [],
         aiHands: {},
         rated: true,
+        useSpeakAs: true,
         dissolved: true,
         ejected: false,
         terminated: false,

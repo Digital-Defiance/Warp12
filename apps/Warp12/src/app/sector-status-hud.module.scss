@@ -179,11 +179,15 @@
   text-align: right;
   color: var(--warp-text-muted);
 
-  &[data-my-turn='true'] {
+  [data-part='name'] {
+    font-weight: 600;
+  }
+
+  &[data-my-turn='true'] [data-part='rest'] {
     color: var(--warp-accent);
   }
 
-  &[data-ai='true'] {
+  &[data-ai='true'] [data-part='rest'] {
     color: var(--warp-accent-warm, #fbbf24);
   }
 }

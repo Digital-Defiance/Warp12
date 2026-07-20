@@ -24,6 +24,24 @@ describe('splitGameLogLine', () => {
       body: 'Armstrong charted 9-12',
     });
   });
+
+  it('keeps the full line as body when timespan is omitted', () => {
+    expect(
+      splitGameLogLine('All Stop! Armstrong empties the hand — what a finish!')
+    ).toEqual({
+      timestamp: null,
+      body: 'All Stop! Armstrong empties the hand — what a finish!',
+    });
+  });
+
+  it('does not treat mid-sentence dashes as a timespan', () => {
+    expect(
+      splitGameLogLine('Armstrong charts 3:9 - trail secured!')
+    ).toEqual({
+      timestamp: null,
+      body: 'Armstrong charts 3:9 - trail secured!',
+    });
+  });
 });
 
 describe('splitBodyByNames', () => {

@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import type { TrailAccessState, TrailSpokeStatus } from 'warp12-react';
 import { WARP_PIP_COLORS, WARP_TILE_SURFACE, type WarpTileBg } from 'warp12-theme';
 import { FloatingPanelShell } from './floating-panel-shell';
+import { captainLogColor } from './game-log-display.js';
 import type {
   CaptainTailsCoordinate,
   CaptainTailsDisplay,
@@ -317,7 +318,16 @@ export function CaptainTailsHud({
               data-squadron={row.squadronId}
             >
               <span className={styles.nameCell} title={nameTitle}>
-                <span className={styles.name}>
+                <span
+                  className={styles.name}
+                  style={
+                    row.rowId === 'neutral-zone'
+                      ? undefined
+                      : {
+                          color: captainLogColor(row.rowId, round.turnOrder),
+                        }
+                  }
+                >
                   {row.label}
                   <span className={styles.stateIndicators}>
                     {row.state === 'open' && (

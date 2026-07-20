@@ -42,7 +42,7 @@ import { readUserPrefs, writeUserPrefs } from './user-prefs.js';
 import { formatDisplayDay, formatDisplayTime } from './display-time.js';
 import { AccountUpgradeFieldset } from './account-upgrade-fieldset.js';
 import { AcademyPlacementFieldset } from './academy-placement-fieldset';
-import { CaptainGenderFieldset } from './captain-gender-fieldset';
+import { CaptainIdentityFieldset } from './captain-identity-fieldset';
 import { TeiDisplay } from './components/tei-display.js';
 import { RatingHistoryChart } from './rating-history-chart.js';
 import { SigmaDecayChart } from './sigma-decay-chart.js';
@@ -377,13 +377,24 @@ export function ProfilePage() {
 
   const auth = useFirebaseAuth();
   const playerStats = usePlayerStats();
-  const { gender: captainGender, setCaptainGender } = useCaptainProfile();
+  const {
+    gender: captainGender,
+    setCaptainGender,
+    pronouns: captainPronouns,
+    setCaptainPronouns,
+    speakAs: captainSpeakAs,
+    setCaptainSpeakAs,
+  } = useCaptainProfile();
   const configured = isFirebaseConfigured();
 
-  const captainAvatarFieldset = (
-    <CaptainGenderFieldset
+  const captainIdentityFieldset = (
+    <CaptainIdentityFieldset
       gender={captainGender}
-      onChange={(next) => void setCaptainGender(next)}
+      onGenderChange={(next) => void setCaptainGender(next)}
+      pronouns={captainPronouns}
+      onPronounsChange={(next) => void setCaptainPronouns(next)}
+      speakAs={captainSpeakAs}
+      onSpeakAsChange={(next) => void setCaptainSpeakAs(next)}
       disabled={!playerStats.ready}
     />
   );
@@ -395,7 +406,7 @@ export function ProfilePage() {
           <Link to="/">← Back to bridge</Link>
         </p>
         <h2 className={styles.title}>Captain profile</h2>
-        {captainAvatarFieldset}
+        {captainIdentityFieldset}
         <p className={styles.hint}>Firebase is not configured — solo TEI is unavailable.</p>
       </section>
     );
@@ -416,7 +427,7 @@ export function ProfilePage() {
           <Link to="/">← Back to bridge</Link>
         </p>
         <h2 className={styles.title}>Captain profile</h2>
-        {captainAvatarFieldset}
+        {captainIdentityFieldset}
         <p className={styles.hint}>Sign in for solo TEI and match history.</p>
       </section>
     );
@@ -530,7 +541,7 @@ export function ProfilePage() {
         </div>
       ) : null}
 
-      {captainAvatarFieldset}
+      {captainIdentityFieldset}
 
       {auth.user && (
         <AccountUpgradeFieldset

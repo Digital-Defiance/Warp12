@@ -1,4 +1,4 @@
-import { useEffect, type FC } from 'react';
+import { useEffect, useRef, type FC, type KeyboardEvent } from 'react';
 
 import { isTauriRuntime } from '../firebase/platform.js';
 import { SplashLogo } from './splash-logo';
@@ -7,6 +7,12 @@ import styles from './splash-screen.module.scss';
 const SPLASH_MS = 4200;
 const SPLASH_SEEN_KEY = 'warp12-splash-seen';
 export const SPLASH_REPLAY_EVENT = 'warp12-splash-replay';
+
+export type SplashDismissMode = 'timer' | 'click';
+
+export type SplashReplayDetail = {
+  dismiss?: SplashDismissMode;
+};
 
 export function shouldShowNativeSplash(): boolean {
   if (!isTauriRuntime()) {
@@ -28,11 +34,15 @@ function markSplashSeen(): void {
 }
 
 /** Force the splash overlay again (easter eggs / replay). Works on web too. */
-export function requestSplashReplay(): void {
+export function requestSplashReplay(options?: SplashReplayDetail): void {
   if (typeof window === 'undefined') {
     return;
   }
-  window.dispatchEvent(new CustomEvent(SPLASH_REPLAY_EVENT));
+  window.dispatchEvent(
+    new CustomEvent<SplashReplayDetail>(SPLASH_REPLAY_EVENT, {
+      detail: { dismiss: options?.dismiss ?? 'click' },
+    })
+  );
 }
 
 
@@ -54,6 +64,8 @@ async function waitForSplashFonts(): Promise<void> {
 export interface SplashScreenProps {
   onFinished: () => void;
   durationMs?: number;
+  /** Boot: auto-dismiss after duration. Egg replay: stay until click/key. */
+  dismissMode?: SplashDismissMode;
 }
 
 /**
@@ -63,8 +75,25 @@ export interface SplashScreenProps {
 export const SplashScreen: FC<SplashScreenProps> = ({
   onFinished,
   durationMs = SPLASH_MS,
+  dismissMode = 'timer',
 }) => {
+  const finishedRef = useRef(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  const finish = () => {
+    if (finishedRef.current) {
+      return;
+    }
+    finishedRef.current = true;
+    markSplashSeen();
+    onFinished();
+  };
+
   useEffect(() => {
+    finishedRef.current = false;
+    if (dismissMode !== 'timer') {
+      return;
+    }
     let cancelled = false;
     let timer = 0;
 
@@ -74,6 +103,10 @@ export const SplashScreen: FC<SplashScreenProps> = ({
         return;
       }
       timer = window.setTimeout(() => {
+        if (finishedRef.current) {
+          return;
+        }
+        finishedRef.current = true;
         markSplashSeen();
         onFinished();
       }, durationMs);
@@ -83,18 +116,49 @@ export const SplashScreen: FC<SplashScreenProps> = ({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [durationMs, onFinished]);
+  }, [durationMs, dismissMode, onFinished]);
+
+  useEffect(() => {
+    if (dismissMode !== 'click') {
+      return;
+    }
+    void waitForSplashFonts();
+    rootRef.current?.focus();
+  }, [dismissMode]);
+
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (dismissMode !== 'click') {
+      return;
+    }
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+      e.preventDefault();
+      finish();
+    }
+  };
+
+  const clickToDismiss = dismissMode === 'click';
 
   return (
     <div
-      className={styles.splashScreen}
-      role="status"
-      aria-live="polite"
-      aria-label="Warp loading"
+      ref={rootRef}
+      className={`${styles.splashScreen}${clickToDismiss ? ` ${styles.splashScreenClickable}` : ''}`}
+      role={clickToDismiss ? 'button' : 'status'}
+      tabIndex={clickToDismiss ? 0 : undefined}
+      aria-live={clickToDismiss ? undefined : 'polite'}
+      aria-label={
+        clickToDismiss
+          ? 'Warp logo. Click or press Enter to continue.'
+          : 'Warp loading'
+      }
+      onClick={clickToDismiss ? () => finish() : undefined}
+      onKeyDown={clickToDismiss ? onKeyDown : undefined}
     >
       <div className={styles.logoContainer}>
         <SplashLogo className={styles.logo} />
       </div>
+      {clickToDismiss ? (
+        <p className={styles.dismissHint}>Click to continue</p>
+      ) : null}
     </div>
   );
 };

@@ -1,0 +1,24 @@
+.root {
+  display: inline-block;
+  line-height: 0;
+  user-select: none;
+}
+
+.dial {
+  display: block;
+  cursor: pointer;
+  touch-action: none;
+  border-radius: 50%;
+  outline: none;
+
+  &:focus-visible {
+    box-shadow: 0 0 0 3px #06b6d4, 0 0 0 6px rgba(6, 182, 212, 0.35);
+  }
+}
+
+.face {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}

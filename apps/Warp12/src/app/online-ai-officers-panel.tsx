@@ -55,6 +55,7 @@ export function OnlineAiOfficersPanel({
     patch: {
       displayName?: string;
       skill?: WarpSkillLevel;
+      speakAs?: string | null;
     }
   ) => {
     if (!uid || uid !== hostId) {
@@ -77,7 +78,9 @@ export function OnlineAiOfficersPanel({
       <legend>AI officers ({aiCaptains.length})</legend>
       <p className={styles.subtitle}>
         Fill empty seats with host-run officers. They chart on your bridge when
-        it is their turn.
+        it is their turn. Spoken-as aliases feed commentary TTS only — call
+        signs stay on the table. Fleet-wide IPA rules live in the Ops ElevenLabs
+        pronunciation dictionary.
         {seatsOpen > 0
           ? ` ${seatsOpen} seat${seatsOpen === 1 ? '' : 's'} open.`
           : ' Fleet is at capacity.'}
@@ -112,6 +115,21 @@ export function OnlineAiOfficersPanel({
               const next = event.target.value.trim();
               if (next && next !== captain.displayName) {
                 void patchCaptain(captain, { displayName: next });
+              }
+            }}
+          />
+          <input
+            className={styles.aiNameInput}
+            aria-label={`${captain.displayName} spoken as`}
+            defaultValue={captain.speakAs ?? ''}
+            key={`${captain.id}:speakAs:${captain.speakAs ?? ''}`}
+            placeholder="Spoken as (TTS)"
+            disabled={busy}
+            onBlur={(event) => {
+              const next = event.target.value.trim();
+              const prev = captain.speakAs ?? '';
+              if (next !== prev) {
+                void patchCaptain(captain, { speakAs: next || null });
               }
             }}
           />

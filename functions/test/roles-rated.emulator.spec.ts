@@ -101,6 +101,51 @@ describe('roles / rated-match callables (emulator)', () => {
     expect(snap.data()?.objective).toBe('points');
   });
 
+  it('setUserRoles refuses to remove the actors own admin role', async () => {
+    const adminUser = await createEmulatorUser({
+      displayName: 'SelfAdmin',
+      roles: ['admin'],
+    });
+
+    await expectCallableError(
+      () =>
+        callCallable(
+          'setUserRoles',
+          { uid: adminUser.uid, roles: ['moderator'] },
+          adminUser.idToken
+        ),
+      'FAILED_PRECONDITION'
+    );
+
+    const { getAuth } = await import('firebase-admin/auth');
+    const record = await getAuth().getUser(adminUser.uid);
+    expect((record.customClaims?.roles as string[] | undefined) ?? []).toContain(
+      'admin'
+    );
+  });
+
+  it('setUserRoles can demote another admin', async () => {
+    const actor = await createEmulatorUser({
+      displayName: 'ActorAdmin',
+      roles: ['admin'],
+    });
+    const target = await createEmulatorUser({
+      displayName: 'OtherAdmin',
+      roles: ['admin'],
+    });
+
+    const result = await callCallable<{ ok: true; roles: string[] }>(
+      'setUserRoles',
+      { uid: target.uid, roles: ['moderator'] },
+      actor.idToken
+    );
+    expect(result.roles).toEqual(['moderator']);
+
+    const { getAuth } = await import('firebase-admin/auth');
+    const record = await getAuth().getUser(target.uid);
+    expect(record.customClaims?.roles).toEqual(['moderator']);
+  });
+
   it('setAcademyPlacement writes starting rating once', async () => {
     const user = await createEmulatorUser({ displayName: 'Cadet' });
 

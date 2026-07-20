@@ -9,6 +9,7 @@
     "core:default",
     "core:window:allow-close",
     "opener:default",
-    "deep-link:default"
+    "deep-link:default",
+    "warp-achievements:default"
   ]
 }

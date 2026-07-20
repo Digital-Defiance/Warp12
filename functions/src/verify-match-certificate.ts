@@ -6,6 +6,7 @@ import {
 } from './tei/issue-certificate';
 import { verifyCertificateSignature } from './tei/certificate-pdf';
 import { certificateSigningSecret } from './params';
+import { getAppStorageBucket } from './storage-bucket';
 import type {
   RatedMatchCertificate,
   RatedMatchDocument,
@@ -51,9 +52,7 @@ export const verifyMatchCertificate = onCall(async (request) => {
 
   let pdfUrl: string | null = null;
   if (cert.pdfPath) {
-    const [url] = await admin
-      .storage()
-      .bucket()
+    const [url] = await getAppStorageBucket()
       .file(cert.pdfPath)
       .getSignedUrl({
         action: 'read',

@@ -90,7 +90,7 @@ import {
   shouldIlluminateBridgeRedAlert,
   shouldIlluminateBridgeYellowAlert,
   getCoachSuggestion,
-  openTrailCaptainNames,
+  openTrailCaptains,
   playerIdForAction,
   routeLabel,
   coordinateKey,
@@ -103,6 +103,7 @@ import {
   type CoachSuggestion,
   type TableFocusPoint,
   type TrailAccessState,
+  formatCommentatorLine,
 } from 'warp12-react';
 import { downloadDebugExport } from '../game/debug-export.js';
 import { deliverBlob } from '../game/deliver-file.js';
@@ -169,12 +170,19 @@ import { preloadOmegaWeights } from '../ai/load-omega-weights.js';
 import { useFirebaseAuth } from '../firebase/use-firebase-auth.js';
 import { usePlayerStats } from '../firebase/use-player-stats.js';
 import {
+  createCommentatorAudioPlayer,
+  synthesizeCommentatorSpeech,
+  type SynthesizeCommentatorSpeechInput,
+} from '../firebase/synthesize-commentator-speech.js';
+import { createCommentatorTtsQueue } from '../game/commentator-tts-queue.js';
+import {
   classifyLocalAiMatchOpponent,
   classifyLocalAiMatchSkill,
   humanWonLocalMatch,
 } from '../game/local-match-stats.js';
 import { tableOpponentLabelForAdvisor } from '../game/advisor-report-meta.js';
 import { useCaptainProfile } from '../game/use-captain-profile.js';
+import { resolveTtsNameMap } from '../game/captain-speak-as.js';
 import {
   buildLocalRosterTei,
   buildOnlineRosterClasses,
@@ -231,7 +239,49 @@ import {
 } from './flash-panel.js';
 import { TrailSpokeIndicators } from './trail-spoke-indicators';
 import spokeStyles from './trail-spoke-indicators.module.scss';
-import { TableViewport, type LogVisibilityMode } from './table-viewport';
+import {
+  TableViewport,
+  nextLogVisibilityMode,
+  type LogVisibilityMode,
+} from './table-viewport';
+import {
+  logModeToScope,
+  readLogVisibilityMode,
+  scopeToLogMode,
+  writeLogVisibilityMode,
+  type GameLogScope,
+} from './log-visibility-prefs.js';
+import {
+  COMMENTATOR_TICKER_MAX_LINES,
+  filterGameLogLines,
+  takeRecentLogLines,
+} from './game-log-filter.js';
+import {
+  COMMENTARY_OVERLAY_PATH,
+  COMMENTATOR_CHANNEL,
+  isCommentatorBroadcastMessage,
+  openCommentaryOverlayWindow,
+  publishCommentatorSnapshot,
+} from './commentator-broadcast.js';
+import {
+  HAND_COMPANION_CHANNEL,
+  handCompanionChannelForSeat,
+  isHandCompanionInboundMessage,
+  openCouchHandWindows,
+  openLocalHandCompanionWindow,
+  publishHandCompanionRoster,
+  publishHandCompanionSnapshot,
+  redactGameForSeat,
+} from './hand-companion-broadcast.js';
+import {
+  companionListenChannels,
+  isCompanionHandoffEnabled,
+  resolveCompanionHumanSeats,
+  resolveFollowCompanionSeatId,
+  shouldAcceptCompanionAction,
+  shouldAcceptCompanionHandoffReady,
+} from './hand-companion-bridge.js';
+import { useAnnounce } from '../a11y/live-announcer.js';
 import { TableOptionsDialog } from './table-options-dialog';
 import { SectorSettingsDialog } from './sector-settings-dialog';
 import { sanitizeAutoFollowReturnDelayMs } from './follow-snap-back.js';
@@ -244,7 +294,9 @@ import { SectorStatusHolo } from './sector-status-holo';
 import { SensorGridHud } from './sensor-grid-hud';
 import { GameLogTicker } from './game-log-ticker';
 import { GameLogDialog } from './game-log-dialog';
+import { StreamSetupDialog } from './stream-setup-dialog.js';
 import { AdvisorReportDialog } from './advisor-report-dialog.js';
+import { sectorHandUrl } from '../game/sector-invite-urls.js';
 import { buildCaptainNameColors } from './game-log-display';
 import { formatDisplayTime, formatElapsedLogTime } from './display-time.js';
 import {
@@ -252,6 +304,7 @@ import {
   type BridgeRatingState,
 } from './bridge-header-status-context';
 import {
+  LOG_FONT_SCALE_FACTOR,
   readTableOptions,
   resolveSectorStatusHud,
   sanitizeFollowFocusNorm,
@@ -680,6 +733,11 @@ export interface BridgeTableProps {
   onlineAiCaptainIds?: ReadonlySet<string>;
   /** Online lobby captains — used for AI officer rank on tails and tooltips. */
   onlineCaptains?: readonly FirestoreCaptain[];
+  /**
+   * Online: when false, TTS uses call signs only (ignores roster speakAs).
+   * Default true when omitted.
+   */
+  useSpeakAs?: boolean;
   /** Online: host intent to play for TEI (default true). */
   sectorRated?: boolean;
   /** Online: host pause — everyone spectator-like until resume. */
@@ -717,6 +775,18 @@ export interface BridgeTableProps {
   onAiPausedChange?: (paused: boolean) => void;
   /** Dev-only: full match rematch with a new seed (rebuilds AI roster). */
   onResetMatchWithSeed?: (seed: number) => void;
+  /**
+   * Always show the private hand (second-monitor /hand window). Overrides
+   * hideHandOnBridge so stream-safe on the capture window does not blank this one.
+   */
+  forceShowHand?: boolean;
+  /**
+   * Private-hand companion chrome: hide the table / ticker and keep the helm
+   * strip + Continuum panels (online /hand strip mode).
+   */
+  handStripOnly?: boolean;
+  /** Watch / stream capture windows can prefer commentator on first load. */
+  preferLogMode?: LogVisibilityMode;
 }
 
 export function BridgeTable({
@@ -731,6 +801,7 @@ export function BridgeTable({
   handCounts = {},
   onlineAiCaptainIds,
   onlineCaptains,
+  useSpeakAs = true,
   sectorRated = true,
   sectorPaused = false,
   pauseReason,
@@ -754,6 +825,9 @@ export function BridgeTable({
   aiPaused = false,
   onAiPausedChange,
   onResetMatchWithSeed,
+  forceShowHand = false,
+  handStripOnly = false,
+  preferLogMode,
 }: BridgeTableProps) {
   const layoutTier = useLayoutTier();
   const { orientation } = useLayoutTierState();
@@ -1149,6 +1223,8 @@ export function BridgeTable({
   }, [isOnline, game, onlineCaptains, sectorRated, auth.ready, auth.user]);
 
   const [tablePrefs, setTablePrefs] = useState(readTableOptions);
+  const { pilotIconSrc, pronounForms, speakAs: profileSpeakAs } =
+    useCaptainProfile();
   const {
     layoutStyle,
     tileBg,
@@ -1169,6 +1245,11 @@ export function BridgeTable({
     bridgeSoundsEnabled,
     advisorIncludeAllCaptains,
     recordMatchDebug: recordMatchDebugPref,
+    hideHandOnBridge,
+    couchMode,
+    audibleCommentary,
+    commentatorShowElapsed,
+    logFontScale,
   } = tablePrefs;
 
   const [setFocusMode, setSetFocusMode] = useState(false);
@@ -1215,6 +1296,7 @@ export function BridgeTable({
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [gameLogDialogOpen, setGameLogDialogOpen] = useState(false);
+  const [streamSetupOpen, setStreamSetupOpen] = useState(false);
   const [matchDebugRecording, setMatchDebugRecording] =
     useState<MatchDebugRecording>(() =>
       createEmptyMatchDebugRecording(recordMatchDebugPref)
@@ -1224,23 +1306,29 @@ export function BridgeTable({
   const matchDebugPrevRoundRef = useRef<number | null>(null);
   const [pendingRoundImageShare, setPendingRoundImageShare] =
     useState<PendingRoundImageShare | null>(null);
-  const [logMode, setLogMode] = useState<LogVisibilityMode>(() =>
-    compactLayout ? 'off' : 'all'
-  );
-  const cycleLogMode = useCallback(
-    () =>
-      setLogMode((mode) =>
-        mode === 'all' ? 'mine' : mode === 'mine' ? 'off' : 'all'
-      ),
-    []
-  );
-  const handleLogControl = useCallback(() => {
-    if (compactLayout) {
-      setGameLogDialogOpen(true);
-      return;
+  const announce = useAnnounce();
+  const [logMode, setLogMode] = useState<LogVisibilityMode>(() => {
+    if (preferLogMode) {
+      return preferLogMode;
     }
+    return readLogVisibilityMode(compactLayout);
+  });
+  const cycleLogMode = useCallback(() => {
+    setLogMode((mode) => {
+      const next = nextLogVisibilityMode(mode);
+      writeLogVisibilityMode(next);
+      return next;
+    });
+  }, []);
+  const handleLogControl = useCallback(() => {
     cycleLogMode();
-  }, [compactLayout, cycleLogMode]);
+  }, [cycleLogMode]);
+  const handleLogScopeChange = useCallback((scope: GameLogScope) => {
+    const next = scopeToLogMode(scope);
+    writeLogVisibilityMode(next);
+    setLogMode(next);
+  }, []);
+  const dialogLogScope = logModeToScope(logMode);
   const [roundLogDownloadBusy, setRoundLogDownloadBusy] = useState(false);
   const [rematchConfirmOpen, setRematchConfirmOpen] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
@@ -1293,6 +1381,30 @@ export function BridgeTable({
     hubSlots: HUB_SLOTS,
   } = hub;
   const names = useMemo(() => captainNameMap(game), [game]);
+  const ttsNames = useMemo(() => {
+    if (isOnline && onlineCaptains?.length) {
+      const speakAsById: Record<string, string | null | undefined> = {};
+      for (const captain of onlineCaptains) {
+        speakAsById[captain.id] = captain.speakAs;
+      }
+      return resolveTtsNameMap(names, speakAsById, useSpeakAs);
+    }
+    if (humanCaptainId && profileSpeakAs) {
+      return resolveTtsNameMap(
+        names,
+        { [humanCaptainId]: profileSpeakAs },
+        true
+      );
+    }
+    return names;
+  }, [
+    names,
+    isOnline,
+    onlineCaptains,
+    useSpeakAs,
+    humanCaptainId,
+    profileSpeakAs,
+  ]);
   const gameLogEntries = useMemo(() => {
     void gameLogVersion;
     return gameLogRef.current.snapshot();
@@ -1535,6 +1647,7 @@ export function BridgeTable({
   const activeIsHumanSeat = humanSeatIds.has(activePlayerId);
   const handoffPending =
     isLocalPassAndPlay &&
+    isCompanionHandoffEnabled(couchMode) &&
     !!round &&
     game.phase === 'active' &&
     !roundAwaitingScore &&
@@ -1702,11 +1815,14 @@ export function BridgeTable({
 
   const visibleHand = round?.hands[handOwnerId] ?? [];
   const showOwnHand =
-    !!round &&
-    game.phase === 'active' &&
-    (isOnline || isVsAi
-      ? visibleHand.length > 0 || isMyTurn
-      : isMyTurn);
+    forceShowHand ||
+    handStripOnly ||
+    (!hideHandOnBridge &&
+      !!round &&
+      game.phase === 'active' &&
+      (isOnline || isVsAi
+        ? visibleHand.length > 0 || isMyTurn
+        : isMyTurn));
   const {
     orderedHand,
     applySort,
@@ -1997,53 +2113,191 @@ export function BridgeTable({
     [names, round]
   );
 
-  // Log ticker lines filtered by the Comms Log toggle. Structural entries
-  // (round start, ratings, outcome) always show; "Captain only" keeps just the
-  // viewer's own moves. The full log is always available via the round-log dialog.
+  // Log ticker lines filtered by the Comms Log toggle. Commentator digests to
+  // ringside highlights; Yourself keeps structural + own moves. Full log stays
+  // in the sector dialog (with matching scope tabs).
+  const logFormatOptions = useMemo(
+    () => ({
+      roundStartedAtMs: roundStartedAtRef.current,
+      formatElapsed: formatElapsedLogTime,
+      formatAbsolute: formatDisplayTime,
+      includeElapsedPrefix: commentatorShowElapsed,
+      pronouns: humanCaptainId
+        ? { [humanCaptainId]: pronounForms }
+        : undefined,
+    }),
+    // Recompute when round clock resets (version bumps with entries).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: track round start via entries/version
+    [
+      gameLogVersion,
+      round?.roundNumber,
+      humanCaptainId,
+      pronounForms,
+      commentatorShowElapsed,
+    ]
+  );
+
+  const commentatorLines = useMemo(
+    () =>
+      filterGameLogLines({
+        mode: 'commentator',
+        entries: gameLogEntries,
+        names,
+        formatOptions: logFormatOptions,
+      }),
+    [gameLogEntries, names, logFormatOptions]
+  );
+
   const tickerLogLines = useMemo(() => {
-    if (logMode === 'all') {
-      return gameLogLines;
+    const filtered = filterGameLogLines({
+      mode: logMode,
+      entries: gameLogEntries,
+      allLines: gameLogLines,
+      names,
+      formatOptions: logFormatOptions,
+      humanCaptainId,
+      ownHandSizeForEntry: (entry) =>
+        entry.kind === 'SPOOL_WARP_DRIVE' &&
+        entry.captainId === humanCaptainId &&
+        round?.hands[humanCaptainId]
+          ? round.hands[humanCaptainId].length
+          : undefined,
+    });
+    if (logMode === 'commentator') {
+      return takeRecentLogLines(filtered, COMMENTATOR_TICKER_MAX_LINES);
     }
-    const structural: ReadonlySet<GameLogEntry['kind']> = new Set([
-      'ROUND_STARTED',
-      'ROUND_RATINGS',
-      'MODULE_LOADOUT',
-      'END_ROUND',
-      'SALAMANDER_PENALTY',
-      'LONGEST_TRAIL_BONUS',
-      'TEMPORAL_DEBT_PENALTY',
-      'DEV_CONSOLE',
-      'SECTOR_PAUSED',
-      'SECTOR_RESUMED',
-    ]);
-    return gameLogEntries
-      .filter(
-        (entry) =>
-          structural.has(entry.kind) || entry.captainId === humanCaptainId
-      )
-      .map((entry) => {
-        // Privacy: pass viewerId and current hand size
-        const ownHandSizeAfter = 
-          entry.kind === 'SPOOL_WARP_DRIVE' && 
-          entry.captainId === humanCaptainId && 
-          round?.hands[humanCaptainId]
-            ? round.hands[humanCaptainId].length
-            : undefined;
-        
-        return formatGameLogLine(
-          entry, 
-          names, 
-          {
-            roundStartedAtMs: roundStartedAtRef.current,
-            formatElapsed: formatElapsedLogTime,
-            formatAbsolute: formatDisplayTime,
-          },
-          humanCaptainId,
-          ownHandSizeAfter
+    return filtered;
+  }, [
+    logMode,
+    gameLogLines,
+    gameLogEntries,
+    humanCaptainId,
+    names,
+    round,
+    logFormatOptions,
+  ]);
+
+  const dialogLogLines = useMemo(() => {
+    return filterGameLogLines({
+      mode: dialogLogScope,
+      entries: gameLogEntries,
+      allLines: gameLogLines,
+      names,
+      formatOptions: logFormatOptions,
+      humanCaptainId,
+      ownHandSizeForEntry: (entry) =>
+        entry.kind === 'SPOOL_WARP_DRIVE' &&
+        entry.captainId === humanCaptainId &&
+        round?.hands[humanCaptainId]
+          ? round.hands[humanCaptainId].length
+          : undefined,
+    });
+  }, [
+    dialogLogScope,
+    gameLogEntries,
+    gameLogLines,
+    humanCaptainId,
+    names,
+    round,
+    logFormatOptions,
+  ]);
+
+  const commentatorAnnounceRef = useRef(0);
+  const commentatorSpeechRef = useRef(0);
+  const commentatorAudioRef = useRef(createCommentatorAudioPlayer());
+  const commentatorTtsQueueRef = useRef(
+    createCommentatorTtsQueue({
+      synthesize: (input) =>
+        synthesizeCommentatorSpeech(
+          input as unknown as SynthesizeCommentatorSpeechInput
+        ),
+      play: async (result) => {
+        await commentatorAudioRef.current.playBase64Mp3(result.audioBase64);
+      },
+      onError: (err) => {
+        console.warn(
+          '[tts] synthesizeCommentatorSpeech failed',
+          err instanceof Error ? err.message : err
         );
-      })
-      .filter((line) => line.length > 0);
-  }, [logMode, gameLogLines, gameLogEntries, humanCaptainId, names, round]);
+      },
+    })
+  );
+  useEffect(() => {
+    if (commentatorLines.length <= commentatorAnnounceRef.current) {
+      if (commentatorLines.length < commentatorAnnounceRef.current) {
+        commentatorAnnounceRef.current = commentatorLines.length;
+      }
+      return;
+    }
+    const newest = commentatorLines[commentatorLines.length - 1];
+    commentatorAnnounceRef.current = commentatorLines.length;
+    if (newest && (logMode === 'commentator' || logMode === 'all')) {
+      // Strip timestamp prefix for cleaner screen-reader callouts.
+      const body = newest.includes(' - ')
+        ? newest.slice(newest.indexOf(' - ') + 3)
+        : newest;
+      announce(body, 'polite');
+    }
+  }, [announce, commentatorLines, logMode]);
+
+  useEffect(() => {
+    const queue = commentatorTtsQueueRef.current;
+    if (!audibleCommentary) {
+      queue.clear();
+      commentatorSpeechRef.current = commentatorLines.length;
+      return;
+    }
+    if (commentatorLines.length <= commentatorSpeechRef.current) {
+      if (commentatorLines.length < commentatorSpeechRef.current) {
+        commentatorSpeechRef.current = commentatorLines.length;
+      }
+      return;
+    }
+    commentatorSpeechRef.current = commentatorLines.length;
+
+    let entryForSpeech = null as (typeof gameLogEntries)[number] | null;
+    for (let i = gameLogEntries.length - 1; i >= 0; i--) {
+      const entry = gameLogEntries[i];
+      if (!entry) {
+        continue;
+      }
+      const line = formatCommentatorLine(entry, names, logFormatOptions);
+      if (line) {
+        entryForSpeech = entry;
+        break;
+      }
+    }
+    if (!entryForSpeech) {
+      return;
+    }
+
+    queue.offer({
+      entry: entryForSpeech,
+      names: ttsNames,
+      pronouns: logFormatOptions.pronouns,
+      roundStartedAtMs: logFormatOptions.roundStartedAtMs,
+      matchId: isOnline && sectorCode
+        ? `online-${sectorCode}`
+        : `local-${game.id}`,
+      sectorCode: sectorCode ?? (isOnline ? undefined : 'local'),
+    });
+  }, [
+    audibleCommentary,
+    commentatorLines,
+    gameLogEntries,
+    ttsNames,
+    logFormatOptions,
+    isOnline,
+    sectorCode,
+    game.id,
+    names,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      commentatorTtsQueueRef.current.clear();
+    };
+  }, []);
 
   const humanCaptainTei = useMemo(() => {
     if (!humanCaptainId || !playerStats.ready) {
@@ -2131,8 +2385,8 @@ export function BridgeTable({
     onlineCaptains,
   ]);
 
-  const openTrailNames = useMemo(
-    () => openTrailCaptainNames(trailSpokes),
+  const openBeacons = useMemo(
+    () => openTrailCaptains(trailSpokes),
     [trailSpokes]
   );
 
@@ -2974,6 +3228,341 @@ export function BridgeTable({
     () => buildCaptainNameColors(names, captainOrder),
     [captainOrder, names]
   );
+
+  useEffect(() => {
+    const title = round
+      ? `Round ${round.roundNumber}`
+      : sectorCode
+        ? `Sector ${sectorCode}`
+        : 'Warp commentary';
+    publishCommentatorSnapshot({
+      lines: commentatorLines,
+      nameColors: gameLogNameColors,
+      title,
+      sectorCode: sectorCode ?? undefined,
+    });
+  }, [commentatorLines, gameLogNameColors, round, sectorCode]);
+
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') {
+      return;
+    }
+    const channel = new BroadcastChannel(COMMENTATOR_CHANNEL);
+    channel.onmessage = (event: MessageEvent) => {
+      if (
+        !isCommentatorBroadcastMessage(event.data) ||
+        event.data.type !== 'hello'
+      ) {
+        return;
+      }
+      const title = round
+        ? `Round ${round.roundNumber}`
+        : sectorCode
+          ? `Sector ${sectorCode}`
+          : 'Warp commentary';
+      publishCommentatorSnapshot({
+        lines: commentatorLines,
+        nameColors: gameLogNameColors,
+        title,
+        sectorCode: sectorCode ?? undefined,
+      });
+    };
+    return () => {
+      channel.close();
+    };
+  }, [commentatorLines, gameLogNameColors, round, sectorCode]);
+
+  const companionHumanSeats = useMemo(
+    () =>
+      resolveCompanionHumanSeats({
+        mode,
+        isOnline,
+        isVsAi,
+        humanId,
+        humanName: localConfig?.humanName,
+        humanCaptains: localConfig?.humanCaptains,
+        names,
+      }),
+    [
+      humanId,
+      isOnline,
+      isVsAi,
+      localConfig?.humanCaptains,
+      localConfig?.humanName,
+      mode,
+      names,
+    ]
+  );
+
+  const buildHandCompanionSnapshotForSeat = useCallback(
+    (seatId: string) => {
+      if (isOnline || mode !== 'local') {
+        return null;
+      }
+      const drafting =
+        round?.phase === 'drafting' && round.draftState != null;
+      const seatHandoff =
+        handoffPending && activePlayerId === seatId && isCompanionHandoffEnabled(couchMode);
+      const draftTurn =
+        drafting && round!.draftState!.currentDrafter === seatId;
+      const playTurn =
+        round?.phase === 'playing' &&
+        activePlayerId === seatId &&
+        !seatHandoff &&
+        game.phase === 'active' &&
+        !sectorPaused;
+      const isSeatTurn = Boolean(draftTurn || playTurn);
+      const seatHand = round?.hands[seatId] ?? [];
+      const seatLegal =
+        isSeatTurn && round?.phase === 'playing'
+          ? getLegalMoves(round, seatId, game.houseRules)
+          : [];
+      const seatHelm = resolveHelmControls({
+        round,
+        handOwnerId: seatId,
+        isMyTurn: Boolean(playTurn),
+        houseRules: game.houseRules,
+        dropToImpulsePending: Boolean(
+          round &&
+            round.phase === 'playing' &&
+            game.phase === 'active' &&
+            game.houseRules.dropToImpulseCall &&
+            round.dropToImpulseCallPending === seatId &&
+            (round.hands[seatId]?.length ?? 0) === 1
+        ),
+        legalMovesCount: seatLegal.length,
+        gameState: game,
+      });
+      const catchTarget = round?.dropToImpulseCatchable ?? null;
+      const seatCanCatch =
+        Boolean(playTurn) &&
+        !!round &&
+        round.phase === 'playing' &&
+        game.phase === 'active' &&
+        game.houseRules.dropToImpulseCall &&
+        catchTarget != null &&
+        catchTarget !== seatId &&
+        (round.hands[catchTarget]?.length ?? 0) === 1;
+      const status = drafting
+        ? round!.draftState!.currentDrafter === seatId
+          ? 'Your draft pick — select a coordinate from your pack'
+          : `${names[round!.draftState!.currentDrafter] ?? 'Captain'} is drafting`
+        : game.phase !== 'active'
+          ? game.phase === 'complete'
+            ? 'Sector complete'
+            : 'Stand by'
+          : seatHandoff
+            ? 'Confirm ready at helm'
+            : !isSeatTurn
+              ? 'Stand by for helm'
+              : lastMessage && activePlayerId === seatId
+                ? lastMessage
+                : seatLegal.length > 0
+                  ? 'Select a playable coordinate'
+                  : seatHelm.showDraw
+                    ? 'Draw or pass'
+                    : 'Your turn';
+      return {
+        gameId: game.id,
+        maxPip,
+        handOwnerId: seatId,
+        handOwnerName: names[seatId] ?? 'Captain',
+        isMyTurn: Boolean(isSeatTurn && game.phase === 'active'),
+        phase: game.phase,
+        status,
+        hand: seatHand,
+        legalMoves: seatLegal,
+        helm: {
+          showDraw: seatHelm.showDraw,
+          showDesperationDig: seatHelm.showDesperationDig,
+          showShieldsDown: seatHelm.showShieldsDown,
+          showShieldsUp: seatHelm.showShieldsUp,
+          showPassRedAlert: seatHelm.showPassRedAlert,
+          showPass: seatHelm.showPass,
+        },
+        spoolOptions: seatHelm.spoolOptions.map((option) => ({
+          route: option.route,
+          label: routeLabel(option.route, names),
+        })),
+        dropToImpulsePending: Boolean(
+          playTurn &&
+            round &&
+            round.phase === 'playing' &&
+            game.phase === 'active' &&
+            game.houseRules.dropToImpulseCall &&
+            round.dropToImpulseCallPending === seatId &&
+            (round.hands[seatId]?.length ?? 0) === 1
+        ),
+        canCatchDropToImpulse: seatCanCatch,
+        dropToImpulseCatchTargetId: seatCanCatch ? catchTarget : null,
+        dropToImpulseCatchLabel:
+          seatCanCatch && catchTarget
+            ? names[catchTarget] ?? 'Captain'
+            : null,
+        names: { ...names },
+        game: redactGameForSeat(game, seatId),
+        tileBg,
+        handoffPending: seatHandoff,
+        handoffCaptainName: seatHandoff
+          ? names[activePlayerId] ?? 'Captain'
+          : null,
+      };
+    },
+    [
+      activePlayerId,
+      couchMode,
+      game,
+      handoffPending,
+      isOnline,
+      lastMessage,
+      maxPip,
+      mode,
+      names,
+      round,
+      sectorPaused,
+      tileBg,
+    ]
+  );
+
+  const republishHandCompanions = useCallback(() => {
+    if (isOnline || mode !== 'local' || companionHumanSeats.length === 0) {
+      return;
+    }
+    publishHandCompanionRoster({
+      gameId: game.id,
+      seats: companionHumanSeats,
+    });
+    for (const seat of companionHumanSeats) {
+      const snapshot = buildHandCompanionSnapshotForSeat(seat.id);
+      if (!snapshot) {
+        continue;
+      }
+      publishHandCompanionSnapshot(
+        snapshot,
+        handCompanionChannelForSeat(seat.id)
+      );
+    }
+    // Follow-active channel for streamer single-window /local/hand
+    const followId = resolveFollowCompanionSeatId({
+      isLocalPassAndPlay,
+      activePlayerId,
+      humanSeatIds,
+      companionSeats: companionHumanSeats,
+      humanId,
+    });
+    if (followId) {
+      const followSnap = buildHandCompanionSnapshotForSeat(followId);
+      if (followSnap) {
+        publishHandCompanionSnapshot(followSnap, HAND_COMPANION_CHANNEL);
+      }
+    }
+  }, [
+    activePlayerId,
+    buildHandCompanionSnapshotForSeat,
+    companionHumanSeats,
+    game.id,
+    humanId,
+    humanSeatIds,
+    isLocalPassAndPlay,
+    isOnline,
+    mode,
+  ]);
+
+  useEffect(() => {
+    republishHandCompanions();
+  }, [republishHandCompanions]);
+
+  useEffect(() => {
+    if (isOnline || mode !== 'local') {
+      return;
+    }
+    if (typeof BroadcastChannel === 'undefined') {
+      return;
+    }
+    const channelNames = [...companionListenChannels(companionHumanSeats)];
+    const channels = channelNames.map((name) => new BroadcastChannel(name));
+    const onMessage = (channelName: string) => (event: MessageEvent) => {
+      if (!isHandCompanionInboundMessage(event.data)) {
+        return;
+      }
+      if (event.data.type === 'hello') {
+        republishHandCompanions();
+        return;
+      }
+      if (event.data.type === 'handoff-ready') {
+        if (
+          shouldAcceptCompanionHandoffReady({
+            channelName,
+            readySeatId: event.data.seatId,
+            activePlayerId,
+            handOwnerId,
+          })
+        ) {
+          confirmHandoff();
+        }
+        return;
+      }
+      const action = event.data.action;
+      const actor = playerIdForAction(action);
+      if (
+        !shouldAcceptCompanionAction({
+          channelName,
+          actorId: actor,
+          handOwnerId,
+          humanSeatIds,
+          humanId,
+        })
+      ) {
+        return;
+      }
+      void dispatch(action, { source: 'human' });
+    };
+    const listeners = channels.map((channel, index) => {
+      const listener = onMessage(channelNames[index]);
+      channel.addEventListener('message', listener);
+      return { channel, listener };
+    });
+    return () => {
+      for (const { channel, listener } of listeners) {
+        channel.removeEventListener('message', listener);
+        channel.close();
+      }
+    };
+  }, [
+    activePlayerId,
+    companionHumanSeats,
+    confirmHandoff,
+    dispatch,
+    handOwnerId,
+    humanId,
+    humanSeatIds,
+    isOnline,
+    mode,
+    republishHandCompanions,
+  ]);
+
+  // Stream-safe drafting: reopen private hand(s) if the pack UI is off-camera.
+  useEffect(() => {
+    if (isOnline || mode !== 'local' || !hideHandOnBridge) {
+      return;
+    }
+    if (round?.phase !== 'drafting') {
+      return;
+    }
+    if (couchMode && companionHumanSeats.length > 0) {
+      openCouchHandWindows(companionHumanSeats);
+      return;
+    }
+    openLocalHandCompanionWindow();
+  }, [
+    companionHumanSeats,
+    couchMode,
+    hideHandOnBridge,
+    isOnline,
+    mode,
+    round?.phase,
+  ]);
+
   const roundLogFilename = useMemo(() => {
     if (!round) {
       return 'warp12-round-log.txt';
@@ -3043,6 +3632,43 @@ export function BridgeTable({
     }
   }, [buildCurrentRoundLogExport]);
 
+  const handleDownloadHighlights = useCallback(async () => {
+    if (!round) {
+      return;
+    }
+    setRoundLogDownloadBusy(true);
+    try {
+      const stamp = new Date().toISOString();
+      const filename = buildRoundLogFilename(
+        round.roundNumber,
+        stamp,
+        sectorCode ?? (isOnline ? undefined : 'local'),
+        'txt'
+      ).replace('-log-', '-highlights-');
+      const body = commentatorLines.join('\n');
+      const result = await deliverBlob({
+        blob: new Blob([body], { type: 'text/plain;charset=utf-8' }),
+        filename,
+        title: `Warp · Round ${round.roundNumber} highlights`,
+        text: body,
+      });
+      if (result === 'copied') {
+        setLastMessage('Highlights copied to clipboard');
+      } else if (result === 'shared') {
+        setLastMessage('Highlights ready in the share sheet');
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return;
+      }
+      setLastMessage(
+        err instanceof Error ? err.message : 'Could not export highlights'
+      );
+    } finally {
+      setRoundLogDownloadBusy(false);
+    }
+  }, [commentatorLines, isOnline, round, sectorCode]);
+
   const handleDownloadRoundLogJson = useCallback(async () => {
     const payload = buildCurrentRoundLogExport();
     if (!payload) {
@@ -3068,6 +3694,78 @@ export function BridgeTable({
     }
   }, [buildCurrentRoundLogExport]);
 
+  const streamOverlayUrl = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return COMMENTARY_OVERLAY_PATH;
+    }
+    if (isOnline && sectorCode) {
+      return `${window.location.origin}/online/${sectorCode}/commentary`;
+    }
+    return `${window.location.origin}${COMMENTARY_OVERLAY_PATH}`;
+  }, [isOnline, sectorCode]);
+
+  const handleOpenStreamOverlay = useCallback(() => {
+    if (isOnline && sectorCode) {
+      const url = `${window.location.origin}/online/${sectorCode}/commentary`;
+      window.open(url, 'warp12-commentary', 'popup=yes,width=960,height=540');
+      return;
+    }
+    openCommentaryOverlayWindow();
+  }, [isOnline, sectorCode]);
+
+  const handleOpenPrivateHand = useCallback(() => {
+    if (isOnline && sectorCode) {
+      const url = sectorHandUrl(sectorCode);
+      window.open(url, 'warp12-private-hand', 'popup=yes,width=1100,height=800');
+      return;
+    }
+    openLocalHandCompanionWindow();
+    announce(
+      'Private hand companion opened. Keep it off-camera; leave this Bridge on the capture display.',
+      'polite'
+    );
+  }, [announce, isOnline, sectorCode]);
+
+  const handleEnableStreamSafe = useCallback(() => {
+    patchTablePrefs({ hideHandOnBridge: true });
+    writeLogVisibilityMode('commentator');
+    setLogMode('commentator');
+    if (isOnline && sectorCode) {
+      window.open(
+        sectorHandUrl(sectorCode),
+        'warp12-private-hand',
+        'popup=yes,width=1100,height=800'
+      );
+    } else if (!isOnline) {
+      openLocalHandCompanionWindow();
+    }
+    announce(
+      'Stream-safe enabled. Hand hidden on this Bridge; commentator log on.',
+      'polite'
+    );
+  }, [announce, isOnline, patchTablePrefs, sectorCode]);
+
+  const handleEnableCouchMode = useCallback(() => {
+    patchTablePrefs({ hideHandOnBridge: true, couchMode: true });
+    writeLogVisibilityMode('commentator');
+    setLogMode('commentator');
+    openCouchHandWindows(companionHumanSeats);
+    announce(
+      'Couch mode on. Each captain plays from their private hand window; handoff skipped.',
+      'polite'
+    );
+  }, [announce, companionHumanSeats, patchTablePrefs]);
+
+  const handleOpenCouchHands = useCallback(() => {
+    openCouchHandWindows(companionHumanSeats);
+    announce(
+      `Opened ${companionHumanSeats.length} seat hand window${
+        companionHumanSeats.length === 1 ? '' : 's'
+      }.`,
+      'polite'
+    );
+  }, [announce, companionHumanSeats]);
+
   const focusPlayerIdsForAdvisor = useMemo(() => {
     if (isVsAi) {
       return [humanId];
@@ -3092,7 +3790,6 @@ export function BridgeTable({
     () => tableOpponentLabelForAdvisor(localConfig),
     [localConfig]
   );
-  const { pilotIconSrc } = useCaptainProfile();
 
   const buildRoundAdvisorReport = useCallback(
     (includeAllCaptains = advisorIncludeAllCaptains) => {
@@ -3440,8 +4137,13 @@ export function BridgeTable({
       );
       setCampaignCompleteOpen(true);
       setRoundEndSummaryOpen(false);
+      void import('../platform/achievements/report-milestones.js').then(
+        ({ reportCampaignComplete }) => {
+          reportCampaignComplete({ maxPip: game.maxPip });
+        }
+      );
     }
-  }, [game.phase]);
+  }, [game.phase, game.maxPip]);
 
   const aiTurnKey = round
     ? [
@@ -3775,31 +4477,61 @@ export function BridgeTable({
         data-focus={immersiveLayout ? 'true' : 'false'}
         data-layout-tier={layoutTier}
         data-orientation={orientation}
+        data-hand-strip-only={handStripOnly ? 'true' : undefined}
       >
       {round?.phase === 'drafting' && round.draftState ? (
-        <DraftPhase
-          draftState={round.draftState}
-          myId={handOwnerId}
-          names={names}
-          tileBg={tileBg}
-          maxPip={maxPip}
-          onPickTile={(coordinate) => {
-            const action: GameAction = {
-              type: 'PICK_FROM_PACK',
-              playerId: handOwnerId,
-              coordinate,
-            };
-            void dispatch(action);
-          }}
-          onAbort={
-            onLeaveSetup
-              ? handleLeaveSetup
-              : onLeave
-                ? handleLeaveBridge
-                : undefined
-          }
-          abortLabel={onLeaveSetup ? 'Return to setup' : 'Leave bridge'}
-        />
+        hideHandOnBridge && !isOnline && !handStripOnly ? (
+          <section className={styles.draftStreamSafe} role="status">
+            <p className={styles.draftStreamSafeEyebrow}>Tactical Requisition</p>
+            <h2 className={styles.draftStreamSafeTitle}>
+              {(names[round.draftState.currentDrafter] ?? 'Captain') +
+                (round.draftState.currentDrafter === handOwnerId
+                  ? ' — your pick'
+                  : ' is drafting')}
+            </h2>
+            <p className={styles.draftStreamSafeBody}>
+              Pack tiles stay off-camera. Confirm picks on the private hand
+              window (Stream setup → Open private hand).
+            </p>
+            <div className={styles.draftStreamSafeActions}>
+              {(onLeaveSetup || onLeave) && (
+                <button
+                  type="button"
+                  className={styles.controlBtn}
+                  onClick={
+                    onLeaveSetup ? handleLeaveSetup : handleLeaveBridge
+                  }
+                >
+                  {onLeaveSetup ? 'Return to setup' : 'Leave bridge'}
+                </button>
+              )}
+            </div>
+          </section>
+        ) : (
+          <DraftPhase
+            draftState={round.draftState}
+            myId={handOwnerId}
+            names={names}
+            tileBg={tileBg}
+            maxPip={maxPip}
+            onPickTile={(coordinate) => {
+              const action: GameAction = {
+                type: 'PICK_FROM_PACK',
+                playerId: handOwnerId,
+                coordinate,
+              };
+              void dispatch(action);
+            }}
+            onAbort={
+              onLeaveSetup
+                ? handleLeaveSetup
+                : onLeave
+                  ? handleLeaveBridge
+                  : undefined
+            }
+            abortLabel={onLeaveSetup ? 'Return to setup' : 'Leave bridge'}
+          />
+        )
       ) : (
         <>
       <div
@@ -3828,10 +4560,12 @@ export function BridgeTable({
           ['--warp-danger' as string]: warpPalette.danger,
         }}
       >
-        {logMode !== 'off' && !compactLayout && (
+        {logMode !== 'off' && !handStripOnly && (
           <GameLogTicker
             lines={tickerLogLines}
             nameColors={gameLogNameColors}
+            variant={logMode === 'commentator' ? 'commentator' : 'fleet'}
+            fontScale={LOG_FONT_SCALE_FACTOR[logFontScale]}
           />
         )}
 
@@ -4061,7 +4795,7 @@ export function BridgeTable({
                     spacedockValue={round?.spacedockValue ?? 12}
                     unchartedCount={round?.unchartedSectors.length ?? 0}
                     beaconCount={beaconCount}
-                    openTrailNames={openTrailNames}
+                    openTrailCaptains={openBeacons}
                     redAlertActive={sectorRedAlertRow != null}
                     redAlertLabel={sectorRedAlertRow?.label ?? ''}
                     redAlertSummary={sectorRedAlertRow?.summary ?? ''}
@@ -4094,7 +4828,7 @@ export function BridgeTable({
                     maxPip={maxPip}
                     onSensorSweep={onSensorSweep}
                     beaconCount={beaconCount}
-                    openTrailNames={openTrailNames}
+                    openTrailCaptains={openBeacons}
                     shieldsDown={shieldsDown}
                     canRaiseShields={canRaiseShields}
                     manualShieldControl={game.houseRules.manualShieldControl}
@@ -4170,6 +4904,7 @@ export function BridgeTable({
           />
         )}
 
+        {!handStripOnly && (
         <TableViewport
           tableWidth={TABLE_WIDTH}
           tableHeight={TABLE_HEIGHT}
@@ -4249,6 +4984,7 @@ export function BridgeTable({
             </>
           )}
         </TableViewport>
+        )}
 
         {canShowRoundEndSummary && round && roundEndSummaryOpen && !portraitSummaryNudge && (
           <div
@@ -4457,13 +5193,49 @@ export function BridgeTable({
               ? `Round ${round.roundNumber} log`
               : 'Sector log'
           }
-          lines={gameLogLines}
+          lines={dialogLogLines}
           nameColors={gameLogNameColors}
           downloadFilename={roundLogFilename}
           downloadJsonFilename={roundLogJsonFilename}
           onDownload={handleDownloadRoundLog}
           onDownloadJson={handleDownloadRoundLogJson}
           downloadBusy={roundLogDownloadBusy}
+          scope={dialogLogScope}
+          onScopeChange={handleLogScopeChange}
+          onDownloadHighlights={handleDownloadHighlights}
+          onOpenStreamOverlay={handleOpenStreamOverlay}
+          onOpenStreamSetup={() => setStreamSetupOpen(true)}
+          streamOverlayUrl={streamOverlayUrl}
+          fontScale={LOG_FONT_SCALE_FACTOR[logFontScale]}
+        />
+
+        <StreamSetupDialog
+          open={streamSetupOpen}
+          onClose={() => setStreamSetupOpen(false)}
+          sectorCode={sectorCode}
+          hideHandOnBridge={hideHandOnBridge}
+          onHideHandOnBridgeChange={(next) =>
+            patchTablePrefs({ hideHandOnBridge: next })
+          }
+          couchMode={couchMode}
+          onCouchModeChange={
+            isLocalPassAndPlay
+              ? (next) => patchTablePrefs({ couchMode: next })
+              : undefined
+          }
+          onEnableStreamSafe={handleEnableStreamSafe}
+          onEnableCouchMode={
+            isLocalPassAndPlay ? handleEnableCouchMode : undefined
+          }
+          onOpenCommentaryOverlay={handleOpenStreamOverlay}
+          onOpenPrivateHand={handleOpenPrivateHand}
+          onOpenCouchHands={
+            isLocalPassAndPlay && companionHumanSeats.length > 0
+              ? handleOpenCouchHands
+              : undefined
+          }
+          couchSeats={isLocalPassAndPlay ? companionHumanSeats : undefined}
+          isOnline={isOnline}
         />
 
         <AdvisorReportDialog
@@ -4478,7 +5250,15 @@ export function BridgeTable({
           opponentLabel={advisorOpponentLabel}
         />
 
-        {handoffPending && (
+        {handoffPending && hideHandOnBridge ? (
+          <p className={styles.feedback} role="status">
+            Pass the bridge to {names[activePlayerId] ?? 'the next captain'} —
+            confirm <strong>Ready at helm</strong> on the private hand window
+            (off-camera).
+          </p>
+        ) : null}
+
+        {handoffPending && !hideHandOnBridge ? (
           <div
             className={styles.roundEndOverlay}
             role="dialog"
@@ -4505,7 +5285,7 @@ export function BridgeTable({
               </div>
             </div>
           </div>
-        )}
+        ) : null}
 
         {game.goOutOvertimePending === true &&
           (isOnlineHost || !isOnline) && (
@@ -4591,9 +5371,20 @@ export function BridgeTable({
           !portraitSummaryNudge && (
           <div className={styles.roundEndDock} role="status">
             <div className={styles.roundEndDockText}>
-              <strong onClick={onCampaignCompleteEgg}>
-                {game.objective === 'go-out' ? 'Sector complete' : 'Campaign complete'}
-              </strong>
+              <button
+                type="button"
+                className={styles.splashEggTrigger}
+                onClick={onCampaignCompleteEgg}
+                aria-label={
+                  game.objective === 'go-out'
+                    ? 'Sector complete'
+                    : 'Campaign complete'
+                }
+              >
+                {game.objective === 'go-out'
+                  ? 'Sector complete'
+                  : 'Campaign complete'}
+              </button>
               <span>Pan and zoom to review the final board.</span>
             </div>
             <div className={styles.roundEndActions}>
@@ -4798,6 +5589,13 @@ export function BridgeTable({
             </button>
           </div>
         )}
+
+        {!showOwnHand && hideHandOnBridge && !isOnline ? (
+          <p className={styles.feedback} role="status">
+            Hand hidden for stream — play from the private hand companion window
+            (Stream setup → Open private hand).
+          </p>
+        ) : null}
 
         {showOwnHand ? (
           <div className={styles.handSection}>
@@ -5092,6 +5890,18 @@ export function BridgeTable({
         turnBeepsEnabled={turnBeepsEnabled}
         onTurnBeepsEnabledChange={(next) =>
           patchTablePrefs({ turnBeepsEnabled: next })
+        }
+        commentatorShowElapsed={commentatorShowElapsed}
+        onCommentatorShowElapsedChange={(next) =>
+          patchTablePrefs({ commentatorShowElapsed: next })
+        }
+        logFontScale={logFontScale}
+        onLogFontScaleChange={(next) =>
+          patchTablePrefs({ logFontScale: next })
+        }
+        audibleCommentary={audibleCommentary}
+        onAudibleCommentaryChange={(next) =>
+          patchTablePrefs({ audibleCommentary: next })
         }
         showDebugExport={showDebugExport}
         debugExportBusy={debugBusy}

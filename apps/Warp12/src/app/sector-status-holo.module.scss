@@ -104,12 +104,16 @@
   color: rgba(148, 163, 184, 0.85);
   text-shadow: none;
 
-  &[data-my-turn='true'] {
+  [data-part='name'] {
+    font-weight: 600;
+  }
+
+  &[data-my-turn='true'] [data-part='rest'] {
     color: rgba(125, 211, 252, 0.95);
     text-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
   }
 
-  &[data-ai='true'] {
+  &[data-ai='true'] [data-part='rest'] {
     color: rgba(253, 186, 116, 0.95);
   }
 }

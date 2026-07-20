@@ -38,9 +38,8 @@
     background: rgba(56, 189, 248, 0.08);
   }
 
-  &[data-state='red-alert'] .name {
-    color: var(--warp-danger, #f87171);
-  }
+  // Red Alert urgency stays on the row chrome / icons; captain name color
+  // follows the shared turn-order palette (inline on .name).
 
   // Module Zeta: squad color-coding — a left stripe so squadmates are
   // visually grouped without fighting the active/hazard background states.

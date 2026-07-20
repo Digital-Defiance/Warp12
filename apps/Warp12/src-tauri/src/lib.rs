@@ -27,11 +27,12 @@ pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_opener::init())
     .plugin(tauri_plugin_deep_link::init())
+    .plugin(tauri_plugin_warp_achievements::init())
     .manage(oauth_server::OAuthServers::default())
     .invoke_handler(tauri::generate_handler![
       oauth_server::start_oauth_server,
       oauth_server::await_oauth_redirect,
-      save_download
+      save_download,
     ])
     .setup(|app| {
       if cfg!(debug_assertions) {

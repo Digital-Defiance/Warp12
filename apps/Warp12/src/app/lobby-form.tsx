@@ -16,7 +16,7 @@ import {
   LOCAL_MIN_PLAYERS,
   maxPlayersForFactor,
 } from '../game/local-game-config.js';
-import { requireWarpFactor } from './warp-factor.js';
+import { normalizeWarpFactor } from './warp-factor.js';
 import {
   CampaignRoundsField,
   GoOutCampaignField,
@@ -73,9 +73,9 @@ export function LobbyForm({
   firebaseConfigured,
   myCharters = [],
 }: LobbyProps) {
-  const fleetMax = maxPlayersForFactor(requireWarpFactor());
+  const maxPip = normalizeWarpFactor(createOptions.maxPip ?? 12);
+  const fleetMax = maxPlayersForFactor(maxPip);
   const fleetCeiling = Math.min(LOCAL_MAX_PLAYERS, fleetMax);
-  const maxPip = requireWarpFactor();
   const exhibitionSet = maxPip !== 12;
   const charterLocked = Boolean(createOptions.charterId);
   const activeCharter =
@@ -130,6 +130,8 @@ export function LobbyForm({
     onCreateOptionsChange(
       warp12OfficialCreateLobbyOptions({
         maxPlayers: createOptions.maxPlayers,
+        maxPip,
+        rated: createOptions.rated,
       })
     );
 

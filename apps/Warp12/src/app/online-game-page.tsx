@@ -61,7 +61,12 @@ function violationMessage(violation: string): string {
   return formatViolation(violation);
 }
 
-export function OnlineGamePage() {
+export function OnlineGamePage({
+  privateHand = false,
+}: {
+  /** Second-monitor play surface — always shows your hand. */
+  readonly privateHand?: boolean;
+} = {}) {
   const { gameId } = useParams();
   const navigate = useNavigate();
   const auth = useFirebaseAuth();
@@ -73,6 +78,7 @@ export function OnlineGamePage() {
   >([]);
   const [handCounts, setHandCounts] = useState<Record<string, number>>({});
   const [sectorRated, setSectorRated] = useState(true);
+  const [useSpeakAs, setUseSpeakAs] = useState(true);
   const [allowSpectate, setAllowSpectate] = useState(true);
   const [spectatorCount, setSpectatorCount] = useState(0);
   const [sectorPaused, setSectorPaused] = useState(false);
@@ -132,6 +138,7 @@ export function OnlineGamePage() {
         sectorCaptains: captains,
         aiHands: hostAiHands,
         rated,
+        useSpeakAs: speakAsEnabled,
         dissolved,
         ejected,
         terminated,
@@ -185,6 +192,7 @@ export function OnlineGamePage() {
         setHostId(sectorHost);
         setSectorCaptains(captains);
         setSectorRated(rated);
+        setUseSpeakAs(speakAsEnabled);
         setAllowSpectate(spectateAllowed);
         setSpectatorCount(galleryCount);
         setSectorPaused(paused);
@@ -811,6 +819,16 @@ export function OnlineGamePage() {
 
   return (
     <div className={styles.onlinePlay}>
+      {privateHand ? (
+        <div className={styles.privateHandBanner} role="status">
+          <strong>Private hand</strong>
+          <span>
+            Keep this window off-camera. Helm and Continuum resolve here; the
+            table stays on your capture Bridge (Stream setup → hide hand). Same
+            Firebase seat as /play (anonymous or Google).
+          </span>
+        </div>
+      ) : null}
       {error && (
         <p className={styles.error} role="alert">
           {error}
@@ -871,6 +889,7 @@ export function OnlineGamePage() {
         handCounts={handCounts}
         onlineAiCaptainIds={onlineAiCaptainIds}
         onlineCaptains={sectorCaptains}
+        useSpeakAs={useSpeakAs}
         sectorRated={sectorRated}
         sectorPaused={sectorPaused}
         pauseReason={pauseReason}
@@ -893,6 +912,8 @@ export function OnlineGamePage() {
         coachPresence={coachPresence}
         onCoachSignal={signalCoach}
         commsControl={{ open: commsOpen, onToggle: toggleComms }}
+        forceShowHand={privateHand}
+        handStripOnly={privateHand}
       />
       {commsOpen && uid && (
         <CommsPanel

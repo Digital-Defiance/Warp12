@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512">
+  <defs>
+    <style>
+      .cls-1, .cls-2, .cls-3 {
+        opacity: .25;
+      }
+
+      .cls-1, .cls-2, .cls-3, .cls-4, .cls-5, .cls-6, .cls-7, .cls-8 {
+        stroke: #38bdf8;
+        stroke-linecap: round;
+      }
+
+      .cls-1, .cls-2, .cls-3, .cls-4, .cls-5, .cls-6, .cls-7, .cls-8, .cls-9 {
+        fill: none;
+      }
+
+      .cls-1, .cls-4 {
+        stroke-miterlimit: 5.12;
+        stroke-width: 12.8px;
+      }
+
+      .cls-2, .cls-7 {
+        stroke-miterlimit: 5.12;
+        stroke-width: 12.8px;
+      }
+
+      .cls-3, .cls-8 {
+        stroke-miterlimit: 5.12;
+        stroke-width: 12.8px;
+      }
+
+      .cls-10 {
+        font-family: MyriadPro-Regular, 'Myriad Pro';
+        font-size: 12px;
+      }
+
+      .cls-11 {
+        fill: url(#radial-gradient);
+        stroke: url(#linear-gradient);
+      }
+
+      .cls-11, .cls-6, .cls-9 {
+        stroke-miterlimit: 5.12;
+      }
+
+      .cls-11, .cls-9 {
+        stroke-width: 7.68px;
+      }
+
+      .cls-12 {
+        fill: url(#linear-gradient-2);
+        stroke: #fff;
+        stroke-miterlimit: 5.12;
+        stroke-width: 7.68px;
+      }
+
+      .cls-5 {
+        stroke-miterlimit: 5.12;
+        stroke-width: 12.8px;
+      }
+
+      .cls-6 {
+        stroke-width: 12.8px;
+      }
+
+      .cls-9 {
+        opacity: .7;
+        stroke: #06b6d4;
+      }
+
+      .cls-9, .cls-13 {
+        isolation: isolate;
+      }
+
+      .cls-13 {
+        fill: #fff;
+        opacity: .9;
+      }
+    </style>
+    <radialGradient id="radial-gradient" cx="-279.45" cy="319.5" fx="-279.45" fy="319.5" r="2" gradientTransform="translate(28876.7994 32972.7993) scale(102.4 -102.4)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#123e52"/>
+      <stop offset=".8" stop-color="#0f0726"/>
+      <stop offset="1" stop-color="#05020c"/>
+    </radialGradient>
+    <linearGradient id="linear-gradient" x1="52.48" y1="256" x2="469.76" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#123e52"/>
+      <stop offset="1" stop-color="#000"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-2" x1="-281.75" y1="319.55" x2="-277.75" y2="319.55" gradientTransform="translate(-6021.5186 11689.5289) rotate(70) scale(30.72 -30.72)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#123e52"/>
+      <stop offset=".7" stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#123e52"/>
+    </linearGradient>
+  </defs>
+  <circle class="cls-11" cx="261.12" cy="256" r="204.8"/>
+  <path id="warp-segment-0" class="cls-6" d="M238.64,73.06c14.93-1.83,30.03-1.83,44.95,0"/>
+  <path id="warp-segment-1" class="cls-5" d="M302.57,76.41c14.66,3.38,28.84,8.55,42.24,15.38"/>
+  <path id="warp-segment-2" class="cls-7" d="M361.49,101.41c12.17,8.75,23.7,18.43,34.44,28.9"/>
+  <path id="warp-segment-3" class="cls-8" d="M408.31,145.07c9.05,12.01,16.6,25.09,22.48,38.93"/>
+  <path id="warp-segment-4" class="cls-4" d="M437.38,202.1c4.4,14.38,7.02,29.25,7.81,44.27"/>
+  <path id="warp-segment-5" class="cls-1" d="M445.18,265.63c-.79,15.02-3.41,29.89-7.81,44.27"/>
+  <path id="warp-segment-6" class="cls-3" d="M430.79,328c-5.88,13.85-13.42,26.92-22.48,38.93"/>
+  <path id="warp-segment-7" class="cls-2" d="M395.93,381.69c-10.26,11-21.82,20.7-34.44,28.9"/>
+  <path id="warp-segment-8" class="cls-5" d="M344.81,420.22c-13.4,6.83-27.59,11.99-42.24,15.38"/>
+  <path id="warp-segment-9" class="cls-6" d="M283.6,438.94c-14.93,1.83-30.03,1.83-44.95,0"/>
+  <path id="warp-segment-10" class="cls-5" d="M219.67,435.59c-14.66-3.38-28.84-8.55-42.24-15.38"/>
+  <path id="warp-segment-11" class="cls-7" d="M160.75,410.59c-12.61-8.19-24.18-17.89-34.44-28.9"/>
+  <path id="warp-segment-12" class="cls-8" d="M113.93,366.93c-9.05-12.01-16.6-25.09-22.48-38.93"/>
+  <path id="warp-segment-13" class="cls-4" d="M84.86,309.9c-4.4-14.38-7.02-29.25-7.81-44.27"/>
+  <path id="warp-segment-14" class="cls-4" d="M77.06,246.37c.79-15.02,3.41-29.89,7.81-44.27"/>
+  <path id="warp-segment-15" class="cls-8" d="M91.45,184c5.88-13.85,13.42-26.92,22.48-38.93"/>
+  <path id="warp-segment-16" class="cls-7" d="M126.31,130.31c10.26-11,21.82-20.7,34.44-28.9"/>
+  <path id="warp-segment-17" class="cls-5" d="M177.43,91.78c13.4-6.83,27.59-11.99,42.24-15.38"/>
+  <path class="cls-12" d="M284.85,314.15l15.71-136.48-47.23,49.88-68.24-7.85,99.76,94.46Z"/>
+  <path class="cls-13" d="M284.85,314.15l-6.16-106.73-23.61,24.94-34.12-3.93,63.89,85.72Z"/>
+  <g>
+    <line class="cls-9" x1="421.83" y1="197.5" x2="392.97" y2="208.01"/>
+    <line class="cls-9" x1="129.27" y1="303.99" x2="100.41" y2="314.5"/>
+  </g>
+  <text class="cls-10" transform="translate(111.16 71.83)"><tspan x="0" y="0">38bdf8</tspan></text>
+</svg>

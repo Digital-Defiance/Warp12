@@ -48,7 +48,7 @@ Multiplayer lobbies and active games live in Firestore `games/{id}`. Clients syn
 
 ## Firestore `playerStats` lockdown
 
-Clients may only create empty competitive profiles and update cosmetic fields (`displayName`, `captainGender`). All rated fields are unchanged on client update — only Admin SDK / Cloud Functions may mutate them.
+Clients may only create empty competitive profiles and update cosmetic fields (`displayName`, `captainGender`, `captainPronouns`, `speakAs`). All rated fields are unchanged on client update — only Admin SDK / Cloud Functions may mutate them.
 
 ## Leaderboard display
 

@@ -19,13 +19,17 @@ export type AdminNote = {
   updatedAt?: string;
 };
 
+export type WarpOpsRole = 'admin' | 'moderator' | 'match_official';
+
 export type CaptainDossier = {
   uid: string;
   displayName: string;
+  speakAs: string | null;
   email: string | null;
   authDisabled: boolean;
   anonymous: boolean;
   providers: string[];
+  roles: WarpOpsRole[];
   createdAt: string | null;
   lastSignInAt: string | null;
   stats: {
@@ -92,4 +96,11 @@ export async function opsSetDisplayName(input: {
   reason: string;
 }): Promise<{ ok: true; uid: string; displayName: string; previous: string | null }> {
   return callFunction('opsSetDisplayName', input);
+}
+
+export async function setUserRoles(input: {
+  uid: string;
+  roles: WarpOpsRole[];
+}): Promise<{ ok: true; uid: string; roles: WarpOpsRole[] }> {
+  return callFunction('setUserRoles', input);
 }

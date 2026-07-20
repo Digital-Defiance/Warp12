@@ -1,0 +1,214 @@
+.page {
+  min-height: 100vh;
+  margin: 0;
+  padding: 1rem 1.25rem 1.5rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  background: #070b16;
+  color: #e2e8f0;
+  font-family: Federation, system-ui, sans-serif;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #fbbf24;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+}
+
+.status {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+.waiting {
+  margin: 0;
+  max-width: 40rem;
+  line-height: 1.45;
+  color: #94a3b8;
+}
+
+.seatPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 28rem;
+}
+
+.seatList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.seatLink {
+  display: inline-block;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  color: #e2e8f0;
+  text-decoration: none;
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.seatLink:hover,
+.seatLink:focus-visible {
+  border-color: #38bdf8;
+  color: #7dd3fc;
+}
+
+.seatLink:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+.hand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: flex-end;
+  min-height: 5.5rem;
+  padding: 0.5rem 0;
+}
+
+.handTile {
+  appearance: none;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  padding: 0.15rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.handTile:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.handTile[data-playable='true'] {
+  border-color: rgba(56, 189, 248, 0.55);
+}
+
+.handTile[data-selected='true'] {
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.45);
+}
+
+.handTile:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+.routePicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.routePrompt {
+  margin: 0;
+  width: 100%;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.routeBtn,
+.routeCancel,
+.controlBtn,
+.primaryBtn {
+  appearance: none;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+}
+
+.routeBtn:hover,
+.controlBtn:hover,
+.primaryBtn:hover {
+  border-color: #38bdf8;
+}
+
+.routeCancel {
+  color: #94a3b8;
+}
+
+.primaryBtn {
+  border-color: rgba(251, 191, 36, 0.55);
+  color: #fbbf24;
+}
+
+.routeBtn:focus-visible,
+.routeCancel:focus-visible,
+.controlBtn:focus-visible,
+.primaryBtn:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.hint {
+  margin: auto 0 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+.handoffCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 28rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  border-radius: 6px;
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.handoffTitle {
+  margin: 0;
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
+  color: #fbbf24;
+}

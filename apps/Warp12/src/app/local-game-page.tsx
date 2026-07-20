@@ -74,7 +74,10 @@ import { WARP12_OFFICIAL_RULES_PROFILE_ID } from '../firebase/rules-profile.js';
 import type { RatedObjective } from '../firebase/stats-schema.js';
 import { usePlayerStats } from '../firebase/use-player-stats.js';
 import { MatchRatingPreview } from './match-rating-preview.js';
-import { requireWarpFactor } from './warp-factor.js';
+import { setWarpFactor, useRequireWarpFactor, type WarpFactor } from './warp-factor.js';
+import { FactorGauge } from './factor-gauge';
+import { useAnnounce } from '../a11y/live-announcer.js';
+import { Warp12Logo } from './Warp12Logo';
 
 type SetupPhase = 'configure' | 'playing';
 
@@ -103,7 +106,8 @@ function skillOptionLabel(
 }
 
 export function LocalGamePage() {
-  const maxPip = requireWarpFactor();
+  const announce = useAnnounce();
+  const maxPip = useRequireWarpFactor();
   const fleetMin = minPlayersForFactor(maxPip);
   const fleetMax = maxPlayersForFactor(maxPip);
   const [phase, setPhase] = useState<SetupPhase>('configure');
@@ -186,6 +190,10 @@ export function LocalGamePage() {
       /* Preload is best-effort; launch fails hard if weights are missing. */
     });
   }, [objective, maxPip]);
+
+  useEffect(() => {
+    setPlayerCount((count) => clampLocalPlayerCount(count, maxPip));
+  }, [maxPip]);
 
   useEffect(() => {
     if (neuralAiSupported(maxPip)) return;
@@ -425,6 +433,20 @@ export function LocalGamePage() {
   }
 
   return (
+    <>
+    <div className={styles.factorGaugeContainer}>
+      <FactorGauge
+        width={200}
+        factor={maxPip}
+        onFactorSelect={(next: WarpFactor) => {
+          setWarpFactor(next);
+          announce(`Warp factor ${next}`, 'polite');
+        }}
+      /><br />
+      <div className={styles.factorGaugeLogoContainer}>
+        <Warp12Logo factor={maxPip} width={200} taglineOff={true} />
+      </div>
+    </div>
     <section className={`${styles.lobby} ${styles.lobbyWide}`}>
       <p className={styles.backLink}>
         <Link to="/">← Back to bridge</Link>
@@ -862,6 +884,7 @@ export function LocalGamePage() {
         </button>
       </div>
     </section>
+    </>
   );
 }
 

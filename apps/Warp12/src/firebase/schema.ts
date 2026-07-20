@@ -61,6 +61,11 @@ export interface FirestoreGameDocument {
    * casual game — never rated — and free-form chat/DMs stay open during play.
    */
   rated?: boolean;
+  /**
+   * When false, commentator TTS uses call signs only (ignores roster speakAs).
+   * Default true when omitted.
+   */
+  useSpeakAs?: boolean;
   /** Ops soft-terminated this sector (no further play / rematch). */
   opsTerminated?: boolean;
   opsTerminatedAt?: string;
@@ -110,6 +115,12 @@ export interface FirestoreGameDocument {
 export interface FirestoreCaptain {
   id: string;
   displayName: string;
+  /**
+   * Spoken-as alias snapshotted for this sector (lobby → launch lock-in).
+   * Omitted/null = use displayName for TTS. Match-level `useSpeakAs: false`
+   * ignores this field.
+   */
+  speakAs?: string | null;
   pointsScore: number;
   /** Go-out campaigns: rounds won by this captain. */
   goOutWins?: number;
@@ -164,6 +175,8 @@ export interface OnlineLobbySettings {
   rated?: boolean;
   /** Allow public spectate (default true). */
   allowSpectate?: boolean;
+  /** When false, TTS uses call signs only (default true). */
+  useSpeakAs?: boolean;
   modules: import('warp12-engine').GameModuleConfig;
   houseRules?: HouseRulesConfig;
   charterId?: string;

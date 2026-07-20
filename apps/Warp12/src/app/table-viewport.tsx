@@ -24,17 +24,37 @@ const MIN_SCALE_COMPACT = 0.2;
 const MAX_SCALE = 2.5;
 const ZOOM_STEP = 0.15;
 
-const LOG_CONTROL_LABEL: Record<'all' | 'mine' | 'off', string> = {
-  all: 'Comms log: Fleet (tap for Captain-only)',
-  mine: 'Comms log: Captain only (tap to silence)',
-  off: 'Comms log: Silenced (tap to show Fleet)',
+export type LogVisibilityMode = 'all' | 'mine' | 'commentator' | 'off';
+
+const LOG_CONTROL_LABEL: Record<LogVisibilityMode, string> = {
+  all: 'Comms log: All captains (tap for Yourself)',
+  mine: 'Comms log: Yourself (tap for Commentator)',
+  commentator: 'Comms log: Commentator (tap to silence)',
+  off: 'Comms log: Silenced (tap for All captains)',
 };
 
-const LOG_CONTROL_GLYPH: Record<'all' | 'mine' | 'off', string> = {
+const LOG_CONTROL_GLYPH: Record<LogVisibilityMode, string> = {
   all: '📡',
   mine: '👤',
+  commentator: '🎙️',
   off: '📵',
 };
+
+/** Cycle: all captains → yourself → commentator → silenced. */
+export function nextLogVisibilityMode(
+  mode: LogVisibilityMode
+): LogVisibilityMode {
+  switch (mode) {
+    case 'all':
+      return 'mine';
+    case 'mine':
+      return 'commentator';
+    case 'commentator':
+      return 'off';
+    case 'off':
+      return 'all';
+  }
+}
 
 export interface TableViewportFocusTarget {
   x: number;
@@ -46,9 +66,6 @@ export interface TableViewportFocusControl {
   active: boolean;
   onToggle: () => void;
 }
-
-export type LogVisibilityMode = 'all' | 'mine' | 'off';
-
 export interface TableViewportLogControl {
   mode: LogVisibilityMode;
   onCycle: () => void;

@@ -39,10 +39,31 @@ export function sectorWatchUrl(
   return `${sectorJoinUrl(gameId, origin)}/watch`;
 }
 
+/** OBS / transparent commentary overlay for an online sector. */
+export function sectorCommentaryUrl(
+  gameId: string,
+  origin: string = bridgeOriginForShares()
+): string {
+  return `${sectorJoinUrl(gameId, origin)}/commentary`;
+}
+
+/**
+ * Private hand / second-monitor play surface. Requires Firebase auth whose uid
+ * matches a seated captain (anonymous or Google — same session as /play).
+ */
+export function sectorHandUrl(
+  gameId: string,
+  origin: string = bridgeOriginForShares()
+): string {
+  return `${sectorJoinUrl(gameId, origin)}/hand`;
+}
+
 export type SectorInviteLinks = {
   code: string;
   joinUrl: string;
   watchUrl: string;
+  commentaryUrl: string;
+  handUrl: string;
 };
 
 export function sectorInviteLinks(gameId: string): SectorInviteLinks {
@@ -51,5 +72,7 @@ export function sectorInviteLinks(gameId: string): SectorInviteLinks {
     code,
     joinUrl: sectorJoinUrl(code),
     watchUrl: sectorWatchUrl(code),
+    commentaryUrl: sectorCommentaryUrl(code),
+    handUrl: sectorHandUrl(code),
   };
 }

@@ -7,6 +7,7 @@ import { CrewsPanel } from './crews-panel';
 import { ReportsPanel } from './reports-panel';
 import { SectorsPanel } from './sectors-panel';
 import { SubspacePanel } from './subspace-panel';
+import { TtsCachePanel } from './tts-cache-panel';
 import { useOpsAuth } from '../firebase/ops-auth';
 
 type OpsTab =
@@ -16,7 +17,8 @@ type OpsTab =
   | 'reports'
   | 'crews'
   | 'audit'
-  | 'bans';
+  | 'bans'
+  | 'tts-cache';
 
 export function App() {
   const auth = useOpsAuth();
@@ -200,6 +202,16 @@ export function App() {
                   Bans
                 </button>
               ) : null}
+              {auth.isAdmin ? (
+                <button
+                  type="button"
+                  className="btn"
+                  aria-current={tab === 'tts-cache' ? 'page' : undefined}
+                  onClick={() => setTab('tts-cache')}
+                >
+                  TTS cache
+                </button>
+              ) : null}
             </nav>
             {tab === 'sectors' ? (
               <SectorsPanel />
@@ -213,6 +225,8 @@ export function App() {
               <CrewsPanel />
             ) : tab === 'audit' ? (
               <AuditPanel />
+            ) : tab === 'tts-cache' && auth.isAdmin ? (
+              <TtsCachePanel />
             ) : auth.isAdmin ? (
               <BansPanel />
             ) : (

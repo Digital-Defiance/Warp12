@@ -84,7 +84,47 @@ export async function launchMission(page: Page): Promise<void> {
   const launchButton = page.getByRole('button', { name: 'Launch mission' });
   await expect(launchButton).toBeEnabled({ timeout: 10_000 });
   await launchButton.click();
-  await page.waitForURL(/\/online\/[A-Z0-9]{6}\/play$/);
+  const softGate = page.getByText(/Sign in with Google before launching a rated sector/i);
+  if (await softGate.isVisible({ timeout: 1_500 }).catch(() => false)) {
+    throw new Error(
+      'Launch blocked by rated soft-gate — call verifyE2eAccount(page) on the host first'
+    );
+  }
+  await page.waitForURL(/\/online\/[A-Z0-9]{6}\/play$/, { timeout: 30_000 });
+}
+
+/**
+ * Auth emulator / e2e: arm rated-launch bypass (and best-effort Google link).
+ * Requires the bridge build with Vite `--mode e2e` (installs window hook).
+ */
+export async function verifyE2eAccount(page: Page): Promise<void> {
+  await page.waitForFunction(
+    () =>
+      typeof (
+        window as Window & { __warp12E2eVerifyAccount?: unknown }
+      ).__warp12E2eVerifyAccount === 'function',
+    undefined,
+    { timeout: 20_000 }
+  );
+  await page.evaluate(async () => {
+    const w = window as Window & {
+      __warp12E2eVerifyAccount?: () => Promise<unknown>;
+      __warp12E2eAllowRatedLaunch?: boolean;
+    };
+    w.__warp12E2eAllowRatedLaunch = true;
+    const hook = w.__warp12E2eVerifyAccount;
+    if (!hook) {
+      throw new Error(
+        '__warp12E2eVerifyAccount hook missing (build with --mode e2e)'
+      );
+    }
+    await hook();
+  });
+  await page.waitForFunction(
+    () =>
+      (window as Window & { __warp12E2eAllowRatedLaunch?: boolean })
+        .__warp12E2eAllowRatedLaunch === true
+  );
 }
 
 export async function expectBridgeTable(
@@ -127,6 +167,8 @@ export async function setupTwoCaptainLobby(
   await joinSector(guestPage, guestCallSign, sectorCode);
   await expectWaitingRoom(hostPage, sectorCode, 2);
   await expectWaitingRoom(guestPage, sectorCode, 2);
+  // Rated is on by default — Auth emulator guests must “verify” before launch.
+  await verifyE2eAccount(hostPage);
 
   return { hostContext, guestContext, hostPage, guestPage, sectorCode };
 }

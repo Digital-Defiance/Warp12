@@ -570,6 +570,22 @@
   color: var(--warp-accent, #38bdf8);
 }
 
+.splashEggTrigger {
+  appearance: none;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .roundEndTitle {
   margin: 0 0 0.75rem;
   font-family: var(--font-federation-wide, var(--font-federation));
@@ -932,6 +948,12 @@
     color: var(--warp-text, #e2e8f0);
     font-weight: 600;
   }
+
+  .splashEggTrigger {
+    color: var(--warp-text, #e2e8f0);
+    font-weight: 600;
+    text-align: left;
+  }
 }
 
 .scoreLegend {
@@ -1162,4 +1184,78 @@
 .bridgeLayout[data-layout-tier='phone'] .controlsRow .controlBtn {
   font-size: 0.62rem;
   padding: 6px 8px;
+}
+
+/* Online /hand strip: helm + Continuum only (table stays on the capture Bridge). */
+.bridgeLayout[data-hand-strip-only='true'] {
+  max-width: 960px;
+  margin: 0 auto;
+  gap: 0.75rem;
+
+  .bridge {
+    aspect-ratio: unset;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0;
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .topRightHud,
+  .captainScores,
+  .scoreLegend {
+    display: none;
+  }
+
+  .controls {
+    max-width: none;
+    position: static;
+  }
+
+  .commandPanel {
+    flex: 1 1 auto;
+    max-height: none;
+    min-height: 280px;
+  }
+}
+
+.draftStreamSafe {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  max-width: 36rem;
+  margin: 1.5rem auto;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.88);
+}
+
+.draftStreamSafeEyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #7dd3fc;
+}
+
+.draftStreamSafeTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  letter-spacing: 0.03em;
+}
+
+.draftStreamSafeBody {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--warp-text-muted, #94a3b8);
+}
+
+.draftStreamSafeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }

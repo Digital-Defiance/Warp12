@@ -7,10 +7,12 @@ import {
   getCaptainDossier,
   opsSetDisplayName,
   searchCaptains,
+  setUserRoles,
   updateAdminNote,
   type AdminNote,
   type CaptainDossier,
   type CaptainSearchHit,
+  type WarpOpsRole,
 } from '../firebase/captains-service';
 import { muteUser, unmuteUser } from '../firebase/moderation-service';
 import { useOpsAuth } from '../firebase/ops-auth';
@@ -141,7 +143,7 @@ function readRatingRows(stats: CaptainDossier['stats']): RatingRow[] {
 }
 
 export function CaptainsPanel() {
-  const { isAdmin } = useOpsAuth();
+  const { isAdmin, user } = useOpsAuth();
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<CaptainSearchHit[]>([]);
   const [dossier, setDossier] = useState<CaptainDossier | null>(null);
@@ -208,7 +210,11 @@ export function CaptainsPanel() {
     setError(null);
     try {
       const res = await getCaptainDossier(uid);
-      setDossier(res.dossier);
+      setDossier({
+        ...res.dossier,
+        speakAs: res.dossier.speakAs ?? null,
+        roles: Array.isArray(res.dossier.roles) ? res.dossier.roles : [],
+      });
       setRenameName(res.dossier.displayName);
       setRenameReason('');
       setNoteText('');
@@ -253,6 +259,35 @@ export function CaptainsPanel() {
       await refreshDossier();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Rename failed.');
+      setBusy(false);
+    }
+  };
+
+  const onToggleAdmin = async () => {
+    if (!dossier || !user) {
+      return;
+    }
+    if (dossier.uid === user.uid) {
+      setError('You cannot change your own admin role.');
+      return;
+    }
+    const hasAdmin = dossier.roles.includes('admin');
+    const nextRoles: WarpOpsRole[] = hasAdmin
+      ? dossier.roles.filter((r): r is WarpOpsRole => r !== 'admin')
+      : [...dossier.roles, 'admin'];
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await setUserRoles({ uid: dossier.uid, roles: nextRoles });
+      setStatus(
+        hasAdmin
+          ? `Revoked admin from ${dossier.displayName}.`
+          : `Granted admin to ${dossier.displayName}.`
+      );
+      setDossier({ ...dossier, roles: res.roles });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Role update failed.');
+    } finally {
       setBusy(false);
     }
   };
@@ -713,6 +748,18 @@ export function CaptainsPanel() {
                 <span className="badge active">banned</span>
               </>
             ) : null}
+            {dossier.roles.includes('admin') ? (
+              <>
+                {' '}
+                <span className="badge active">admin</span>
+              </>
+            ) : null}
+            {dossier.roles.includes('moderator') ? (
+              <>
+                {' '}
+                <span className="badge">moderator</span>
+              </>
+            ) : null}
             {dossier.muted ? (
               <>
                 {' '}
@@ -729,6 +776,9 @@ export function CaptainsPanel() {
                 {dossier.email ?? (dossier.anonymous ? 'anonymous' : 'no email')}{' '}
                 · {dossier.providers.join(', ') || 'no providers'}
                 {dossier.authDisabled ? ' · Auth disabled' : ''}
+              </p>
+              <p style={{ color: 'var(--muted)' }}>
+                Spoken as · {dossier.speakAs ?? '(none)'}
               </p>
               <p style={{ color: 'var(--muted)' }}>
                 Auth created {fmtWhen(dossier.createdAt)} · last sign-in{' '}
@@ -840,6 +890,23 @@ export function CaptainsPanel() {
                   onClick={() => void onQuickBan()}
                 >
                   Ban this uid
+                </button>
+                <button
+                  type="button"
+                  className={
+                    dossier.roles.includes('admin') ? 'btn danger' : 'btn primary'
+                  }
+                  disabled={busy || dossier.uid === user?.uid}
+                  title={
+                    dossier.uid === user?.uid
+                      ? 'Another admin must change your role'
+                      : undefined
+                  }
+                  onClick={() => void onToggleAdmin()}
+                >
+                  {dossier.roles.includes('admin')
+                    ? 'Revoke admin'
+                    : 'Grant admin'}
                 </button>
               </div>
                 </>

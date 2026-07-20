@@ -9,6 +9,17 @@ export type CaptainTailsDisplay = 'number' | 'domino';
 /** Tails-panel coordinate readout: full `X:Y`, tail (open) value only, or hidden. */
 export type CaptainTailsCoordinate = 'full' | 'tail' | 'off';
 export type TrailLayoutStyle = 'offset' | 'linear';
+export type LogFontScale = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+
+export const LOG_FONT_SCALE_FACTOR: Record<LogFontScale, number> = {
+  xs: 0.7,
+  sm: 0.85,
+  md: 1,
+  lg: 1.2,
+  xl: 1.45,
+};
+
+const LOG_FONT_SCALES = new Set<LogFontScale>(['xs', 'sm', 'md', 'lg', 'xl']);
 
 export interface TableOptionsPrefs {
   layoutStyle: TrailLayoutStyle;
@@ -49,6 +60,27 @@ export interface TableOptionsPrefs {
    * match accumulates an AI-digestible action log until turned off.
    */
   recordMatchDebug: boolean;
+  /**
+   * Hide your private hand on this Bridge window (safe for OBS). Open
+   * `/online/{code}/hand` on a second monitor to play.
+   */
+  hideHandOnBridge: boolean;
+  /**
+   * Pass-and-play couch mode: each human seat has a private hand window;
+   * skip shared-device handoff overlays.
+   */
+  couchMode: boolean;
+  /**
+   * Admin-only: speak commentator highlights via Cloud Functions + ElevenLabs.
+   */
+  audibleCommentary: boolean;
+  /**
+   * Commentator mode: show round-elapsed timestamps (`MM:SS - …`) on highlight
+   * lines. Fleet console always keeps timestamps.
+   */
+  commentatorShowElapsed: boolean;
+  /** Scale for Bridge log ticker, sector log dialog, and commentary overlay. */
+  logFontScale: LogFontScale;
 }
 
 const STORAGE_KEY = 'warp12-table-options';
@@ -78,6 +110,11 @@ export const DEFAULT_TABLE_OPTIONS: TableOptionsPrefs = {
   bridgeSoundsEnabled: true,
   advisorIncludeAllCaptains: false,
   recordMatchDebug: false,
+  hideHandOnBridge: false,
+  couchMode: false,
+  audibleCommentary: false,
+  commentatorShowElapsed: true,
+  logFontScale: 'md',
 };
 
 const PIP_PRESETS = new Set<WarpPipPreset>([
@@ -204,6 +241,24 @@ function sanitizePartial(raw: unknown): Partial<TableOptionsPrefs> {
   }
   if (typeof value.recordMatchDebug === 'boolean') {
     next.recordMatchDebug = value.recordMatchDebug;
+  }
+  if (typeof value.hideHandOnBridge === 'boolean') {
+    next.hideHandOnBridge = value.hideHandOnBridge;
+  }
+  if (typeof value.couchMode === 'boolean') {
+    next.couchMode = value.couchMode;
+  }
+  if (typeof value.audibleCommentary === 'boolean') {
+    next.audibleCommentary = value.audibleCommentary;
+  }
+  if (typeof value.commentatorShowElapsed === 'boolean') {
+    next.commentatorShowElapsed = value.commentatorShowElapsed;
+  }
+  if (
+    typeof value.logFontScale === 'string' &&
+    LOG_FONT_SCALES.has(value.logFontScale as LogFontScale)
+  ) {
+    next.logFontScale = value.logFontScale as LogFontScale;
   }
 
   return next;

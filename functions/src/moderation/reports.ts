@@ -41,6 +41,7 @@ function stableId(...parts: string[]): string {
 function captainsOf(game: admin.firestore.DocumentData): Array<{
   id: string;
   displayName: string;
+  speakAs: string | null;
 }> {
   if (!Array.isArray(game.captains)) {
     return [];
@@ -50,7 +51,11 @@ function captainsOf(game: admin.firestore.DocumentData): Array<{
       if (!captain || typeof captain !== 'object') {
         return null;
       }
-      const row = captain as { id?: unknown; displayName?: unknown };
+      const row = captain as {
+        id?: unknown;
+        displayName?: unknown;
+        speakAs?: unknown;
+      };
       if (typeof row.id !== 'string') {
         return null;
       }
@@ -58,11 +63,17 @@ function captainsOf(game: admin.firestore.DocumentData): Array<{
         id: row.id,
         displayName:
           typeof row.displayName === 'string' ? row.displayName : 'Captain',
+        speakAs: typeof row.speakAs === 'string' ? row.speakAs : null,
       };
     })
     .filter(
-      (captain): captain is { id: string; displayName: string } =>
-        captain !== null
+      (
+        captain
+      ): captain is {
+        id: string;
+        displayName: string;
+        speakAs: string | null;
+      } => captain !== null
     );
 }
 
@@ -185,7 +196,11 @@ export const submitModerationReport = onCall(async (request) => {
     const target = captains.find((captain) => captain.id === targetUid)!;
     evidence = {
       ...evidence,
-      captain: { uid: target.id, displayName: target.displayName },
+      captain: {
+        uid: target.id,
+        displayName: target.displayName,
+        ...(target.speakAs ? { speakAs: target.speakAs } : {}),
+      },
     };
   }
 
@@ -478,15 +493,23 @@ export const onDisplayNameContentReview = onDocumentWritten(
     const beforeNames = new Map(
       before.map((captain) => [captain.id, captain.displayName])
     );
-    const changed = after.filter(
+    const beforeSpeakAs = new Map(
+      before.map((captain) => [captain.id, captain.speakAs])
+    );
+    const changedNames = after.filter(
       (captain) => beforeNames.get(captain.id) !== captain.displayName
     );
-    if (changed.length === 0) {
+    const changedSpeakAs = after.filter(
+      (captain) =>
+        Boolean(captain.speakAs) &&
+        beforeSpeakAs.get(captain.id) !== captain.speakAs
+    );
+    if (changedNames.length === 0 && changedSpeakAs.length === 0) {
       return;
     }
 
     const config = await loadContentReviewConfig();
-    for (const captain of changed) {
+    for (const captain of changedNames) {
       const matches = findReviewMatches(
         captain.displayName,
         config.displayNameTerms,
@@ -517,6 +540,47 @@ export const onDisplayNameContentReview = onDocumentWritten(
             captain: {
               uid: captain.id,
               displayName: captain.displayName,
+              ...(captain.speakAs ? { speakAs: captain.speakAs } : {}),
+            },
+          },
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: false }
+      );
+      await maybeEscalateTargetReports(captain.id, reportId);
+    }
+
+    for (const captain of changedSpeakAs) {
+      const alias = captain.speakAs!;
+      const matches = findReviewMatches(
+        alias,
+        config.displayNameTerms,
+        config.allowlist
+      );
+      if (matches.length === 0) {
+        continue;
+      }
+      const gameId = event.params.gameId;
+      const reportId = `auto-speakas-${stableId(captain.id, alias)}`;
+      await db.collection(MODERATION_REPORTS_COLLECTION).doc(reportId).set(
+        {
+          reportId,
+          source: 'auto',
+          status: 'open',
+          category: 'review-term',
+          subjectType: 'display-name',
+          reporterUid: null,
+          targetUid: captain.id,
+          gameId,
+          messageId: null,
+          reason: 'Spoken-as alias matched configured review terms.',
+          matchedTerms: matches.map((match) => match.normalizedTerm),
+          evidence: {
+            captain: {
+              uid: captain.id,
+              displayName: captain.displayName,
+              speakAs: alias,
             },
           },
           createdAt: FieldValue.serverTimestamp(),

@@ -152,7 +152,25 @@ describe('game-log', () => {
       names,
       formatOptions
     );
-    expect(line).toBe('02:38 - Lovell deployed a Distress Beacon');
+    expect(line).toMatch(
+      /^02:38 - Lovell (put up their Distress Beacon|lowered their shields)$/
+    );
+  });
+
+  it('formats manual shields-up with beacon/shields variety', () => {
+    const line = formatGameLogLine(
+      {
+        at: '2026-06-28T21:02:40.000Z',
+        kind: 'RAISE_SHIELDS',
+        captainId: 'lovell',
+        effects: [],
+      },
+      names,
+      formatOptions
+    );
+    expect(line).toMatch(
+      /^02:40 - Lovell (raised their shields|took down their Distress Beacon)$/
+    );
   });
 
   it('logs a silent opening beacon when the round starter cannot play twice', () => {
@@ -185,11 +203,82 @@ describe('game-log', () => {
       route: { kind: 'warp-trail', playerId: 'a' },
     });
     expect(entry?.effects).toContain('beacon-deployed');
+    expect(entry?.effects).toContain('round-opened');
     expect(
       formatGameLogLine(entry!, { a: 'Alpha', b: 'Beta' }, formatOptions)
     ).toMatch(
       /charted a 5:12 on their own Trail, deploying a Distress Beacon$/
     );
+  });
+
+  it('tags the first chart of the round as round-opened on any route', () => {
+    const state = makeGame(
+      makeRound(['a', 'b'], {
+        spacedockValue: 12,
+        activePlayerId: 'a',
+        hands: { a: [T(12, 8)], b: [] },
+        table: {
+          ...createInitialTable(['a', 'b'], 12, 'a'),
+        },
+      })
+    );
+
+    const result = applyAction(state, {
+      type: 'CHART_COORDINATE',
+      playerId: 'a',
+      coordinate: T(12, 8),
+      route: { kind: 'neutral-zone' },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const entry = buildGameLogEntry(state, result.state, {
+      type: 'CHART_COORDINATE',
+      playerId: 'a',
+      coordinate: T(12, 8),
+      route: { kind: 'neutral-zone' },
+    });
+    expect(entry?.effects).toContain('round-opened');
+    expect(entry?.effects).toContain('neutral-zone-opened');
+  });
+
+  it('tags the first Neutral Zone chart even mid-round', () => {
+    const table = createInitialTable(['a', 'b'], 12, 'a');
+    const state = makeGame(
+      makeRound(['a', 'b'], {
+        spacedockValue: 12,
+        activePlayerId: 'b',
+        hands: { a: [], b: [T(12, 3)] },
+        table: {
+          ...table,
+          warpTrails: {
+            ...table.warpTrails,
+            a: {
+              ...table.warpTrails.a!,
+              tiles: [placed(T(12, 9), 12, 9)],
+            },
+          },
+        },
+      })
+    );
+
+    const result = applyAction(state, {
+      type: 'CHART_COORDINATE',
+      playerId: 'b',
+      coordinate: T(12, 3),
+      route: { kind: 'neutral-zone' },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const entry = buildGameLogEntry(state, result.state, {
+      type: 'CHART_COORDINATE',
+      playerId: 'b',
+      coordinate: T(12, 3),
+      route: { kind: 'neutral-zone' },
+    });
+    expect(entry?.effects).toContain('neutral-zone-opened');
+    expect(entry?.effects).not.toContain('round-opened');
   });
 
   it('formats round bookends and pass-red-alert handoff', () => {

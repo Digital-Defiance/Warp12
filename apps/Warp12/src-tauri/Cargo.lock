@@ -3926,6 +3926,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tauri-plugin-warp-achievements"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "tauri-runtime"
 version = "2.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4601,7 +4612,7 @@ dependencies = [
 
 [[package]]
 name = "warp12"
-version = "0.9.63"
+version = "0.10.64"
 dependencies = [
  "log",
  "rfd",
@@ -4612,6 +4623,7 @@ dependencies = [
  "tauri-plugin-deep-link",
  "tauri-plugin-log",
  "tauri-plugin-opener",
+ "tauri-plugin-warp-achievements",
 ]
 
 [[package]]

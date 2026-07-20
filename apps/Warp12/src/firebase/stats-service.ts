@@ -22,6 +22,7 @@ import {
   isReplayableLocalAiMatch,
   localAiMatchRejectNotice,
 } from '../game/local-ai-match-validation.js';
+import { sanitizeSpeakAs } from '../game/captain-speak-as.js';
 export type { LocalAiMatchRejectReason } from '../game/local-ai-match-validation.js';
 export {
   getLocalAiMatchRejectReason,
@@ -37,6 +38,7 @@ import {
   type TeiGrade,
 } from 'warp12-engine';
 import type { CaptainGender } from '../game/captain-profile.js';
+import type { CaptainPronounPreference } from '../game/captain-pronouns.js';
 import { isRatedLocalGame } from '../game/local-game-config.js';
 import {
   objectiveRatingStats as objectiveTeiStats,
@@ -327,9 +329,76 @@ export async function saveCaptainGender(
     tx.set(
       ref,
       {
-        uid,
         ...(existing?.displayName ? {} : { displayName: 'Captain' }),
+        ...(existing ? {} : { uid }),
         captainGender,
+        updatedAt: now,
+      },
+      { merge: true }
+    );
+  });
+}
+
+export async function saveCaptainPronouns(
+  uid: string,
+  captainPronouns: CaptainPronounPreference
+): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    return;
+  }
+  const db = getFirestoreDb();
+  if (!db) {
+    return;
+  }
+
+  const now = new Date().toISOString();
+  await runTransaction(db, async (tx) => {
+    const ref = doc(db, PLAYER_STATS, uid);
+    const snap = await tx.get(ref);
+    const existing = snap.exists()
+      ? (snap.data() as PlayerStatsDocument)
+      : null;
+
+    tx.set(
+      ref,
+      {
+        ...(existing?.displayName ? {} : { displayName: 'Captain' }),
+        ...(existing ? {} : { uid }),
+        captainPronouns,
+        updatedAt: now,
+      },
+      { merge: true }
+    );
+  });
+}
+
+export async function saveCaptainSpeakAs(
+  uid: string,
+  speakAs: string | null
+): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    return;
+  }
+  const db = getFirestoreDb();
+  if (!db) {
+    return;
+  }
+
+  const sanitized = sanitizeSpeakAs(speakAs);
+  const now = new Date().toISOString();
+  await runTransaction(db, async (tx) => {
+    const ref = doc(db, PLAYER_STATS, uid);
+    const snap = await tx.get(ref);
+    const existing = snap.exists()
+      ? (snap.data() as PlayerStatsDocument)
+      : null;
+
+    tx.set(
+      ref,
+      {
+        ...(existing?.displayName ? {} : { displayName: 'Captain' }),
+        ...(existing ? {} : { uid }),
+        speakAs: sanitized,
         updatedAt: now,
       },
       { merge: true }

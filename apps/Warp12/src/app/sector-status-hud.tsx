@@ -2,10 +2,11 @@ import { GAME_OBJECTIVE_LABELS, formatCampaignRoundProgress, type Coordinate, ty
 import type { RefObject } from 'react';
 import { DominoTile } from 'double-eighteen-react';
 import { WARP_PIP_COLORS, WARP_TILE_SURFACE, type WarpTileBg } from 'warp12-theme';
-import { sectorWinnerName } from '../game/sector-outcome.js';
+import { sectorWinnerId, sectorWinnerName } from '../game/sector-outcome.js';
 import type { DoubleDownNotice } from '../game/module-feedback.js';
 import { ActiveContinuumFlashBanner, PeekedSectorBanner } from './flash-panel.js';
 import { FloatingPanelShell } from './floating-panel-shell';
+import { captainLogColor, logPipTextColor } from './game-log-display.js';
 import styles from './sector-status-hud.module.scss';
 
 const STORAGE_KEY = 'warp12-sector-hud-pos';
@@ -33,7 +34,7 @@ export interface SectorStatusHudProps {
   maxPip: number;
   onSensorSweep?: (coordinate: Coordinate) => void;
   beaconCount: number;
-  openTrailNames: readonly string[];
+  openTrailCaptains: readonly { captainId: string; label: string }[];
   shieldsDown: boolean;
   canRaiseShields: boolean;
   manualShieldControl: boolean;
@@ -62,6 +63,16 @@ export function shouldShowAiThinking(props: {
   );
 }
 
+export type SectorTurnFooter =
+  | { readonly kind: 'plain'; readonly text: string }
+  | {
+      readonly kind: 'named';
+      readonly captainId: string;
+      readonly name: string;
+      readonly prefix?: string;
+      readonly rest: string;
+    };
+
 export function formatSectorTurnFooter(props: {
   game: GameState;
   round: RoundState | null | undefined;
@@ -76,7 +87,7 @@ export function formatSectorTurnFooter(props: {
   roundAwaitingScore: boolean;
   roundEndSummaryOpen: boolean;
   lastMessage: string | null;
-}): string {
+}): SectorTurnFooter {
   const {
     game,
     round,
@@ -94,40 +105,105 @@ export function formatSectorTurnFooter(props: {
   } = props;
 
   if (game.phase === 'complete') {
-    return `${sectorWinnerName(game, names)} wins the sector`;
+    const winnerId = sectorWinnerId(game) ?? '';
+    return {
+      kind: 'named',
+      captainId: winnerId,
+      name: sectorWinnerName(game, names),
+      rest: ' wins the sector',
+    };
   }
 
   if (roundAwaitingScore && round) {
     if (roundEndSummaryOpen) {
-      return 'Review round summary';
+      return { kind: 'plain', text: 'Review round summary' };
     }
     if (round.roundBlocked) {
-      return 'Sector blocked';
+      return { kind: 'plain', text: 'Sector blocked' };
     }
-    return `${names[round.roundWinnerId ?? ''] ?? 'Captain'} won the round`;
+    const winnerId = round.roundWinnerId ?? '';
+    return {
+      kind: 'named',
+      captainId: winnerId,
+      name: names[winnerId] ?? 'Captain',
+      rest: ' won the round',
+    };
   }
 
   if (syncPending && isMyTurn) {
-    return 'Transmitting to subspace…';
+    return { kind: 'plain', text: 'Transmitting to subspace…' };
   }
 
   if (lastMessage) {
-    return lastMessage;
+    return { kind: 'plain', text: lastMessage };
   }
 
   if (isMyTurn) {
-    return `${names[handOwnerId] ?? 'You'} · your turn`;
+    return {
+      kind: 'named',
+      captainId: handOwnerId,
+      name: names[handOwnerId] ?? 'You',
+      rest: ' · your turn',
+    };
   }
 
   if (shouldShowAiThinking({ activePlayerIsAi, isOnline, isOnlineHost })) {
-    return `${names[activePlayerId] ?? 'Captain'} is thinking…`;
+    return {
+      kind: 'named',
+      captainId: activePlayerId,
+      name: names[activePlayerId] ?? 'Captain',
+      rest: ' is thinking…',
+    };
   }
 
   if (isOnline) {
-    return `Awaiting ${names[activePlayerId] ?? 'captain'}`;
+    return {
+      kind: 'named',
+      captainId: activePlayerId,
+      name: names[activePlayerId] ?? 'captain',
+      prefix: 'Awaiting ',
+      rest: '',
+    };
   }
 
-  return `${names[activePlayerId] ?? 'Captain'} at helm`;
+  return {
+    kind: 'named',
+    captainId: activePlayerId,
+    name: names[activePlayerId] ?? 'Captain',
+    rest: ' at helm',
+  };
+}
+
+/** Flatten footer for tests / announcements. */
+export function sectorTurnFooterText(footer: SectorTurnFooter): string {
+  if (footer.kind === 'plain') {
+    return footer.text;
+  }
+  return `${footer.prefix ?? ''}${footer.name}${footer.rest}`;
+}
+
+export function SectorTurnFooterView({
+  footer,
+  captainOrder,
+}: {
+  footer: SectorTurnFooter;
+  captainOrder: readonly string[];
+}) {
+  if (footer.kind === 'plain') {
+    return footer.text;
+  }
+  return (
+    <>
+      {footer.prefix ? <span data-part="rest">{footer.prefix}</span> : null}
+      <span
+        data-part="name"
+        style={{ color: captainLogColor(footer.captainId, captainOrder) }}
+      >
+        {footer.name}
+      </span>
+      {footer.rest ? <span data-part="rest">{footer.rest}</span> : null}
+    </>
+  );
 }
 
 export function SectorStatusHud({
@@ -153,7 +229,7 @@ export function SectorStatusHud({
   maxPip,
   onSensorSweep,
   beaconCount,
-  openTrailNames,
+  openTrailCaptains,
   shieldsDown,
   canRaiseShields,
   manualShieldControl,
@@ -189,6 +265,9 @@ export function SectorStatusHud({
     roundEndSummaryOpen,
     lastMessage,
   });
+  const captainOrder =
+    round?.turnOrder ?? game.captains.map((captain) => captain.id);
+  const helmColor = captainLogColor(activePlayerId, captainOrder);
 
   return (
     <FloatingPanelShell
@@ -224,11 +303,13 @@ export function SectorStatusHud({
         )}
         <div className={styles.row}>
           <dt>Spacedock</dt>
-          <dd>Double-{spacedockValue}</dd>
+          <dd style={{ color: logPipTextColor(spacedockValue) }}>
+            Double-{spacedockValue}
+          </dd>
         </div>
         <div className={styles.row}>
           <dt>Helm</dt>
-          <dd>{names[activePlayerId] ?? '—'}</dd>
+          <dd style={{ color: helmColor }}>{names[activePlayerId] ?? '—'}</dd>
         </div>
         <div className={styles.row}>
           <dt>Uncharted</dt>
@@ -270,9 +351,23 @@ export function SectorStatusHud({
           <dt>Beacons</dt>
           <dd>
             {beaconCount}
-            {openTrailNames.length > 0
-              ? ` · ${openTrailNames.join(', ')}`
-              : ''}
+            {openTrailCaptains.length > 0 ? (
+              <>
+                {' · '}
+                {openTrailCaptains.map((captain, index) => (
+                  <span key={captain.captainId}>
+                    {index > 0 ? ', ' : null}
+                    <span
+                      style={{
+                        color: captainLogColor(captain.captainId, captainOrder),
+                      }}
+                    >
+                      {captain.label}
+                    </span>
+                  </span>
+                ))}
+              </>
+            ) : null}
           </dd>
         </div>
         {shieldsDown && (
@@ -307,11 +402,25 @@ export function SectorStatusHud({
           <div className={`${styles.row} ${styles.moduleDelta}`}>
             <dt>Longest trail</dt>
             <dd>
-              {longestTrailCaptains.length === 1
-                ? `${names[longestTrailCaptains[0]] ?? 'Unknown'} (${longestTrailLength})`
-                : longestTrailCaptains.length > 1
-                  ? `Tied (${longestTrailLength})`
-                  : `None yet`}
+              {longestTrailCaptains.length === 0 ? (
+                'None yet'
+              ) : (
+                <>
+                  {longestTrailCaptains.map((captainId, index) => (
+                    <span key={captainId}>
+                      {index > 0 ? ', ' : null}
+                      <span
+                        style={{
+                          color: captainLogColor(captainId, captainOrder),
+                        }}
+                      >
+                        {names[captainId] ?? 'Unknown'}
+                      </span>
+                    </span>
+                  ))}
+                  {` (${longestTrailLength})`}
+                </>
+              )}
             </dd>
           </div>
         )}
@@ -319,8 +428,15 @@ export function SectorStatusHud({
           <div className={`${styles.row} ${styles.hazardWarning}`}>
             <dt>Hazard marker</dt>
             <dd>
-              {names[hazardMarkerHolder] ?? 'Unknown'}
-              {game.round?.hazardMarkerPassCount && game.round.hazardMarkerPassCount > 0
+              <span
+                style={{
+                  color: captainLogColor(hazardMarkerHolder, captainOrder),
+                }}
+              >
+                {names[hazardMarkerHolder] ?? 'Unknown'}
+              </span>
+              {game.round?.hazardMarkerPassCount &&
+              game.round.hazardMarkerPassCount > 0
                 ? ` (passed ×${game.round.hazardMarkerPassCount} = +${game.round.hazardMarkerPassCount * 5} penalty)`
                 : ' (not yet passed)'}
             </dd>
@@ -330,10 +446,27 @@ export function SectorStatusHud({
           <div className={`${styles.row} ${styles.temporalDebt}`}>
             <dt>Debt tokens</dt>
             <dd>
-              {Object.entries(round.debtTokens ?? {})
-                .filter(([, count]) => count > 0)
-                .map(([playerId, count]) => `${names[playerId]}: ${count}`)
-                .join(', ') || 'None yet'}
+              {(() => {
+                const owed = Object.entries(round.debtTokens ?? {}).filter(
+                  ([, count]) => count > 0
+                );
+                if (owed.length === 0) {
+                  return 'None yet';
+                }
+                return owed.map(([playerId, count], index) => (
+                  <span key={playerId}>
+                    {index > 0 ? ', ' : null}
+                    <span
+                      style={{
+                        color: captainLogColor(playerId, captainOrder),
+                      }}
+                    >
+                      {names[playerId] ?? playerId}
+                    </span>
+                    {`: ${count}`}
+                  </span>
+                ));
+              })()}
             </dd>
           </div>
         )}
@@ -356,7 +489,12 @@ export function SectorStatusHud({
               </dd>
             </div>
           )}
-        <ActiveContinuumFlashBanner game={game} names={names} className={styles.row} />
+        <ActiveContinuumFlashBanner
+          game={game}
+          names={names}
+          captainOrder={captainOrder}
+          className={styles.row}
+        />
         <PeekedSectorBanner
           game={game}
           viewerId={viewerId}
@@ -370,7 +508,7 @@ export function SectorStatusHud({
         data-ai={showAiThinking && !isMyTurn ? 'true' : undefined}
         role="status"
       >
-        {turnFooter}
+        <SectorTurnFooterView footer={turnFooter} captainOrder={captainOrder} />
       </p>
     </FloatingPanelShell>
   );

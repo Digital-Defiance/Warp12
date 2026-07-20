@@ -9,14 +9,18 @@ import {
 import { createPortal } from 'react-dom';
 import {
   formatCampaignRoundProgress,
+  FLASH_CATALOG,
+  describeFlashEffect,
   type GameState,
   type RoundState,
 } from 'warp12-engine';
 
 import {
   formatSectorTurnFooter,
+  SectorTurnFooterView,
   shouldShowAiThinking,
 } from './sector-status-hud';
+import { captainLogColor, logPipTextColor } from './game-log-display.js';
 import styles from './sector-status-holo.module.scss';
 
 const STORAGE_KEY = 'warp12-sector-holo-pos';
@@ -90,7 +94,7 @@ export interface SectorStatusHoloProps {
   spacedockValue: number;
   unchartedCount: number;
   beaconCount: number;
-  openTrailNames: readonly string[];
+  openTrailCaptains: readonly { captainId: string; label: string }[];
   redAlertActive: boolean;
   redAlertLabel: string;
   redAlertSummary: string;
@@ -122,7 +126,7 @@ export function SectorStatusHolo({
   spacedockValue,
   unchartedCount,
   beaconCount,
-  openTrailNames,
+  openTrailCaptains,
   redAlertActive,
   redAlertLabel,
   redAlertSummary,
@@ -162,19 +166,31 @@ export function SectorStatusHolo({
     lastMessage,
   });
 
+  const captainOrder =
+    round?.turnOrder ?? game.captains.map((captain) => captain.id);
+  const helmColor = captainLogColor(activePlayerId, captainOrder);
+
   const roundLabel = round
     ? game.objective === 'points'
       ? formatCampaignRoundProgress(round.roundNumber, game.campaignRounds)
       : `R${round.roundNumber}`
     : '—';
 
-  const longestLabel =
-    game.modules.longestTrail?.enabled && longestTrailLength > 0
-      ? longestTrailCaptains.length === 1
-        ? `${names[longestTrailCaptains[0]] ?? '?'} ${longestTrailLength}`
-        : longestTrailCaptains.length > 1
-          ? `Tied ${longestTrailLength}`
-          : null
+  const longestTrailEnabled =
+    game.modules.longestTrail?.enabled && longestTrailLength > 0;
+  const debtOwed =
+    game.modules.temporalDebt?.enabled && round
+      ? Object.entries(round.debtTokens ?? {}).filter(([, count]) => count > 0)
+      : [];
+  const continuumFlash = game.modules.continuum.enabled
+    ? game.modules.continuum.activeFlash
+    : null;
+  const continuumTargetId =
+    continuumFlash &&
+    (continuumFlash.effect.kind === 'skip-lowest-points' ||
+      continuumFlash.effect.kind === 'force-draw') &&
+    continuumFlash.effect.targetPlayerId
+      ? continuumFlash.effect.targetPlayerId
       : null;
 
   // Place once measured (or restore).
@@ -289,19 +305,41 @@ export function SectorStatusHolo({
           <span className={styles.sep} aria-hidden>
             ·
           </span>
-          <span className={styles.k}>Dock</span> {spacedockValue}
+          <span className={styles.k}>Dock</span>{' '}
+          <span style={{ color: logPipTextColor(spacedockValue) }}>
+            {spacedockValue}
+          </span>
         </p>
         <p className={styles.line}>
-          <span className={styles.k}>Helm</span> {names[activePlayerId] ?? '—'}
+          <span className={styles.k}>Helm</span>{' '}
+          <span style={{ color: helmColor }}>
+            {names[activePlayerId] ?? '—'}
+          </span>
           <span className={styles.sep} aria-hidden>
             ·
           </span>
           <span className={styles.k}>U</span> {unchartedCount}
         </p>
-        {(beaconCount > 0 || openTrailNames.length > 0) && (
+        {(beaconCount > 0 || openTrailCaptains.length > 0) && (
           <p className={styles.line}>
             <span className={styles.k}>Beacons</span> {beaconCount}
-            {openTrailNames.length > 0 ? ` · ${openTrailNames.join(', ')}` : ''}
+            {openTrailCaptains.length > 0 ? (
+              <>
+                {' · '}
+                {openTrailCaptains.map((captain, index) => (
+                  <span key={captain.captainId}>
+                    {index > 0 ? ', ' : null}
+                    <span
+                      style={{
+                        color: captainLogColor(captain.captainId, captainOrder),
+                      }}
+                    >
+                      {captain.label}
+                    </span>
+                  </span>
+                ))}
+              </>
+            ) : null}
           </p>
         )}
         {redAlertActive && (
@@ -312,15 +350,58 @@ export function SectorStatusHolo({
             <span className={styles.k}>{redAlertLabel}</span> {redAlertSummary}
           </p>
         )}
-        {longestLabel && (
+        {longestTrailEnabled && (
           <p className={styles.line}>
-            <span className={styles.k}>Long</span> {longestLabel}
+            <span className={styles.k}>Long</span>{' '}
+            {longestTrailCaptains.length === 0 ? (
+              '—'
+            ) : (
+              <>
+                {longestTrailCaptains.map((captainId, index) => (
+                  <span key={captainId}>
+                    {index > 0 ? ', ' : null}
+                    <span
+                      style={{
+                        color: captainLogColor(captainId, captainOrder),
+                      }}
+                    >
+                      {names[captainId] ?? '?'}
+                    </span>
+                  </span>
+                ))}
+                {` ${longestTrailLength}`}
+              </>
+            )}
           </p>
         )}
         {game.modules.warpDriveSpool?.enabled && hazardMarkerHolder && (
           <p className={styles.line} data-tone="yellow">
             <span className={styles.k}>Hazard</span>{' '}
-            {names[hazardMarkerHolder] ?? '—'}
+            <span
+              style={{
+                color: captainLogColor(hazardMarkerHolder, captainOrder),
+              }}
+            >
+              {names[hazardMarkerHolder] ?? '—'}
+            </span>
+          </p>
+        )}
+        {debtOwed.length > 0 && (
+          <p className={styles.line}>
+            <span className={styles.k}>Debt</span>{' '}
+            {debtOwed.map(([playerId, count], index) => (
+              <span key={playerId}>
+                {index > 0 ? ', ' : null}
+                <span
+                  style={{
+                    color: captainLogColor(playerId, captainOrder),
+                  }}
+                >
+                  {names[playerId] ?? playerId}
+                </span>
+                {` ${count}`}
+              </span>
+            ))}
           </p>
         )}
         {game.modules.temporalInversion?.enabled &&
@@ -330,12 +411,34 @@ export function SectorStatusHolo({
               <span className={styles.k}>Invert</span> highest hand wins
             </p>
           )}
+        {continuumFlash && (
+          <p className={styles.line}>
+            <span className={styles.k}>Flash</span>{' '}
+            {continuumTargetId ? (
+              <>
+                {FLASH_CATALOG.find(
+                  (item) => item.kind === continuumFlash.effect.kind
+                )?.label ?? continuumFlash.effect.kind}
+                {': '}
+                <span
+                  style={{
+                    color: captainLogColor(continuumTargetId, captainOrder),
+                  }}
+                >
+                  {names[continuumTargetId] ?? continuumTargetId}
+                </span>
+              </>
+            ) : (
+              describeFlashEffect(continuumFlash.effect, names)
+            )}
+          </p>
+        )}
         <p
           className={styles.footer}
           data-my-turn={isMyTurn ? 'true' : undefined}
           data-ai={showAiThinking ? 'true' : undefined}
         >
-          {turnFooter}
+          <SectorTurnFooterView footer={turnFooter} captainOrder={captainOrder} />
         </p>
       </div>
     </div>

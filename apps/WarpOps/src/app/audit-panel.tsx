@@ -72,6 +72,7 @@ export function AuditPanel() {
               <option value="unban_user" />
               <option value="display_name_set" />
               <option value="roles_set" />
+              <option value="tts_cache_purge" />
             </datalist>
           </label>
           <label>

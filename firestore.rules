@@ -151,7 +151,7 @@ service cloud.firestore {
 
     function clientProfileFieldsOnly() {
       return request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['displayName', 'captainGender', 'updatedAt']);
+        .hasOnly(['displayName', 'captainGender', 'captainPronouns', 'speakAs', 'updatedAt']);
     }
 
     function clientStatsCreate() {
@@ -575,6 +575,11 @@ service cloud.firestore {
         && clientProfileFieldsOnly();
 
       allow delete: if isOwner(uid);
+    }
+
+    // TTS generation quotas — Admin SDK only (Cloud Functions).
+    match /ttsQuota/{uid} {
+      allow read, write: if false;
     }
 
     match /publishedLogs/{logId} {

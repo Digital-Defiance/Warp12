@@ -387,7 +387,7 @@ async function applyRatingForApprovedMatch(
 }
 
 export const setUserRoles = onCall(async (request) => {
-  requireAdmin(request);
+  const actorUid = requireAdmin(request);
   const { uid, roles } = request.data as { uid?: string; roles?: WarpRole[] };
   if (!uid || !Array.isArray(roles)) {
     throw new HttpsError('invalid-argument', 'uid and roles array required.');
@@ -398,8 +398,16 @@ export const setUserRoles = onCall(async (request) => {
       throw new HttpsError('invalid-argument', `Invalid role: ${role}`);
     }
   }
-  await admin.auth().setCustomUserClaims(uid, { roles });
-  return { ok: true, uid, roles };
+  const nextRoles = [...new Set(roles)];
+  // Never lock yourself out — another admin must demote you.
+  if (uid === actorUid && !nextRoles.includes('admin')) {
+    throw new HttpsError(
+      'failed-precondition',
+      'You cannot remove your own admin role.'
+    );
+  }
+  await admin.auth().setCustomUserClaims(uid, { roles: nextRoles });
+  return { ok: true, uid, roles: nextRoles };
 });
 
 export const bootstrapAdmin = onCall(async (request) => {

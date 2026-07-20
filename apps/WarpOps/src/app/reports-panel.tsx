@@ -46,10 +46,13 @@ function evidencePreview(report: ModerationReport): string {
     );
   }
   const captain = evidence.captain as
-    | { displayName?: string; uid?: string }
+    | { displayName?: string; uid?: string; speakAs?: string }
     | undefined;
   if (captain) {
-    return captain.displayName || captain.uid || 'captain';
+    const label = captain.displayName || captain.uid || 'captain';
+    return captain.speakAs
+      ? `${label} (spoken as ${captain.speakAs})`
+      : label;
   }
   if (Array.isArray(evidence.relatedUids)) {
     return `related: ${(evidence.relatedUids as string[]).length} uid(s)`;

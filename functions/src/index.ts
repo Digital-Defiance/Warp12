@@ -14,6 +14,8 @@ import {
 import { reportOnlineMatch } from './report-online-match';
 import { reportPracticeAiMatch } from './report-practice-ai';
 import { setAcademyPlacement } from './set-academy-placement';
+import { synthesizeCommentatorSpeech } from './tts/synthesize-commentator-speech';
+import { listTtsCache, purgeTtsCache } from './tts/cache-admin';
 import {
   createCharter,
   getCharter,
@@ -158,6 +160,7 @@ export {
   listOpsAudit,
   listSectorMessages,
   listStaleGames,
+  listTtsCache,
   muteInSector,
   muteUser,
   onDisplayNameContentReview,
@@ -178,6 +181,7 @@ export {
   opsTerminateSector,
   opsUnrateOnlineSector,
   opsVoidRatedMatch,
+  purgeTtsCache,
   rejectRatedMatch,
   reportOnlineMatch,
   reportPracticeAiMatch,
@@ -194,6 +198,7 @@ export {
   setUserRoles,
   submitMatchStandings,
   submitModerationReport,
+  synthesizeCommentatorSpeech,
   unbanUser,
   unmuteInSector,
   unmuteUser,

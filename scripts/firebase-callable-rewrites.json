@@ -180,6 +180,10 @@
     "serviceId": "liststalegames"
   },
   {
+    "name": "listTtsCache",
+    "serviceId": "listttscache"
+  },
+  {
     "name": "muteInSector",
     "serviceId": "muteinsector"
   },
@@ -244,6 +248,10 @@
     "serviceId": "opsvoidratedmatch"
   },
   {
+    "name": "purgeTtsCache",
+    "serviceId": "purgettscache"
+  },
+  {
     "name": "redactSectorMessage",
     "serviceId": "redactsectormessage"
   },
@@ -306,6 +314,10 @@
   {
     "name": "submitModerationReport",
     "serviceId": "submitmoderationreport"
+  },
+  {
+    "name": "synthesizeCommentatorSpeech",
+    "serviceId": "synthesizecommentatorspeech"
   },
   {
     "name": "unbanUser",

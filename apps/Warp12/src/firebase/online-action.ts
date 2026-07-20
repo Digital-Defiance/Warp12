@@ -41,6 +41,9 @@ function mergeCaptainMetadata(
       joinedAt: prior?.joinedAt ?? now,
       ...(captain.squadronId ? { squadronId: captain.squadronId } : {}),
     };
+    if (prior?.speakAs) {
+      merged.speakAs = prior.speakAs;
+    }
     if (prior && isAiCaptain(prior)) {
       merged.isAi = true;
       if (prior.skill !== undefined) {
@@ -63,6 +66,7 @@ export function buildPublicDoc(
     'hostId' | 'createdAt' | 'captains' | 'rated'
   > & {
     maxPlayers?: number;
+    useSpeakAs?: boolean;
     /** Preserve gallery / ops / charter fields across full-doc rewrites. */
     allowSpectate?: boolean;
     spectatorIds?: string[];
@@ -88,6 +92,7 @@ export function buildPublicDoc(
     captainIds: captainIds(captains),
     captains,
     rated: meta.rated ?? true,
+    ...(meta.useSpeakAs !== undefined ? { useSpeakAs: meta.useSpeakAs } : {}),
     maxPlayers: meta.maxPlayers ?? serialized.maxPlayers ?? ONLINE_MAX_PLAYERS,
     ...(meta.allowSpectate !== undefined
       ? { allowSpectate: meta.allowSpectate }
@@ -181,6 +186,7 @@ export function prepareOnlineAction(
     captains: docData.captains,
     rated: docData.rated,
     maxPlayers: maxPlayersFor(docData),
+    useSpeakAs: docData.useSpeakAs,
     allowSpectate: docData.allowSpectate,
     spectatorIds: docData.spectatorIds,
     charterId: docData.charterId,

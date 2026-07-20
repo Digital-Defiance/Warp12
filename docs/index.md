@@ -27,6 +27,8 @@ For hands-on development, start with [System Architecture](architecture) and the
 | Document | Description |
 | -------- | ----------- |
 | [Navigational Operations Manual](rules) | Authoritative rules — Spacedock, Warp Trails, Neutral Zone, Distress Beacon, modules, AI officers, and TEI |
+| [Streamer Manual](streamer-manual) | OBS layout, stream-safe Bridge, commentator overlay, private hand (online + local) |
+| [TTS pronunciation dictionary](tts-pronunciation-dictionary) | ElevenLabs fleet PLS upload (`yarn tts:pronunciation-dictionary`) |
 | [System Architecture](architecture) | Monorepo layout: `warp12-engine`, React adapters, Bridge client, DoubleEighteen rendering, Firebase multiplayer |
 
 ### TEI & Rating

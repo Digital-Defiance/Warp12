@@ -172,10 +172,14 @@ export type CaptainSearchHit = {
 export type CaptainDossier = {
   uid: string;
   displayName: string;
+  /** Pronunciation alias for TTS (from playerStats). */
+  speakAs: string | null;
   email: string | null;
   authDisabled: boolean;
   anonymous: boolean;
   providers: string[];
+  /** Auth custom claims roles (admin / moderator / match_official). */
+  roles: string[];
   createdAt: string | null;
   lastSignInAt: string | null;
   stats: {
@@ -199,6 +203,18 @@ export type CaptainDossier = {
   muted: boolean;
   notes: AdminNote[];
 };
+
+const KNOWN_WARP_ROLES = new Set(['admin', 'moderator', 'match_official']);
+
+function rolesFromClaims(claims: Record<string, unknown> | undefined): string[] {
+  const raw = claims?.roles;
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw.filter(
+    (r): r is string => typeof r === 'string' && KNOWN_WARP_ROLES.has(r)
+  );
+}
 
 function statsHit(uid: string, data: DocumentData, match: CaptainSearchHit['match']): CaptainSearchHit {
   return {
@@ -358,10 +374,17 @@ export const getCaptainDossier = onCall(async (request) => {
       (statsData?.displayName as string | undefined) ??
       authUser?.displayName ??
       'Captain',
+    speakAs:
+      typeof statsData?.speakAs === 'string' && statsData.speakAs.trim()
+        ? statsData.speakAs.trim()
+        : null,
     email: authUser?.email ?? null,
     authDisabled: authUser?.disabled ?? false,
     anonymous: providers.length === 0 && Boolean(authUser),
     providers,
+    roles: rolesFromClaims(
+      authUser?.customClaims as Record<string, unknown> | undefined
+    ),
     createdAt: authUser?.metadata.creationTime ?? null,
     lastSignInAt: authUser?.metadata.lastSignInTime ?? null,
     stats: statsData

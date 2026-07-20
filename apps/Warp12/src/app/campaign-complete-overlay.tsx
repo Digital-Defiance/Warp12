@@ -183,12 +183,16 @@ export function CampaignCompleteOverlay({
       aria-labelledby="warp12-campaign-complete-title"
     >
       <div className={styles.roundEndCard}>
-        <p
-          className={styles.roundEndEyebrow}
+        <button
+          type="button"
+          className={`${styles.roundEndEyebrow} ${styles.splashEggTrigger}`}
           onClick={onCampaignCompleteEgg}
+          aria-label={
+            game.objective === 'go-out' ? 'Sector complete' : 'Campaign complete'
+          }
         >
           {game.objective === 'go-out' ? 'Sector complete' : 'Campaign complete'}
-        </p>
+        </button>
         <h3 id="warp12-campaign-complete-title" className={styles.roundEndTitle}>
           {humanWon && humanName ? `${humanName} wins!` : `${names[winnerId ?? ''] ?? 'Captain'} wins`}
         </h3>

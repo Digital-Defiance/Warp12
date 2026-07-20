@@ -20,6 +20,23 @@
   color: var(--warp-muted, #94a3b8);
 }
 
+.section {
+  margin-top: 0.85rem;
+
+  &:first-of-type {
+    margin-top: 0;
+  }
+}
+
+.sectionLabel {
+  margin: 0 0 0.55rem;
+  font-family: var(--font-federation);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--warp-text, #e2e8f0);
+}
+
 .options {
   display: flex;
   flex-wrap: wrap;
@@ -64,4 +81,33 @@
   object-fit: contain;
   filter: brightness(0) saturate(100%) invert(88%) sepia(8%) saturate(427%)
     hue-rotate(169deg) brightness(98%) contrast(92%);
+}
+
+.customRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.85rem;
+}
+
+.customLabel {
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--warp-muted, #94a3b8);
+}
+
+.customInput {
+  max-width: 28rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.65);
+  color: var(--warp-text, #e2e8f0);
+  font: inherit;
+
+  &:focus-visible {
+    outline: 2px solid var(--warp-accent, #38bdf8);
+    outline-offset: 2px;
+  }
 }

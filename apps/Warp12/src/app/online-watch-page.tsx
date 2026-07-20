@@ -341,6 +341,7 @@ export function OnlineWatchPage() {
         pauseReason={pauseReason}
         onlineMoveLog={moveLog}
         coachPresence={mode === 'supervise' ? coachPresence : {}}
+        preferLogMode="commentator"
       />
       {commsOpen ? (
         <CommsPanel

@@ -23,15 +23,25 @@ import {
   kickCaptain,
   launchOnlineGame,
   leaveLobby,
+  markLobbyCaptainVerified,
   ONLINE_MAX_PLAYERS,
   ONLINE_MIN_PLAYERS,
   subscribeLobby,
+  updateCaptainSpeakAs,
   updateLobbySettings,
   useFirebaseAuth,
   type CreateLobbyOptions,
   type FirestoreGameDocument,
 } from '../firebase';
+import { AccountUpgradeFieldset } from './account-upgrade-fieldset.js';
 import { LobbyForm } from './lobby-form';
+import { useAnnounce } from '../a11y/live-announcer.js';
+import { isAnonymousUser } from '../firebase/auth-actions.js';
+import { e2eAllowsRatedAnonymousLaunch } from '../firebase/e2e-auth-hooks.js';
+import {
+  isRatedLaunchBlocked,
+  RATED_LAUNCH_SOFT_GATE_MESSAGE,
+} from '../firebase/rated-launch-gate.js';
 import { OnlineAiOfficersPanel } from './online-ai-officers-panel';
 import {
   JoinSectorPanel,
@@ -57,6 +67,7 @@ import { SubspaceFractureOptions } from './subspace-fracture-options';
 import { SquadronFormationPreview } from './squadron-formation-preview';
 import { Warp12RulesPreset } from './warp12-rules-preset';
 import { isAiCaptain } from '../game/ai-captain.js';
+import { useCaptainProfile } from '../game/use-captain-profile.js';
 import {
   onlineMatchRatingEligibility,
   onlineRatingWarning,
@@ -84,18 +95,26 @@ import { maxPlayersForFactor } from '../game/local-game-config.js';
 import { copyTextToClipboard } from '../game/deliver-file.js';
 import { sectorInviteLinks } from '../game/sector-invite-urls.js';
 import styles from './lobby.module.scss';
-import { requireWarpFactor } from './warp-factor.js';
+import {
+  setWarpFactor,
+  useRequireWarpFactor,
+  type WarpFactor,
+} from './warp-factor.js';
+import { FactorGauge } from './factor-gauge';
+import { Warp12Logo } from './Warp12Logo.js';
 
-const DEFAULT_CREATE_OPTIONS = warp12OfficialCreateLobbyOptions({
-  maxPip: requireWarpFactor(),
-});
+function defaultCreateOptions(maxPip: WarpFactor): CreateLobbyOptions {
+  return warp12OfficialCreateLobbyOptions({ maxPip });
+}
 
 export function OnlineLobbyPage() {
   const { gameId: routeGameId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const auth = useFirebaseAuth();
-  const createMaxPip = requireWarpFactor();
+  const { speakAs: profileSpeakAs } = useCaptainProfile();
+  const announce = useAnnounce();
+  const createMaxPip = useRequireWarpFactor();
 
   const [initialOnlinePreset] = useState(() =>
     resolveLastUsedPreset('online')
@@ -105,17 +124,19 @@ export function OnlineLobbyPage() {
     () => initialOnlinePreset?.callSign ?? ''
   );
   const [createOptions, setCreateOptions] = useState<CreateLobbyOptions>(() => {
+    const factor = createMaxPip;
     if (!initialOnlinePreset) {
-      return DEFAULT_CREATE_OPTIONS;
+      return defaultCreateOptions(factor);
     }
     const applied = presetToCreateLobbyOptions(
       initialOnlinePreset,
-      createMaxPip,
-      DEFAULT_CREATE_OPTIONS
+      factor,
+      defaultCreateOptions(factor)
     );
-    const ceiling = maxPlayersForFactor(createMaxPip);
+    const ceiling = maxPlayersForFactor(factor);
     return {
       ...applied,
+      maxPip: factor,
       maxPlayers: clampOnlineMaxPlayers(
         applied.maxPlayers ?? ceiling,
         ceiling
@@ -137,6 +158,32 @@ export function OnlineLobbyPage() {
   const sectorCode = routeGameId?.toUpperCase() ?? '';
   const isMember = Boolean(uid && lobby?.captainIds.includes(uid));
   const inWaitingRoom = Boolean(sectorCode && lobby?.phase === 'lobby' && isMember);
+
+  // Keep create-form fleet size and rated intent inside the active factor.
+  useEffect(() => {
+    setCreateOptions((prev) => {
+      const ceiling = maxPlayersForFactor(createMaxPip);
+      const nextPlayers = clampOnlineMaxPlayers(
+        prev.maxPlayers ?? ceiling,
+        ceiling
+      );
+      const nextRated =
+        createMaxPip === 12 ? (prev.rated ?? true) : false;
+      if (
+        prev.maxPip === createMaxPip &&
+        prev.maxPlayers === nextPlayers &&
+        prev.rated === nextRated
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        maxPip: createMaxPip,
+        maxPlayers: nextPlayers,
+        rated: nextRated,
+      };
+    });
+  }, [createMaxPip]);
 
   useEffect(() => {
     const callSignNotice = (
@@ -218,6 +265,7 @@ export function OnlineLobbyPage() {
       const code = generateGameCode();
       await createLobby(code, uid, displayName.trim(), {
         ...createOptions,
+        speakAs: profileSpeakAs,
         verified: Boolean(auth.user && !auth.user.isAnonymous),
       });
       writeLastUsedPreset(
@@ -246,6 +294,7 @@ export function OnlineLobbyPage() {
       const requested = displayName.trim();
       const { displayName: assigned } = await joinLobby(code, uid, requested, {
         verified: Boolean(auth.user && !auth.user.isAnonymous),
+        speakAs: profileSpeakAs,
       });
       if (assigned !== requested) {
         setDisplayName(assigned);
@@ -288,7 +337,20 @@ export function OnlineLobbyPage() {
   };
 
   const launch = async () => {
-    if (!uid || !routeGameId) {
+    if (!uid || !routeGameId || !lobby) {
+      return;
+    }
+    const wantsRated = lobby.rated ?? true;
+    if (
+      isRatedLaunchBlocked({
+        wantsRated,
+        isAnonymous: isAnonymousUser(auth.user),
+        e2eAllowRatedAnonymous: e2eAllowsRatedAnonymousLaunch(),
+      })
+    ) {
+      const msg = RATED_LAUNCH_SOFT_GATE_MESSAGE;
+      setError(msg);
+      announce(msg, 'assertive');
       return;
     }
     setBusy(true);
@@ -300,6 +362,31 @@ export function OnlineLobbyPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleAccountUpgraded = async () => {
+    await auth.user?.getIdToken(true);
+    const nextUid = auth.user?.uid;
+    if (
+      nextUid &&
+      routeGameId &&
+      lobby?.phase === 'lobby' &&
+      lobby.hostId === nextUid &&
+      !isAnonymousUser(auth.user)
+    ) {
+      try {
+        await markLobbyCaptainVerified(
+          routeGameId.toUpperCase(),
+          nextUid,
+          nextUid
+        );
+      } catch {
+        /* Auth upgrade still counts at TEI report; lobby stamp is best-effort. */
+      }
+    }
+    const msg = 'Google account linked. Rated play can update TEI.';
+    setNotice(msg);
+    announce(msg, 'polite');
   };
 
   const saveSettings = async (patch: {
@@ -314,6 +401,7 @@ export function OnlineLobbyPage() {
     houseRules?: CreateLobbyOptions['houseRules'];
     rated?: boolean;
     allowSpectate?: boolean;
+    useSpeakAs?: boolean;
     maxPip?: number;
     charterId?: string;
     rulesProfileId?: string;
@@ -453,6 +541,11 @@ export function OnlineLobbyPage() {
       myCharters.find((crew) => crew.charterId === lobby.charterId) ?? null;
 
     return (
+      <>
+      <div className={styles.factorGaugeContainer}>
+        <FactorGauge width={200} factor={sectorMaxPip} />
+        <h2 className={styles.factorGaugeTitle}>Warp {sectorMaxPip}</h2>
+      </div>
       <section className={`${styles.waitingRoom} ${styles.lobbyWide}`}>
         <p className={styles.backLink}>
           <Link to="/">← Back to bridge</Link>
@@ -503,11 +596,49 @@ export function OnlineLobbyPage() {
           >
             Copy spectator link
           </button>
+          <button
+            type="button"
+            className={styles.secondaryBtn}
+            disabled={lobby.allowSpectate === false}
+            aria-label={
+              lobby.allowSpectate === false
+                ? 'Copy commentary link (gallery closed)'
+                : 'Copy commentary overlay link'
+            }
+            onClick={() => {
+              const links = sectorInviteLinks(routeGameId ?? '');
+              void copyTextToClipboard(links.commentaryUrl)
+                .then(() => {
+                  setError(null);
+                  setInviteStatus('Commentary overlay link copied.');
+                })
+                .catch(() =>
+                  setError(
+                    'Could not copy commentary link — open Stream setup mid-mission.'
+                  )
+                );
+            }}
+          >
+            Copy commentary link
+          </button>
         </div>
+        {lobby.allowSpectate === false ? (
+          <p className={styles.inviteStatus} role="status">
+            Spectator gallery is closed — watch and commentary links will not
+            work until the host reopens spectate.
+          </p>
+        ) : null}
         {inviteStatus ? (
           <p className={styles.inviteStatus} role="status">
             {inviteStatus}
           </p>
+        ) : null}
+
+        {auth.user && isAnonymousUser(auth.user) ? (
+          <AccountUpgradeFieldset
+            user={auth.user}
+            onUpgraded={handleAccountUpgraded}
+          />
         ) : null}
 
         {(() => {
@@ -622,14 +753,63 @@ export function OnlineLobbyPage() {
           </label>
         )}
 
+        {isHost && (
+          <label className={styles.checkboxRow}>
+            <input
+              type="checkbox"
+              checked={lobby.useSpeakAs !== false}
+              disabled={busy}
+              onChange={(e) =>
+                void saveSettings({ useSpeakAs: e.target.checked })
+              }
+            />
+            <span>
+              Spoken-as for commentary — when on, TTS uses each captain’s
+              pronunciation alias (shown below). Call signs stay unchanged on
+              the table. Locked at launch.
+            </span>
+          </label>
+        )}
+
         <ul className={styles.captainList}>
           {lobby.captains.map((captain) => (
             <li key={captain.id} className={styles.captainRow}>
               <span>
                 {captain.displayName}
+                {captain.speakAs
+                  ? ` · spoken as “${captain.speakAs}”`
+                  : ''}
                 {captain.id === lobby.hostId ? ' · Host' : ''}
                 {isAiCaptain(captain) ? ' · AI' : ''}
               </span>
+              {isHost && captain.speakAs && (
+                <button
+                  type="button"
+                  className={styles.linkBtn}
+                  disabled={busy}
+                  aria-label={`Clear spoken-as for ${captain.displayName}`}
+                  onClick={() => {
+                    if (!uid) return;
+                    setBusy(true);
+                    void updateCaptainSpeakAs(
+                      routeGameId!.toUpperCase(),
+                      uid,
+                      captain.id,
+                      null
+                    )
+                      .catch((err) =>
+                        setError(
+                          err instanceof Error
+                            ? err.message
+                            : 'Could not clear spoken-as'
+                        )
+                      )
+                      .finally(() => setBusy(false));
+                  }}
+                >
+                  Clear spoken-as
+                </button>
+              )}
               {isHost && captain.id !== lobby.hostId && (
                 <button
                   type="button"
@@ -1095,16 +1275,36 @@ export function OnlineLobbyPage() {
           {lobby.hostId === uid ? 'Cancel sector' : 'Leave sector'}
         </button>
       </section>
+      </>
     );
   }
 
   return (
     <>
+      <div className={styles.factorGaugeContainer}>
+        <FactorGauge
+          width={200}
+          factor={createMaxPip}
+          onFactorSelect={(next: WarpFactor) => {
+            setWarpFactor(next);
+            announce(`Warp factor ${next}`, 'polite');
+          }}
+        />
+        <div className={styles.factorGaugeLogoContainer}>
+          <Warp12Logo factor={createMaxPip} width={200} taglineOff={true} />
+        </div>
+      </div>
       {notice && (
         <p className={styles.notice} role="status">
           {notice}
         </p>
       )}
+      {auth.user && isAnonymousUser(auth.user) ? (
+        <AccountUpgradeFieldset
+          user={auth.user}
+          onUpgraded={handleAccountUpgraded}
+        />
+      ) : null}
       <LobbyForm
         gameCode={gameCode}
         onGameCodeChange={setGameCode}

@@ -1588,6 +1588,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@elevenlabs/elevenlabs-js@npm:^2.58.0":
+  version: 2.58.0
+  resolution: "@elevenlabs/elevenlabs-js@npm:2.58.0"
+  dependencies:
+    command-exists: "npm:^1.2.9"
+    node-fetch: "npm:^2.7.0"
+    ws: "npm:^8.18.3"
+  checksum: 10c0/22f9b6a95b0ff98b7baf2228dfa6375e456fbcbfe8220599b545bcdac7dac352d83385037fe74de555c2f0a16ecd02f7d586c3d6953539f69ec5cdcb87662be2
+  languageName: node
+  linkType: hard
+
 "@emnapi/core@npm:1.11.0":
   version: 1.11.0
   resolution: "@emnapi/core@npm:1.11.0"
@@ -12184,6 +12195,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@warp12/functions@workspace:functions"
   dependencies:
+    "@elevenlabs/elevenlabs-js": "npm:^2.58.0"
     double-eighteen: "file:vendor/double-eighteen"
     firebase-admin: "npm:^13.0.0"
     firebase-functions: "npm:^7.2.5"
@@ -14501,6 +14513,13 @@ __metadata:
   version: 2.0.3
   resolution: "comma-separated-tokens@npm:2.0.3"
   checksum: 10c0/91f90f1aae320f1755d6957ef0b864fe4f54737f3313bd95e0802686ee2ca38bff1dd381964d00ae5db42912dd1f4ae5c2709644e82706ffc6f6842a813cdd67
+  languageName: node
+  linkType: hard
+
+"command-exists@npm:^1.2.9":
+  version: 1.2.9
+  resolution: "command-exists@npm:1.2.9"
+  checksum: 10c0/75040240062de46cd6cd43e6b3032a8b0494525c89d3962e280dde665103f8cc304a8b313a5aa541b91da2f5a9af75c5959dc3a77893a2726407a5e9a0234c16
   languageName: node
   linkType: hard
 
@@ -29776,10 +29795,10 @@ __metadata:
 
 "warp12-engine@file:vendor/warp12-engine::locator=%40warp12%2Ffunctions%40workspace%3Afunctions":
   version: 0.4.26
-  resolution: "warp12-engine@file:vendor/warp12-engine#vendor/warp12-engine::hash=ee7198&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
+  resolution: "warp12-engine@file:vendor/warp12-engine#vendor/warp12-engine::hash=64c5c1&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
   peerDependencies:
     double-eighteen: ">=0.4.0"
-  checksum: 10c0/62341062e53282ca8f9002b4c6b323d7e1d9dc8e6a06bac776cdefd1fd4eb2edf9a7d4cbb8171fb0bd4ad68b215bfb69a0cc8cfc8643a70247bc52725f42ccf9
+  checksum: 10c0/5211d90c0850f9b8e73574085d9d17e805d56a36161187192a5aa7893061689794583f1acef56136443109103d44ac1a90e7fb7007c4060537787765fbc5843d
   languageName: node
   linkType: hard
 

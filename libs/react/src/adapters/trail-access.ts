@@ -100,9 +100,22 @@ export function buildTrailSpokeStatuses(
 export function openTrailCaptainNames(
   statuses: readonly TrailSpokeStatus[]
 ): string[] {
+  return openTrailCaptains(statuses).map((c) => c.label);
+}
+
+/** Captains whose warp trails are open (Distress Beacon) — id + display label. */
+export function openTrailCaptains(
+  statuses: readonly TrailSpokeStatus[]
+): { captainId: string; label: string }[] {
   return statuses
-    .filter((spoke) => spoke.state === 'open' && spoke.captainId)
-    .map((spoke) => spoke.label);
+    .filter(
+      (spoke): spoke is TrailSpokeStatus & { captainId: string } =>
+        spoke.state === 'open' && typeof spoke.captainId === 'string'
+    )
+    .map((spoke) => ({
+      captainId: spoke.captainId,
+      label: spoke.label,
+    }));
 }
 
 /** Human-readable Red Alert line for HUDs (trail owner, tile, who must cover). */

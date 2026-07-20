@@ -11,6 +11,7 @@ import {
   shouldIlluminateBridgeRedAlert,
   shouldIlluminateBridgeYellowAlert,
   openTrailCaptainNames,
+  openTrailCaptains,
 } from './trail-access';
 import { neutralZoneSlot } from './game-to-trains';
 
@@ -97,6 +98,9 @@ describe('buildTrailSpokeStatuses', () => {
     expect(statuses.find((spoke) => spoke.captainId === 'alpha')?.state).toBe(
       'open'
     );
+    expect(openTrailCaptains(statuses)).toEqual([
+      { captainId: 'alpha', label: 'Alpha' },
+    ]);
     expect(openTrailCaptainNames(statuses)).toEqual(['Alpha']);
   });
 

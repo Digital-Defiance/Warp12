@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { DominoTile } from 'double-eighteen-react';
 import type { Coordinate, GameAction, GameState } from 'warp12-engine';
 import {
@@ -9,6 +9,7 @@ import {
 import { WARP_PIP_COLORS, WARP_TILE_SURFACE, type WarpTileBg } from 'warp12-theme';
 
 import { useAnnounce } from '../a11y/live-announcer.js';
+import { captainLogColor } from './game-log-display.js';
 import styles from './flash-panel.module.scss';
 
 interface ContinuumFlashPanelProps {
@@ -326,10 +327,13 @@ export function HandExchangePanel({
 export function ActiveContinuumFlashBanner({
   game,
   names,
+  captainOrder = [],
   className,
 }: {
   game: GameState;
   names: Readonly<Record<string, string>>;
+  /** Turn order for captain name colors (Sector Status / holo). */
+  captainOrder?: readonly string[];
   className?: string;
 }) {
   const flash = game.modules.continuum.activeFlash;
@@ -337,10 +341,36 @@ export function ActiveContinuumFlashBanner({
     return null;
   }
 
+  const entry = FLASH_CATALOG.find((item) => item.kind === flash.effect.kind);
+  const base = entry?.label ?? flash.effect.kind;
+  const targetId =
+    (flash.effect.kind === 'skip-lowest-points' ||
+      flash.effect.kind === 'force-draw') &&
+    flash.effect.targetPlayerId
+      ? flash.effect.targetPlayerId
+      : null;
+
+  let detail: ReactNode;
+  if (targetId) {
+    detail = (
+      <>
+        {base}:{' '}
+        <span style={{ color: captainLogColor(targetId, captainOrder) }}>
+          {names[targetId] ?? targetId}
+        </span>
+      </>
+    );
+  } else if (flash.effect.kind === 'peek-uncharted' && flash.effect.peek) {
+    const { low, high } = flash.effect.peek.coordinate;
+    detail = `${base}: ${low}-${high}`;
+  } else {
+    detail = base;
+  }
+
   return (
     <div className={className ?? styles.banner}>
       <dt>Continuum Flash:</dt>
-      <dd>{describeFlashEffect(flash.effect, names)}</dd>
+      <dd>{detail}</dd>
     </div>
   );
 }

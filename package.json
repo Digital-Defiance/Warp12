@@ -163,6 +163,7 @@
     "fleet-admiral:bench:go-out-4p:500": "AI_BENCH_PARALLEL=1 FLEET_BENCH_GAMES=500 CLASS1_STAR_OBJECTIVE=go-out CLASS1_STAR_PLAYERS=4 jiti tools/nn/bench-fleet-admiral.ts",
     "fleet-admiral:bench:hybrid": "AI_BENCH_PARALLEL=1 FLEET_BENCH_CLASS1_STAR=1 jiti tools/nn/bench-fleet-admiral.ts",
     "fleet-admiral:pipeline": "yarn class1-star:train:deepblue && yarn fleet-admiral:bench:500",
+    "tts:pronunciation-dictionary": "jiti tools/tts/create-pronunciation-dictionary.mts",
     "omega:collect": "NODE_OPTIONS='--max-old-space-size=8192' jiti tools/nn/collect-omega-trajectories.ts",
     "omega:train": "tools/nn/.venv/bin/python tools/nn/train-omega.py",
     "omega:train:warm": "tools/nn/.venv/bin/python tools/nn/train-omega.py --init apps/Warp12/public/models/omega-v1.json",

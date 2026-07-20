@@ -12,8 +12,17 @@ import {
   type GameAction,
   type GameModules,
   type GameState,
-  type FlashEffectKind,
   type RoundState,
+  type GameLogEffect,
+  type GameLogEntry,
+  type GameLogFormatOptions,
+  type GameLogKind,
+  type GameLogRoute,
+  type GameLogRosterEntry,
+  formatRoundElapsedTime,
+  pronounsForCaptain,
+  type PronounForms,
+  shieldControlPhraseForCaptain,
 } from 'warp12-engine';
 
 import {
@@ -21,135 +30,19 @@ import {
   neutralZoneSlot,
 } from '../adapters/game-to-trains.js';
 
+export type {
+  GameLogEffect,
+  GameLogEntry,
+  GameLogFormatOptions,
+  GameLogKind,
+  GameLogRoute,
+  GameLogRosterEntry,
+};
+
+export { formatRoundElapsedTime };
+
 function wasRedAlertPassed(round: RoundState): boolean {
   return hasRedAlertPassed(round.table.redAlert);
-}
-
-export type GameLogKind =
-  | GameAction['type']
-  | 'ROUND_STARTED'
-  | 'ROUND_RATINGS'
-  | 'MODULE_LOADOUT'
-  | 'DEV_CONSOLE'
-  | 'SECTOR_PAUSED'
-  | 'SECTOR_RESUMED';
-
-
-export type GameLogEffect =
-  | 'caution-opened'
-  | 'caution-cleared'
-  | 'red-alert-opened'
-  | 'red-alert-cleared'
-  | 'continuum-flash-pending'
-  | 'subspace-fracture-opened'
-  | 'subspace-fracture-cleared'
-  | 'beacon-deployed'
-  | 'dead-double'
-  | 'round-won'
-  | 'round-blocked'
-  | 'return-to-warp'
-  | 'wormhole-opened'
-  | 'salamander-swap-noop'
-  | 'spool-abort-retrieve'
-  | 'hand-exchange-opened'
-  | 'trail-momentum-claimed';
-
-export interface GameLogRoute {
-  readonly kind: ChartRoute['kind'];
-  readonly trailCaptainId?: string;
-  readonly neutralZone?: boolean;
-}
-
-export interface GameLogRosterEntry {
-  /** Omit the TEI portion (e.g. online tables, which are not TEI-rated). */
-  readonly hideTei?: boolean;
-  readonly captainId: string;
-  /** TEI grade (e.g. "V67") or null if unrated. */
-  readonly tei: string | null;
-  readonly tacticalClass?: string;
-  /** Fixed opponent reference TEI (solo AI officers). */
-  readonly reference?: boolean;
-}
-
-export interface GameLogEntry {
-  readonly at: string;
-  readonly kind: GameLogKind;
-  readonly captainId: string;
-  readonly trainId?: number;
-  readonly coordinate?: Coordinate;
-  readonly route?: GameLogRoute;
-  readonly flashEffect?: FlashEffectKind;
-  readonly winnerId?: string | null;
-  /** END_ROUND: scored under Module Kappa inversion (going out is catastrophic). */
-  readonly roundInverted?: boolean;
-  /** END_ROUND: captain(s) who won the round in campaign terms (the trophy). */
-  readonly roundWinnerIds?: readonly string[];
-  readonly nextCaptainId?: string;
-  readonly targetCaptainId?: string;
-  readonly roundNumber?: number;
-  readonly spacedockValue?: number;
-  readonly roster?: readonly GameLogRosterEntry[];
-  readonly effects: readonly GameLogEffect[];
-  /** Module Iota: forced draw triggered by charting a double. */
-  readonly doubleDown?: {
-    readonly targetCaptainId: string;
-    readonly drawCount: number;
-  };
-  /**
-   * Module Beta (Go-out) Salamander Surge — opponents draw after maxPip
-   * double. Public count only (no tile identities).
-   */
-  readonly salamanderSurge?: {
-    readonly opponentDraws: number;
-  };
-  /**
-   * Module Delta · Hot Potato — public outcome only (no tile identities).
-   * Chart to Neutral Zone picks up the marker; pass while holding penalizes.
-   */
-  readonly hotPotato?: {
-    readonly taken?: true;
-    /** Go-out: tiles drawn on pass while holding. */
-    readonly passDraws?: number;
-    /** Points: +5 stack incremented on pass while holding. */
-    readonly passPenalty?: true;
-    /** Go-out: pools empty — skip next turn instead of drawing. */
-    readonly skipNext?: true;
-  };
-  /** For SPOOL_WARP_DRIVE: public counts only (no tile identities). */
-  readonly spoolDetails?: {
-    readonly tilesPlayed: number;
-    /** Drawn tiles that went to hand (mismatch and/or retrieved unfinished double). */
-    readonly tilesToHand: number;
-    /** True when an unfinished matching double was retrieved — no RA / Fracture left. */
-    readonly abortedUnfinishedDouble?: boolean;
-  };
-  /**
-   * Module Kappa (Go-out) Hand Exchange — public captains only (no tile
-   * identities for the steal or give-back).
-   */
-  readonly handExchange?: {
-    readonly largerCaptainId: string;
-    readonly smallerCaptainId: string;
-  };
-  /**
-   * Module Eta (Go-out) Desperation Dig — public outcome only (no tile IDs).
-   */
-  readonly desperationDig?: {
-    /** How many coordinates were drawn from Uncharted (0–3). */
-    readonly draws: number;
-    /** True when one drawn coordinate was auto-charted. */
-    readonly charted: boolean;
-  };
-  /** Module Beta: points charged for the held highest double. */
-  readonly penaltyPoints?: number;
-  /** Module Theta: tiles on the awarded longest trail. */
-  readonly trailLength?: number;
-  /** Module Eta: Temporal Debt token count charged at scoring. */
-  readonly debtTokens?: number;
-  /** MODULE_LOADOUT: enabled module labels for this round (parity-aware). */
-  readonly moduleLabels?: readonly string[];
-  /** SECTOR_PAUSED: optional host note (e.g. missing captain). */
-  readonly pauseReason?: string;
 }
 
 export interface GameLog {
@@ -165,37 +58,6 @@ export interface RoundLogExport {
   readonly roundStartedAtMs: number;
   readonly entries: readonly GameLogEntry[];
   readonly lines: readonly string[];
-}
-
-export interface GameLogFormatOptions {
-  readonly roundStartedAtMs: number;
-  /**
-   * Optional override for the elapsed-time prefix (default MM:SS).
-   * Bridge may pass BrightDate decimal spans when the player prefers them.
-   */
-  readonly formatElapsed?: (
-    entryAtIso: string,
-    roundStartedAtMs: number
-  ) => string;
-  /**
-   * Absolute wall / BrightDate stamp for round-begin lines (instead of 00:00 /
-   * 0.000nd elapsed).
-   */
-  readonly formatAbsolute?: (entryAtIso: string) => string;
-}
-
-/** Elapsed time since round start, shown as MM:SS (e.g. 05:12). */
-export function formatRoundElapsedTime(
-  entryAtIso: string,
-  roundStartedAtMs: number
-): string {
-  const elapsedSec = Math.max(
-    0,
-    Math.floor((new Date(entryAtIso).getTime() - roundStartedAtMs) / 1000)
-  );
-  const minutes = Math.floor(elapsedSec / 60);
-  const seconds = elapsedSec % 60;
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 function trainIdForCaptain(round: RoundState, captainId: string): number | undefined {
@@ -258,7 +120,8 @@ function captainLabel(
 function trailPhrase(
   route: GameLogRoute | undefined,
   actorId: string,
-  names: Readonly<Record<string, string>>
+  names: Readonly<Record<string, string>>,
+  pronouns?: Readonly<Record<string, PronounForms>>
 ): string {
   if (!route) {
     return 'the table';
@@ -267,9 +130,13 @@ function trailPhrase(
     case 'neutral-zone':
       return 'the Neutral Zone';
     case 'warp-trail': {
+      const forms = pronounsForCaptain(actorId, pronouns);
+      if (route.squadronTrail) {
+        return `${forms.possessive} squadron Trail`;
+      }
       const ownerId = route.trailCaptainId ?? '';
       if (ownerId === actorId) {
-        return 'their own Trail';
+        return `${forms.possessive} own Trail`;
       }
       return `Captain ${captainLabel(ownerId, names)}'s Trail`;
     }
@@ -337,8 +204,17 @@ function effectsPhrase(effects: readonly GameLogEffect[]): string {
       case 'dead-double':
         parts.push('the Double is dead — no cover required');
         break;
+      case 'round-opened':
+        // Commentator uses a dedicated "opens with…" lead; fleet log stays plain.
+        break;
+      case 'neutral-zone-opened':
+        // Commentator uses a dedicated Neutral Zone opening lead.
+        break;
       case 'beacon-deployed':
         parts.push('deploying a Distress Beacon');
+        break;
+      case 'beacon-cleared':
+        parts.push('raising shields on the trail');
         break;
       case 'round-won':
         parts.push('winning the round');
@@ -424,7 +300,7 @@ export function formatGameLogLine(
       const chartEffectsText = effectsPhrase(
         entry.effects.filter((effect) => effect !== 'hand-exchange-opened')
       );
-      const base = `${prefix} charted ${tilePhrase(entry.coordinate)} on ${trailPhrase(entry.route, entry.captainId, names)}${chartEffectsText}`;
+      const base = `${prefix} charted ${tilePhrase(entry.coordinate)} on ${trailPhrase(entry.route, entry.captainId, names, options.pronouns)}${chartEffectsText}`;
       const extras: string[] = [];
       if (entry.hotPotato?.taken) {
         extras.push('takes the Hot Potato');
@@ -491,7 +367,7 @@ export function formatGameLogLine(
     }
     case 'SPOOL_WARP_DRIVE': {
       const details = entry.spoolDetails;
-      const trail = trailPhrase(entry.route, entry.captainId, names);
+      const trail = trailPhrase(entry.route, entry.captainId, names, options.pronouns);
       const effectText = effectsPhrase(entry.effects);
       if (details && (details.tilesPlayed > 0 || details.tilesToHand > 0)) {
         const parts: string[] = [];
@@ -536,7 +412,13 @@ export function formatGameLogLine(
       return `${prefix} passed turn${effectsPhrase(entry.effects)}`;
     }
     case 'DEPLOY_DISTRESS_BEACON':
-      return `${prefix} deployed a Distress Beacon${effectsPhrase(entry.effects)}`;
+      return `${prefix} ${shieldControlPhraseForCaptain(
+        'deploy',
+        'past',
+        entry.captainId,
+        entry.at,
+        options.pronouns
+      )}${effectsPhrase(entry.effects)}`;
     case 'ALL_STOP':
       return `${prefix} called All Stop!${effectsPhrase(entry.effects)}`;
     case 'DROP_TO_IMPULSE':
@@ -552,7 +434,13 @@ export function formatGameLogLine(
       return `${prefix} caught ${target} for a missed Drop to Impulse${returned}${effectsPhrase(entry.effects.filter((e) => e !== 'return-to-warp'))}`;
     }
     case 'RAISE_SHIELDS':
-      return `${prefix} raised shields${effectsPhrase(entry.effects)}`;
+      return `${prefix} ${shieldControlPhraseForCaptain(
+        'raise',
+        'past',
+        entry.captainId,
+        entry.at,
+        options.pronouns
+      )}${effectsPhrase(entry.effects)}`;
     case 'INVOKE_CONTINUUM_FLASH':
       return `${prefix} invoked Continuum Flash · ${entry.flashEffect?.replaceAll('-', ' ') ?? 'effect'}${effectsPhrase(entry.effects)}`;
     case 'RESOLVE_CONTINUUM_WAGER':
@@ -651,6 +539,34 @@ function roundStarterOpeningBeaconDeployed(
   );
 }
 
+/** First chart of the round — table was empty aside from Spacedock. */
+function isRoundOpeningChart(before: RoundState): boolean {
+  if (before.table.neutralZone.tiles.length > 0) {
+    return false;
+  }
+  for (const trail of Object.values(before.table.warpTrails)) {
+    if (trail.tiles.length > 0) {
+      return false;
+    }
+  }
+  const fracture = before.table.subspaceFracture;
+  if (fracture && fracture.stabilizers.length > 0) {
+    return false;
+  }
+  return true;
+}
+
+/** First tile onto an empty Neutral Zone. */
+function isNeutralZoneOpeningChart(
+  before: RoundState,
+  action: Extract<GameAction, { type: 'CHART_COORDINATE' }>
+): boolean {
+  return (
+    action.route.kind === 'neutral-zone' &&
+    before.table.neutralZone.tiles.length === 0
+  );
+}
+
 function fractureJustResolved(
   before: RoundState,
   after: RoundState
@@ -690,7 +606,20 @@ function chartEffects(
     if (!before.continuumPendingInvoker && after.continuumPendingInvoker) {
       effects.push('continuum-flash-pending');
     }
+    if (isRoundOpeningChart(before)) {
+      effects.push('round-opened');
+    }
+    if (isNeutralZoneOpeningChart(before, action)) {
+      effects.push('neutral-zone-opened');
+    }
     return effects;
+  }
+
+  if (isRoundOpeningChart(before)) {
+    effects.push('round-opened');
+  }
+  if (isNeutralZoneOpeningChart(before, action)) {
+    effects.push('neutral-zone-opened');
   }
 
   if (after.wormholeOpened === true) {
@@ -728,6 +657,17 @@ function chartEffects(
 
   if (roundStarterOpeningBeaconDeployed(before, after, action)) {
     effects.push('beacon-deployed');
+  }
+
+  if (action.route.kind === 'warp-trail') {
+    const trailKey = action.route.playerId;
+    const beaconBefore =
+      before.table.warpTrails[trailKey]?.distressBeacon.active ?? false;
+    const beaconAfter =
+      after.table.warpTrails[trailKey]?.distressBeacon.active ?? false;
+    if (beaconBefore && !beaconAfter) {
+      effects.push('beacon-cleared');
+    }
   }
 
   return effects;
@@ -988,13 +928,18 @@ export function buildGameLogEntry(
       if (handExchangeOpened) {
         effects.push('hand-exchange-opened');
       }
+      const baseRoute = routeToLogRoute(action.route);
+      const squadronTrail =
+        action.route.kind === 'warp-trail' &&
+        routeIsOwnTrail(beforeRound, action.playerId, action.route) &&
+        action.route.playerId !== action.playerId;
       return {
         at,
         kind: action.type,
         captainId: action.playerId,
         trainId: trainIdForRoute(afterRound, action.route),
         coordinate: action.coordinate,
-        route: routeToLogRoute(action.route),
+        route: squadronTrail ? { ...baseRoute, squadronTrail: true } : baseRoute,
         effects,
         ...(doubleDown ? { doubleDown } : {}),
         ...(salamanderSurge ? { salamanderSurge } : {}),
@@ -1087,6 +1032,18 @@ export function buildGameLogEntry(
       const effects: GameLogEffect[] = abortedUnfinishedDouble
         ? ['spool-abort-retrieve']
         : [];
+      if (
+        !before.trailMomentumClaimedBy &&
+        after.trailMomentumClaimedBy === action.playerId
+      ) {
+        effects.push('trail-momentum-claimed');
+      }
+
+      const baseRoute = routeToLogRoute(action.route);
+      const squadronTrail =
+        action.route.kind === 'warp-trail' &&
+        routeIsOwnTrail(beforeRound, action.playerId, action.route) &&
+        action.route.playerId !== action.playerId;
 
       // SECURITY: counts only — never tile identities (synced to all clients).
       return {
@@ -1094,7 +1051,7 @@ export function buildGameLogEntry(
         kind: action.type,
         captainId: action.playerId,
         trainId: trainIdForRoute(afterRound, action.route),
-        route: routeToLogRoute(action.route),
+        route: squadronTrail ? { ...baseRoute, squadronTrail: true } : baseRoute,
         effects,
         spoolDetails: {
           tilesPlayed,

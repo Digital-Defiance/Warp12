@@ -3,6 +3,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import '../test/setup.js';
 import {
   DEFAULT_TABLE_OPTIONS,
+  LOG_FONT_SCALE_FACTOR,
   readTableOptions,
   resolveSectorStatusHud,
   writeTableOptions,
@@ -105,6 +106,28 @@ describe('table-view-prefs', () => {
 
     writeTableOptions({ recordMatchDebug: true });
     expect(readTableOptions().recordMatchDebug).toBe(true);
+  });
+
+  it('defaults commentator elapsed on and medium log font', () => {
+    expect(readTableOptions().commentatorShowElapsed).toBe(true);
+    expect(readTableOptions().logFontScale).toBe('md');
+
+    writeTableOptions({
+      commentatorShowElapsed: false,
+      logFontScale: 'xl',
+    });
+    expect(readTableOptions().commentatorShowElapsed).toBe(false);
+    expect(readTableOptions().logFontScale).toBe('xl');
+
+    writeTableOptions({ logFontScale: 'xs' });
+    expect(readTableOptions().logFontScale).toBe('xs');
+    expect(LOG_FONT_SCALE_FACTOR.xs).toBeLessThan(LOG_FONT_SCALE_FACTOR.sm);
+
+    localStorage.setItem(
+      'warp12-table-options',
+      JSON.stringify({ logFontScale: 'huge' })
+    );
+    expect(readTableOptions().logFontScale).toBe('md');
   });
 
   it('ignores invalid stored values', () => {

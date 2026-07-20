@@ -3,16 +3,31 @@ import { WARP_PIP_COLORS } from 'warp12-theme';
 /** Split a formatted log line into elapsed timestamp and message body. */
 export function splitGameLogLine(
   line: string
-): { timestamp: string; body: string } | null {
+): { timestamp: string | null; body: string } {
   const sep = ' - ';
   const idx = line.indexOf(sep);
   if (idx <= 0) {
-    return null;
+    return { timestamp: null, body: line };
+  }
+  const maybeTs = line.slice(0, idx);
+  // Fleet / commentator prefixes are MM:SS or BrightDate-style tokens — do not
+  // treat mid-sentence " - " as a timespan when timestamps are hidden.
+  if (!isLogTimestampPrefix(maybeTs)) {
+    return { timestamp: null, body: line };
   }
   return {
-    timestamp: line.slice(0, idx),
+    timestamp: maybeTs,
     body: line.slice(idx + sep.length),
   };
+}
+
+/** True for `05:12`, `3.611md`, and similar elapsed/absolute log stamps. */
+export function isLogTimestampPrefix(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > 24) {
+    return false;
+  }
+  return /^(?:\d{1,3}:\d{2}(?::\d{2})?|[\d.]+[a-zA-Z]*)$/.test(trimmed);
 }
 
 export const CAPTAIN_LOG_COLORS = [
