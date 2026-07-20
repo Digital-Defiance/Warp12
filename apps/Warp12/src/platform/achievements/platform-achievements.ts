@@ -113,7 +113,6 @@ export async function unlockAchievement(
   if (isAchievementUnlockedLocally(id)) {
     return { id, status: 'already_unlocked' };
   }
-  markAchievementUnlockedLocally(id);
 
   if (!isTauriRuntime()) {
     return { id, status: 'skipped_web' };
@@ -121,7 +120,16 @@ export async function unlockAchievement(
   if (!isTauriMobile()) {
     return { id, status: 'skipped_desktop' };
   }
-  return invokeNativeUnlock(id, def.playGamesId, def.gameCenterId);
+
+  const native = await invokeNativeUnlock(
+    id,
+    def.playGamesId,
+    def.gameCenterId
+  );
+  if (native.status === 'unlocked') {
+    markAchievementUnlockedLocally(id);
+  }
+  return native;
 }
 
 /**
@@ -146,11 +154,10 @@ export async function progressAchievement(
     return { id, status: 'progressed', detail: `unchanged:${next}/${steps}` };
   }
 
-  if (next >= steps) {
-    markAchievementUnlockedLocally(id);
-  }
-
   if (!isTauriRuntime()) {
+    if (next >= steps) {
+      markAchievementUnlockedLocally(id);
+    }
     return {
       id,
       status: next >= steps ? 'unlocked' : 'skipped_web',
@@ -158,6 +165,9 @@ export async function progressAchievement(
     };
   }
   if (!isTauriMobile()) {
+    if (next >= steps) {
+      markAchievementUnlockedLocally(id);
+    }
     return {
       id,
       status: next >= steps ? 'unlocked' : 'skipped_desktop',
@@ -172,12 +182,17 @@ export async function progressAchievement(
     def.playGamesId,
     def.gameCenterId
   );
-  if (next >= steps && native.status === 'native_pending') {
-    return { ...native, status: 'unlocked', detail: native.detail ?? `${next}/${steps}` };
+  if (native.status === 'unlocked') {
+    markAchievementUnlockedLocally(id);
   }
   return {
     ...native,
-    status: next >= steps ? 'unlocked' : native.status === 'error' ? 'error' : 'progressed',
+    status:
+      native.status === 'unlocked'
+        ? 'unlocked'
+        : native.status === 'error'
+          ? 'error'
+          : 'progressed',
     detail: native.detail ?? `${next}/${steps}`,
   };
 }

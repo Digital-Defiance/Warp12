@@ -5,7 +5,7 @@
 
 import type { WarpAchievementId } from './catalog.js';
 
-const STORAGE_KEY = 'warp.platformAchievements.v1';
+const STORAGE_KEY = 'warp.platformAchievements.v2';
 
 export interface AchievementLocalState {
   readonly unlocked: readonly WarpAchievementId[];

@@ -62,9 +62,6 @@ function AppShell() {
   const auth = useFirebaseAuth();
   useOfflineMatchSync(auth.user?.uid);
 
-  useEffect(() => {
-    reportBridgeLaunch();
-  }, []);
   const layoutTier = useLayoutTier();
   const { orientation } = useLayoutTierState();
   const { focus, tableSessionActive } = useBridgeFocus();
@@ -87,6 +84,13 @@ function AppShell() {
   const [splashDismissMode, setSplashDismissMode] =
     useState<SplashDismissMode>('timer');
   const finishSplash = useCallback(() => setShowSplash(false), []);
+
+  useEffect(() => {
+    if (showSplash) {
+      return;
+    }
+    reportBridgeLaunch();
+  }, [showSplash]);
 
   useEffect(() => {
     const onReplay = (event: Event) => {

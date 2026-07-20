@@ -44,6 +44,34 @@ class AchievementsPlugin(private val activity: Activity) : Plugin(activity) {
     }
   }
 
+  private fun ensurePlayGamesSignedIn(
+    onReady: () -> Unit,
+    onFailure: (String) -> Unit
+  ) {
+    if (!sdkReady) {
+      onFailure("Play Games SDK not initialized")
+      return
+    }
+
+    val signInClient = PlayGames.getGamesSignInClient(activity)
+    signInClient.isAuthenticated.addOnCompleteListener { authTask ->
+      if (authTask.isSuccessful && authTask.result.isAuthenticated) {
+        onReady()
+        return@addOnCompleteListener
+      }
+
+      signInClient.signIn().addOnCompleteListener { signInTask ->
+        if (signInTask.isSuccessful && signInTask.result.isAuthenticated) {
+          onReady()
+        } else {
+          onFailure(
+            signInTask.exception?.message ?: "Play Games sign-in required"
+          )
+        }
+      }
+    }
+  }
+
   @Command
   fun unlock(invoke: Invoke) {
     val args = invoke.parseArgs(UnlockArgs::class.java)
@@ -52,18 +80,26 @@ class AchievementsPlugin(private val activity: Activity) : Plugin(activity) {
       invoke.resolve(result("missing_platform_id", "Set playGamesId after Play Console setup"))
       return
     }
-    if (!sdkReady) {
-      invoke.resolve(result("error", "Play Games SDK not initialized"))
-      return
-    }
 
-    // Play Games v2: unlock() is fire-and-forget (void), not a Task.
-    try {
-      PlayGames.getAchievementsClient(activity).unlock(platformId)
-      invoke.resolve(result("unlocked", args.id))
-    } catch (err: Exception) {
-      invoke.resolve(result("error", err.message ?: "unlock failed"))
-    }
+    ensurePlayGamesSignedIn(
+      onReady = {
+        PlayGames.getAchievementsClient(activity)
+          .unlockImmediate(platformId)
+          .addOnSuccessListener(
+            OnSuccessListener {
+              invoke.resolve(result("unlocked", args.id))
+            }
+          )
+          .addOnFailureListener(
+            OnFailureListener { err ->
+              invoke.resolve(result("error", err.message ?: "unlock failed"))
+            }
+          )
+      },
+      onFailure = { message ->
+        invoke.resolve(result("error", message))
+      }
+    )
   }
 
   @Command
@@ -74,27 +110,45 @@ class AchievementsPlugin(private val activity: Activity) : Plugin(activity) {
       invoke.resolve(result("missing_platform_id", "Set playGamesId after Play Console setup"))
       return
     }
-    if (!sdkReady) {
-      invoke.resolve(result("error", "Play Games SDK not initialized"))
-      return
-    }
 
     val steps = args.steps.coerceAtLeast(1)
     val current = args.current.coerceIn(0, steps)
     val client = PlayGames.getAchievementsClient(activity)
 
-    // Play Games v2: unlock() / setSteps() are fire-and-forget (void).
-    try {
-      if (current >= steps) {
-        client.unlock(platformId)
-        invoke.resolve(result("unlocked", "${args.id}:$current/$steps"))
-      } else {
-        client.setSteps(platformId, current)
-        invoke.resolve(result("progressed", "${args.id}:$current/$steps"))
+    ensurePlayGamesSignedIn(
+      onReady = {
+        if (current >= steps) {
+          client
+            .unlockImmediate(platformId)
+            .addOnSuccessListener(
+              OnSuccessListener {
+                invoke.resolve(result("unlocked", "${args.id}:$current/$steps"))
+              }
+            )
+            .addOnFailureListener(
+              OnFailureListener { err ->
+                invoke.resolve(result("error", err.message ?: "unlock failed"))
+              }
+            )
+        } else {
+          client
+            .setStepsImmediate(platformId, current)
+            .addOnSuccessListener(
+              OnSuccessListener {
+                invoke.resolve(result("progressed", "${args.id}:$current/$steps"))
+              }
+            )
+            .addOnFailureListener(
+              OnFailureListener { err ->
+                invoke.resolve(result("error", err.message ?: "progress failed"))
+              }
+            )
+        }
+      },
+      onFailure = { message ->
+        invoke.resolve(result("error", message))
       }
-    } catch (err: Exception) {
-      invoke.resolve(result("error", err.message ?: "progress failed"))
-    }
+    )
   }
 
   @Command
