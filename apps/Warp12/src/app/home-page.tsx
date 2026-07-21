@@ -225,6 +225,7 @@ export const HomePage: FC<HomePageProps> = ({ factor }) => {
     <h4>Available on multiple platforms</h4>
     <ul>
       <li><img className={styles.platformIcon} height="16" src="/google-play-brands-solid-full.svg" alt="Google Play" /> <a className={styles.platformLink} target="_blank" rel="noopener noreferrer" href="https://play.google.com/store/apps/details?id=org.digitaldefiance.app.warp12">Google Play</a></li>
+      <li><img className={styles.platformIcon} height="16" src="/microsoft-brands-solid-full.svg" alt="Microsoft Store" /> <a className={styles.platformLink} target="_blank" rel="noopener noreferrer" href="https://apps.microsoft.com/detail/9MX863SLRZWM">Microsoft Store</a></li>
       <li><img className={styles.platformIcon} height="16" src="/beer-mug-duotone-solid-full.svg" alt="Homebrew" /> <a className={styles.platformLink} target="_blank" rel="noopener noreferrer" href="https://brew.digitaldefiance.org">Mac via Homebrew</a></li>
     </ul>
     <p>More pending app store review!</p>

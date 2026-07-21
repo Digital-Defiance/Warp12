@@ -1,4 +1,4 @@
-# Windows Store Submission Guide
+# Microsoft Store Submission Guide
 
 ## Package Formats
 

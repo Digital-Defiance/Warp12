@@ -9,7 +9,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Building Warp 12 MSIX for Windows Store..." -ForegroundColor Cyan
+Write-Host "Building Warp 12 MSIX for Microsoft Store..." -ForegroundColor Cyan
 
 # Ensure we're in the repo root
 Push-Location $PSScriptRoot\..

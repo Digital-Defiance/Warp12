@@ -131,7 +131,7 @@ yarn build:all
 # Build Windows installers
 yarn tauri:build
 
-# Build Windows Store package
+# Build Microsoft Store package
 yarn build:windows:store
 
 # Test locally

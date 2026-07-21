@@ -144,4 +144,4 @@ Questions about this privacy policy or a data request:
 
 ## App store note
 
-This page is available at **https://warp.iwdf.org/privacy** for Google Play, Apple App Store, and other distribution listings that require a privacy policy URL.
+This page is available at **https://warp.iwdf.org/privacy** for Google Play, Apple App Store, Microsoft Store, and other distribution listings that require a privacy policy URL.
