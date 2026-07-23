@@ -3926,6 +3926,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "tauri-plugin-siwa"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5dcba3d6329e004a5750cc88575c511f0971012ffab34bf1d10de540798ac069"
+dependencies = [
+ "serde",
+ "serde_json",
+ "swift-rs",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "tauri-plugin-warp-achievements"
 version = "0.1.0"
 dependencies = [
@@ -4612,7 +4626,7 @@ dependencies = [
 
 [[package]]
 name = "warp12"
-version = "0.10.66"
+version = "0.10.67"
 dependencies = [
  "log",
  "rfd",
@@ -4623,6 +4637,7 @@ dependencies = [
  "tauri-plugin-deep-link",
  "tauri-plugin-log",
  "tauri-plugin-opener",
+ "tauri-plugin-siwa",
  "tauri-plugin-warp-achievements",
 ]
 

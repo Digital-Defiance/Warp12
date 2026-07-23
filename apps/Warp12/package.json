@@ -1,6 +1,6 @@
 {
   "name": "@warp12/Warp12",
-  "version": "0.10.66",
+  "version": "0.10.67",
   "private": true,
   "dependencies": {
     "@brightchain/brightdate": "^0.37.0",
