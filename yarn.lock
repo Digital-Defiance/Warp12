@@ -15901,8 +15901,8 @@ __metadata:
 
 "double-eighteen@file:vendor/double-eighteen::locator=%40warp12%2Ffunctions%40workspace%3Afunctions":
   version: 0.4.3
-  resolution: "double-eighteen@file:vendor/double-eighteen#vendor/double-eighteen::hash=ff57f3&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
-  checksum: 10c0/0322d3311f730f343117cf67b26e196ae4fd64ce08a44d4cd205f242a65ef6216aca44d9cb52d246f6ea412432aad71b8fd652db68a7583d4ff3b44084aba8b8
+  resolution: "double-eighteen@file:vendor/double-eighteen#vendor/double-eighteen::hash=7ba948&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
+  checksum: 10c0/07626f959d60ac590fe8aaa0987183f07746631bcb7fa240d4f7cca4d96172420cf9e258babd92c3aad4934352bec389ab99878e8c37194553ef2e420bd79c94
   languageName: node
   linkType: hard
 
@@ -27864,8 +27864,8 @@ __metadata:
   linkType: hard
 
 "svgo@npm:^2.7.0":
-  version: 2.8.2
-  resolution: "svgo@npm:2.8.2"
+  version: 2.8.3
+  resolution: "svgo@npm:2.8.3"
   dependencies:
     commander: "npm:^7.2.0"
     css-select: "npm:^4.1.3"
@@ -27876,7 +27876,7 @@ __metadata:
     stable: "npm:^0.1.8"
   bin:
     svgo: ./bin/svgo
-  checksum: 10c0/a3a533e1678aecdfa1c67f06d71f104da7ef574a3f63a8dfeda10368b42428c67d09a06b4eee233c5ed49ac815f1febb6193cba0f611a21bfc00366d7930205d
+  checksum: 10c0/0052299bbc4c76e22312e4e7288772e9a5655e850622f67a7d61609469ea4da608047e89ebc432d9aab854a559d98d3f4b8b06c89f899f227214cc5145c4933a
   languageName: node
   linkType: hard
 
@@ -29794,10 +29794,8 @@ __metadata:
 
 "warp12-engine@file:vendor/warp12-engine::locator=%40warp12%2Ffunctions%40workspace%3Afunctions":
   version: 0.4.27
-  resolution: "warp12-engine@file:vendor/warp12-engine#vendor/warp12-engine::hash=d65e30&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
-  peerDependencies:
-    double-eighteen: ">=0.4.0"
-  checksum: 10c0/ba1c760b39eaa3c91ef0de88ee53dd3c857c744411253cf4086b17b2100dc90b8e8fda51b787cb644fc056c922b0448dc5f2769bd6c4feb975c03868a793eaa1
+  resolution: "warp12-engine@file:vendor/warp12-engine#vendor/warp12-engine::hash=c9fb9c&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
+  checksum: 10c0/12a7f2b1edf3d64cbae5885640dd8d3cc946fb008b6d9f0cdee84f71e4df29f765019639c2a36bf12f398b43b3838a98b0d6a0e1b2f375a788612688a5852eeb
   languageName: node
   linkType: hard
 
