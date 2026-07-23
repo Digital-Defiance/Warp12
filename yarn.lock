@@ -15901,8 +15901,8 @@ __metadata:
 
 "double-eighteen@file:vendor/double-eighteen::locator=%40warp12%2Ffunctions%40workspace%3Afunctions":
   version: 0.4.3
-  resolution: "double-eighteen@file:vendor/double-eighteen#vendor/double-eighteen::hash=ff57f3&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
-  checksum: 10c0/0322d3311f730f343117cf67b26e196ae4fd64ce08a44d4cd205f242a65ef6216aca44d9cb52d246f6ea412432aad71b8fd652db68a7583d4ff3b44084aba8b8
+  resolution: "double-eighteen@file:vendor/double-eighteen#vendor/double-eighteen::hash=7ba948&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
+  checksum: 10c0/07626f959d60ac590fe8aaa0987183f07746631bcb7fa240d4f7cca4d96172420cf9e258babd92c3aad4934352bec389ab99878e8c37194553ef2e420bd79c94
   languageName: node
   linkType: hard
 
@@ -17364,9 +17364,9 @@ __metadata:
   linkType: hard
 
 "fast-uri@npm:^3.0.1":
-  version: 3.1.2
-  resolution: "fast-uri@npm:3.1.2"
-  checksum: 10c0/5b35641895959f3f7ab7a7b1b5542bded159346f25ec9f256817b206d50b64eda5828e90d605a2e2fc645c90519a7259c2bab2c942ee728c88b88e5be21b090d
+  version: 3.1.4
+  resolution: "fast-uri@npm:3.1.4"
+  checksum: 10c0/f90948821ceb49980f64f89b8216ba498f5957f26035be813526a55b6145d26cbd63ef5618d5205a3292b31edc9c08589749350cd72bd86c7095eb434dceb757
   languageName: node
   linkType: hard
 
@@ -29794,10 +29794,8 @@ __metadata:
 
 "warp12-engine@file:vendor/warp12-engine::locator=%40warp12%2Ffunctions%40workspace%3Afunctions":
   version: 0.4.27
-  resolution: "warp12-engine@file:vendor/warp12-engine#vendor/warp12-engine::hash=d65e30&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
-  peerDependencies:
-    double-eighteen: ">=0.4.0"
-  checksum: 10c0/ba1c760b39eaa3c91ef0de88ee53dd3c857c744411253cf4086b17b2100dc90b8e8fda51b787cb644fc056c922b0448dc5f2769bd6c4feb975c03868a793eaa1
+  resolution: "warp12-engine@file:vendor/warp12-engine#vendor/warp12-engine::hash=c9fb9c&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
+  checksum: 10c0/12a7f2b1edf3d64cbae5885640dd8d3cc946fb008b6d9f0cdee84f71e4df29f765019639c2a36bf12f398b43b3838a98b0d6a0e1b2f375a788612688a5852eeb
   languageName: node
   linkType: hard
 
