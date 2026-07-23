@@ -11,7 +11,7 @@ Warp 12 ("the app," "we," "us") is operated by **Digital Defiance**. This policy
 - **Local simulation** runs entirely on your device. We do not receive gameplay data from local-only sessions.
 - **Online fleet** uses Google Firebase for anonymous sign-in and real-time multiplayer sync.
 - We do **not** sell personal information, run advertising, or use third-party analytics SDKs in the app.
-- You choose a **display name** for online play; we do not collect email, phone, or payment information for anonymous play (optional Google sign-in for TEI / verified play may associate an email with your account).
+- You choose a **display name** for online play; we do not collect email, phone, or payment information for anonymous play (optional Google or Apple sign-in for TEI / verified play may associate an email with your account).
 - **Online Warp is a public game service, not a private messenger.** There is no expectation of privacy in sector chat, logs, or other online activity. Administrators and moderators may monitor any part of the service.
 
 ---
@@ -24,13 +24,13 @@ When you use **Local simulation**, game state stays in your browser or app. We d
 
 ### Online fleet (Firebase)
 
-When you use **Online fleet**, the app uses **Firebase Authentication** to create an **anonymous account** (a random user ID). We do not ask for your name, email, or password for anonymous play. Optional Google sign-in may link an email for leaderboard / TEI features.
+When you use **Online fleet**, the app uses **Firebase Authentication** to create an **anonymous account** (a random user ID). We do not ask for your name, email, or password for anonymous play. Optional Google or Apple sign-in may link an email for leaderboard / TEI features.
 
 For multiplayer sessions we store and sync:
 
 | Data | Purpose |
 | --- | --- |
-| Anonymous user ID (and optional Google account link) | Identify your captain seat and enforce game security rules |
+| Anonymous user ID (and optional Google or Apple account link) | Identify your captain seat and enforce game security rules |
 | Display name you enter | Show your name to other players in the sector lobby and at the table |
 | Public game state | Table layout, scores, turn order, lobby settings, and other shared sector data |
 | Your private hand | Stored in Firestore so only you (and briefly, other captains during round-end scoring) can read it |
@@ -79,7 +79,7 @@ Warp’s online features are a **multiplayer game**, not an encrypted chat produ
 
 ## Third-party services
 
-Online play relies on **Google Firebase** (Authentication, Cloud Firestore, Hosting), operated by Google LLC. Firebase processes data on our behalf according to [Google's privacy policy](https://policies.google.com/privacy) and [Firebase terms](https://firebase.google.com/terms).
+Online play relies on **Google Firebase** (Authentication, Cloud Firestore, Hosting), operated by Google LLC. Firebase processes data on our behalf according to [Google's privacy policy](https://policies.google.com/privacy) and [Firebase terms](https://firebase.google.com/terms). Optional **Sign in with Apple** is provided by Apple Inc.; Apple may share a name and/or email with Firebase according to [Apple's privacy policy](https://www.apple.com/legal/privacy/).
 
 When you use online fleet, your data is stored in Firebase infrastructure. We do not share game data with other third parties except as needed to operate Firebase / Google infrastructure or as required by law.
 

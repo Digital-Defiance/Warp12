@@ -348,6 +348,18 @@
   }
 }
 
+.authActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+
+  .primary,
+  .secondary {
+    flex: 1 1 12rem;
+  }
+}
+
 .hint {
   margin: 0 0 0.75rem;
   font-family: var(--font-federation);

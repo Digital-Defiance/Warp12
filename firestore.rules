@@ -553,8 +553,11 @@ service cloud.firestore {
     }
 
     match /playerProfiles/{uid} {
-      allow read: if profileIsPublic(resource.data)
-        || isOwner(uid);
+      // Owner check first: missing docs have resource == null, and reading
+      // resource.data before isOwner denies even the document owner (profile
+      // page getDoc → "Missing or insufficient permissions").
+      allow read: if isOwner(uid)
+        || (resource != null && profileIsPublic(resource.data));
 
       allow create, update: if isOwner(uid)
         && notBanned()

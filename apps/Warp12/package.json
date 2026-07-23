@@ -15,6 +15,7 @@
     "onnxruntime-web": "^1.27.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
+    "tauri-plugin-siwa-api": "1.0.0",
     "warp12-engine": "workspace:*",
     "warp12-react": "workspace:*",
     "warp12-theme": "workspace:*"

@@ -29,6 +29,14 @@ const fakeAuth: { currentUser: { isAnonymous: boolean; uid: string } | null } =
 
 vi.mock('firebase/auth', () => ({
   GoogleAuthProvider: mocks.GoogleAuthProvider,
+  OAuthProvider: class OAuthProvider {
+    addScope() {
+      /* stub */
+    }
+    credential() {
+      return { providerId: 'apple.com' };
+    }
+  },
   linkWithCredential: mocks.linkWithCredential,
   signInWithCredential: mocks.signInWithCredential,
   linkWithPopup: mocks.linkWithPopup,
@@ -50,6 +58,11 @@ vi.mock('./platform.js', () => ({
 
 vi.mock('./google-oauth-native.js', () => ({
   runNativeGoogleOAuth: mocks.runNativeGoogleOAuth,
+}));
+
+vi.mock('./apple-oauth-native.js', () => ({
+  isNativeAppleSignInSupported: () => false,
+  runNativeAppleSignIn: vi.fn(),
 }));
 
 import { upgradeAnonymousToGoogle } from './auth-actions.js';

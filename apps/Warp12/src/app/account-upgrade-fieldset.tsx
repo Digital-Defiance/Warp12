@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 
 import {
   isAnonymousUser,
+  isAppleSignInOffered,
   isVerifiedUser,
   LEADERBOARD_MATCHES_URL,
+  upgradeAnonymousToApple,
   upgradeAnonymousToGoogle,
 } from '../firebase/auth-actions.js';
 import {
@@ -18,6 +20,8 @@ import styles from './lobby.module.scss';
 const DIAG_UNLOCK_TAPS = 5;
 const DIAG_TAP_WINDOW_MS = 2_500;
 
+type UpgradeProvider = 'google' | 'apple';
+
 export function AccountUpgradeFieldset({
   user,
   onUpgraded,
@@ -25,7 +29,7 @@ export function AccountUpgradeFieldset({
   user: User;
   onUpgraded: () => void | Promise<void>;
 }) {
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<UpgradeProvider | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [diagUnlocked, setDiagUnlocked] = useState(false);
@@ -33,6 +37,7 @@ export function AccountUpgradeFieldset({
   const [diagText, setDiagText] = useState(() => formatOauthDiagnostics());
   const tapCountRef = useRef(0);
   const tapResetRef = useRef(0);
+  const offerApple = isAppleSignInOffered();
 
   const refreshDiagnostics = () => {
     setDiagText(formatOauthDiagnostics(readOauthDiagnostics()));
@@ -92,21 +97,25 @@ export function AccountUpgradeFieldset({
     }, DIAG_TAP_WINDOW_MS);
   };
 
-  const handleUpgrade = async () => {
-    setBusy(true);
+  const handleUpgrade = async (provider: UpgradeProvider) => {
+    setBusy(provider);
     setError(null);
     setNotice(null);
+    const label = provider === 'apple' ? 'Apple' : 'Google';
     try {
-      const { linked } = await upgradeAnonymousToGoogle();
+      const { linked } =
+        provider === 'apple'
+          ? await upgradeAnonymousToApple()
+          : await upgradeAnonymousToGoogle();
       if (!linked) {
         setNotice(
-          'Signed in with your existing Google account. Practice stats from this guest session stay on the guest profile — they do not merge automatically.'
+          `Signed in with your existing ${label} account. Practice stats from this guest session stay on the guest profile — they do not merge automatically.`
         );
       }
       await onUpgraded();
     } catch (err) {
       console.error('[oauth] sign-in failed', err);
-      appendOauthDiagnostic('upgradeAnonymousToGoogle: failed', {
+      appendOauthDiagnostic(`upgradeAnonymousTo${label}: failed`, {
         message: err instanceof Error ? err.message : String(err),
         code:
           err && typeof err === 'object' && 'code' in err
@@ -115,13 +124,15 @@ export function AccountUpgradeFieldset({
       });
       const code = (err as { code?: string })?.code;
       const message =
-        err instanceof Error ? err.message : 'Could not sign in with Google.';
+        err instanceof Error
+          ? err.message
+          : `Could not sign in with ${label}.`;
       setError(code ? `${message} (${code})` : message);
     } finally {
       if (diagUnlocked) {
         refreshDiagnostics();
       }
-      setBusy(false);
+      setBusy(null);
     }
   };
 
@@ -143,18 +154,30 @@ export function AccountUpgradeFieldset({
       </legend>
       <p className={styles.hint}>
         You are on a guest account. Practice vs AI TEI is saved here, but officiated
-        human-pool matches require Google sign-in. If this Google account was already
-        used on the leaderboard, we sign you into that existing account instead of
+        human-pool matches require Google or Apple sign-in. If that account was already
+        used on the leaderboard, we sign you into the existing account instead of
         linking the guest profile.
       </p>
-      <button
-        type="button"
-        className={styles.primary}
-        disabled={busy}
-        onClick={() => void handleUpgrade()}
-      >
-        {busy ? 'Signing in…' : 'Sign in with Google'}
-      </button>
+      <div className={styles.authActions}>
+        <button
+          type="button"
+          className={styles.primary}
+          disabled={busy !== null}
+          onClick={() => void handleUpgrade('google')}
+        >
+          {busy === 'google' ? 'Signing in…' : 'Sign in with Google'}
+        </button>
+        {offerApple ? (
+          <button
+            type="button"
+            className={styles.secondary}
+            disabled={busy !== null}
+            onClick={() => void handleUpgrade('apple')}
+          >
+            {busy === 'apple' ? 'Signing in…' : 'Sign in with Apple'}
+          </button>
+        ) : null}
+      </div>
       {notice && <p className={styles.hint}>{notice}</p>}
       {error && <p className={styles.error}>{error}</p>}
 
@@ -172,8 +195,8 @@ export function AccountUpgradeFieldset({
         >
           <summary>Sign-in diagnostics</summary>
           <p className={styles.hint}>
-            Step log from the last Google sign-in attempts on this device (no
-            tokens). Tap the Rated play label five times to show this panel.
+            Step log from the last sign-in attempts on this device (no tokens).
+            Tap the Rated play label five times to show this panel.
           </p>
           <pre className={styles.oauthDiagLog}>{diagText}</pre>
           <div className={styles.oauthDiagActions}>

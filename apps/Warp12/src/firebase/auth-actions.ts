@@ -1,14 +1,20 @@
 import {
   GoogleAuthProvider,
+  OAuthProvider,
   linkWithCredential,
   linkWithPopup,
   signInAnonymously,
   signInWithCredential,
   signInWithPopup,
   signOut,
+  type AuthCredential,
   type User,
 } from 'firebase/auth';
 
+import {
+  isNativeAppleSignInSupported,
+  runNativeAppleSignIn,
+} from './apple-oauth-native.js';
 import { getFirebaseAuth } from './config.js';
 import { isTauriRuntime } from './platform.js';
 import { runNativeGoogleOAuth } from './google-oauth-native.js';
@@ -19,6 +25,17 @@ export function isAnonymousUser(user: User | null): boolean {
 
 export function isVerifiedUser(user: User | null): boolean {
   return Boolean(user && !user.isAnonymous);
+}
+
+function appleProvider(): OAuthProvider {
+  const provider = new OAuthProvider('apple.com');
+  provider.addScope('email');
+  provider.addScope('name');
+  return provider;
+}
+
+function appleCredential(idToken: string, rawNonce: string) {
+  return appleProvider().credential({ idToken, rawNonce });
 }
 
 /** Sign in to Firebase from an already-obtained Google ID token (native mobile flow). */
@@ -33,6 +50,29 @@ export async function signInWithGoogleCredential(
   const credential = GoogleAuthProvider.credential(idToken, accessToken ?? undefined);
   const result = await signInWithCredential(auth, credential);
   return result.user;
+}
+
+async function linkOrSwitchCredential(
+  credential: AuthCredential
+): Promise<{ user: User; linked: boolean }> {
+  const auth = getFirebaseAuth();
+  if (!auth?.currentUser) {
+    throw new Error('Firebase auth unavailable');
+  }
+
+  try {
+    const result = await linkWithCredential(auth.currentUser, credential);
+    return { user: result.user, linked: true };
+  } catch (err) {
+    if (credentialAlreadyInUse(err)) {
+      // Switch to the existing account. Do NOT signOut first — that
+      // transiently drops the user to null, and the auth listener would race
+      // to sign in a fresh anonymous user, clobbering this sign-in.
+      const result = await signInWithCredential(auth, credential);
+      return { user: result.user, linked: false };
+    }
+    throw err;
+  }
 }
 
 /** Keeps the same Firebase uid — practice stats carry over when linking succeeds. */
@@ -57,20 +97,7 @@ export async function upgradeAnonymousToGoogle(): Promise<{
       tokens.idToken,
       tokens.accessToken ?? undefined
     );
-    try {
-      const result = await linkWithCredential(auth.currentUser, credential);
-      return { user: result.user, linked: true };
-    } catch (err) {
-      if (credentialAlreadyInUse(err)) {
-        // Switch to the existing Google account. Do NOT signOut first — that
-        // transiently drops the user to null, and the auth listener would race
-        // to sign in a fresh anonymous user, clobbering this sign-in.
-        // signInWithCredential replaces the current (anonymous) user directly.
-        const result = await signInWithCredential(auth, credential);
-        return { user: result.user, linked: false };
-      }
-      throw err;
-    }
+    return linkOrSwitchCredential(credential);
   }
 
   try {
@@ -88,6 +115,44 @@ export async function upgradeAnonymousToGoogle(): Promise<{
     // listener race in a fresh anonymous user. signInWithPopup replaces the
     // current (anonymous) user directly.
     const result = await signInWithPopup(auth, new GoogleAuthProvider());
+    return { user: result.user, linked: false };
+  }
+}
+
+/** Guest → Apple (web popup or native SIWA on Apple Tauri builds). */
+export async function upgradeAnonymousToApple(): Promise<{
+  user: User;
+  linked: boolean;
+}> {
+  const auth = getFirebaseAuth();
+  if (!auth?.currentUser) {
+    throw new Error('Firebase auth unavailable');
+  }
+  if (!auth.currentUser.isAnonymous) {
+    return { user: auth.currentUser, linked: true };
+  }
+
+  if (isTauriRuntime()) {
+    if (!isNativeAppleSignInSupported()) {
+      throw new Error(
+        'Sign in with Apple is available on iPhone, iPad, and Mac builds.'
+      );
+    }
+    const tokens = await runNativeAppleSignIn();
+    return linkOrSwitchCredential(
+      appleCredential(tokens.idToken, tokens.rawNonce)
+    );
+  }
+
+  const provider = appleProvider();
+  try {
+    const result = await linkWithPopup(auth.currentUser, provider);
+    return { user: result.user, linked: true };
+  } catch (err) {
+    if (!credentialAlreadyInUse(err)) {
+      throw err;
+    }
+    const result = await signInWithPopup(auth, provider);
     return { user: result.user, linked: false };
   }
 }
@@ -113,6 +178,36 @@ export async function signInWithGoogle(): Promise<User> {
   }
   const result = await signInWithPopup(auth, new GoogleAuthProvider());
   return result.user;
+}
+
+export async function signInWithApple(): Promise<User> {
+  const auth = getFirebaseAuth();
+  if (!auth) {
+    throw new Error('Firebase auth unavailable');
+  }
+  if (isTauriRuntime()) {
+    if (!isNativeAppleSignInSupported()) {
+      throw new Error(
+        'Sign in with Apple is available on iPhone, iPad, and Mac builds.'
+      );
+    }
+    const tokens = await runNativeAppleSignIn();
+    const result = await signInWithCredential(
+      auth,
+      appleCredential(tokens.idToken, tokens.rawNonce)
+    );
+    return result.user;
+  }
+  const result = await signInWithPopup(auth, appleProvider());
+  return result.user;
+}
+
+/** Whether the UI should offer Apple (web always; Tauri only on Apple OS). */
+export function isAppleSignInOffered(): boolean {
+  if (!isTauriRuntime()) {
+    return true;
+  }
+  return isNativeAppleSignInSupported();
 }
 
 export async function continueAsGuest(): Promise<User> {

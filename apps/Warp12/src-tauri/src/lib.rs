@@ -24,7 +24,7 @@ fn save_download(default_name: String, contents: Vec<u8>) -> Result<bool, String
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  tauri::Builder::default()
+  let mut builder = tauri::Builder::default()
     .plugin(tauri_plugin_opener::init())
     .plugin(tauri_plugin_deep_link::init())
     .plugin(tauri_plugin_warp_achievements::init())
@@ -33,7 +33,14 @@ pub fn run() {
       oauth_server::start_oauth_server,
       oauth_server::await_oauth_redirect,
       save_download,
-    ])
+    ]);
+
+  #[cfg(any(target_os = "ios", target_os = "macos"))]
+  {
+    builder = builder.plugin(tauri_plugin_siwa::init());
+  }
+
+  builder
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(

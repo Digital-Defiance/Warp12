@@ -247,6 +247,7 @@ async function loadCharterBySlug(slug: string): Promise<CharterDocument> {
 }
 
 function publicCharterView(charter: CharterDocument) {
+  const memberUids = Array.isArray(charter.memberUids) ? charter.memberUids : [];
   return {
     charterId: charter.charterId,
     slug: charter.slug,
@@ -257,7 +258,7 @@ function publicCharterView(charter: CharterDocument) {
     campaignRounds: charter.campaignRounds,
     modules: effectiveCharterModules(charter),
     houseRules: effectiveCharterHouseRules(charter),
-    memberCount: charter.memberUids.length,
+    memberCount: memberUids.length,
     isGlobalOfficial: charter.isGlobalOfficial === true,
     listed: charter.listed === true,
     seasonLabel: charter.seasonLabel,
@@ -466,8 +467,10 @@ export const leaveCharter = onCall(async (request) => {
 
 export const listMyCharters = onCall(async (request) => {
   const uid = requireVerifiedUser(request);
-  await ensureGlobalOfficialCharter();
 
+  // Listing memberships must not depend on ensuring Global Official exists —
+  // that write was hanging / failing some cold-start profile loads (client
+  // sees functions/internal with no server ERROR log).
   const memberSnaps = await db
     .collection(CHARTER_MEMBERS)
     .where('uid', '==', uid)
@@ -476,6 +479,9 @@ export const listMyCharters = onCall(async (request) => {
   const charters: ReturnType<typeof publicCharterView>[] = [];
   for (const memberDoc of memberSnaps.docs) {
     const member = memberDoc.data() as CharterMemberDocument;
+    if (!member?.charterId) {
+      continue;
+    }
     const snap = await charterRef(member.charterId).get();
     if (snap.exists) {
       charters.push(publicCharterView(snap.data() as CharterDocument));

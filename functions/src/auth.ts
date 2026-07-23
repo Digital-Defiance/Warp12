@@ -26,7 +26,7 @@ export function requireVerifiedUser(request: CallableRequest<unknown>): string {
   if (provider === 'anonymous') {
     throw new HttpsError(
       'failed-precondition',
-      'Sign in with Google or email before using rated-match features.'
+      'Sign in with Google or Apple before using rated-match features.'
     );
   }
   return uid;

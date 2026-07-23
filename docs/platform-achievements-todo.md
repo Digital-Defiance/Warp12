@@ -4,7 +4,7 @@
 Center without competing with TEI / iwgf.org. Firebase stays the account of
 record; platform shells are flair + Level Up eligibility.
 
-**Out of scope for this track:** Sign in with Apple (App Store 4.8 — separate),
+**Out of scope for this track:** Google↔Apple account merge polish,
 Firebase Game Center auth, PGS/Game Center leaderboards for TEI scores.
 
 ---
@@ -114,7 +114,7 @@ Call the shared unlock API from real events (never invent TEI from platforms):
 
 ## Deferred (separate tracks)
 
-- [ ] Sign in with Apple → Firebase (App Store Guideline 4.8 when shipping Google login on iOS)
+- [x] Sign in with Apple → Firebase (App Store Guideline 4.8 when shipping Google login on iOS)
 - [ ] Account linking Google ↔ Apple for one TEI profile
 - [ ] Fun (non-TEI) platform leaderboards / Leagues
 - [ ] Firebase Game Center auth provider (not needed for achievements)
