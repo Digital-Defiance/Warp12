@@ -2,11 +2,13 @@
 
 Canonical instructions for AI assistants (Kiro, Cursor, Copilot, Codex, etc.) working in this repo. This is the single source of truth; tool-specific configs (`.kiro/steering/`, `.cursor/rules/`) just point here.
 
+Sibling under **IWGF**: Subspace Lattice (`../subspace-lattice/`). Shared federation surfaces: `../leaderboard/` → iwgf.org, `../ops/` → ops.iwgf.org. Shared Firebase project `warp-12`; see `../AGENTS.md` and `FEDERATION.md`.
+
 ---
 
 ## 1. Product
 
-Warp is multiplayer, federation-themed **multi-trail Interstellar Dominoes** across **Warp factors 9 / 12 / 15 / 18** (double-N sets). It ships as a web app (warp.iwdf.org) and as a Tauri desktop/mobile app (macOS, iOS, Android). Core play follows widely published multi-trail tournament practice, reskinned with federation terminology, plus opt-in modules.
+Warp is multiplayer, federation-themed **multi-trail Interstellar Dominoes** across **Warp factors 9 / 12 / 15 / 18** (double-N sets). It ships as a web app (warp.iwgf.org) and as a Tauri desktop/mobile app (macOS, iOS, Android). Core play follows widely published multi-trail tournament practice, reskinned with federation terminology, plus opt-in modules.
 
 - Games are **sectors/missions**; players are **Captains**; the host runs a **fleet** (size capped by Warp factor: 4 / 8 / 12 / 18).
 - Two objectives, chosen before launch:
@@ -127,7 +129,9 @@ libs/
 vendor/
   double-eighteen/      git submodule, own Nx workspace — domino rendering (opaque dependency)
 functions/           @warp12/functions — Firebase Cloud Functions
-Warp12-leaderboard/  separate SPA (own build) → iwdf.org
+Warp12-leaderboard/  (moved) → IWGF sibling `../leaderboard/` → iwgf.org
+apps/WarpOps/        (moved) → IWGF sibling `../ops/` → ops.iwgf.org
+                         Hosting staging: `federation-hosting/{leaderboard,ops}/` via `scripts/sync-federation-hosting.sh`
 tools/nn/            Class I* neural training pipeline (Python/PyTorch → ONNX)
 docs/                Jekyll docs site (calibration log, TEI paper)
 ```

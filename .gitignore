@@ -6,7 +6,6 @@ tools/nn/logs/
 # compiled output
 dist
 apps/Warp12/src-tauri/target
-apps/WarpOps/src-tauri/target
 tmp
 out-tsc
 
@@ -61,7 +60,6 @@ test-output
 
 # Generated Tauri merge fragment (from scripts/tauri-config-from-env.mjs)
 apps/Warp12/src-tauri/tauri.conf.local.json
-apps/WarpOps/src-tauri/tauri.conf.local.json
 
 # Firebase CLI local cache (regenerated on deploy)
 .firebase/
@@ -87,3 +85,6 @@ tools/nn/data/*.jsonl
 # Tauri mobile (Android signing — local only)
 **/key.properties
 **/local.properties
+
+# Staging dirs for sibling SPAs (leaderboard/ops)
+federation-hosting/

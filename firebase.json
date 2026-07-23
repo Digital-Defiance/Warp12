@@ -7,9 +7,15 @@
         "supportEmail": "jessica@digitaldefiance.org",
         "authorizedRedirectUris": [
           "https://iwdf.org",
+          "https://iwgf.org",
           "https://warp12.app",
           "https://warp.iwdf.org",
-          "https://ops.iwdf.org"
+          "https://ops.iwdf.org",
+          "https://warp.iwgf.org",
+          "https://ops.iwgf.org",
+          "https://profile.iwgf.org",
+          "https://lattice.iwgf.org"
+
         ]
       }
     }
@@ -714,7 +720,7 @@
     },
     {
       "target": "leaderboard",
-      "public": "Warp12-leaderboard/dist",
+      "public": "federation-hosting/leaderboard",
       "ignore": [
         "firebase.json",
         "**/.*",
@@ -1374,7 +1380,7 @@
     },
     {
       "target": "ops",
-      "public": "apps/WarpOps/dist",
+      "public": "federation-hosting/ops",
       "ignore": [
         "firebase.json",
         "**/.*",
