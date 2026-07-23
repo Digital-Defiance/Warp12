@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import {
+  fetchCaptainIdentityFromProfile,
   saveCaptainGender,
   saveCaptainPronouns,
   saveCaptainSpeakAs,
@@ -37,29 +38,54 @@ export function useCaptainProfile() {
     resolveSpeakAs(playerStats.stats?.speakAs)
   );
 
+  // Prefer federation playerProfiles; fall back to Warp playerStats / local.
   useEffect(() => {
-    const resolved = resolveCaptainGender(playerStats.stats?.captainGender);
-    setGender(resolved);
-    if (playerStats.stats?.captainGender) {
-      writeCaptainGenderLocal(playerStats.stats.captainGender);
+    const uid = auth.user?.uid;
+    if (!uid) {
+      const resolved = resolveCaptainGender(playerStats.stats?.captainGender);
+      setGender(resolved);
+      if (playerStats.stats?.captainGender) {
+        writeCaptainGenderLocal(playerStats.stats.captainGender);
+      }
+      return;
     }
-  }, [playerStats.stats?.captainGender]);
 
-  useEffect(() => {
-    const resolved = resolveCaptainPronouns(playerStats.stats?.captainPronouns);
-    setPronouns(resolved);
-    if (playerStats.stats?.captainPronouns) {
-      writeCaptainPronounsLocal(playerStats.stats.captainPronouns);
-    }
-  }, [playerStats.stats?.captainPronouns]);
+    let cancelled = false;
+    void (async () => {
+      const profile = await fetchCaptainIdentityFromProfile(uid);
+      if (cancelled) {
+        return;
+      }
+      const nextGender = resolveCaptainGender(
+        profile?.captainGender ?? playerStats.stats?.captainGender
+      );
+      setGender(nextGender);
+      writeCaptainGenderLocal(nextGender);
 
-  useEffect(() => {
-    const resolved = resolveSpeakAs(playerStats.stats?.speakAs);
-    setSpeakAs(resolved);
-    if (playerStats.stats?.speakAs !== undefined) {
-      writeSpeakAsLocal(playerStats.stats.speakAs);
-    }
-  }, [playerStats.stats?.speakAs]);
+      const nextPronouns = resolveCaptainPronouns(
+        profile?.captainPronouns ?? playerStats.stats?.captainPronouns
+      );
+      setPronouns(nextPronouns);
+      writeCaptainPronounsLocal(nextPronouns);
+
+      const nextSpeakAs = resolveSpeakAs(
+        profile?.speakAs !== undefined
+          ? profile.speakAs
+          : playerStats.stats?.speakAs
+      );
+      setSpeakAs(nextSpeakAs);
+      writeSpeakAsLocal(nextSpeakAs);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    auth.user?.uid,
+    playerStats.stats?.captainGender,
+    playerStats.stats?.captainPronouns,
+    playerStats.stats?.speakAs,
+  ]);
 
   const setCaptainGender = useCallback(
     async (next: CaptainGender) => {
@@ -118,6 +144,5 @@ export function useCaptainProfile() {
     setCaptainGender,
     setCaptainPronouns,
     setCaptainSpeakAs,
-    ready: playerStats.ready,
   };
 }

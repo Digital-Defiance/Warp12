@@ -1,4 +1,4 @@
-import { doc, getDoc, runTransaction } from 'firebase/firestore';
+import { doc, getDoc, runTransaction, setDoc } from 'firebase/firestore';
 
 import {
   type GameObjective,
@@ -22,6 +22,8 @@ import {
   isReplayableLocalAiMatch,
   localAiMatchRejectNotice,
 } from '../game/local-ai-match-validation.js';
+import type { CaptainGender } from '../game/captain-profile.js';
+import type { CaptainPronounPreference } from '../game/captain-pronouns.js';
 import { sanitizeSpeakAs } from '../game/captain-speak-as.js';
 export type { LocalAiMatchRejectReason } from '../game/local-ai-match-validation.js';
 export {
@@ -37,8 +39,6 @@ import {
   type PlayerRating,
   type TeiGrade,
 } from 'warp12-engine';
-import type { CaptainGender } from '../game/captain-profile.js';
-import type { CaptainPronounPreference } from '../game/captain-pronouns.js';
 import { isRatedLocalGame } from '../game/local-game-config.js';
 import {
   objectiveRatingStats as objectiveTeiStats,
@@ -50,6 +50,52 @@ import {
 import { objectiveToTrackKey, cacheDisplayRating, type StoredRating } from './rating-types.js';
 
 const PLAYER_STATS = 'playerStats';
+const PLAYER_PROFILES = 'playerProfiles';
+
+/**
+ * Keep federation `playerProfiles` in sync with Warp captain identity so Lattice
+ * and future titles can narrate / avatar from one source of truth.
+ */
+async function syncCaptainIdentityToPlayerProfile(
+  uid: string,
+  fields: {
+    captainGender?: CaptainGender;
+    captainPronouns?: CaptainPronounPreference;
+    speakAs?: string | null;
+    displayName?: string;
+  }
+): Promise<void> {
+  const db = getFirestoreDb();
+  if (!db) {
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const ref = doc(db, PLAYER_PROFILES, uid);
+  const snap = await getDoc(ref);
+  const existing = snap.exists() ? (snap.data() as Record<string, unknown>) : null;
+
+  await setDoc(
+    ref,
+    stripUndefinedFieldsForFirestore({
+      uid,
+      ...(existing?.displayName
+        ? {}
+        : { displayName: fields.displayName?.trim() || 'Captain' }),
+      ...(existing?.visibility ? {} : { visibility: 'public' }),
+      ...(existing?.createdAt ? {} : { createdAt: now }),
+      ...(fields.captainGender !== undefined
+        ? { captainGender: fields.captainGender }
+        : {}),
+      ...(fields.captainPronouns !== undefined
+        ? { captainPronouns: fields.captainPronouns }
+        : {}),
+      ...(fields.speakAs !== undefined ? { speakAs: fields.speakAs } : {}),
+      updatedAt: now,
+    }),
+    { merge: true }
+  );
+}
 
 /** Firestore rejects explicit `undefined` in documents. */
 export function stripUndefinedFieldsForFirestore<T extends Record<string, unknown>>(
@@ -306,6 +352,49 @@ export async function fetchPlayerStats(
   return snap.data() as PlayerStatsDocument;
 }
 
+/** Federation profile identity fields (preferred over playerStats when set). */
+export async function fetchCaptainIdentityFromProfile(uid: string): Promise<{
+  captainGender?: CaptainGender;
+  captainPronouns?: CaptainPronounPreference;
+  speakAs?: string | null;
+} | null> {
+  if (!isFirebaseConfigured()) {
+    return null;
+  }
+  const db = getFirestoreDb();
+  if (!db) {
+    return null;
+  }
+  const snap = await getDoc(doc(db, PLAYER_PROFILES, uid));
+  if (!snap.exists()) {
+    return null;
+  }
+  const data = snap.data() as {
+    captainGender?: unknown;
+    captainPronouns?: unknown;
+    speakAs?: unknown;
+  };
+  return {
+    captainGender:
+      data.captainGender === 'other' ||
+      data.captainGender === 'male' ||
+      data.captainGender === 'female'
+        ? data.captainGender
+        : undefined,
+    captainPronouns:
+      data.captainPronouns &&
+      typeof data.captainPronouns === 'object' &&
+      data.captainPronouns !== null &&
+      'preset' in data.captainPronouns
+        ? (data.captainPronouns as CaptainPronounPreference)
+        : undefined,
+    speakAs:
+      typeof data.speakAs === 'string' || data.speakAs === null
+        ? data.speakAs
+        : undefined,
+  };
+}
+
 export async function saveCaptainGender(
   uid: string,
   captainGender: CaptainGender
@@ -319,12 +408,14 @@ export async function saveCaptainGender(
   }
 
   const now = new Date().toISOString();
+  let displayName: string | undefined;
   await runTransaction(db, async (tx) => {
     const ref = doc(db, PLAYER_STATS, uid);
     const snap = await tx.get(ref);
     const existing = snap.exists()
       ? (snap.data() as PlayerStatsDocument)
       : null;
+    displayName = existing?.displayName;
 
     tx.set(
       ref,
@@ -337,6 +428,15 @@ export async function saveCaptainGender(
       { merge: true }
     );
   });
+
+  try {
+    await syncCaptainIdentityToPlayerProfile(uid, {
+      captainGender,
+      displayName,
+    });
+  } catch (err) {
+    console.warn('[stats] failed to sync captainGender to playerProfiles', err);
+  }
 }
 
 export async function saveCaptainPronouns(
@@ -352,12 +452,14 @@ export async function saveCaptainPronouns(
   }
 
   const now = new Date().toISOString();
+  let displayName: string | undefined;
   await runTransaction(db, async (tx) => {
     const ref = doc(db, PLAYER_STATS, uid);
     const snap = await tx.get(ref);
     const existing = snap.exists()
       ? (snap.data() as PlayerStatsDocument)
       : null;
+    displayName = existing?.displayName;
 
     tx.set(
       ref,
@@ -370,6 +472,18 @@ export async function saveCaptainPronouns(
       { merge: true }
     );
   });
+
+  try {
+    await syncCaptainIdentityToPlayerProfile(uid, {
+      captainPronouns,
+      displayName,
+    });
+  } catch (err) {
+    console.warn(
+      '[stats] failed to sync captainPronouns to playerProfiles',
+      err
+    );
+  }
 }
 
 export async function saveCaptainSpeakAs(
@@ -386,12 +500,14 @@ export async function saveCaptainSpeakAs(
 
   const sanitized = sanitizeSpeakAs(speakAs);
   const now = new Date().toISOString();
+  let displayName: string | undefined;
   await runTransaction(db, async (tx) => {
     const ref = doc(db, PLAYER_STATS, uid);
     const snap = await tx.get(ref);
     const existing = snap.exists()
       ? (snap.data() as PlayerStatsDocument)
       : null;
+    displayName = existing?.displayName;
 
     tx.set(
       ref,
@@ -404,6 +520,15 @@ export async function saveCaptainSpeakAs(
       { merge: true }
     );
   });
+
+  try {
+    await syncCaptainIdentityToPlayerProfile(uid, {
+      speakAs: sanitized,
+      displayName,
+    });
+  } catch (err) {
+    console.warn('[stats] failed to sync speakAs to playerProfiles', err);
+  }
 }
 
 export async function setAcademyPlacement(
