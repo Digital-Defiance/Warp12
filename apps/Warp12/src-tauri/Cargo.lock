@@ -4626,7 +4626,7 @@ dependencies = [
 
 [[package]]
 name = "warp12"
-version = "0.10.67"
+version = "0.10.68"
 dependencies = [
  "log",
  "rfd",

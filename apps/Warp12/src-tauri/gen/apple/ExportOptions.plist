@@ -13,7 +13,7 @@
   <key>provisioningProfiles</key>
   <dict>
     <key>org.digitaldefiance.app.warp12</key>
-    <string>Warp 12 App Store</string>
+    <string>Warp 12 App Store Connect</string>
   </dict>
 </dict>
 </plist>

@@ -295,8 +295,8 @@
 				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
 				PRODUCT_BUNDLE_IDENTIFIER = org.digitaldefiance.app.warp12;
 				PRODUCT_NAME = "Warp 12";
-				PROVISIONING_PROFILE_SPECIFIER = "Warp 12 App Store";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Warp 12 App Store";
+				PROVISIONING_PROFILE_SPECIFIER = "Warp 12 App Store Connect";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Warp 12 App Store Connect";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;
@@ -332,8 +332,8 @@
 				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
 				PRODUCT_BUNDLE_IDENTIFIER = org.digitaldefiance.app.warp12;
 				PRODUCT_NAME = "Warp 12";
-				PROVISIONING_PROFILE_SPECIFIER = "Warp 12 App Store";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Warp 12 App Store";
+				PROVISIONING_PROFILE_SPECIFIER = "Warp 12 App Store Connect";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Warp 12 App Store Connect";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;
