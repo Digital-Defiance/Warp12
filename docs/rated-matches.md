@@ -1,6 +1,6 @@
 # Rated matches (officiated TEI)
 
-Human-pool and **crew** TEI for **offline / in-person** domino is applied through **approved rated matches** on [iwdf.org](https://iwdf.org).
+Human-pool and **crew** TEI for **offline / in-person** domino is applied through **approved rated matches** on [iwgf.org](https://iwgf.org).
 
 ## Flow
 
@@ -38,7 +38,7 @@ This is a **one-time chicken-and-egg fix**: nobody has `admin` yet, so the first
 
 1. You pick a long random passphrase (e.g. `openssl rand -base64 32`) — **only you** know it.
 2. You store it as Firebase secret `BOOTSTRAP_ADMIN_SECRET` and redeploy functions.
-3. At [iwdf.org/admin](https://iwdf.org/admin), you sign in with **Google** (not guest).
+3. At [iwgf.org/admin](https://iwgf.org/admin), you sign in with **Google** (not guest).
 4. You paste the passphrase and click **Claim admin**.
 5. The `bootstrapAdmin` Cloud Function checks the passphrase, then sets on **your Google account's Firebase uid**:
 

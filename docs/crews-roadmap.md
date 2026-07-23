@@ -14,7 +14,7 @@ Warp 12 aims to be the **reference implementation** for serious Mexican Train: *
 
 | Capability | Status | Where |
 |------------|--------|-------|
-| [TEI calculator](https://iwdf.org/calculator) crew preview | Shipped | `/calculator` — optional crew pool dropdown |
+| [TEI calculator](https://iwgf.org/calculator) crew preview | Shipped | `/calculator` — optional crew pool dropdown |
 | [Rated matches](./rated-matches.md) + `charterId` | Shipped | Officiate crew selector → `groupTei` on approve |
 | Online sectors + `charterId` | Shipped | Bridge lobby crew picker → `reportOnlineMatch` |
 | `groupTei` on `playerStats` | Shipped | `libs/tei-core`, Cloud Functions |
@@ -61,7 +61,7 @@ Mexican Train will not unify on one kitchen-table ruleset. It *can* unify on: **
 | Mechanism | Status | Use |
 |-----------|--------|-----|
 | **Google sign-in** | Shipped | Required to join a crew and appear on its ladder |
-| **Invite link** | Shipped | `iwdf.org/crews/{slug}/join?token=…` — SHA-256 hashed server-side, revocable via `rotateCharterInvite` |
+| **Invite link** | Shipped | `iwgf.org/crews/{slug}/join?token=…` — SHA-256 hashed server-side, revocable via `rotateCharterInvite` |
 | **Short invite code** | Shipped | `CREW-7K3Q` for in-person handoff (same pattern as `MT-7K3Q`) |
 | **Owner** | Shipped | Creates crew; rotates invites; cannot leave while other members remain without transferring ownership |
 
@@ -96,7 +96,7 @@ Layer 4 — Global Official                       [PARTIAL — Phase 3]
 
 **Table size:** one fleet size per crew charter (e.g. always 4). Bands or multiple charters per crew are Phase 4+.
 
-**Fair comparison:** multi-player strength uses pairwise ranks (TEI spec §6.5). Crew TEI uses the same math as the [calculator](https://iwdf.org/calculator).
+**Fair comparison:** multi-player strength uses pairwise ranks (TEI spec §6.5). Crew TEI uses the same math as the [calculator](https://iwgf.org/calculator).
 
 ---
 

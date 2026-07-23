@@ -11,7 +11,7 @@ permalink: /streamer-manual
 
 How to broadcast Warp without leaking your hand, with the on-screen **commentator** feed for viewers.
 
-**Play:** [warp.iwdf.org](https://warp.iwdf.org)
+**Play:** [warp.iwgf.org](https://warp.iwgf.org)
 
 ---
 
@@ -47,10 +47,10 @@ Replace `CODE` with your sector code (uppercase).
 
 | Source | URL | Notes |
 | --- | --- | --- |
-| **Watch** (full table) | `https://warp.iwdf.org/online/CODE/watch` | Gallery view; defaults to commentator log |
-| **Commentary only** | `https://warp.iwdf.org/online/CODE/commentary` | Chrome-free highlight feed — best for a lower-third |
-| **Join** | `https://warp.iwdf.org/online/CODE` | Seat invite (not for OBS) |
-| **Private hand** | `https://warp.iwdf.org/online/CODE/hand` | **Off-camera only** — same Firebase seat as `/play` |
+| **Watch** (full table) | `https://warp.iwgf.org/online/CODE/watch` | Gallery view; defaults to commentator log |
+| **Commentary only** | `https://warp.iwgf.org/online/CODE/commentary` | Chrome-free highlight feed — best for a lower-third |
+| **Join** | `https://warp.iwgf.org/online/CODE` | Seat invite (not for OBS) |
+| **Private hand** | `https://warp.iwgf.org/online/CODE/hand` | **Off-camera only** — same Firebase seat as `/play` |
 
 Commentary and watch require the host’s **spectator gallery** to be open. If the host closes spectate, those URLs fail closed.
 
@@ -60,7 +60,7 @@ Keep the **game tab** open — local overlays use `BroadcastChannel`.
 
 | Source | URL | Notes |
 | --- | --- | --- |
-| **Commentary only** | `https://warp.iwdf.org/commentary` (or your local origin + `/commentary`) | Mirrors the live Bridge |
+| **Commentary only** | `https://warp.iwgf.org/commentary` (or your local origin + `/commentary`) | Mirrors the live Bridge |
 | **Private hand** | `…/local/hand` | **Off-camera only** — playable hand strip |
 
 On localhost / Tauri preview, Stream setup copies your current origin so links hit the running build.

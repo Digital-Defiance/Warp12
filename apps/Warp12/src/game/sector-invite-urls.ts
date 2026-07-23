@@ -1,5 +1,5 @@
 /** Canonical public Bridge origin for shareable invite links. */
-export const PUBLIC_BRIDGE_ORIGIN = 'https://warp.iwdf.org';
+export const PUBLIC_BRIDGE_ORIGIN = 'https://warp.iwgf.org';
 
 function normalizeSectorCode(gameId: string): string {
   return gameId.trim().toUpperCase();

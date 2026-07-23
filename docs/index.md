@@ -14,7 +14,7 @@ Welcome to the Warp 12 documentation hub. This site covers the **Navigational Op
 
 {: .fs-6 .fw-300 }
 
-**Play now:** [warp.iwdf.org](https://warp.iwdf.org) · **Leaderboard:** [iwdf.org](https://iwdf.org)
+**Play now:** [warp.iwgf.org](https://warp.iwgf.org) · **Leaderboard:** [iwgf.org](https://iwgf.org)
 
 {: .highlight }
 For hands-on development, start with [System Architecture](architecture) and the [repository README](https://github.com/Digital-Defiance/Warp12/blob/main/README.md).
@@ -57,7 +57,7 @@ For hands-on development, start with [System Architecture](architecture) and the
 
 | Resource | URL |
 | -------- | --- |
-| Bridge (play) | [warp.iwdf.org](https://warp.iwdf.org) |
-| Leaderboard | [iwdf.org](https://iwdf.org) |
+| Bridge (play) | [warp.iwgf.org](https://warp.iwgf.org) |
+| Leaderboard | [iwgf.org](https://iwgf.org) |
 | `warp12-engine` on npm | [npmjs.com/package/warp12-engine](https://www.npmjs.com/package/warp12-engine) |
 | Source repository | [github.com/Digital-Defiance/Warp12](https://github.com/Digital-Defiance/Warp12) |

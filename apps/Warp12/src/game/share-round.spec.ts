@@ -26,7 +26,7 @@ describe('share-round', () => {
     });
     expect(message).toContain('Armstrong wins the round');
     expect(message).toContain('Armstrong: +12 points');
-    expect(message).toContain('https://warp.iwdf.org');
+    expect(message).toContain('https://warp.iwgf.org');
   });
 
   it('preserves stats in overlay mode messages', () => {
@@ -48,7 +48,7 @@ describe('share-round', () => {
       expect.arrayContaining([
         'Sector blocked',
         'Armstrong: +12 points',
-        'https://warp.iwdf.org',
+        'https://warp.iwgf.org',
       ])
     );
   });

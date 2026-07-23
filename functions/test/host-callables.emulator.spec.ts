@@ -30,12 +30,14 @@ describe('countActiveSectors (emulator)', () => {
     const result = await callCallable<{
       ok: true;
       active: number;
+      latticeActive?: number;
       scanned: number;
     }>('countActiveSectors', {});
 
     expect(result.ok).toBe(true);
     expect(result.active).toBeGreaterThanOrEqual(1);
     expect(result.scanned).toBeGreaterThanOrEqual(1);
+    expect(typeof (result.latticeActive ?? 0)).toBe('number');
   });
 });
 

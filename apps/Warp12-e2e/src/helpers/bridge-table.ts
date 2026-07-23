@@ -98,7 +98,7 @@ export async function playMoveOnOwnTrail(
       throw new Error(`Move rejected: ${message}`);
     }
 
-    await expect(page.getByText('Subspace IWDF link active')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText('Subspace IWGF link active')).toBeVisible({ timeout: 20_000 });
     try {
       await expect
         .poll(async () => helmCallSign(page), { timeout: 15_000 })

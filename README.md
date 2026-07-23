@@ -12,14 +12,14 @@
 <table border="0">
   <tr>
     <td align="center" width="140">
-      <a href="https://warp.iwdf.org" style="text-decoration: none;">
+      <a href="https://warp.iwgf.org" style="text-decoration: none;">
         <img src="https://github.com/user-attachments/assets/d945bff2-4fe3-4f2c-8605-a14792871666" width="64" height="64" alt="Play Warp" />
         <br />
         Play Warp
       </a>
     </td>
     <td align="center" width="160">
-      <a href="https://iwdf.org" style="text-decoration: none;">
+      <a href="https://iwgf.org" style="text-decoration: none;">
         <img src="https://github.com/user-attachments/assets/6f5d0591-e0e5-4695-a194-38fbfb11a5db" width="64" height="64" alt="The Federation" />
         <br />
         The Federation
@@ -40,9 +40,9 @@
 
 > [Watch on YouTube](https://youtu.be/JtgJ5-1eNH0)
 >
-> Playing Warp 12 at [warp.iwdf.org](https://warp.iwdf.org) against seven AI players with all available modules enabled.
+> Playing Warp 12 at [warp.iwgf.org](https://warp.iwgf.org) against seven AI players with all available modules enabled.
 >
-> Warp 12 is an open-source, federation-themed “Mexican Train” (Interstellar Warp Dominoes) game with several novel add-on modules that enhance gameplay. [Every module](https://warp.iwdf.org/modules) has been battle-tested across 285,000 games, as detailed in our [40-page research paper](https://warp.iwdf.org/research), and carefully balanced either for demonstrable skill or to flip the game on its head with more luck-dominant “Warped” play.
+> Warp 12 is an open-source, federation-themed “Mexican Train” (Interstellar Warp Dominoes) game with several novel add-on modules that enhance gameplay. [Every module](https://warp.iwgf.org/modules) has been battle-tested across 285,000 games, as detailed in our [40-page research paper](https://warp.iwgf.org/research), and carefully balanced either for demonstrable skill or to flip the game on its head with more luck-dominant “Warped” play.
 >
 > Warp supports online squads through **Module Zeta**.
 >
@@ -63,9 +63,9 @@
 
 > [Watch on YouTube](https://youtu.be/yIMr1udKvTA)
 >
-> Playing Warp 12 at [warp.iwdf.org](https://warp.iwdf.org) against seventeen AI players with wormholes and longest trail modules enabled.
+> Playing Warp 12 at [warp.iwgf.org](https://warp.iwgf.org) against seventeen AI players with wormholes and longest trail modules enabled.
 >
-> Warp 12 is an open-source, federation-themed “Mexican Train” (Interstellar Warp Dominoes) game with several novel add-on modules that enhance gameplay. [Every module](https://warp.iwdf.org/modules) has been battle-tested across 285,000 games, as detailed in our [40-page research paper](https://warp.iwdf.org/research), and carefully balanced either for demonstrable skill or to flip the game on its head with more luck-dominant “Warped” play.
+> Warp 12 is an open-source, federation-themed “Mexican Train” (Interstellar Warp Dominoes) game with several novel add-on modules that enhance gameplay. [Every module](https://warp.iwgf.org/modules) has been battle-tested across 285,000 games, as detailed in our [40-page research paper](https://warp.iwgf.org/research), and carefully balanced either for demonstrable skill or to flip the game on its head with more luck-dominant “Warped” play.
 >
 > Warp supports online squads through **Module Zeta**.
 >
@@ -86,9 +86,9 @@
 
 > [Watch on YouTube](https://youtu.be/xDiQx0jeHC4)
 >
-> Playing Warp 12 at [warp.iwdf.org](https://warp.iwdf.org) against seventeen AI players with wormholes, longest trail, double down, and hot potato modules enabled.
+> Playing Warp 12 at [warp.iwgf.org](https://warp.iwgf.org) against seventeen AI players with wormholes, longest trail, double down, and hot potato modules enabled.
 >
-> Warp 12 is an open-source, federation-themed “Mexican Train” (Interstellar Warp Dominoes) game with several novel add-on modules that enhance gameplay. [Every module](https://warp.iwdf.org/modules) has been battle-tested across 285,000 games, as detailed in our [40-page research paper](https://warp.iwdf.org/research), and carefully balanced either for demonstrable skill or to flip the game on its head with more luck-dominant “Warped” play.
+> Warp 12 is an open-source, federation-themed “Mexican Train” (Interstellar Warp Dominoes) game with several novel add-on modules that enhance gameplay. [Every module](https://warp.iwgf.org/modules) has been battle-tested across 285,000 games, as detailed in our [40-page research paper](https://warp.iwgf.org/research), and carefully balanced either for demonstrable skill or to flip the game on its head with more luck-dominant “Warped” play.
 >
 > Warp supports online squads through **Module Zeta**.
 >
@@ -282,8 +282,8 @@ Two static SPAs on the **`warp-12`** project:
 
 | Site | Deploy target | Build output | URL |
 | ---- | ------------- | ------------ | --- |
-| Bridge | `hosting:bridge` | `apps/Warp12/dist` | [warp.iwdf.org](https://warp.iwdf.org) |
-| Leaderboard | `hosting:leaderboard` | `Warp12-leaderboard/dist` | [iwdf.org](https://iwdf.org) |
+| Bridge | `hosting:bridge` | `apps/Warp12/dist` | [warp.iwgf.org](https://warp.iwgf.org) |
+| Leaderboard | `hosting:leaderboard` | `Warp12-leaderboard/dist` | [iwgf.org](https://iwgf.org) |
 
 ### One-time setup
 
@@ -297,9 +297,9 @@ Two static SPAs on the **`warp-12`** project:
    firebase use warp-12
    ```
 3. Hosting targets (already configured in `.firebaserc`):
-   - **Bridge** site id: `warp-12` → [warp.iwdf.org](https://warp.iwdf.org)
-   - **Leaderboard** site id: `warp-12-leaderboard` → [iwdf.org](https://iwdf.org) (Firebase default URL: `warp-12-leaderboard.web.app`)
-   - **Warp Ops** site id: `warp-12-ops` → [ops.iwdf.org](https://ops.iwdf.org)
+   - **Bridge** site id: `warp-12` → [warp.iwgf.org](https://warp.iwgf.org)
+   - **Leaderboard** site id: `warp-12-leaderboard` → [iwgf.org](https://iwgf.org) (Firebase default URL: `warp-12-leaderboard.web.app`)
+   - **Warp Ops** site id: `warp-12-ops` → [ops.iwgf.org](https://ops.iwgf.org)
 
    Re-apply targets if needed:
    ```bash
@@ -308,9 +308,9 @@ Two static SPAs on the **`warp-12`** project:
    firebase target:apply hosting ops warp-12-ops --project warp-12
    ```
 4. In [Firebase Console → Hosting](https://console.firebase.google.com/project/warp-12/hosting), attach custom domains:
-   - **Bridge** (`warp-12`): `warp.iwdf.org`
-   - **Leaderboard** (`warp-12-leaderboard`): `iwdf.org` (and `www` if used)
-   - **Warp Ops** (`warp-12-ops`): `ops.iwdf.org`
+   - **Bridge** (`warp-12`): `warp.iwgf.org`
+   - **Leaderboard** (`warp-12-leaderboard`): `iwgf.org` (and `www` if used)
+   - **Warp Ops** (`warp-12-ops`): `ops.iwgf.org`
 5. Enable Hosting on the sites if prompted.
 
 ### Build + deploy
@@ -359,11 +359,11 @@ Firebase Console → Authentication → **Settings** → **Authorized domains** 
 
 - `localhost` (dev)
 - `warp12.app`
-- `warp.iwdf.org`
+- `warp.iwgf.org`
 - `warp-12.web.app`
 - `warp-12.firebaseapp.com`
 - `warp-12-leaderboard.web.app` (default Firebase URL for the leaderboard site)
-- `iwdf.org`
+- `iwgf.org`
 - `leaderboard.warp12.app`
 
 Anonymous Auth will fail on a domain that is not listed there.
@@ -401,7 +401,7 @@ The **tactical advisor** follows Commander **Ω** (greedy policy) when weights a
 
 ### Leaderboard TEI (unassisted matches)
 
-Solo games vs AI feed **[iwdf.org](https://iwdf.org)** when the sector is **Warp 12** (double-twelve). Warp 9 / 15 / 18 never update TEI. Two independent tracks:
+Solo games vs AI feed **[iwgf.org](https://iwgf.org)** when the sector is **Warp 12** (double-twelve). Warp 9 / 15 / 18 never update TEI. Two independent tracks:
 
 | Track | When it applies |
 |-------|-----------------|

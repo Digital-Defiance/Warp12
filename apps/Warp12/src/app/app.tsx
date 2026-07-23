@@ -186,15 +186,15 @@ function AppShell() {
               </div>
             )}
           <nav className={styles.nav} aria-label="Site">
-            {/* Phone + table focus: Rules/Options live in game actions — keep IWDF only. */}
+            {/* Phone + table focus: Rules/Options live in game actions — keep IWGF only. */}
             {layoutTier === 'phone' && layoutFocus ? (
               <Link
-                to="https://iwdf.org"
+                to="https://iwgf.org"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={styles.iwdfLink}
+                className={styles.iwgfLink}
               >
-                IWDF
+                IWGF
               </Link>
             ) : overlayDocs ? (
               <>
@@ -220,12 +220,12 @@ function AppShell() {
                   Privacy
                 </button>
                 <Link
-                  to="https://iwdf.org"
+                  to="https://iwgf.org"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={styles.iwdfLink}
+                  className={styles.iwgfLink}
                 >
-                  IWDF
+                  IWGF
                 </Link>
               </>
             ) : (
@@ -247,16 +247,21 @@ function AppShell() {
                 <Link to="/privacy" className={styles.navLink}>
                   Privacy
                 </Link>
-                <Link to="/profile" className={styles.navLink}>
-                  Profile
-                </Link>
-                <Link
-                  to="https://iwdf.org"
+                <a
+                  href="https://profile.iwgf.org"
+                  className={styles.navLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={styles.iwdfLink}
                 >
-                  IWDF
+                  Federation Profile
+                </a>
+                <Link
+                  to="https://iwgf.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.iwgfLink}
+                >
+                  IWGF
                 </Link>
               </>
             )}

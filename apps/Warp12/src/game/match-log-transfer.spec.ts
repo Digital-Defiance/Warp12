@@ -94,8 +94,8 @@ describe('match-log-transfer', () => {
   });
 
   it('creates shareable link with match embedded', () => {
-    const link = createShareableLink(sampleMatch, 'https://warp.iwdf.org');
-    expect(link).toContain('https://warp.iwdf.org');
+    const link = createShareableLink(sampleMatch, 'https://warp.iwgf.org');
+    expect(link).toContain('https://warp.iwgf.org');
     expect(link).toContain('?match=');
     
     // Extract just the match parameter to verify URL-safe encoding
@@ -106,19 +106,19 @@ describe('match-log-transfer', () => {
   });
 
   it('extracts match from URL', () => {
-    const link = createShareableLink(sampleMatch, 'https://warp.iwdf.org');
+    const link = createShareableLink(sampleMatch, 'https://warp.iwgf.org');
     const extracted = extractMatchFromUrl(link);
     expect(extracted).not.toBeNull();
     expect(extracted?.gameId).toBe(sampleMatch.gameId);
   });
 
   it('returns null when no match in URL', () => {
-    const extracted = extractMatchFromUrl('https://warp.iwdf.org');
+    const extracted = extractMatchFromUrl('https://warp.iwgf.org');
     expect(extracted).toBeNull();
   });
 
   it('returns null on invalid URL match param', () => {
-    const extracted = extractMatchFromUrl('https://warp.iwdf.org?match=invalid');
+    const extracted = extractMatchFromUrl('https://warp.iwgf.org?match=invalid');
     expect(extracted).toBeNull();
   });
 

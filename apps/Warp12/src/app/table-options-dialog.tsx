@@ -861,7 +861,7 @@ export function TableOptionsDialog({
             </div>
             <p className={optionStyles.hint}>
               Force reload clears browser cache storage and refreshes the page —
-              useful if subspace IWDF link state looks stale.
+              useful if subspace IWGF link state looks stale.
               {showDebugExport && onExportDebug
                 ? ' Export debug log downloads a JSON snapshot for bug reports (host only; on iPad opens the share sheet or copies).'
                 : ''}

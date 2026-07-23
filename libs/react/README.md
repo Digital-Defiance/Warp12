@@ -7,11 +7,11 @@
 
 **React adapters for Warp** — engine `RoundState` to train layouts, tactical advisor, hand layout, and UI utilities for multi-trail Interstellar Dominoes.
 
-**▶ Play:** [warp.iwdf.org](https://warp.iwdf.org) — the IWDF front door for every Warp factor (also marketed as [warp12.app](https://warp12.app)).
+**▶ Play:** [warp.iwgf.org](https://warp.iwgf.org) — the IWGF front door for every Warp factor (also marketed as [warp12.app](https://warp12.app)).
 
 ## About Warp
 
-**Warp** is multiplayer, federation-themed multi-trail dominoes supporting **Warp factors 9 / 12 / 15 / 18** (double-N domino sets), governed by the **Interstellar Warp Dominoes Federation** ([iwdf.org](https://iwdf.org)). **Warp 12** (double-twelve) is the **only IWDF-rated variant** with TEI leaderboard rankings. This library provides React-specific adapters and hooks to build Warp game clients across all variants.
+**Warp** is multiplayer, federation-themed multi-trail dominoes supporting **Warp factors 9 / 12 / 15 / 18** (double-N domino sets), governed by the **Interstellar Warp Gaming Federation** ([iwgf.org](https://iwgf.org)). **Warp 12** (double-twelve) is the **only IWGF-rated variant** with TEI leaderboard rankings. This library provides React-specific adapters and hooks to build Warp game clients across all variants.
 
 ## Features
 

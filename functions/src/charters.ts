@@ -371,7 +371,7 @@ export const createCharter = onCall(async (request) => {
     ...publicCharterView(charter),
     inviteToken,
     crewCode: formatCrewInviteCode(inviteCodeShort),
-    inviteUrl: `https://iwdf.org/crews/${slug}/join?token=${inviteToken}`,
+    inviteUrl: `https://iwgf.org/crews/${slug}/join?token=${inviteToken}`,
   };
 });
 
@@ -537,7 +537,7 @@ export const rotateCharterInvite = onCall(async (request) => {
   return {
     inviteToken,
     crewCode: formatCrewInviteCode(inviteCodeShort),
-    inviteUrl: `https://iwdf.org/crews/${charter.slug}/join?token=${inviteToken}`,
+    inviteUrl: `https://iwgf.org/crews/${charter.slug}/join?token=${inviteToken}`,
   };
 });
 

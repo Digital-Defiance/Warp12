@@ -52,7 +52,7 @@ Clients may only create empty competitive profiles and update cosmetic fields (`
 
 ## Leaderboard display
 
-The public leaderboard (`iwdf.org`) ranks **verified pools only**:
+The public leaderboard (`iwgf.org`) ranks **verified pools only**:
 
 - **Human pool** — officiated matches and verified online sectors
 - **Crew ladders** — `groupTei` per charter at `/crews`

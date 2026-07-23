@@ -12180,17 +12180,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@warp12/WarpOps@workspace:apps/WarpOps":
-  version: 0.0.0-use.local
-  resolution: "@warp12/WarpOps@workspace:apps/WarpOps"
-  dependencies:
-    "@tauri-apps/api": "npm:^2"
-    "@tauri-apps/cli": "npm:^2"
-    "@tauri-apps/plugin-opener": "npm:^2"
-    firebase: "npm:^12.15.0"
-  languageName: unknown
-  linkType: soft
-
 "@warp12/functions@workspace:functions":
   version: 0.0.0-use.local
   resolution: "@warp12/functions@workspace:functions"
@@ -12198,7 +12187,7 @@ __metadata:
     "@elevenlabs/elevenlabs-js": "npm:^2.58.0"
     double-eighteen: "file:vendor/double-eighteen"
     firebase-admin: "npm:^13.0.0"
-    firebase-functions: "npm:^7.2.5"
+    firebase-functions: "npm:7.3.0"
     pdf-lib: "npm:^1.17.1"
     typescript: "npm:~5.9.2"
     warp12-engine: "file:vendor/warp12-engine"
@@ -17724,9 +17713,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"firebase-functions@npm:^7.2.5":
-  version: 7.2.5
-  resolution: "firebase-functions@npm:7.2.5"
+"firebase-functions@npm:7.3.0":
+  version: 7.3.0
+  resolution: "firebase-functions@npm:7.3.0"
   dependencies:
     "@types/cors": "npm:^2.8.5"
     "@types/express": "npm:^4.17.21"
@@ -17736,7 +17725,7 @@ __metadata:
   peerDependencies:
     "@apollo/server": ^5.2.0
     "@as-integrations/express4": ^1.1.2
-    firebase-admin: ^11.10.0 || ^12.0.0 || ^13.0.0
+    firebase-admin: ^11.10.0 || ^12.0.0 || ^13.0.0 || ^14.0.0
     graphql: ^16.12.0
   peerDependenciesMeta:
     "@apollo/server":
@@ -17747,7 +17736,7 @@ __metadata:
       optional: true
   bin:
     firebase-functions: lib/bin/firebase-functions.js
-  checksum: 10c0/124f81ed4f3287ed0728b17d10774469c29ba52e87a8e04e534670acdccc0f7dbea9ffb16c560ac3a0a7215c9bf3a3de7e1158de47859e8bf1fc36117148374d
+  checksum: 10c0/cac99e609c5db1a7f2fae5de7db5b348069ba5ded408e341406daf990411557e19d9ebc16e112e8cdd9e0b77b71b06c9919306c8c337d200f4b5d5d61223b421
   languageName: node
   linkType: hard
 
@@ -29795,10 +29784,10 @@ __metadata:
 
 "warp12-engine@file:vendor/warp12-engine::locator=%40warp12%2Ffunctions%40workspace%3Afunctions":
   version: 0.4.27
-  resolution: "warp12-engine@file:vendor/warp12-engine#vendor/warp12-engine::hash=60f9e8&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
+  resolution: "warp12-engine@file:vendor/warp12-engine#vendor/warp12-engine::hash=d65e30&locator=%40warp12%2Ffunctions%40workspace%3Afunctions"
   peerDependencies:
     double-eighteen: ">=0.4.0"
-  checksum: 10c0/97171c66447b37e0ee23eb71745460d697a477c879464e1fa51d9daeab9f6a88ff0381778102c496061da2bb115d9d32aa6a4b05abc37bd4e18323814787bbf4
+  checksum: 10c0/ba1c760b39eaa3c91ef0de88ee53dd3c857c744411253cf4086b17b2100dc90b8e8fda51b787cb644fc056c922b0448dc5f2769bd6c4feb975c03868a793eaa1
   languageName: node
   linkType: hard
 

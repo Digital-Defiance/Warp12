@@ -14,7 +14,7 @@
 - **W3** (double-three, 10 tiles) — minimal viable
 - **W6** (double-six, 28 tiles) — "standard dominoes"
 - **W9** (double-nine, 55 tiles)
-- **W12** (double-twelve, 91 tiles) — **IWDF rated**
+- **W12** (double-twelve, 91 tiles) — **IWGF rated**
 - **W15** (double-fifteen, 136 tiles)
 - **W18** (double-eighteen, 190 tiles)
 - *(Optional: W21, W24 if engine supports)*
@@ -396,7 +396,7 @@ for (const config of KEY_CONFIGS) {
 - Commander heuristics not superhuman
 - No human player data (engine-only)
 - Points objective primary (go-out is supplementary)
-- Focuses on IWDF Official Warp rules (no house-rule sweep)
+- Focuses on IWGF Official Warp rules (no house-rule sweep)
 
 ---
 
@@ -404,7 +404,7 @@ for (const config of KEY_CONFIGS) {
 
 ### 7.1 Novel Contributions
 1. **First comprehensive luck/skill study across domino set sizes**
-2. **Quantitative validation of IWDF rating policy** (W12 only)
+2. **Quantitative validation of IWGF rating policy** (W12 only)
 3. **Interaction effect between set size and fleet size** (not just linear)
 4. **Skill ceiling validation via AI win rate sensitivity**
 5. **Predictive model for untested configs** (e.g., W21, W24)

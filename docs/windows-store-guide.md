@@ -26,12 +26,12 @@
 1. **Ensure PWA readiness**
    - Manifest at `apps/Warp12/public/manifest.json` ✓
    - Service worker configured ✓
-   - HTTPS enabled (warp.iwdf.org) ✓
+   - HTTPS enabled (warp.iwgf.org) ✓
 
 2. **Generate MSIX from PWA**
    ```bash
    # Visit https://www.pwabuilder.com/
-   # Enter: https://warp.iwdf.org
+   # Enter: https://warp.iwgf.org
    # Click "Package for Stores" → Windows
    # Download generated MSIX
    ```
@@ -101,7 +101,7 @@ If Tauri's MSIX build has issues:
 - App name: Warp 12
 - Category: Games → Card & board
 - Age rating: Use questionnaire (likely E for Everyone or 12+)
-- Privacy policy: https://warp.iwdf.org/privacy (if you have one)
+- Privacy policy: https://warp.iwgf.org/privacy (if you have one)
 
 **Store Listing:**
 - Description (max 10,000 characters)

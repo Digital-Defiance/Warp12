@@ -16,9 +16,9 @@ aux_links:
   GitHub:
     - https://github.com/Digital-Defiance/Warp12
   Play:
-    - https://warp.iwdf.org
+    - https://warp.iwgf.org
   Leaderboard:
-    - https://iwdf.org
+    - https://iwgf.org
 
 footer_content: "Warp 12 — a Double-Twelve domino variant for the NX Epoch."
 
@@ -72,7 +72,7 @@ defaults:
       title: Rated Matches
       parent: TEI & Rating
       nav_order: 3
-      description: Officiated human-pool TEI for in-person play via iwdf.org.
+      description: Officiated human-pool TEI for in-person play via iwgf.org.
 
   - scope:
       path: tei-paper-outline.md

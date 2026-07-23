@@ -166,6 +166,7 @@ write_export_options_plist() {
   local profile_name="$1"
   local bundle_id="$2"
   local export_plist="${APPLE_GEN_DIR}/ExportOptions.plist"
+  mkdir -p "$APPLE_GEN_DIR" || die "failed to create ${APPLE_GEN_DIR}"
   cat > "$export_plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

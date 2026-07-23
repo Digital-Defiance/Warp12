@@ -136,7 +136,7 @@ export async function expectBridgeTable(
   await expect(page.getByText(`Sector ${sectorCode} · ${callSign}`)).toBeVisible({
     timeout: 20_000,
   });
-  await expect(page.getByText('Subspace IWDF link active')).toBeVisible({
+  await expect(page.getByText('Subspace IWGF link active')).toBeVisible({
     timeout: 20_000,
   });
   await expect(

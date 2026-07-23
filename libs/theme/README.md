@@ -7,11 +7,11 @@
 
 **Federation-styled domino themes for Warp** — visual theming presets for [`double-eighteen`](https://www.npmjs.com/package/double-eighteen) dominoes across all Warp factors.
 
-**▶ Play:** [warp.iwdf.org](https://warp.iwdf.org) — the IWDF front door for every Warp factor (also marketed as [warp12.app](https://warp12.app)).
+**▶ Play:** [warp.iwgf.org](https://warp.iwgf.org) — the IWGF front door for every Warp factor (also marketed as [warp12.app](https://warp12.app)).
 
 ## About Warp
 
-**Warp** is multiplayer, federation-themed multi-trail dominoes supporting **Warp factors 9 / 12 / 15 / 18** (double-N domino sets), governed by the **Interstellar Warp Dominoes Federation** ([iwdf.org](https://iwdf.org)). **Warp 12** (double-twelve) is the **only IWDF-rated variant**. This library provides the visual identity — color palettes, pip styles, and themed domino rendering — that transforms standard dominoes into Navigational Coordinates for Interstellar Dominoes.
+**Warp** is multiplayer, federation-themed multi-trail dominoes supporting **Warp factors 9 / 12 / 15 / 18** (double-N domino sets), governed by the **Interstellar Warp Gaming Federation** ([iwgf.org](https://iwgf.org)). **Warp 12** (double-twelve) is the **only IWGF-rated variant**. This library provides the visual identity — color palettes, pip styles, and themed domino rendering — that transforms standard dominoes into Navigational Coordinates for Interstellar Dominoes.
 
 ## Features
 

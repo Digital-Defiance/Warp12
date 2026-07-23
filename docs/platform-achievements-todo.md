@@ -1,7 +1,7 @@
 # Platform achievements (PGS + Game Center)
 
 **Goal:** Mirror Warp milestones on Google Play Games Services and Apple Game
-Center without competing with TEI / iwdf.org. Firebase stays the account of
+Center without competing with TEI / iwgf.org. Firebase stays the account of
 record; platform shells are flair + Level Up eligibility.
 
 **Out of scope for this track:** Sign in with Apple (App Store 4.8 — separate),
@@ -97,7 +97,7 @@ Call the shared unlock API from real events (never invent TEI from platforms):
 - [x] Hook high-confidence events first (`first_sector`, `campaign_complete`, `first_launch`)
 - [ ] `first_all_stop` / `first_beacon` from table actions
 - [ ] Rated / commission hooks from TEI certificate / stats update paths
-- [ ] Keep copy: “Federation TEI on iwdf.org” vs “Play / Game Center achievements”
+- [ ] Keep copy: “Federation TEI on iwgf.org” vs “Play / Game Center achievements”
 
 ---
 

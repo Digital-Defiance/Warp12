@@ -15,7 +15,7 @@
   min-height: 100vh;
 }
 
-.iwdfLink {
+.iwgfLink {
   font-family: var(--font-federation-wide, system-ui);
   font-size: 0.78rem;
   line-height: 1;
@@ -352,14 +352,14 @@
   }
 
   .navLink,
-  .iwdfLink {
+  .iwgfLink {
     font-size: 0.58rem;
     padding: 0.3rem 0.28rem;
     flex: 0 1 auto;
     white-space: nowrap;
   }
 
-  // Table focus: logo | Exhibition | IWDF on row 1; game actions scroll on row 2.
+  // Table focus: logo | Exhibition | IWGF on row 1; game actions scroll on row 2.
   &.shellFocus .header[data-has-game-actions='true'],
   .header[data-has-game-actions='true'] {
     grid-template-columns: auto minmax(0, 1fr) auto;

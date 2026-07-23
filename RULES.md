@@ -19,7 +19,7 @@ optional variants. There was no authority to appeal to; there was only
 common practice.
 
 While Warp does not claim otherwise, we have formed the Interstellar
-Warp Dominoes Federation to be a fun semi-fictional authority. We have
+Warp Gaming Federation to be a fun semi-fictional authority. We have
 studied the most widely cited sources and tournament-style conventions
 and tried to stay true to the *spirit* of authentic multi-trail play,
 while making deliberate, documented choices wherever those sources
@@ -41,10 +41,10 @@ disagree. The result is meant to be three things at once:
 
 Where this manual says "standard" or "tournament practice," read it as
 *the common multi-trail convention Warp has chosen to adopt* for
-members/players of the IWDF, not a claim of sanctioned authority across
+members/players of the IWGF, not a claim of sanctioned authority across
 "Mexican Train" as a whole. This is our best attempt to honor the game,
 cover the popular variants, and establish a Warp standard worth playing.
-This is the IWDF Warp standard, but is by no means an authoritative
+This is the IWGF Warp standard, but is by no means an authoritative
 standard beyond Warp players.
 
 This document is the authoritative rules reference **for Warp** (and
@@ -1646,7 +1646,7 @@ mode, not as a separate rated anchor.
 ## VIII. TEI & leaderboard *(digital)*
 
 Local solo sectors against **AI officers** can report results to
-**[iwdf.org](https://iwdf.org)** when the client is signed in to
+**[iwgf.org](https://iwgf.org)** when the client is signed in to
 Firebase. Team campaigns, unrated lobby modes, and builds without a
 working stats backend do not update the public boards.
 
@@ -1654,10 +1654,10 @@ working stats backend do not update the public boards.
 > with physical dominoes — around a table, with friends and family — the
 > TEI rating system requires digital tracking to compute and maintain
 > ratings accurately. For tabletop games, use the [TEI
-> calculator](https://iwdf.org/calculator) or officiated match codes to
+> calculator](https://iwgf.org/calculator) or officiated match codes to
 > report results and update your rating. The full online app
-> ([warp.iwdf.org](https://warp.iwdf.org)) and the leaderboards
-> ([iwdf.org](https://iwdf.org)) handle all TEI computation
+> ([warp.iwgf.org](https://warp.iwgf.org)) and the leaderboards
+> ([iwgf.org](https://iwgf.org)) handle all TEI computation
 > automatically.
 
 Warp keeps **three rating contexts**, each split into **Go-out** and
@@ -1670,7 +1670,7 @@ Warp keeps **three rating contexts**, each split into **Go-out** and
   crew charter (global `humanTei`).
 
 - **Crew charters** — friend-group ladders on
-  [iwdf.org/crews](https://iwdf.org/crews); scoped **group TEI** per
+  [iwgf.org/crews](https://iwgf.org/crews); scoped **group TEI** per
   charter. See [Crews & charters](docs/crews-roadmap.md).
 
 TEI is displayed as a **grade** (letter + score, like “V67”) combining
@@ -1723,7 +1723,7 @@ or Go-out), fleet size (2–8), and campaign length. When a rated match or
 online sector is played **under a crew charter**, TEI updates go to that
 crew's ladder (`groupTei`), not the global human pool.
 
-- **Create / join** at [iwdf.org/crews](https://iwdf.org/crews).
+- **Create / join** at [iwgf.org/crews](https://iwgf.org/crews).
   **Google sign-in required.** No shared crew passwords — invite links
   only (owner can rotate).
 
@@ -1742,7 +1742,7 @@ crew's ladder (`groupTei`), not the global human pool.
   Rated play under it updates **both** the Global Official crew ladder
   **and** global human-pool TEI.
 
-The [TEI calculator](https://iwdf.org/calculator) can preview
+The [TEI calculator](https://iwgf.org/calculator) can preview
 crew-ladder outcomes without saving anything. Full design:
 <a href="docs/crews-roadmap.md" class="uri">docs/crews-roadmap.md</a>.
 
@@ -2137,7 +2137,7 @@ All Stop! ceremony on standard **Sections I–V** gameplay.
 | Double-blank (0-0) score | (tournament standard) | Setup option 50 / 25 / 0 — Official Warp preset uses 0 (Continuum trigger) |
 | Blocked boneyard | Round ends, all score | Blocked sector — same |
 | AI officers / tactical advisor | — | Section VII — digital only |
-| Solo TEI vs AI | — | Section VIII — iwdf.org; unassisted matches only |
+| Solo TEI vs AI | — | Section VIII — iwgf.org; unassisted matches only |
 | Online TEI (human pool) | — | Section VIII — auto-rated when all captains are signed in and any AI are Ensign–Commander |
 | Crew / charter TEI | — | Section VIII — group TEI via leaderboard crews + officiated or online rated sectors |
 | Global Official TEI | — | Section VIII — open charter; updates crew + global human pool |

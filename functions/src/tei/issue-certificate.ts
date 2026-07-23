@@ -68,6 +68,6 @@ export async function issueSignedCertificate(
     ...certificate,
     signature: signed.signature,
     pdfPath: signed.storagePath,
-    verifyUrl: `https://iwdf.org/verify?code=${encodeURIComponent(certificate.matchCode)}`,
+    verifyUrl: `https://iwgf.org/verify?code=${encodeURIComponent(certificate.matchCode)}`,
   };
 }

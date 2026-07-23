@@ -69,7 +69,7 @@ export function AboutPage() {
               Engine survey (GitHub)
             </a>
             <a
-              href="https://iwdf.org"
+              href="https://iwgf.org"
               target="_blank"
               rel="noopener noreferrer"
             >

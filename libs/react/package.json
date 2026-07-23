@@ -2,7 +2,7 @@
   "name": "warp12-react",
   "version": "0.4.27",
   "description": "React adapters for Warp — state to trains, tactical coach, and hand layout for multi-trail Interstellar Dominoes (Warp 9/12/15/18)",
-  "homepage": "https://warp.iwdf.org",
+  "homepage": "https://warp.iwgf.org",
   "license": "MIT",
   "author": "Digital Defiance",
   "type": "module",

@@ -127,7 +127,7 @@ export async function renderCertificatePdf(
   if (signature.length > 64) {
     draw(signature.slice(64), { size: 8, color: rgb(0.35, 0.4, 0.45) });
   }
-  draw('Verify at https://iwdf.org/verify', {
+  draw('Verify at https://iwgf.org/verify', {
     size: 9,
     color: rgb(0.2, 0.45, 0.7),
   });

@@ -18,7 +18,7 @@
     "@elevenlabs/elevenlabs-js": "^2.58.0",
     "double-eighteen": "file:vendor/double-eighteen",
     "firebase-admin": "^13.0.0",
-    "firebase-functions": "^7.2.5",
+    "firebase-functions": "7.3.0",
     "pdf-lib": "^1.17.1",
     "warp12-engine": "file:vendor/warp12-engine"
   },

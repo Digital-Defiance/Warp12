@@ -133,7 +133,7 @@ import {
 const base64 = exportMatchToBase64Url(matchLog);
 // Copy/paste or generate link
 const link = createShareableLink(matchLog);
-// https://warp.iwdf.org?match=eyJnYW1l...
+// https://warp.iwgf.org?match=eyJnYW1l...
 
 // Import
 const imported = importMatchFromBase64(base64);
@@ -287,7 +287,7 @@ console.log(`${status.synced}/${status.total} matches synced`);
 ```typescript
 // Create shareable link
 const link = createShareableLink(matchLog);
-// https://warp.iwdf.org?match=eyJnYW1l...
+// https://warp.iwgf.org?match=eyJnYW1l...
 
 // Copy to clipboard
 navigator.clipboard.writeText(link);

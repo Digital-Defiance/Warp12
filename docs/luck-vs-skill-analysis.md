@@ -259,4 +259,4 @@ If Warp 18 at 18p has minimal skill expression:
 
 ### For Player Communication
 Document findings in RULES.md:
-> **Warp 18 at maximum fleet size (18 captains)**: IWDF analysis indicates this configuration is primarily luck-driven. Strategic planning is severely constrained by hand fragmentation and high train availability. Recommended for chaotic, casual play — not competitive rating.
+> **Warp 18 at maximum fleet size (18 captains)**: IWGF analysis indicates this configuration is primarily luck-driven. Strategic planning is severely constrained by hand fragmentation and high train availability. Recommended for chaotic, casual play — not competitive rating.

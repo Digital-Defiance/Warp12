@@ -132,7 +132,7 @@ export async function signOutUser(): Promise<void> {
   await signOut(auth);
 }
 
-export const LEADERBOARD_MATCHES_URL = 'https://iwdf.org/matches';
+export const LEADERBOARD_MATCHES_URL = 'https://iwgf.org/matches';
 
 export function ratedMatchCheckInUrl(code?: string): string {
   if (!code) {

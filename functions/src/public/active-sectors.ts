@@ -4,28 +4,36 @@ import { onCall } from 'firebase-functions/v2/https';
 const db = admin.firestore();
 
 const ACTIVE_PHASES = ['lobby', 'active', 'round-end'] as const;
+/** Drop stale Lattice rooms that never finished cleanly. */
+const LATTICE_ACTIVE_WINDOW_MS = 90 * 60 * 1000;
 
-type CacheEntry = { at: number; active: number; scanned: number };
+type CacheEntry = {
+  at: number;
+  active: number;
+  latticeActive: number;
+  scanned: number;
+  latticeScanned: number;
+};
 let cache: CacheEntry | null = null;
 const CACHE_TTL_MS = 30_000;
 
-/**
- * Public sector activity pulse for iwdf.org (and similar). No auth required.
- * Counts games in lobby / active / round-end that are not ops-terminated.
- */
-export const countActiveSectors = onCall(async () => {
-  const now = Date.now();
-  if (cache && now - cache.at < CACHE_TTL_MS) {
-    return {
-      ok: true as const,
-      active: cache.active,
-      scanned: cache.scanned,
-      cached: true,
-      updatedAt: new Date(cache.at).toISOString(),
-    };
+function asMillis(value: unknown): number | null {
+  if (
+    value &&
+    typeof value === 'object' &&
+    'toMillis' in value &&
+    typeof (value as { toMillis: () => number }).toMillis === 'function'
+  ) {
+    return (value as { toMillis: () => number }).toMillis();
   }
+  if (typeof value === 'string' || typeof value === 'number') {
+    const ms = new Date(value).getTime();
+    return Number.isFinite(ms) ? ms : null;
+  }
+  return null;
+}
 
-  // Prefer phase+updatedAt index; fall back to a bounded recent scan.
+async function countWarpActive(): Promise<{ active: number; scanned: number }> {
   let snap: admin.firestore.QuerySnapshot;
   try {
     snap = await db
@@ -44,8 +52,8 @@ export const countActiveSectors = onCall(async () => {
 
   const activePhases = new Set<string>(ACTIVE_PHASES);
   let active = 0;
-  for (const doc of snap.docs) {
-    const data = doc.data();
+  for (const docSnap of snap.docs) {
+    const data = docSnap.data();
     if (!activePhases.has(String(data.phase ?? ''))) {
       continue;
     }
@@ -54,12 +62,84 @@ export const countActiveSectors = onCall(async () => {
     }
     active += 1;
   }
+  return { active, scanned: snap.size };
+}
 
-  cache = { at: now, active, scanned: snap.size };
+async function countLatticeActive(): Promise<{
+  active: number;
+  scanned: number;
+}> {
+  const cutoff = Date.now() - LATTICE_ACTIVE_WINDOW_MS;
+  let snap: admin.firestore.QuerySnapshot;
+  try {
+    snap = await db
+      .collection('latticeRooms')
+      .orderBy('updatedAt', 'desc')
+      .limit(200)
+      .get();
+  } catch {
+    return { active: 0, scanned: 0 };
+  }
+
+  let active = 0;
+  for (const roomSnap of snap.docs) {
+    const data = roomSnap.data();
+    if (!data.whitePlayerId || !data.blackPlayerId) {
+      continue;
+    }
+    const updatedAt = asMillis(data.updatedAt);
+    if (updatedAt != null && updatedAt < cutoff) {
+      continue;
+    }
+    const stateSnap = await roomSnap.ref
+      .collection('meta')
+      .doc('gameState')
+      .get();
+    if (stateSnap.exists && stateSnap.data()?.winner) {
+      continue;
+    }
+    active += 1;
+  }
+  return { active, scanned: snap.size };
+}
+
+/**
+ * Public sector activity pulse for iwgf.org (and similar). No auth required.
+ * Warp: games in lobby / active / round-end that are not ops-terminated.
+ * Lattice: seated rooms updated recently with no winner yet.
+ */
+export const countActiveSectors = onCall(async () => {
+  const now = Date.now();
+  if (cache && now - cache.at < CACHE_TTL_MS) {
+    return {
+      ok: true as const,
+      active: cache.active,
+      latticeActive: cache.latticeActive,
+      scanned: cache.scanned,
+      latticeScanned: cache.latticeScanned,
+      cached: true,
+      updatedAt: new Date(cache.at).toISOString(),
+    };
+  }
+
+  const [warp, lattice] = await Promise.all([
+    countWarpActive(),
+    countLatticeActive(),
+  ]);
+
+  cache = {
+    at: now,
+    active: warp.active,
+    latticeActive: lattice.active,
+    scanned: warp.scanned,
+    latticeScanned: lattice.scanned,
+  };
   return {
     ok: true as const,
-    active,
-    scanned: snap.size,
+    active: warp.active,
+    latticeActive: lattice.active,
+    scanned: warp.scanned,
+    latticeScanned: lattice.scanned,
     cached: false,
     updatedAt: new Date(now).toISOString(),
   };

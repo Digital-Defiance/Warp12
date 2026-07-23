@@ -146,7 +146,7 @@ grep -r "1000\|1200\|1400\|1450\|1500" . --include="*.ts" --include="*.tsx" | gr
 1. Test build: `cd Warp12-leaderboard && yarn build`
 2. Test locally: `yarn dev` and check calculator page
 3. Deploy: `yarn deploy:hosting`
-4. Verify on iwdf.org/calculator
+4. Verify on iwgf.org/calculator
 5. Monitor for any TypeScript/runtime errors
 
 **Status:** ✅ READY FOR DEPLOYMENT

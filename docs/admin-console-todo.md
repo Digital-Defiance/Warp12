@@ -1,11 +1,11 @@
 # Warp Ops — Admin Console TODO
 
-**Status**: foundations shipped (bans + `warp` CLI + Warp Ops SPA @ ops.iwdf.org)  
+**Status**: foundations shipped (bans + `warp` CLI + Warp Ops SPA @ ops.iwgf.org)  
 **Goal**: Ops console (web + Tauri) that can administer **everything** Warp writes online, with real moderation and TEI maintenance — without the Firebase console.
 
 Reuse Firebase Auth custom claims (`admin`). Privileged mutations via Cloud Functions / Admin SDK + `opsAudit`. Clients never get raw Admin SDK.
 
-**CLI:** `yarn warp` · **UI:** `apps/WarpOps` · **Host:** `hosting:ops` → `warp-12-ops` → **ops.iwdf.org**
+**CLI:** `yarn warp` · **UI:** `apps/WarpOps` · **Host:** `hosting:ops` → `warp-12-ops` → **ops.iwgf.org**
 
 ---
 
@@ -76,7 +76,7 @@ Reuse Firebase Auth custom claims (`admin`). Privileged mutations via Cloud Func
 ### H. Match certificates (player-facing — PDF required)
 - [x] Server-signed payload (HMAC) + **required PDF** on official rated-match approval (`pdf-lib`, Storage path `certificates/{code}.pdf`)
 - [x] `verifyMatchCertificate` callable (signature check + signed PDF URL)
-- [x] Verify page UI at iwdf.org/verify (`Warp12-leaderboard` `/verify`)
+- [x] Verify page UI at iwgf.org/verify (`Warp12-leaderboard` `/verify`)
 - [x] Online sector certificates on `reportOnlineMatch` / squad (`ON-{gameId}` in `ratedMatches`)
 
 ### Also: banned-word list (careful)
@@ -129,7 +129,7 @@ Reuse Firebase Auth custom claims (`admin`). Privileged mutations via Cloud Func
 9. ~~**Player certificates**~~ (verify page + online `ON-` PDFs)
 10. ~~**Report queue + careful banned-word flagging**~~ (Bridge report + WarpOps Reports tab + triggers)
 11. ~~Crews~~ / logs confirmed unused / ~~admin roles docs + `warp roles`~~
-12. ~~Deep links + Subspace slash commands (`/spectate`) + iwdf.org active-game counter~~
+12. ~~Deep links + Subspace slash commands (`/spectate`) + iwgf.org active-game counter~~
 13. ~~BrightDate preference (Bridge)~~
 14. ~~Ops rename / redact / hands inspect / deep-link auth UX~~
 15. ~~Ops role split (`moderator`) + audit viewer + coach presence in sector detail~~
@@ -248,7 +248,7 @@ Player-facing / public site — not Warp Ops chrome.
 - [x] First command: `/spectate` / `/spectator` / `/watch` replies with (and copies) the sector’s public watch link
 - [x] Help / unknown-command UX; rated-play keeps free text blocked but allows local `/` commands
 
-### Leaderboard home (iwdf.org)
+### Leaderboard home (iwgf.org)
 - [x] **Active game counter** on the leaderboard home page (`countActiveSectors` public callable)
 
 ---

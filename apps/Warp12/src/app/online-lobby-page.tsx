@@ -458,7 +458,7 @@ export function OnlineLobbyPage() {
 
   if (sectorCode && !auth.ready) {
     return (
-      <p className={styles.waitingMessage}>Establishing subspace IWDF link…</p>
+      <p className={styles.waitingMessage}>Establishing subspace IWGF link…</p>
     );
   }
 

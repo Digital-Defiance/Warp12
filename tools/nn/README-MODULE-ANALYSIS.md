@@ -168,7 +168,7 @@ When publishing results, cite as:
 
 ```
 Warp Module Analysis [version]
-Interstellar Warp Dominoes Federation
+Interstellar Warp Gaming Federation
 Analysis date: [timestamp]
 Method: Self-play (Commander AI, 500 games/config)
 ```
