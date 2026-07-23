@@ -15,7 +15,6 @@
           "https://ops.iwgf.org",
           "https://profile.iwgf.org",
           "https://lattice.iwgf.org"
-
         ]
       }
     }
@@ -713,6 +712,125 @@
           }
         },
         {
+          "source": "/api/fn/deleteLatticeChatMessage",
+          "run": {
+            "serviceId": "deletelatticechatmessage",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getLatticeTei",
+          "run": {
+            "serviceId": "getlatticetei",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getOpsLatticeRoom",
+          "run": {
+            "serviceId": "getopslatticeroom",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listActiveLatticeRooms",
+          "run": {
+            "serviceId": "listactivelatticerooms",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listLatticeCaptainRatingEvents",
+          "run": {
+            "serviceId": "listlatticecaptainratingevents",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listLatticeRoomChat",
+          "run": {
+            "serviceId": "listlatticeroomchat",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listStaleLatticeRooms",
+          "run": {
+            "serviceId": "liststalelatticerooms",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsCleanupStaleLatticeRoom",
+          "run": {
+            "serviceId": "opscleanupstalelatticeroom",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsDropLatticeObservers",
+          "run": {
+            "serviceId": "opsdroplatticeobservers",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsKickLatticePlayer",
+          "run": {
+            "serviceId": "opskicklatticeplayer",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsSetLatticeAllowObservers",
+          "run": {
+            "serviceId": "opssetlatticeallowobservers",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsSetLatticeTei",
+          "run": {
+            "serviceId": "opssetlatticetei",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsTerminateLatticeRoom",
+          "run": {
+            "serviceId": "opsterminatelatticeroom",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsUnrateLatticeOnlineRoom",
+          "run": {
+            "serviceId": "opsunratelatticeonlineroom",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsVoidLatticeRatingEvent",
+          "run": {
+            "serviceId": "opsvoidlatticeratingevent",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/searchLatticeChat",
+          "run": {
+            "serviceId": "searchlatticechat",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/searchLatticeRooms",
+          "run": {
+            "serviceId": "searchlatticerooms",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "**",
           "destination": "/index.html"
         }
@@ -1373,6 +1491,125 @@
           }
         },
         {
+          "source": "/api/fn/deleteLatticeChatMessage",
+          "run": {
+            "serviceId": "deletelatticechatmessage",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getLatticeTei",
+          "run": {
+            "serviceId": "getlatticetei",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getOpsLatticeRoom",
+          "run": {
+            "serviceId": "getopslatticeroom",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listActiveLatticeRooms",
+          "run": {
+            "serviceId": "listactivelatticerooms",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listLatticeCaptainRatingEvents",
+          "run": {
+            "serviceId": "listlatticecaptainratingevents",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listLatticeRoomChat",
+          "run": {
+            "serviceId": "listlatticeroomchat",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listStaleLatticeRooms",
+          "run": {
+            "serviceId": "liststalelatticerooms",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsCleanupStaleLatticeRoom",
+          "run": {
+            "serviceId": "opscleanupstalelatticeroom",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsDropLatticeObservers",
+          "run": {
+            "serviceId": "opsdroplatticeobservers",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsKickLatticePlayer",
+          "run": {
+            "serviceId": "opskicklatticeplayer",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsSetLatticeAllowObservers",
+          "run": {
+            "serviceId": "opssetlatticeallowobservers",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsSetLatticeTei",
+          "run": {
+            "serviceId": "opssetlatticetei",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsTerminateLatticeRoom",
+          "run": {
+            "serviceId": "opsterminatelatticeroom",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsUnrateLatticeOnlineRoom",
+          "run": {
+            "serviceId": "opsunratelatticeonlineroom",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsVoidLatticeRatingEvent",
+          "run": {
+            "serviceId": "opsvoidlatticeratingevent",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/searchLatticeChat",
+          "run": {
+            "serviceId": "searchlatticechat",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/searchLatticeRooms",
+          "run": {
+            "serviceId": "searchlatticerooms",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "**",
           "destination": "/index.html"
         }
@@ -2029,6 +2266,125 @@
           "source": "/api/fn/verifyMatchCertificate",
           "run": {
             "serviceId": "verifymatchcertificate",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/deleteLatticeChatMessage",
+          "run": {
+            "serviceId": "deletelatticechatmessage",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getLatticeTei",
+          "run": {
+            "serviceId": "getlatticetei",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/getOpsLatticeRoom",
+          "run": {
+            "serviceId": "getopslatticeroom",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listActiveLatticeRooms",
+          "run": {
+            "serviceId": "listactivelatticerooms",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listLatticeCaptainRatingEvents",
+          "run": {
+            "serviceId": "listlatticecaptainratingevents",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listLatticeRoomChat",
+          "run": {
+            "serviceId": "listlatticeroomchat",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/listStaleLatticeRooms",
+          "run": {
+            "serviceId": "liststalelatticerooms",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsCleanupStaleLatticeRoom",
+          "run": {
+            "serviceId": "opscleanupstalelatticeroom",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsDropLatticeObservers",
+          "run": {
+            "serviceId": "opsdroplatticeobservers",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsKickLatticePlayer",
+          "run": {
+            "serviceId": "opskicklatticeplayer",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsSetLatticeAllowObservers",
+          "run": {
+            "serviceId": "opssetlatticeallowobservers",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsSetLatticeTei",
+          "run": {
+            "serviceId": "opssetlatticetei",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsTerminateLatticeRoom",
+          "run": {
+            "serviceId": "opsterminatelatticeroom",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsUnrateLatticeOnlineRoom",
+          "run": {
+            "serviceId": "opsunratelatticeonlineroom",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/opsVoidLatticeRatingEvent",
+          "run": {
+            "serviceId": "opsvoidlatticeratingevent",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/searchLatticeChat",
+          "run": {
+            "serviceId": "searchlatticechat",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/api/fn/searchLatticeRooms",
+          "run": {
+            "serviceId": "searchlatticerooms",
             "region": "us-central1"
           }
         },

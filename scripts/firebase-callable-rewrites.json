@@ -36,6 +36,10 @@
     "serviceId": "deleteadminnote"
   },
   {
+    "name": "deleteLatticeChatMessage",
+    "serviceId": "deletelatticechatmessage"
+  },
+  {
     "name": "deleteSectorMessage",
     "serviceId": "deletesectormessage"
   },
@@ -64,6 +68,10 @@
     "serviceId": "getcontentreviewconfig"
   },
   {
+    "name": "getLatticeTei",
+    "serviceId": "getlatticetei"
+  },
+  {
     "name": "getModerationEvidencePack",
     "serviceId": "getmoderationevidencepack"
   },
@@ -82,6 +90,10 @@
   {
     "name": "getOpsHands",
     "serviceId": "getopshands"
+  },
+  {
+    "name": "getOpsLatticeRoom",
+    "serviceId": "getopslatticeroom"
   },
   {
     "name": "getOpsRatedMatch",
@@ -132,6 +144,10 @@
     "serviceId": "listactivegames"
   },
   {
+    "name": "listActiveLatticeRooms",
+    "serviceId": "listactivelatticerooms"
+  },
+  {
     "name": "listAdminNotes",
     "serviceId": "listadminnotes"
   },
@@ -146,6 +162,14 @@
   {
     "name": "listCharterJoinRequests",
     "serviceId": "listcharterjoinrequests"
+  },
+  {
+    "name": "listLatticeCaptainRatingEvents",
+    "serviceId": "listlatticecaptainratingevents"
+  },
+  {
+    "name": "listLatticeRoomChat",
+    "serviceId": "listlatticeroomchat"
   },
   {
     "name": "listListedCharters",
@@ -180,6 +204,10 @@
     "serviceId": "liststalegames"
   },
   {
+    "name": "listStaleLatticeRooms",
+    "serviceId": "liststalelatticerooms"
+  },
+  {
     "name": "listTtsCache",
     "serviceId": "listttscache"
   },
@@ -196,6 +224,10 @@
     "serviceId": "opscascadefromratingevent"
   },
   {
+    "name": "opsCleanupStaleLatticeRoom",
+    "serviceId": "opscleanupstalelatticeroom"
+  },
+  {
     "name": "opsCleanupStaleSector",
     "serviceId": "opscleanupstalesector"
   },
@@ -208,6 +240,10 @@
     "serviceId": "opsclosecharter"
   },
   {
+    "name": "opsDropLatticeObservers",
+    "serviceId": "opsdroplatticeobservers"
+  },
+  {
     "name": "opsDropSpectators",
     "serviceId": "opsdropspectators"
   },
@@ -218,6 +254,10 @@
   {
     "name": "opsKickCaptain",
     "serviceId": "opskickcaptain"
+  },
+  {
+    "name": "opsKickLatticePlayer",
+    "serviceId": "opskicklatticeplayer"
   },
   {
     "name": "opsListCharters",
@@ -236,12 +276,32 @@
     "serviceId": "opssetdisplayname"
   },
   {
+    "name": "opsSetLatticeAllowObservers",
+    "serviceId": "opssetlatticeallowobservers"
+  },
+  {
+    "name": "opsSetLatticeTei",
+    "serviceId": "opssetlatticetei"
+  },
+  {
+    "name": "opsTerminateLatticeRoom",
+    "serviceId": "opsterminatelatticeroom"
+  },
+  {
     "name": "opsTerminateSector",
     "serviceId": "opsterminatesector"
   },
   {
+    "name": "opsUnrateLatticeOnlineRoom",
+    "serviceId": "opsunratelatticeonlineroom"
+  },
+  {
     "name": "opsUnrateOnlineSector",
     "serviceId": "opsunrateonlinesector"
+  },
+  {
+    "name": "opsVoidLatticeRatingEvent",
+    "serviceId": "opsvoidlatticeratingevent"
   },
   {
     "name": "opsVoidRatedMatch",
@@ -290,6 +350,14 @@
   {
     "name": "searchGames",
     "serviceId": "searchgames"
+  },
+  {
+    "name": "searchLatticeChat",
+    "serviceId": "searchlatticechat"
+  },
+  {
+    "name": "searchLatticeRooms",
+    "serviceId": "searchlatticerooms"
   },
   {
     "name": "searchMessages",
